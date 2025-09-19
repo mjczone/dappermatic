@@ -12,9 +12,9 @@ builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "DapperMatic API",
+        Title = "DapperMatic REST API",
         Version = "v1",
-        Description = "Database schema management API using DapperMatic",
+        Description = "Database schema management REST API using DapperMatic",
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
             Name = "MJCZone Inc.",

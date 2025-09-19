@@ -4,8 +4,8 @@
 export default {
   "openapi": "3.0.1",
   "info": {
-    "title": "DapperMatic API",
-    "description": "Database schema management API using DapperMatic",
+    "title": "DapperMatic REST API",
+    "description": "Database schema management REST API using DapperMatic",
     "contact": {
       "name": "MJCZone Inc.",
       "url": "https://github.com/mjczone/dappermatic"
