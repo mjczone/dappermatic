@@ -18,20 +18,20 @@ public static class OperationTags
     /// <summary>
     /// Tag for all DapperMatic Schema-related operations.
     /// </summary>
-    public const string DatasourceDataTypes = "DapperMatic Datasource DataTypes";
+    public const string DatasourceDataTypes = "DapperMatic DataTypes";
 
     /// <summary>
     /// Tag for all DapperMatic Schema-related operations.
     /// </summary>
-    public const string DatasourceSchemas = "DapperMatic Datasource Schemas";
+    public const string DatasourceSchemas = "DapperMatic Schemas";
 
     /// <summary>
     /// Tag for all DapperMatic Table-related operations.
     /// </summary>
-    public const string DatasourceTables = "DapperMatic Datasource Tables";
+    public const string DatasourceTables = "DapperMatic Tables";
 
     /// <summary>
     /// Tag for all DapperMatic View-related operations.
     /// </summary>
-    public const string DatasourceViews = "DapperMatic Datasource Views";
+    public const string DatasourceViews = "DapperMatic Views";
 }

@@ -5,8 +5,9 @@
   "description": "Documentation for MJCZone.DapperMatic",
   "scripts": {
     "generate-api": "node scripts/generate-api-docs.js",
-    "docs:dev": "npm run generate-api && vitepress dev",
-    "docs:build": "npm run generate-api && vitepress build",
+    "generate-openapi": "./scripts/generate-openapi.sh && node scripts/convert-openapi-to-js.js",
+    "docs:dev": "npm run generate-api && npm run generate-openapi && vitepress dev",
+    "docs:build": "npm run generate-api && npm run generate-openapi && vitepress build",
     "docs:preview": "vitepress preview"
   },
   "devDependencies": {
@@ -15,5 +16,8 @@
   },
   "overrides": {
     "esbuild": ">=0.25.0"
+  },
+  "dependencies": {
+    "@scalar/api-reference": "^1.35.6"
   }
 }

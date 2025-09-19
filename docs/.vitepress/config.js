@@ -17,6 +17,7 @@ export default defineConfig({
     nav: [
       { text: "Guide", link: "/guide/getting-started" },
       { text: "API Reference", link: "/api/" },
+      { text: "API Browser", link: "/api-browser/" },
       {
         text: "GitHub",
         link: "https://github.com/mjczone/dappermatic",

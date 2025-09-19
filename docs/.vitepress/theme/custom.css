@@ -450,3 +450,95 @@
   border-left: 4px solid var(--vp-c-warning);
   background-color: var(--vp-c-warning-soft);
 }
+
+/* Target element with ID "description/introduction" (escaped slash) */
+#description\/introduction {
+  margin-top: 0;
+  padding: 10px 0 !important;
+}
+.scalar-api-reference {
+  padding-top: 15px;
+}
+/* Use VitePress brand colors for links */
+.scalar-api-reference a {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}
+
+.scalar-api-reference button,
+.scalar-api-reference [role="button"] {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}
+
+/* Target by text content if it's a button/span */
+.scalar-api-reference *:contains("OpenAPI"),
+.scalar-api-reference *:contains("Download"),
+.scalar-api-reference *:contains("JSON"),
+.scalar-api-reference *:contains("YAML") {
+  color: var(--vp-c-brand-1) !important;
+  font-weight: 600 !important;
+}
+
+/* Target specific download button class */
+.scalar-api-reference .download-button {
+  --scalar-link-color: var(--vp-c-brand-1) !important;
+  --scalar-link-color-visited: var(--vp-c-brand-1) !important;
+  --scalar-link-color-hover: var(--vp-c-brand-2) !important;
+  --scalar-link-color-active: var(--vp-c-brand-3) !important;
+  font-weight: 600 !important;
+}
+
+/* Ensure proper contrast for light theme */
+:root .scalar-api-reference {
+  --scalar-color-1: #2e2e32 !important;
+  --scalar-color-2: #616161 !important;
+}
+
+.dark .scalar-api-reference {
+  --scalar-color-1: #f1f1f3 !important;
+  --scalar-color-2: #c9c9c9 !important;
+}
+
+.scalar-api-reference h2 {
+  border-top: 0;
+}
+.scalar-api-reference .tag-section {
+  margin-bottom: 20px !important;
+}
+
+/* give me a media class for no greater than 900px */
+@media (max-width: 900px) {
+  .scalar-api-reference .narrow-references-container {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+  }
+}
+
+/* Force operations to be collapsed by default */
+.scalar-api-reference [data-testid="tag"] > div:nth-child(2),
+.scalar-api-reference .tag-operations,
+.scalar-api-reference .operations-container,
+.scalar-api-reference .operation-container {
+  display: none !important;
+}
+
+/* Show operations when tag is expanded (when it has an "expanded" or "open" class) */
+.scalar-api-reference [data-testid="tag"].expanded > div:nth-child(2),
+.scalar-api-reference [data-testid="tag"].open > div:nth-child(2),
+.scalar-api-reference [data-testid="tag"][aria-expanded="true"] > div:nth-child(2) {
+  display: block !important;
+}
+
+/* Force models section to be collapsed */
+.scalar-api-reference .models-section > .models-container,
+.scalar-api-reference [data-testid="models"] > div:nth-child(2) {
+  display: none !important;
+}
+
+/* Show models when section is expanded */
+.scalar-api-reference .models-section.expanded > .models-container,
+.scalar-api-reference [data-testid="models"].expanded > div:nth-child(2),
+.scalar-api-reference [data-testid="models"][aria-expanded="true"] > div:nth-child(2) {
+  display: block !important;
+}

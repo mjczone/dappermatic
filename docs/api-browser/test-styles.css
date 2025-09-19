@@ -1,0 +1,37 @@
+/* Test stylesheet for API browser styling experiments */
+
+/* Remove this rule and add your own below */
+.scalar-api-reference .test-rule {
+  /* Test your rules here */
+}
+
+/* Example rules to try (uncomment one at a time): */
+
+/* Option 1: Target by structure */
+/*
+.scalar-api-reference > div:first-child {
+  padding: 10px 0 !important;
+}
+*/
+
+/* Option 2: Target sections more specifically */
+/*
+.scalar-api-reference .section:first-of-type {
+  padding: 10px 0 !important;
+}
+*/
+
+/* Option 3: Target by content area */
+/*
+.scalar-api-reference [role="main"] > div:first-child {
+  padding: 10px 0 !important;
+}
+*/
+
+/* Option 4: Nuclear option - target all sections */
+/*
+.scalar-api-reference * {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+*/
