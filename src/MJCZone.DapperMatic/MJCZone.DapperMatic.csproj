@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Product>DapperMatic</Product>
+    <PackageId>MJCZone.DapperMatic</PackageId>
+    <PackageTags>dotnet dapper mysql sqlserver postgresql sqlite</PackageTags>
+    <!-- <PackageIconUrl></PackageIconUrl> -->
+    <!-- <PackageReleaseNotes></PackageReleaseNotes> -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/mjczone/MJCZone.DapperMatic/</PackageProjectUrl>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <RepositoryUrl>https://github.com/mjczone/MJCZone.DapperMatic/</RepositoryUrl>
+
+    <Version>0.0.1</Version>
+    <Summary>IDbConnection extension methods for DDL operations across multiple database providers.</Summary>
+    <Description>Provides extension methods for IDbConnection to perform DDL operations (tables, columns, indexes, etc.) across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite. Model-first approach with provider-agnostic schema management.</Description>
+
+    <RootNamespace>MJCZone.DapperMatic</RootNamespace>
+    <AssemblyName>MJCZone.DapperMatic</AssemblyName>
+
+    <!-- License Information -->
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
+    <Copyright>Copyright 2025 MJCZone Inc.</Copyright>
+    <Authors>MJCZone Inc.</Authors>
+    <Company>MJCZone Inc.</Company>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Dapper" Version="[2.1.35,3.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>MJCZone.DapperMatic.Tests</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>MJCZone.DapperMatic.AspNetCore</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

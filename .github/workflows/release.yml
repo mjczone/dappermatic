@@ -1,0 +1,140 @@
+name: Published
+
+on:
+  push:
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8
+            9
+          source-url: https://nuget.pkg.github.com/mjczone/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}} #github action provided token
+
+      - name: Set VERSION_NUMBER variable from tag
+        run: echo "VERSION_NUMBER=${GITHUB_REF_NAME/v/}" >> $GITHUB_ENV
+
+      - name: Build
+        run: dotnet build --configuration Release /p:Version=${VERSION_NUMBER}
+
+      # Tests are required before we can deploy, as they also generate
+      # artifacts used in the documentation
+      - name: Build docs assets
+        run: |
+          dotnet test --configuration Release /p:Version=${VERSION_NUMBER} --filter "MJCZone.DapperMatic.Tests.TestOutputDocs" --no-build
+          # replace VERSION_NUMBER in docs/index.md with ${VERSION_NUMBER}
+          sed -i "s/VERSION_NUMBER/${VERSION_NUMBER}/g" docs/index.md
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install VitePress dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Build VitePress documentation
+        working-directory: docs
+        run: npm run docs:build
+
+      - name: Pack
+        run: dotnet pack --configuration Release /p:Version=${VERSION_NUMBER} --no-build --output nupkgs
+          
+      - name: Upload Packages Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nupkgs-artifact
+          path: nupkgs
+          retention-days: 1
+
+      - name: Upload Pages Artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs/.vitepress/dist
+
+  # Deploy to Github Packages Repository
+  deploy-github-packages:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8
+            9
+          source-url: https://nuget.pkg.github.com/mjczone/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}} #github action provided token
+
+      - name: Set VERSION_NUMBER variable from tag
+        run: echo "VERSION_NUMBER=${GITHUB_REF_NAME/v/}" >> $GITHUB_ENV
+
+      - name: Retrieve saved Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-artifact
+          path: nupkgs
+        
+      - name: Push
+        run: dotnet nuget push nupkgs/${PACKAGE_ID}.${VERSION_NUMBER}.nupkg --skip-duplicate
+        env:
+          PACKAGE_ID: "MJCZone.DapperMatic"
+
+  # Deploy to Nuget.org
+  deploy-nuget:
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version:  |
+            8
+            9
+          source-url: https://api.nuget.org/v3/index.json
+        env:
+          NUGET_AUTH_TOKEN: ${{secrets.NUGET_API_KEY}}
+
+      - name: Set VERSION_NUMBER variable from tag
+        run: echo "VERSION_NUMBER=${GITHUB_REF_NAME/v/}" >> $GITHUB_ENV
+
+      - name: Retrieve saved Docker image
+        uses: actions/download-artifact@v4
+        with:
+          name: nupkgs-artifact
+          path: nupkgs
+          
+      - name: Push
+        run: dotnet nuget push nupkgs/*.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{secrets.NUGET_API_KEY}} # nuget.org API key stored in GitHub organization secrets
+
+  # Deploy to GitHub Pages
+  deploy-pages:
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

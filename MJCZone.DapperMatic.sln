@@ -1,0 +1,65 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{80E77F84-7DB0-4CBF-9E43-4A6E9F1758B2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MJCZone.DapperMatic", "src\MJCZone.DapperMatic\MJCZone.DapperMatic.csproj", "{48C04108-798F-4CED-8874-D146500778EB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{C1CEAB9E-CD38-4AA7-B004-B0248F7C39A7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MJCZone.DapperMatic.Tests", "tests\MJCZone.DapperMatic.Tests\MJCZone.DapperMatic.Tests.csproj", "{9FF5A12B-6617-4492-9BD0-434C58051054}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Files", "Solution Files", "{93285C01-B819-4C94-8A18-0CCC817EB3EE}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		src\build\dotnet\CodeAnalysis.ruleset = src\build\dotnet\CodeAnalysis.ruleset
+		src\build\dotnet\common.props = src\build\dotnet\common.props
+		src\Directory.Build.props = src\Directory.Build.props
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MJCZone.DapperMatic.AspNetCore", "src\MJCZone.DapperMatic.AspNetCore\MJCZone.DapperMatic.AspNetCore.csproj", "{5E34BE76-E3E5-4023-AB4A-607B9BDD2962}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MJCZone.DapperMatic.AspNetCore.Tests", "tests\MJCZone.DapperMatic.AspNetCore.Tests\MJCZone.DapperMatic.AspNetCore.Tests.csproj", "{7806F0A9-A748-42A3-AEDC-47E141AA6111}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MJCZone.DapperMatic.AspNetCore.TestWebsite", "tests\MJCZone.DapperMatic.AspNetCore.TestWebsite\MJCZone.DapperMatic.AspNetCore.TestWebsite.csproj", "{0A550E83-9AC9-436D-AA74-F320351FEF07}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{48C04108-798F-4CED-8874-D146500778EB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{48C04108-798F-4CED-8874-D146500778EB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{48C04108-798F-4CED-8874-D146500778EB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{48C04108-798F-4CED-8874-D146500778EB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9FF5A12B-6617-4492-9BD0-434C58051054}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9FF5A12B-6617-4492-9BD0-434C58051054}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9FF5A12B-6617-4492-9BD0-434C58051054}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9FF5A12B-6617-4492-9BD0-434C58051054}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E34BE76-E3E5-4023-AB4A-607B9BDD2962}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E34BE76-E3E5-4023-AB4A-607B9BDD2962}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E34BE76-E3E5-4023-AB4A-607B9BDD2962}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E34BE76-E3E5-4023-AB4A-607B9BDD2962}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7806F0A9-A748-42A3-AEDC-47E141AA6111}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7806F0A9-A748-42A3-AEDC-47E141AA6111}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7806F0A9-A748-42A3-AEDC-47E141AA6111}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7806F0A9-A748-42A3-AEDC-47E141AA6111}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0A550E83-9AC9-436D-AA74-F320351FEF07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A550E83-9AC9-436D-AA74-F320351FEF07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A550E83-9AC9-436D-AA74-F320351FEF07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A550E83-9AC9-436D-AA74-F320351FEF07}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{48C04108-798F-4CED-8874-D146500778EB} = {80E77F84-7DB0-4CBF-9E43-4A6E9F1758B2}
+		{9FF5A12B-6617-4492-9BD0-434C58051054} = {C1CEAB9E-CD38-4AA7-B004-B0248F7C39A7}
+		{5E34BE76-E3E5-4023-AB4A-607B9BDD2962} = {80E77F84-7DB0-4CBF-9E43-4A6E9F1758B2}
+		{7806F0A9-A748-42A3-AEDC-47E141AA6111} = {C1CEAB9E-CD38-4AA7-B004-B0248F7C39A7}
+		{0A550E83-9AC9-436D-AA74-F320351FEF07} = {C1CEAB9E-CD38-4AA7-B004-B0248F7C39A7}
+	EndGlobalSection
+EndGlobal

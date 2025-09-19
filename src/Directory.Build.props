@@ -1,0 +1,44 @@
+<Project>
+  <PropertyGroup>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks> -->
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latestmajor</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
+    <IncludeSymbols>true</IncludeSymbols>
+  </PropertyGroup>
+  <PropertyGroup>
+    <Authors>MJCZone Inc.</Authors>
+    <Company>MJCZone Inc.</Company>
+    <Copyright>Copyright 2025 MJCZone Inc.</Copyright>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference
+      Include="StyleCop.Analyzers"
+      Version="1.1.118"
+      Condition="$(MSBuildProjectExtension) == '.csproj'"
+    >
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework.Contains(net481))' == 'true'">
+    <PackageReference Include="System.Text.Json" Version="9.0.1" />
+    <PackageReference Include="System.Collections.Immutable" Version="9.0.1" />
+    <PackageReference Include="System.Reflection.Metadata" Version="9.0.1" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="LICENSE.md" />
+  </ItemGroup>
+</Project>

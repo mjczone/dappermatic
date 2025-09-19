@@ -1,0 +1,17 @@
+{
+  "name": "mjczone.dappermatic",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "dotnet build",
+    "docs": "dotnet test --filter \"Can_generate_docs\" && cd ./docs && npm run docs:dev",
+    "test": "dotnet test",
+    "test:aspnet": "dotnet test tests/MJCZone.DapperMatic.AspNetCore.Tests",
+    "test:core": "dotnet test tests/MJCZone.DapperMatic.Tests",
+    "website": "cd tests/MJCZone.DapperMatic.AspNetCore.TestWebsite && dotnet watch run"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
