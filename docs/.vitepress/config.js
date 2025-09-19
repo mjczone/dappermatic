@@ -1,4 +1,5 @@
 import { defineConfig } from "vitepress";
+import apiSidebar from "../api-sidebar.json" with { type: "json" };
 
 export default defineConfig({
   title: "DapperMatic",
@@ -97,67 +98,7 @@ export default defineConfig({
           ],
         },
       ],
-      "/api/": [
-        {
-          text: "API Reference",
-          items: [
-            {
-              text: "Overview",
-              link: "/api/",
-            },
-            {
-              text: "MJCZone.DapperMatic",
-              link: "/api/mjczone.dappermatic/",
-              items: [
-                {
-                  text: "📦 Root",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic/",
-                },
-                {
-                  text: "📦 / Providers",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers/",
-                },
-                {
-                  text: "📦 / Providers.SqlServer",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers.sqlserver/",
-                },
-                {
-                  text: "📦 / Providers.Sqlite",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers.sqlite/",
-                },
-                {
-                  text: "📦 / Providers.PostgreSql",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers.postgresql/",
-                },
-                {
-                  text: "📦 / Providers.MySql",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers.mysql/",
-                },
-                {
-                  text: "📦 / Providers.Base",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.providers.base/",
-                },
-                {
-                  text: "📦 / Models",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.models/",
-                },
-                {
-                  text: "📦 / Interfaces",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.interfaces/",
-                },
-                {
-                  text: "📦 / DataAnnotations",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.dataannotations/",
-                },
-                {
-                  text: "📦 / Converters",
-                  link: "/api/mjczone.dappermatic/mjczone.dappermatic.converters/",
-                },
-              ],
-            },
-          ],
-        },
-      ],
+      ...apiSidebar,
     },
 
     socialLinks: [

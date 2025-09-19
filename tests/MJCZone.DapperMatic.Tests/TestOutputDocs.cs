@@ -7,12 +7,15 @@ using System.Reflection;
 using System.Text.Json;
 using System.Xml.Linq;
 using MJCZone.DapperMatic.Providers.Base;
+using MJCZone.DapperMatic.AspNetCore;
 using Xunit.Abstractions;
 
 namespace MJCZone.DapperMatic.Tests;
 
 public class TestOutputDocs
 {
+    private static readonly JsonSerializerOptions SerializationSettings = CreateSerializationSettings();
+
     public TestOutputDocs(ITestOutputHelper logger)
     {
         Logger = logger;
@@ -20,16 +23,39 @@ public class TestOutputDocs
 
     private ITestOutputHelper Logger { get; }
 
+    private static JsonSerializerOptions CreateSerializationSettings()
+    {
+        var stringEnumConverter = new System.Text.Json.Serialization.JsonStringEnumConverter();
+        var serializationSettings = new JsonSerializerOptions
+        {
+            WriteIndented = true,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = System
+                .Text
+                .Json
+                .Serialization
+                .JsonIgnoreCondition
+                .WhenWritingNull,
+        };
+        serializationSettings.Converters.Add(stringEnumConverter);
+        return serializationSettings;
+    }
+
     [Fact]
     public void Can_generate_docs()
     {
-        var assembly = typeof(DatabaseMethodsBase).Assembly;
+        // Generate documentation for both assemblies
+        GenerateAssemblyDocs(typeof(DatabaseMethodsBase).Assembly);
+        GenerateAssemblyDocs(typeof(DapperMaticConfigurationBuilder).Assembly);
+    }
 
+    private void GenerateAssemblyDocs(Assembly assembly)
+    {
         // get the directory of the current assembly
         var assemblyDirectory = Path.GetDirectoryName(assembly.Location);
         if (assemblyDirectory == null || !Directory.Exists(assemblyDirectory))
         {
-            Logger.WriteLine("Could not get the directory of the current assembly.");
+            Logger.WriteLine($"Could not get the directory of the assembly {assembly.GetName().Name}.");
             Assert.True(false);
             return;
         }
@@ -47,7 +73,7 @@ public class TestOutputDocs
         var xml = XDocument.Load(xmlFile);
         if (xml.Root == null)
         {
-            Logger.WriteLine("Could not load the xml documentation file.");
+            Logger.WriteLine($"Could not load the xml documentation file for {assembly.GetName().Name}.");
             Assert.True(false);
             return;
         }
@@ -68,19 +94,6 @@ public class TestOutputDocs
             .ToList();
 
         var akovJsonFile = Path.Combine(assemblyDirectory, $"{assembly.GetName().Name}.docs.json");
-        var stringEnumConverter = new System.Text.Json.Serialization.JsonStringEnumConverter();
-        var serializationSettings = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System
-                .Text
-                .Json
-                .Serialization
-                .JsonIgnoreCondition
-                .WhenWritingNull,
-        };
-        serializationSettings.Converters.Add(stringEnumConverter);
         var output = new
         {
             enums = new
@@ -90,16 +103,16 @@ public class TestOutputDocs
             },
             data = akovData,
         };
-        var serializedContent = JsonSerializer.Serialize(output, serializationSettings);
+        var serializedContent = JsonSerializer.Serialize(output, SerializationSettings);
         File.WriteAllText(akovJsonFile, serializedContent);
-        //Logger.WriteLine(JsonSerializer.Serialize(akovData, serializationSettings));
+        //Logger.WriteLine(JsonSerializer.Serialize(akovData, SerializationSettings));
 
         // var docsJsonFileName = $"{assembly.GetName().Name}.json";
         // var docsJsonFile = Path.Combine(assemblyDirectory, docsJsonFileName);
         // var docs = new Docs();
         // docs.AddAssembly(assembly, xml);
-        // File.WriteAllText(docsJsonFile, JsonSerializer.Serialize(docs, serializationSettings));
-        //Logger.WriteLine(JsonSerializer.Serialize(docs, serializationSettings));
+        // File.WriteAllText(docsJsonFile, JsonSerializer.Serialize(docs, SerializationSettings));
+        //Logger.WriteLine(JsonSerializer.Serialize(docs, SerializationSettings));
 
         // output the file to the docs directory
         var rootDirectory = Path.GetDirectoryName(assemblyDirectory) ?? string.Empty;
@@ -118,7 +131,7 @@ public class TestOutputDocs
             $"{assembly.GetName().Name}.json"
         );
         Directory.CreateDirectory(packagesDirectory);
-        
+
         // Write directly to the destination instead of copying to avoid file locking issues
         File.WriteAllText(docsAssemblyJsonFile, serializedContent);
         Logger.WriteLine($"Created {docsAssemblyJsonFile}");

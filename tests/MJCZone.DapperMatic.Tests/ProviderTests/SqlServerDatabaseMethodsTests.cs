@@ -62,10 +62,12 @@ public abstract class SqlServerDatabaseMethodsests<TDatabaseFixture>(
 
     public override async Task<IDbConnection> OpenConnectionAsync()
     {
+#pragma warning disable CS0618 // Type or member is obsolete
         var db = new DbQueryLogging.LoggedDbConnection(
             new SqlConnection(fixture.ConnectionString),
             new Logging.TestLogger(Output, nameof(SqlConnection))
         );
+#pragma warning restore CS0618 // Type or member is obsolete
         await db.OpenAsync();
         return db;
     }
@@ -73,6 +75,8 @@ public abstract class SqlServerDatabaseMethodsests<TDatabaseFixture>(
 
 public class ProfiledSqlServerMethodsFactory : Providers.SqlServer.SqlServerMethodsFactory
 {
+#pragma warning disable CS0618 // Type or member is obsolete
     public override bool SupportsConnectionCustom(IDbConnection db) =>
         db is DbQueryLogging.LoggedDbConnection loggedDb && loggedDb.Inner is SqlConnection;
+#pragma warning restore CS0618 // Type or member is obsolete
 }

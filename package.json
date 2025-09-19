@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "dotnet build",
-    "docs": "dotnet test --filter \"Can_generate_docs\" && cd ./docs && npm run docs:dev",
+    "docs": "dotnet test tests/MJCZone.DapperMatic.Tests --filter \"Can_generate_docs\" && cd ./docs && npm run docs:dev",
     "test": "dotnet test",
     "test:aspnet": "dotnet test tests/MJCZone.DapperMatic.AspNetCore.Tests",
     "test:core": "dotnet test tests/MJCZone.DapperMatic.Tests",

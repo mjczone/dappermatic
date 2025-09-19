@@ -22,6 +22,16 @@ function sanitizeUrlName(name) {
     .replace(/^-|-$/g, "");
 }
 
+// Helper to get friendly display names for assemblies
+function getDisplayName(assemblyName) {
+  const displayNames = {
+    "MJCZone.DapperMatic": "🔧 DapperMatic Core",
+    "MJCZone.DapperMatic.AspNetCore": "🌐 ASP.NET Core"
+  };
+
+  return displayNames[assemblyName] || assemblyName;
+}
+
 // Helper to sanitize inheritance URLs (preserves path structure)
 function sanitizeInheritanceUrl(url) {
   return url
@@ -35,6 +45,15 @@ function formatDocumentation(text) {
   if (!text) return "";
   // Convert <see cref="T:TypeName" /> to inline code
   return text.replace(/<see cref="[A-Z]:([^"]+)" \/>/g, "`$1`");
+}
+
+// Helper to format text for use in markdown tables (removes line breaks)
+function formatTableText(text) {
+  if (!text) return "";
+  return formatDocumentation(text)
+    .replace(/\r?\n/g, " ") // Replace line breaks with spaces
+    .replace(/\s+/g, " ")  // Collapse multiple spaces
+    .trim();
 }
 
 // Helper to decode Unicode-escaped angle brackets and format types for display
@@ -276,23 +295,76 @@ function extractParameterTypes(commentId) {
   });
 }
 
+// Helper to shorten type names for better readability
+function shortenTypeName(typeName) {
+  if (!typeName) return typeName;
+
+  // Remove common namespace prefixes
+  const prefixesToRemove = [
+    'MJCZone.DapperMatic.AspNetCore.Models.Dtos.',
+    'MJCZone.DapperMatic.AspNetCore.Models.Requests.',
+    'MJCZone.DapperMatic.AspNetCore.Models.Responses.',
+    'MJCZone.DapperMatic.Models.',
+    'MJCZone.DapperMatic.',
+    'System.Threading.',
+    'System.Collections.Generic.',
+    'System.'
+  ];
+
+  let shortened = typeName;
+  for (const prefix of prefixesToRemove) {
+    if (shortened.startsWith(prefix)) {
+      shortened = shortened.substring(prefix.length);
+      break;
+    }
+  }
+
+  return shortened;
+}
+
 // Generate method signature
 function getMethodSignature(method) {
   const params = method.parameters || [];
+  const methodName = method.title || method.name || "Method";
+  const returnType = method.returnType ? shortenTypeName(method.returnType) : null;
 
   // Extract parameter types from commentId if available
   const parameterTypes = extractParameterTypes(method.commentId);
 
-  const paramStr = params
-    .map((p, index) => {
-      // Use extracted type from commentId if available, otherwise fallback to p.type or "object"
-      const paramType = parameterTypes[index] || p.type || "object";
-      return `${paramType} ${p.name}`;
-    })
-    .join(", ");
+  // Build parameter strings with shortened type names
+  const paramStrings = params.map((p, index) => {
+    const paramType = parameterTypes[index] || p.type || "object";
+    const shortenedType = shortenTypeName(paramType);
+    return `${shortenedType} ${p.name}`;
+  });
 
-  const methodName = method.title || method.name || "Method";
-  return `${method.returnType || "void"} ${methodName}(${paramStr})`;
+  // Create single-line signature first
+  const singleLineParams = paramStrings.join(", ");
+  const singleLineSignature = returnType
+    ? `${returnType} ${methodName}(${singleLineParams})`
+    : `${methodName}(${singleLineParams})`;
+
+  // If signature is short enough, use single line (80 chars is a good threshold)
+  if (singleLineSignature.length <= 80) {
+    return singleLineSignature;
+  }
+
+  // For long signatures, use multi-line format
+  if (params.length === 0) {
+    return returnType ? `${returnType} ${methodName}()` : `${methodName}()`;
+  }
+
+  const multiLineParams = paramStrings
+    .map((param, index) => {
+      const indent = "    "; // 4 spaces for parameter indentation
+      const comma = index < paramStrings.length - 1 ? "," : "";
+      return `${indent}${param}${comma}`;
+    })
+    .join("\n");
+
+  return returnType
+    ? `${returnType} ${methodName}(\n${multiLineParams})`
+    : `${methodName}(\n${multiLineParams})`;
 }
 
 // Generate markdown for a type (class, interface, enum, etc.)
@@ -421,15 +493,17 @@ function generateTypeMarkdown(
       if (ctor.summary) {
         markdown += `${formatDocumentation(ctor.summary)}\n\n`;
       }
-      // Extract parameter types from constructor's commentId
-      const ctorParamTypes = extractParameterTypes(ctor.commentId);
+      // Create a method-like object for the constructor to use getMethodSignature
+      const ctorMethod = {
+        title: type.name,
+        name: type.name,
+        returnType: "", // Constructors don't have return types
+        commentId: ctor.commentId,
+        parameters: ctor.parameters || []
+      };
 
-      markdown += `\`\`\`csharp\n${type.name}(${(ctor.parameters || [])
-        .map((p, index) => {
-          const paramType = ctorParamTypes[index] || p.type || "object";
-          return `${paramType} ${p.name}`;
-        })
-        .join(", ")})\n\`\`\`\n\n`;
+      const ctorSignature = getMethodSignature(ctorMethod);
+      markdown += `\`\`\`csharp\n${ctorSignature}\n\`\`\`\n\n`;
 
       if (ctor.parameters && ctor.parameters.length > 0) {
         markdown += `#### Parameters\n\n`;
@@ -464,9 +538,8 @@ function generateTypeMarkdown(
       for (const method of type.methods) {
         const methodName = method.title || method.name;
         const summary = method.summary
-          ? formatDocumentation(method.summary)
-              .replace(/\n/g, " ")
-              .substring(0, 100) + (method.summary.length > 100 ? "..." : "")
+          ? formatTableText(method.summary).substring(0, 100) +
+            (method.summary.length > 100 ? "..." : "")
           : "";
         const anchor = methodName.toLowerCase().replace(/[^a-z0-9]/g, "-");
         markdown += `| [${methodName}](#${anchor}) | ${summary} |\n`;
@@ -592,7 +665,7 @@ function generateTypeMarkdown(
           ? enumMember.value
           : enumValueIndex++;
 
-      const description = formatDocumentation(enumMember.summary || "");
+      const description = formatTableText(enumMember.summary || "");
       markdown += `| ${enumMember.name} | ${value} | ${description} |\n`;
     }
     markdown += "\n";
@@ -651,7 +724,7 @@ function generateNamespaceMarkdown(namespace, assemblyName) {
       const typeUrl = `/api/${sanitizeUrlName(assemblyName)}/${sanitizeUrlName(
         namespace.self.displayName
       )}/${sanitizeUrlName(type.name)}`;
-      markdown += `| [${type.name}](${typeUrl}) | ${formatDocumentation(
+      markdown += `| [${type.name}](${typeUrl}) | ${formatTableText(
         type.summary || ""
       )} |\n`;
     }
@@ -721,7 +794,10 @@ function generateApiDocs() {
 
   const assemblyConfig = [];
 
-  for (const jsonFile of jsonFiles) {
+  // Sort JSON files in reverse order so MJCZone.DapperMatic comes before AspNetCore
+  const sortedJsonFiles = jsonFiles.sort((a, b) => b.localeCompare(a));
+
+  for (const jsonFile of sortedJsonFiles) {
     const assemblyName = path.basename(jsonFile, ".json");
     const jsonPath = path.join(packagesDir, jsonFile);
     const apiData = JSON.parse(fs.readFileSync(jsonPath, "utf-8"));
@@ -743,8 +819,9 @@ function generateApiDocs() {
 
     // Add to config
     const assemblyConfigItem = {
-      text: assemblyName,
+      text: getDisplayName(assemblyName),
       link: `/api/${sanitizeUrlName(assemblyName)}/`,
+      collapsed: true,
       items: [],
     };
 
@@ -798,23 +875,27 @@ function generateApiDocs() {
   // Write main API index
   fs.writeFileSync(path.join(apiOutputDir, "index.md"), apiIndexMarkdown);
 
-  // Generate config snippet
-  console.log("\nAdd this to your VitePress config.js sidebar configuration:");
-  console.log(
-    JSON.stringify(
+  // Generate and write sidebar configuration
+  const sidebarConfig = {
+    "/api/": [
       {
-        "/api/": [
-          {
-            text: "API Reference",
-            items: [{ text: "Overview", link: "/api/" }, ...assemblyConfig],
-          },
-        ],
+        text: "API Reference",
+        items: [{ text: "Overview", link: "/api/" }, ...assemblyConfig],
       },
-      null,
-      2
-    )
+    ],
+  };
+
+  // Write sidebar config to JSON file
+  const sidebarConfigPath = path.join(__dirname, "../api-sidebar.json");
+  fs.writeFileSync(
+    sidebarConfigPath,
+    JSON.stringify(sidebarConfig, null, 2)
   );
 
+  console.log(`\nAPI sidebar configuration written to: ${sidebarConfigPath}`);
+  console.log("Import this in your VitePress config.js:");
+  console.log("  import apiSidebar from './api-sidebar.json' with { type: 'json' };");
+  console.log("  // Then use: ...apiSidebar in your sidebar configuration");
   console.log("\nAPI documentation generation complete!");
 }
 

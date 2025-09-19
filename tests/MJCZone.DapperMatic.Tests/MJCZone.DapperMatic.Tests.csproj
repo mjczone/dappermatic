@@ -24,17 +24,18 @@
     <PackageReference Include="Testcontainers.MySql" Version="3.10.0" />
     <PackageReference Include="Testcontainers.PostgreSql" Version="3.10.0" />
     <PackageReference Include="Testcontainers.Redis" Version="3.10.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
     <PackageReference Include="Microsoft.Data.SQLite" Version="8.0.7" />
-    <PackageReference Include="MySql.Data" Version="9.0.0" />
-    <PackageReference Include="MySqlConnector" Version="2.3.7" />
-    <PackageReference Include="Npgsql" Version="8.0.3" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.8.6" />
-    <PackageReference Include="System.Data.SQLite" Version="1.0.118" />
+    <PackageReference Include="MySQL.Data" Version="9.4.0" />
+    <PackageReference Include="MySqlConnector" Version="2.3.0" />
+    <PackageReference Include="Npgsql" Version="9.0.0" />
+    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic\MJCZone.DapperMatic.csproj" />
+    <ProjectReference Include="..\..\src\MJCZone.DapperMatic.AspNetCore\MJCZone.DapperMatic.AspNetCore.csproj" />
   </ItemGroup>
 
   <ItemGroup>

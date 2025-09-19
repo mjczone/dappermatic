@@ -1,0 +1,115 @@
+{
+  "/api/": [
+    {
+      "text": "API Reference",
+      "items": [
+        {
+          "text": "Overview",
+          "link": "/api/"
+        },
+        {
+          "text": "🔧 DapperMatic Core",
+          "link": "/api/mjczone.dappermatic/",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "📦 Root",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic/"
+            },
+            {
+              "text": "📦 / Providers",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers/"
+            },
+            {
+              "text": "📦 / Providers.SqlServer",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers.sqlserver/"
+            },
+            {
+              "text": "📦 / Providers.Sqlite",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers.sqlite/"
+            },
+            {
+              "text": "📦 / Providers.PostgreSql",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers.postgresql/"
+            },
+            {
+              "text": "📦 / Providers.MySql",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers.mysql/"
+            },
+            {
+              "text": "📦 / Providers.Base",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers.base/"
+            },
+            {
+              "text": "📦 / Models",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.models/"
+            },
+            {
+              "text": "📦 / Interfaces",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.interfaces/"
+            },
+            {
+              "text": "📦 / DataAnnotations",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.dataannotations/"
+            },
+            {
+              "text": "📦 / Converters",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.converters/"
+            }
+          ]
+        },
+        {
+          "text": "🌐 ASP.NET Core",
+          "link": "/api/mjczone.dappermatic.aspnetcore/",
+          "collapsed": true,
+          "items": [
+            {
+              "text": "📦 Root",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore/"
+            },
+            {
+              "text": "📦 / Utilities",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.utilities/"
+            },
+            {
+              "text": "📦 / Services",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.services/"
+            },
+            {
+              "text": "📦 / Repositories",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.repositories/"
+            },
+            {
+              "text": "📦 / Security",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.security/"
+            },
+            {
+              "text": "📦 / Models.Responses",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.responses/"
+            },
+            {
+              "text": "📦 / Models.Requests",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.requests/"
+            },
+            {
+              "text": "📦 / Models.Dtos",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.dtos/"
+            },
+            {
+              "text": "📦 / Factories",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.factories/"
+            },
+            {
+              "text": "📦 / Endpoints",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.endpoints/"
+            },
+            {
+              "text": "📦 / Auditing",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.auditing/"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
