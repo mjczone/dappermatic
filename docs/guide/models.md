@@ -2,20 +2,20 @@
 
 DapperMatic uses a model-first approach with `Dm*` prefixed classes to define database schema objects. These models provide a strongly-typed way to create and manipulate database structures.
 
-- [DmCheckConstraint](#dmcheckconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmCheckConstraint.cs))
-- [DmColumn](#dmcolumn) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmColumn.cs))
-- [DmColumnOrder](#dmcolumnorder) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmColumnOrder.cs))
-- [DmConstraint](#dmconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmConstraint.cs))
-- [DmConstraintType](#dmconstrainttype) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmConstraintType.cs))
-- [DmDefaultConstraint](#dmdefaultconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmDefaultConstraint.cs))
-- [DmForeignKeyAction](#dmforeignkeyaction) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmForeignKeyAction.cs))
-- [DmForeignKeyConstraint](#dmforeignkeyconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmForeignKeyConstraint.cs))
-- [DmIndex](#dmindex) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmIndex.cs))
-- [DmOrderedColumn](#dmorderedcolumn) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmOrderedColumn.cs))
-- [DmPrimaryKeyConstraint](#dmprimarykeyconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmPrimaryKeyConstraint.cs))
-- [DmTable](#dmtable) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmTable.cs))
-- [DmUniqueConstraint](#dmuniqueconstraint) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmUniqueConstraint.cs))
-- [DmView](#dmview) ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/src/MJCZone.DapperMatic/Models/DmView.cs))
+- [DmCheckConstraint](#dmcheckconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmCheckConstraint.cs))
+- [DmColumn](#dmcolumn) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmColumn.cs))
+- [DmColumnOrder](#dmcolumnorder) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmColumnOrder.cs))
+- [DmConstraint](#dmconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmConstraint.cs))
+- [DmConstraintType](#dmconstrainttype) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmConstraintType.cs))
+- [DmDefaultConstraint](#dmdefaultconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmDefaultConstraint.cs))
+- [DmForeignKeyAction](#dmforeignkeyaction) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmForeignKeyAction.cs))
+- [DmForeignKeyConstraint](#dmforeignkeyconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmForeignKeyConstraint.cs))
+- [DmIndex](#dmindex) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmIndex.cs))
+- [DmOrderedColumn](#dmorderedcolumn) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmOrderedColumn.cs))
+- [DmPrimaryKeyConstraint](#dmprimarykeyconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmPrimaryKeyConstraint.cs))
+- [DmTable](#dmtable) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmTable.cs))
+- [DmUniqueConstraint](#dmuniqueconstraint) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmUniqueConstraint.cs))
+- [DmView](#dmview) ([src](https://github.com/mjczone/dappermatic/blob/main/src/MJCZone.DapperMatic/Models/DmView.cs))
 
 ## Core Models
 

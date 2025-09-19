@@ -4,7 +4,7 @@
 
 We believe the best features come from real user needs. **Have an idea for DapperMatic?** We'd love to hear from you!
 
-🔗 **[Share your ideas on GitHub Discussions](https://github.com/mjczone/MJCZone.DapperMatic/discussions/categories/ideas)**
+🔗 **[Share your ideas on GitHub Discussions](https://github.com/mjczone/dappermatic/discussions/categories/ideas)**
 
 Your feedback and feature requests directly influence our development priorities. Whether it's a new database provider, enhanced DDL capabilities, or developer tooling improvements - we want to know what would make DapperMatic more valuable for your projects.
 
@@ -34,15 +34,19 @@ A comprehensive command-line tool for:
 - **Schema Versioning** - Track and manage schema evolution
 - **Documentation Generation** - Automated schema diagrams and docs
 
-### 🌐 ASP.NET Core Integration
+### ✅ ASP.NET Core Integration (Completed)
 
-We're exploring a companion **ASP.NET Core Web API** package that would provide:
-- **Permission-Based Security** - Role-based access to DDL operations
-- **RESTful DDL APIs** - HTTP endpoints for all DapperMatic operations
-- **Audit Logging** - Track all schema changes with full context
-- **Web Dashboard** - Browser-based schema management interface
+The **MJCZone.DapperMatic.AspNetCore** package is now available with:
+- ✅ **Permission-Based Security** - Customizable authorization via `IDapperMaticPermissions`
+- ✅ **RESTful DDL APIs** - Full HTTP endpoints for all DapperMatic operations
+- ✅ **Audit Logging** - Complete audit trail via `IDapperMaticAuditLogger`
+- ✅ **Datasource Management** - Multiple repository backends (in-memory, file, database)
+- ✅ **Connection String Encryption** - AES-256 encryption for sensitive data
 
-This would enable secure, controlled database schema management through web APIs with proper authentication and authorization.
+Potential future enhancements:
+- **Web Dashboard** - Browser-based UI for visual schema management
+- **Schema Diff Viewer** - Visual comparison tool for schema changes
+- **Migration History** - Track and rollback schema versions
 
 ## How We Prioritize
 
@@ -55,10 +59,10 @@ Development priorities are determined by:
 
 ## Stay Informed
 
-- 💬 **[GitHub Discussions](https://github.com/mjczone/MJCZone.DapperMatic/discussions)** - Feature requests and community chat
-- 🐛 **[GitHub Issues](https://github.com/mjczone/MJCZone.DapperMatic/issues)** - Bug reports and specific problems
-- 📋 **[Project Board](https://github.com/mjczone/MJCZone.DapperMatic/projects)** - Current development status
-- 🏷️ **[Releases](https://github.com/mjczone/MJCZone.DapperMatic/releases)** - Latest features and improvements
+- 💬 **[GitHub Discussions](https://github.com/mjczone/dappermatic/discussions)** - Feature requests and community chat
+- 🐛 **[GitHub Issues](https://github.com/mjczone/dappermatic/issues)** - Bug reports and specific problems
+- 📋 **[Project Board](https://github.com/mjczone/dappermatic/projects)** - Current development status
+- 🏷️ **[Releases](https://github.com/mjczone/dappermatic/releases)** - Latest features and improvements
 
 ---
 

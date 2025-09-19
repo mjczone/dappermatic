@@ -1,8 +1,8 @@
-# MJCZone.DapperMatic
+# DapperMatic
 
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-[![.github/workflows/build-and-test.yml](https://github.com/mjczone/MJCZone.DapperMatic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mjczone/MJCZone.DapperMatic/actions/workflows/build-and-test.yml)
-[![.github/workflows/release.yml](https://github.com/mjczone/MJCZone.DapperMatic/actions/workflows/release.yml/badge.svg)](https://github.com/mjczone/MJCZone.DapperMatic/actions/workflows/release.yml)
+[![.github/workflows/build-and-test.yml](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml)
+[![.github/workflows/release.yml](https://github.com/mjczone/dappermatic/actions/workflows/release.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/release.yml)
 
 **Model-first database schema management for .NET applications**
 
@@ -114,7 +114,7 @@ await sqlite.CreateTableIfNotExistsAsync(table);
 
 ## ASP.NET Core Integration
 
-The `MJCZone.DapperMatic.AspNetCore` package provides REST API endpoints for database schema management:
+The ASP.NET Core integration package (`MJCZone.DapperMatic.AspNetCore`) provides REST API endpoints for database schema management:
 
 ```csharp
 var builder = WebApplication.CreateBuilder(args);
@@ -163,7 +163,7 @@ This creates REST endpoints for managing database schemas via HTTP API. Complete
 
 ## Documentation
 
-- **API Reference**: [Documentation site](https://mjczone.github.io/MJCZone.DapperMatic/) (comprehensive guides and examples)
+- **API Reference**: [Documentation site](https://mjczone.github.io/dappermatic/) (comprehensive guides and examples)
 - **Source Code**: Browse the codebase for implementation details
 - **Test Examples**: The `tests/` directory contains extensive usage examples
 

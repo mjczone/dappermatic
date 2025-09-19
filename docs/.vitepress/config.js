@@ -5,7 +5,7 @@ export default defineConfig({
   description:
     "IDbConnection extension methods for DDL operations across multiple database providers",
 
-  base: "/MJCZone.DapperMatic/",
+  base: "/dappermatic/",
   ignoreDeadLinks: true,
 
   markdown: { theme: { light: "github-light", dark: "github-dark" } },
@@ -18,7 +18,7 @@ export default defineConfig({
       { text: "API Reference", link: "/api/" },
       {
         text: "GitHub",
-        link: "https://github.com/mjczone/MJCZone.DapperMatic",
+        link: "https://github.com/mjczone/dappermatic",
       },
     ],
 
@@ -90,7 +90,11 @@ export default defineConfig({
         {
           text: "About",
           collapsed: true,
-          items: [{ text: "Roadmap", link: "/guide/roadmap" }],
+          items: [
+            { text: "Credits", link: "/guide/credits" },
+            { text: "Roadmap", link: "/guide/roadmap" },
+            { text: "License", link: "/guide/license" },
+          ],
         },
       ],
       "/api/": [
@@ -159,7 +163,7 @@ export default defineConfig({
     socialLinks: [
       {
         icon: "github",
-        link: "https://github.com/mjczone/MJCZone.DapperMatic",
+        link: "https://github.com/mjczone/dappermatic",
       },
     ],
 

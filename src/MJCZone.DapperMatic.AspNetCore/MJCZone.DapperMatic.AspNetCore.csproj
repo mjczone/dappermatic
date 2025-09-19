@@ -5,9 +5,9 @@
     <PackageId>MJCZone.DapperMatic.AspNetCore</PackageId>
     <PackageTags>dotnet dapper mysql sqlserver postgresql sqlite aspnetcore webapi endpoints</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/mjczone/MJCZone.DapperMatic/</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/mjczone/dappermatic/</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <RepositoryUrl>https://github.com/mjczone/MJCZone.DapperMatic/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/mjczone/dappermatic/</RepositoryUrl>
 
     <Version>0.0.1</Version>
     <Summary>ASP.NET Core integration for DapperMatic - Web API endpoints for database schema management.</Summary>

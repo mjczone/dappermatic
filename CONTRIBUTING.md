@@ -1,6 +1,6 @@
-# Contributing to MJCZone.DapperMatic
+# Contributing to DapperMatic
 
-Thank you for your interest in contributing to MJCZone.DapperMatic! 🎉
+Thank you for your interest in contributing to DapperMatic! 🎉
 
 ## 🚧 Current Project Status
 
@@ -83,8 +83,8 @@ If you want to explore the codebase:
 
 ```bash
 # Clone the repository
-git clone https://github.com/mjczone/MJCZone.DapperMatic.git
-cd MJCZone.DapperMatic
+git clone https://github.com/mjczone/dappermatic.git
+cd dappermatic
 
 # Build the solution
 dotnet build
@@ -97,7 +97,7 @@ dotnet test
 
 - **GitHub Issues** - For bugs, features, and questions
 - **GitHub Discussions** - For general questions and community chat
-- **Documentation** - Check [our docs](https://mjczone.github.io/MJCZone.DapperMatic/) first
+- **Documentation** - Check [our docs](https://mjczone.github.io/dappermatic/) first
 
 ## 🤝 Code of Conduct
 
@@ -125,6 +125,6 @@ By contributing to this project, you agree that your contributions will be licen
 
 ---
 
-**Thank you for your interest in MJCZone.DapperMatic!** 
+**Thank you for your interest in DapperMatic!** 
 
 Even though we're limiting code contributions during this development phase, your feedback, ideas, and issue reports are invaluable in helping us build a better library. 🚀

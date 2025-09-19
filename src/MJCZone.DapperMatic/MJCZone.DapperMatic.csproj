@@ -7,9 +7,9 @@
     <!-- <PackageIconUrl></PackageIconUrl> -->
     <!-- <PackageReleaseNotes></PackageReleaseNotes> -->
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageProjectUrl>https://github.com/mjczone/MJCZone.DapperMatic/</PackageProjectUrl>
+    <PackageProjectUrl>https://github.com/mjczone/dappermatic/</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-    <RepositoryUrl>https://github.com/mjczone/MJCZone.DapperMatic/</RepositoryUrl>
+    <RepositoryUrl>https://github.com/mjczone/dappermatic/</RepositoryUrl>
 
     <Version>0.0.1</Version>
     <Summary>IDbConnection extension methods for DDL operations across multiple database providers.</Summary>

@@ -43,21 +43,21 @@ Database fixtures extend `DatabaseFixtureBase<TContainer>` and manage container 
 
 ### Test Classes
 
-- **`TestBase`**: ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/TestBase.cs)) Abstract base with common testing utilities
+- **`TestBase`**: ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/TestBase.cs)) Abstract base with common testing utilities
 - **`DatabaseMethodsTests`**: Abstract base for all provider-specific tests
-  - `Schema Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Schemas.cs)): Tests related to database schema operations
-  - `Table Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Tables.cs)): Tests related to database table operations
-  - `Column Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Columns.cs)): Tests related to database column operations
-  - `Primary Key Constraint Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.PrimaryKeyConstraints.cs)): Tests related to database primary key constraints
-  - `Unique Constraint Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.UniqueConstraints.cs)): Tests related to database unique constraints
-  - `Default Constraint Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.DefaultConstraints.cs)): Tests related to database default constraints
-  - `Check Constraint Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.CheckConstraints.cs)): Tests related to database check constraints
-  - `Index Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Indexes.cs)): Tests related to database indexes
-  - `Table Factory Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.TableFactory.cs)): Tests related to database table factories
-  - `View Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)): Tests related to database views
+  - `Schema Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Schemas.cs)): Tests related to database schema operations
+  - `Table Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Tables.cs)): Tests related to database table operations
+  - `Column Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Columns.cs)): Tests related to database column operations
+  - `Primary Key Constraint Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.PrimaryKeyConstraints.cs)): Tests related to database primary key constraints
+  - `Unique Constraint Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.UniqueConstraints.cs)): Tests related to database unique constraints
+  - `Default Constraint Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.DefaultConstraints.cs)): Tests related to database default constraints
+  - `Check Constraint Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.CheckConstraints.cs)): Tests related to database check constraints
+  - `Index Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Indexes.cs)): Tests related to database indexes
+  - `Table Factory Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.TableFactory.cs)): Tests related to database table factories
+  - `View Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)): Tests related to database views
 - Provider-specific test classes inherit from `DatabaseMethodsTests`
-  - `MariaDB Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/MariaDbDatabaseMethodsTests.cs)): Tests related to MariaDB
-  - `MySQL Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/MySqlDatabaseMethodsTests.cs)): Tests related to MySQL
-  - `PostgreSQL Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/PostgreSqlDatabaseMethodsTests.cs)): Tests related to PostgreSQL
-  - `SQLite Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/SQLiteDatabaseMethodsTests.cs)): Tests related to SQLite
-  - `SQL Server Tests` ([src](https://github.com/mjczone/MJCZone.DapperMatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/SqlServerDatabaseMethodsTests.cs)): Tests related to SQL Server
+  - `MariaDB Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/MariaDbDatabaseMethodsTests.cs)): Tests related to MariaDB
+  - `MySQL Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/MySqlDatabaseMethodsTests.cs)): Tests related to MySQL
+  - `PostgreSQL Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/PostgreSqlDatabaseMethodsTests.cs)): Tests related to PostgreSQL
+  - `SQLite Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/SQLiteDatabaseMethodsTests.cs)): Tests related to SQLite
+  - `SQL Server Tests` ([src](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/ProviderTests/SqlServerDatabaseMethodsTests.cs)): Tests related to SQL Server

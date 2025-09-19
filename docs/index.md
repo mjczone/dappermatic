@@ -11,7 +11,7 @@ hero:
       link: /guide/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/mjczone/MJCZone.DapperMatic
+      link: https://github.com/mjczone/dappermatic
     - theme: none
       text: Version VERSION_NUMBER
 
@@ -35,3 +35,8 @@ features:
     title: NuGet Package
     details: Easy installation via NuGet with minimal dependencies - just add to your .NET project
 ---
+
+<div style="text-align: center; margin-top: 2rem; padding-top: 2rem; border-top: 1px solid var(--vp-c-divider); color: var(--vp-c-text-2); font-size: 0.9em;">
+  <p>Made with ❤️ by <a href="https://www.mjczone.com" target="_blank">MJCZone Inc.</a></p>
+  <p>Released under the <a href="/guide/license">LGPL v3 License</a></p>
+</div>

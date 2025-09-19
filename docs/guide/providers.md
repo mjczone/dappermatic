@@ -614,4 +614,4 @@ If you encounter provider-specific issues:
 
 1. Check the [troubleshooting guide](/guide/troubleshooting)
 2. Review the provider's documentation
-3. File an issue on [GitHub](https://github.com/mjczone/MJCZone.DapperMatic/issues)
+3. File an issue on [GitHub](https://github.com/mjczone/dappermatic/issues)
