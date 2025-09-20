@@ -114,7 +114,7 @@ Create a foreign key constraint only if it doesn't already exist using a DmForei
 
 ```csharp
 // Create foreign key if it doesn't exist
-bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync("sales", "orders", foreignKey);
+bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(foreignKey);
 
 if (created)
 {
@@ -127,11 +127,8 @@ else
 ```
 
 **Parameters:**
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table to add foreign key to
-- `foreignKeyConstraint` - DmForeignKeyConstraint model defining the constraint
+- `constraint` - DmForeignKeyConstraint model defining the constraint (includes SchemaName and TableName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if foreign key was created, `false` if it already existed
@@ -163,7 +160,6 @@ bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
         new DmOrderedColumn("ProductId"),
         new DmOrderedColumn("WarehouseId")
     },
-    referencedSchemaName: "inventory",
     referencedTableName: "product_warehouses",
     referencedColumns: new[]
     {
@@ -173,7 +169,6 @@ bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
     onDelete: DmForeignKeyAction.Restrict,
     onUpdate: DmForeignKeyAction.Cascade,
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 
@@ -183,7 +178,6 @@ bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
     "employees",
     "FK_Employees_Manager",
     sourceColumns: new[] { new DmOrderedColumn("ManagerId") },
-    referencedSchemaName: "hr", // Same schema
     referencedTableName: "employees", // Self-reference
     referencedColumns: new[] { new DmOrderedColumn("EmployeeId") },
     onDelete: DmForeignKeyAction.SetNull, // Manager can be deleted
@@ -196,13 +190,11 @@ bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
 - `tableName` - Name of the source table
 - `constraintName` - Name of the foreign key constraint
 - `sourceColumns` - Array of DmOrderedColumn in the source table
-- `referencedSchemaName` (optional) - Schema of referenced table (defaults to same schema)
 - `referencedTableName` - Name of the referenced table
 - `referencedColumns` - Array of DmOrderedColumn in the referenced table
 - `onDelete` (optional) - Action when referenced row is deleted (default: NoAction)
 - `onUpdate` (optional) - Action when referenced row is updated (default: NoAction)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if foreign key was created, `false` if it already existed

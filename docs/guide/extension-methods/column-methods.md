@@ -7,7 +7,7 @@ Column methods provide comprehensive functionality for managing table columns ac
 - [Column Existence Checking](#column-existence-checking)
   - [DoesColumnExistAsync](#doescolumnexistasync) - Check if column exists in table
 - [Column Creation](#column-creation)
-  - [AddColumnIfNotExistsAsync / CreateColumnIfNotExistsAsync](#addcolumnifnotexistsasync--createcolumnifnotexistsasync-dmcolumn) - Add column from DmColumn model
+  - [CreateColumnIfNotExistsAsync (DmColumn)](#createcolumnifnotexistsasync-dmcolumn) - Add column from DmColumn model
   - [CreateColumnIfNotExistsAsync (Parameters)](#createcolumnifnotexistsasync-individual-parameters) - Create column with individual parameters
 - [Column Discovery](#column-discovery)
   - [GetColumnNamesAsync](#getcolumnnamesasync) - Get list of column names with filtering
@@ -35,7 +35,7 @@ if (exists)
 else
 {
     Console.WriteLine("Column 'title' does not exist");
-    await connection.AddColumnIfNotExistsAsync("app", "app_employees", titleColumn);
+    await connection.CreateColumnIfNotExistsAsync(titleColumn);
 }
 
 
@@ -61,13 +61,13 @@ bool exists = await connection.DoesColumnExistAsync(
 
 ## Column Creation
 
-### AddColumnIfNotExistsAsync / CreateColumnIfNotExistsAsync (DmColumn)
+### CreateColumnIfNotExistsAsync (DmColumn)
 
 Add a column only if it doesn't already exist using a DmColumn model.
 
 ```csharp
 // Create column if it doesn't exist
-bool created = await connection.AddColumnIfNotExistsAsync("app", "app_employees", column);
+bool created = await connection.CreateColumnIfNotExistsAsync(column);
 
 if (created)
 {
@@ -80,11 +80,8 @@ else
 ```
 
 **Parameters:**
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table to add column to
-- `column` - DmColumn model defining the column structure
+- `column` - DmColumn model defining the column structure (includes SchemaName and TableName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if column was created, `false` if it already existed
@@ -126,7 +123,6 @@ bool created = await connection.CreateColumnIfNotExistsAsync(
     onDelete: DmForeignKeyAction.Cascade,
     onUpdate: DmForeignKeyAction.NoAction,
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 
@@ -170,6 +166,7 @@ bool emailCreated = await connection.CreateColumnIfNotExistsAsync(
 - `isPrimaryKey` (optional) - Whether column is part of primary key (default: false)
 - `isAutoIncrement` (optional) - Whether column auto-increments (default: false)
 - `isUnique` (optional) - Whether column has unique constraint (default: false)
+- `isUnicode` (optional) - Whether column supports unicode characters (default: false)
 - `isIndexed` (optional) - Whether to create index on column (default: false)
 - `isForeignKey` (optional) - Whether column is a foreign key (default: false)
 - `referencedTableName` (optional) - Referenced table for foreign key
@@ -177,7 +174,6 @@ bool emailCreated = await connection.CreateColumnIfNotExistsAsync(
 - `onDelete` (optional) - Foreign key delete action
 - `onUpdate` (optional) - Foreign key update action
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if column was created, `false` if it already existed
@@ -197,20 +193,19 @@ foreach (string columnName in allColumns)
 }
 
 // Get column names with wildcard filter
-List<string> titleColumns = await connection.GetColumnNamesAsync("app", "app_employees", "*title*");
+List<string> titleColumns = await connection.GetColumnNamesAsync("app", "app_employees", columnNameFilter: "*title*");
 // Finds: title, job_title, title_code, etc.
 
 // Get columns with pattern matching
-List<string> idColumns = await connection.GetColumnNamesAsync("app", "app_employees", "*_id");
+List<string> idColumns = await connection.GetColumnNamesAsync("app", "app_employees", columnNameFilter: "*_id");
 // Finds: employee_id, manager_id, department_id, etc.
 ```
 
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to search
-- `nameFilter` (optional) - Wildcard pattern to filter column names (`*` = any characters, `?` = single character)
+- `columnNameFilter` (optional) - Wildcard pattern to filter column names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching column names
@@ -234,7 +229,7 @@ foreach (var column in columns)
 }
 
 // Get specific columns with pattern
-List<DmColumn> auditColumns = await connection.GetColumnsAsync("app", "app_employees", "*_date");
+List<DmColumn> auditColumns = await connection.GetColumnsAsync("app", "app_employees", columnNameFilter: "*_date");
 
 // With transaction
 using var transaction = connection.BeginTransaction();
@@ -244,9 +239,8 @@ List<DmColumn> columns = await connection.GetColumnsAsync("app", "app_employees"
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to search
-- `nameFilter` (optional) - Wildcard pattern to filter column names
+- `columnNameFilter` (optional) - Wildcard pattern to filter column names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmColumn>` - List of complete DmColumn models
@@ -288,7 +282,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmColumn?` - Complete column model, or `null` if column doesn't exist
@@ -326,10 +319,9 @@ bool renamed = await connection.RenameColumnIfExistsAsync(
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table containing the column
-- `currentColumnName` - Current name of the column
+- `columnName` - Current name of the column
 - `newColumnName` - New name for the column
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if column was renamed, `false` if it didn't exist
@@ -368,7 +360,6 @@ foreach (var columnName in columnsToRemove)
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if column was dropped, `false` if it didn't exist
@@ -395,10 +386,12 @@ public async Task MigrateColumnDataTypeAsync(IDbConnection connection,
         var tempColumnName = $"{columnName}_temp_{DateTime.UtcNow:yyyyMMddHHmmss}";
         var tempColumn = new DmColumn(tempColumnName, newType)
         {
+            SchemaName = schema,
+            TableName = tableName,
             IsNullable = true // Allow nulls during migration
         };
         
-        await connection.AddColumnIfNotExistsAsync(schema, tableName, tempColumn, tx: transaction);
+        await connection.CreateColumnIfNotExistsAsync(tempColumn, tx: transaction);
         
         // Copy and convert data (implementation depends on data types)
         await CopyAndConvertColumnDataAsync(connection, schema, tableName, 
@@ -431,25 +424,33 @@ public async Task AddAuditColumnsAsync(IDbConnection connection, string schema, 
 {
     var auditColumns = new[]
     {
-        new DmColumn("CreatedAt", typeof(DateTime)) 
-        { 
-            IsNullable = false, 
-            DefaultExpression = "GETUTCDATE()" 
+        new DmColumn("CreatedAt", typeof(DateTime))
+        {
+            SchemaName = schema,
+            TableName = tableName,
+            IsNullable = false,
+            DefaultExpression = "GETUTCDATE()"
         },
-        new DmColumn("CreatedBy", typeof(string)) 
-        { 
-            MaxLength = 100, 
-            IsNullable = false, 
-            DefaultExpression = "SYSTEM_USER" 
+        new DmColumn("CreatedBy", typeof(string))
+        {
+            SchemaName = schema,
+            TableName = tableName,
+            MaxLength = 100,
+            IsNullable = false,
+            DefaultExpression = "SYSTEM_USER"
         },
-        new DmColumn("ModifiedAt", typeof(DateTime)) 
-        { 
-            IsNullable = true 
+        new DmColumn("ModifiedAt", typeof(DateTime))
+        {
+            SchemaName = schema,
+            TableName = tableName,
+            IsNullable = true
         },
-        new DmColumn("ModifiedBy", typeof(string)) 
-        { 
-            MaxLength = 100, 
-            IsNullable = true 
+        new DmColumn("ModifiedBy", typeof(string))
+        {
+            SchemaName = schema,
+            TableName = tableName,
+            MaxLength = 100,
+            IsNullable = true
         }
     };
     
@@ -458,8 +459,8 @@ public async Task AddAuditColumnsAsync(IDbConnection connection, string schema, 
     {
         foreach (var column in auditColumns)
         {
-            bool created = await connection.AddColumnIfNotExistsAsync(
-                schema, tableName, column, tx: transaction);
+            bool created = await connection.CreateColumnIfNotExistsAsync(
+                column, tx: transaction);
                 
             Console.WriteLine($"Audit column '{column.ColumnName}': {(created ? "Added" : "Already exists")}");
         }
@@ -590,10 +591,10 @@ public async Task CreateColumnsFromMetadataAsync(IDbConnection connection,
         foreach (var (columnName, dataType) in columnMetadata)
         {
             // Determine optimal column properties based on type
-            var column = CreateOptimalColumn(columnName, dataType);
-            
-            bool created = await connection.AddColumnIfNotExistsAsync(
-                schema, tableName, column, tx: transaction);
+            var column = CreateOptimalColumn(columnName, dataType, schema, tableName);
+
+            bool created = await connection.CreateColumnIfNotExistsAsync(
+                column, tx: transaction);
                 
             Console.WriteLine($"Column '{columnName}': {(created ? "Created" : "Already exists")}");
         }
@@ -607,9 +608,13 @@ public async Task CreateColumnsFromMetadataAsync(IDbConnection connection,
     }
 }
 
-private DmColumn CreateOptimalColumn(string columnName, Type dataType)
+private DmColumn CreateOptimalColumn(string columnName, Type dataType, string schema, string tableName)
 {
-    var column = new DmColumn(columnName, dataType);
+    var column = new DmColumn(columnName, dataType)
+    {
+        SchemaName = schema,
+        TableName = tableName
+    };
     
     // Apply sensible defaults based on naming conventions and types
     if (columnName.ToLower().EndsWith("id"))

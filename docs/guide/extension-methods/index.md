@@ -72,7 +72,8 @@ if (await connection.TestConnectionAsync())
 {
     // Perform DDL operations
     await connection.CreateSchemaIfNotExistsAsync("app");
-    await connection.CreateTableIfNotExistsAsync("app", myTable);
+    var myTable = new DmTable("app", "MyTable", columns);
+    await connection.CreateTableIfNotExistsAsync(myTable);
 }
 ```
 
@@ -82,8 +83,10 @@ if (await connection.TestConnectionAsync())
 using var transaction = connection.BeginTransaction();
 try
 {
-    await connection.CreateTableIfNotExistsAsync("dbo", usersTable, tx: transaction);
-    await connection.CreateTableIfNotExistsAsync("dbo", ordersTable, tx: transaction);
+    var usersTable = new DmTable("dbo", "Users", userColumns);
+    var ordersTable = new DmTable("dbo", "Orders", orderColumns);
+    await connection.CreateTableIfNotExistsAsync(usersTable, tx: transaction);
+    await connection.CreateTableIfNotExistsAsync(ordersTable, tx: transaction);
 
     transaction.Commit();
 }
@@ -105,7 +108,8 @@ var constraints = await connection.GetConstraintsAsync("dbo", "Users");
 // Check for existence before creating
 if (!await connection.DoesTableExistAsync("dbo", "Users"))
 {
-    await connection.CreateTableIfNotExistsAsync("dbo", userTable);
+    var userTable = new DmTable("dbo", "Users", userColumns);
+    await connection.CreateTableIfNotExistsAsync(userTable);
 }
 ```
 
@@ -134,7 +138,8 @@ DapperMatic extension methods throw standard .NET exceptions:
 ```csharp
 try
 {
-    await connection.CreateTableIfNotExistsAsync("dbo", invalidTable);
+    var invalidTable = new DmTable("dbo", "InvalidTable", invalidColumns);
+    await connection.CreateTableIfNotExistsAsync(invalidTable);
 }
 catch (InvalidOperationException ex)
 {

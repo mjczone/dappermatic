@@ -251,8 +251,6 @@ public abstract partial class DatabaseMethodsBase
                     length,
                     precision,
                     scale,
-                    checkExpression,
-                    defaultExpression,
                     isNullable,
                     isPrimaryKey,
                     isAutoIncrement,
@@ -263,7 +261,9 @@ public abstract partial class DatabaseMethodsBase
                     referencedTableName,
                     referencedColumnName,
                     onDelete,
-                    onUpdate
+                    onUpdate,
+                    checkExpression: checkExpression,
+                    defaultExpression: defaultExpression
                 ),
                 tx,
                 cancellationToken

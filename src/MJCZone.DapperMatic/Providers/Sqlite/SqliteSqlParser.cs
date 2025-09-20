@@ -546,7 +546,7 @@ internal static partial class SqliteSqlParser
                                 var checkConstraintExpression = tableConstraint
                                     .GetChild<SqlCompoundClause>(i + 1)
                                     ?.ToString()
-                                    .Trim('(', ')', ' ');
+                                    .Trim();
 
                                 if (!string.IsNullOrWhiteSpace(checkConstraintExpression))
                                 {

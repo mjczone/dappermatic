@@ -14,6 +14,11 @@ namespace MJCZone.DapperMatic.Models;
 [Serializable]
 public class DmColumn
 {
+    private string? _defaultExpression;
+    private Func<DbProviderType, string>? _defaultExpressionFunc;
+    private string? _checkExpression;
+    private Func<DbProviderType, string>? _checkExpressionFunc;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DmColumn"/> class.
     /// </summary>
@@ -28,8 +33,6 @@ public class DmColumn
     /// <param name="length">The length of the column.</param>
     /// <param name="precision">The precision of the column.</param>
     /// <param name="scale">The scale of the column.</param>
-    /// <param name="checkExpression">The check expression.</param>
-    /// <param name="defaultExpression">The default expression.</param>
     /// <param name="isNullable">Indicates whether the column is nullable.</param>
     /// <param name="isPrimaryKey">Indicates whether the column is a primary key.</param>
     /// <param name="isAutoIncrement">Indicates whether the column is auto-incremented.</param>
@@ -41,6 +44,10 @@ public class DmColumn
     /// <param name="referencedColumnName">The referenced column name.</param>
     /// <param name="onDelete">The action on delete.</param>
     /// <param name="onUpdate">The action on update.</param>
+    /// <param name="defaultExpression">The default expression.</param>
+    /// <param name="defaultExpressionFunc">The default expression function for provider-specific defaults.</param>
+    /// <param name="checkExpression">The check expression.</param>
+    /// <param name="checkExpressionFunc">The check expression function for provider-specific checks.</param>
     [SetsRequiredMembers]
     public DmColumn(
         string columnName,
@@ -49,8 +56,6 @@ public class DmColumn
         int? length = null,
         int? precision = null,
         int? scale = null,
-        string? checkExpression = null,
-        string? defaultExpression = null,
         bool isNullable = false,
         bool isPrimaryKey = false,
         bool isAutoIncrement = false,
@@ -61,7 +66,11 @@ public class DmColumn
         string? referencedTableName = null,
         string? referencedColumnName = null,
         DmForeignKeyAction? onDelete = null,
-        DmForeignKeyAction? onUpdate = null
+        DmForeignKeyAction? onUpdate = null,
+        string? defaultExpression = null,
+        Func<DbProviderType, string>? defaultExpressionFunc = null,
+        string? checkExpression = null,
+        Func<DbProviderType, string>? checkExpressionFunc = null
     )
         : this(
             null,
@@ -72,8 +81,6 @@ public class DmColumn
             length,
             precision,
             scale,
-            checkExpression,
-            defaultExpression,
             isNullable,
             isPrimaryKey,
             isAutoIncrement,
@@ -84,7 +91,11 @@ public class DmColumn
             referencedTableName,
             referencedColumnName,
             onDelete,
-            onUpdate
+            onUpdate,
+            checkExpression,
+            checkExpressionFunc,
+            defaultExpression,
+            defaultExpressionFunc
         ) { }
 
     /// <summary>
@@ -98,8 +109,6 @@ public class DmColumn
     /// <param name="length">The length of the column.</param>
     /// <param name="precision">The precision of the column.</param>
     /// <param name="scale">The scale of the column.</param>
-    /// <param name="checkExpression">The check expression.</param>
-    /// <param name="defaultExpression">The default expression.</param>
     /// <param name="isNullable">Indicates whether the column is nullable.</param>
     /// <param name="isPrimaryKey">Indicates whether the column is a primary key.</param>
     /// <param name="isAutoIncrement">Indicates whether the column is auto-incremented.</param>
@@ -111,6 +120,10 @@ public class DmColumn
     /// <param name="referencedColumnName">The referenced column name.</param>
     /// <param name="onDelete">The action on delete.</param>
     /// <param name="onUpdate">The action on update.</param>
+    /// <param name="defaultExpression">The default expression.</param>
+    /// <param name="defaultExpressionFunc">The default expression function for provider-specific defaults.</param>
+    /// <param name="checkExpression">The check expression.</param>
+    /// <param name="checkExpressionFunc">The check expression function for provider-specific checks.</param>
     [SetsRequiredMembers]
     public DmColumn(
         string? schemaName,
@@ -121,8 +134,6 @@ public class DmColumn
         int? length = null,
         int? precision = null,
         int? scale = null,
-        string? checkExpression = null,
-        string? defaultExpression = null,
         bool isNullable = false,
         bool isPrimaryKey = false,
         bool isAutoIncrement = false,
@@ -133,7 +144,11 @@ public class DmColumn
         string? referencedTableName = null,
         string? referencedColumnName = null,
         DmForeignKeyAction? onDelete = null,
-        DmForeignKeyAction? onUpdate = null
+        DmForeignKeyAction? onUpdate = null,
+        string? defaultExpression = null,
+        Func<DbProviderType, string>? defaultExpressionFunc = null,
+        string? checkExpression = null,
+        Func<DbProviderType, string>? checkExpressionFunc = null
     )
     {
         SchemaName = schemaName;
@@ -144,8 +159,6 @@ public class DmColumn
         Length = length == -1 ? null : length;
         Precision = precision == -1 ? null : precision;
         Scale = scale == -1 ? null : scale;
-        CheckExpression = checkExpression;
-        DefaultExpression = defaultExpression;
         IsNullable = isNullable;
         IsPrimaryKey = isPrimaryKey;
         IsAutoIncrement = isAutoIncrement;
@@ -157,6 +170,10 @@ public class DmColumn
         ReferencedColumnName = referencedColumnName;
         OnDelete = onDelete;
         OnUpdate = onUpdate;
+        CheckExpression = checkExpression;
+        CheckExpressionFunc = checkExpressionFunc;
+        DefaultExpression = defaultExpression;
+        DefaultExpressionFunc = defaultExpressionFunc;
     }
 
     /// <summary>
@@ -205,13 +222,96 @@ public class DmColumn
 
     /// <summary>
     /// Gets or sets the check expression.
+    /// Setting this property will clear the CheckExpressionFunc property.
     /// </summary>
-    public string? CheckExpression { get; set; }
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Microsoft.Design",
+        "CA1721:PropertyNamesShouldNotMatchGetMethods",
+        Justification = "CheckExpression property and GetCheckExpression method serve different purposes - property for static values, method for provider-specific evaluation"
+    )]
+    public string? CheckExpression
+    {
+        get => _checkExpression;
+        set
+        {
+            _checkExpression = value;
+            if (_checkExpression == null)
+            {
+                // It could be user was just trying to make sure this was null, so
+                // don't clear the func in that case.
+                return;
+            }
+
+            _checkExpressionFunc = null;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the check expression function that generates provider-specific check expressions.
+    /// Setting this property will clear the CheckExpression property.
+    /// </summary>
+    public Func<DbProviderType, string>? CheckExpressionFunc
+    {
+        get => _checkExpressionFunc;
+        set
+        {
+            _checkExpressionFunc = value;
+            if (_checkExpressionFunc == null)
+            {
+                // It could be user was just trying to make sure this was null, so
+                // don't clear the check expression in that case.
+                return;
+            }
+
+            _checkExpression = null;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the default expression.
     /// </summary>
-    public string? DefaultExpression { get; set; }
+    [System.Diagnostics.CodeAnalysis.SuppressMessage(
+        "Microsoft.Design",
+        "CA1721:PropertyNamesShouldNotMatchGetMethods",
+        Justification = "DefaultExpression property and GetDefaultExpression method serve different purposes - property for static values, method for provider-specific evaluation"
+    )]
+    public string? DefaultExpression
+    {
+        get => _defaultExpression;
+        set
+        {
+            _defaultExpression = value;
+            if (_defaultExpression == null)
+            {
+                // It could be user was just trying to make sure this was null, so
+                // don't clear the func in that case.
+                return;
+            }
+
+            _defaultExpressionFunc = null;
+        }
+    }
+
+    /// <summary>
+    /// Gets or sets the default expression function that generates provider-specific default values.
+    /// Setting this property will clear the DefaultExpression property.
+    /// </summary>
+    public Func<DbProviderType, string>? DefaultExpressionFunc
+    {
+        get => _defaultExpressionFunc;
+        set
+        {
+            _defaultExpressionFunc = value;
+            if (_defaultExpressionFunc == null)
+            {
+                // It could be user was just trying to make sure this was null, so
+                // don't clear the default expression in that case.
+                return;
+            }
+
+            _defaultExpression = null;
+        }
+    }
 
     /// <summary>
     /// Gets or sets a value indicating whether the column is nullable.
@@ -427,12 +527,7 @@ public class DmColumn
             return "Dictionary";
         }
 
-        if (IsEnumerable())
-        {
-            return "Enumerable";
-        }
-
-        return "Unknown";
+        return IsEnumerable() ? "Enumerable" : "Unknown";
     }
 
     /// <summary>
@@ -473,5 +568,29 @@ public class DmColumn
     {
         ProviderDataTypes[providerType] = providerDataType;
         return this;
+    }
+
+    /// <summary>
+    /// Gets the effective default expression for the specified provider type.
+    /// Returns the result of DefaultExpressionFunc if set, otherwise returns DefaultExpression.
+    /// </summary>
+    /// <param name="providerType">The database provider type.</param>
+    /// <returns>The default expression for the specified provider, or null if neither is set.</returns>
+    public string? GetDefaultExpression(DbProviderType providerType)
+    {
+        return _defaultExpressionFunc != null
+            ? _defaultExpressionFunc(providerType)
+            : _defaultExpression;
+    }
+
+    /// <summary>
+    /// Gets the effective check expression for the specified provider type.
+    /// Returns the result of CheckExpressionFunc if set, otherwise returns CheckExpression.
+    /// </summary>
+    /// <param name="providerType">The database provider type.</param>
+    /// <returns>The check expression for the specified provider, or null if neither is set.</returns>
+    public string? GetCheckExpression(DbProviderType providerType)
+    {
+        return _checkExpressionFunc != null ? _checkExpressionFunc(providerType) : _checkExpression;
     }
 }

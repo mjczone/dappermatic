@@ -6,6 +6,8 @@ This document describes DapperMatic's internal testing infrastructure for contri
 
 DapperMatic's testing approach is built on **real database testing** using Docker containers rather than mocks or in-memory databases. This ensures that all DDL operations are validated against actual database engines across all supported providers.
 
+The library maintains **over 1000+ comprehensive tests** that run against real database instances, providing confidence in DDL operations across all supported database providers.
+
 ## Test Infrastructure
 
 ### Project Structure

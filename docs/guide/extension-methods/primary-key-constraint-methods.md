@@ -6,7 +6,6 @@ Primary key constraint methods provide functionality for managing primary key co
 
 - [Primary Key Existence Checking](#primary-key-existence-checking)
   - [DoesPrimaryKeyConstraintExistAsync](#doesprimarykeyconstraintexistasync) - Check if table has a primary key
-  - [DoesPrimaryKeyConstraintExistAsync (Named)](#doesprimarykeyconstraintexistasync-named) - Check if specific named primary key exists
 - [Primary Key Creation](#primary-key-creation)
   - [CreatePrimaryKeyConstraintIfNotExistsAsync (Model)](#createprimarykeyconstraintifnotexistsasync-dmprimarykeyconstraint) - Create from DmPrimaryKeyConstraint model
   - [CreatePrimaryKeyConstraintIfNotExistsAsync (Parameters)](#createprimarykeyconstraintifnotexistsasync-parameters) - Create with individual parameters
@@ -60,34 +59,6 @@ bool exists = await connection.DoesPrimaryKeyConstraintExistAsync(
 
 **Returns:** `bool` - `true` if table has a primary key constraint, `false` otherwise
 
-### DoesPrimaryKeyConstraintExistAsync (Named)
-
-Check if a specific named primary key constraint exists.
-
-```csharp
-// Check for specific primary key constraint by name
-var pkName = "PK_Employees_Id";
-bool exists = await connection.DoesPrimaryKeyConstraintExistAsync("app", "employees", pkName);
-
-if (exists)
-{
-    Console.WriteLine($"Primary key constraint '{pkName}' exists");
-}
-else
-{
-    Console.WriteLine($"Primary key constraint '{pkName}' does not exist");
-}
-```
-
-**Parameters:**
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table containing the constraint
-- `constraintName` - Name of the primary key constraint to check
-- `tx` (optional) - Database transaction
-- `cancellationToken` (optional) - Cancellation token
-
-**Returns:** `bool` - `true` if the named primary key constraint exists, `false` otherwise
-
 ## Primary Key Creation
 
 ### CreatePrimaryKeyConstraintIfNotExistsAsync (DmPrimaryKeyConstraint)
@@ -96,7 +67,7 @@ Create a primary key constraint only if the table doesn't already have one.
 
 ```csharp
 // Create primary key if table doesn't have one
-bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync("app", "employees", primaryKey);
+bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(primaryKey);
 
 if (created)
 {
@@ -109,11 +80,8 @@ else
 ```
 
 **Parameters:**
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table to add primary key to
-- `primaryKeyConstraint` - DmPrimaryKeyConstraint model defining the constraint
+- `constraint` - DmPrimaryKeyConstraint model defining the constraint (includes SchemaName and TableName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if primary key was created, `false` if table already had a primary key
@@ -127,7 +95,7 @@ Create a primary key constraint using individual parameters for convenience.
 bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(
     schemaName: "app",
     tableName: "employees",
-    primaryKeyConstraintName: "PK_Employees_Id",
+    constraintName: "PK_Employees_Id",
     columns: new[] { new DmOrderedColumn("EmployeeId", DmColumnOrder.Ascending) }
 );
 
@@ -142,15 +110,14 @@ bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(
         new DmOrderedColumn("WarehouseId", DmColumnOrder.Ascending)
     },
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 
-// Auto-generated constraint name
+// Named constraint
 bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(
     "app",
     "categories",
-    null, // Will generate name like PK_Categories
+    "PK_Categories_CategoryId",
     new[] { new DmOrderedColumn("CategoryId") }
 );
 ```
@@ -158,10 +125,9 @@ bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to add primary key to
-- `primaryKeyConstraintName` - Name of the primary key constraint (null for auto-generated)
+- `constraintName` - Name of the primary key constraint
 - `columns` - Array of DmOrderedColumn defining key columns and order
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if primary key was created, `false` if table already had a primary key
@@ -213,7 +179,6 @@ var pk = await connection.GetPrimaryKeyConstraintAsync("app", "employees", tx: t
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to get primary key from
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmPrimaryKeyConstraint?` - Primary key constraint model, or `null` if table has no primary key
@@ -282,15 +247,21 @@ public async Task MigrateToPrimaryKeyAsync(IDbConnection connection, string sche
             // Add an identity column as primary key
             var idColumn = new DmColumn("Id", typeof(long))
             {
+                SchemaName = schema,
+                TableName = tableName,
                 IsAutoIncrement = true,
                 IsNullable = false
             };
             
-            await connection.AddColumnAsync(schema, tableName, idColumn, tx: transaction);
+            await connection.CreateColumnIfNotExistsAsync(idColumn, tx: transaction);
             
             // Create primary key constraint
-            var primaryKey = new DmPrimaryKeyConstraint($"PK_{tableName}_Id", new[] { "Id" });
-            await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(schema, tableName, primaryKey, tx: transaction);
+            var primaryKey = new DmPrimaryKeyConstraint($"PK_{tableName}_Id", new[] { "Id" })
+            {
+                SchemaName = schema,
+                TableName = tableName
+            };
+            await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(primaryKey, tx: transaction);
             
             Console.WriteLine($"Added identity primary key to {tableName}");
         }
@@ -468,8 +439,12 @@ public async Task StandardizePrimaryKeyNamesAsync(IDbConnection connection, stri
                 await connection.DropPrimaryKeyConstraintIfExistsAsync(schema, tableName, tx: transaction);
                 
                 // Create new primary key with standard name
-                var standardPK = new DmPrimaryKeyConstraint(expectedName, pk.KeyColumnNames.ToArray());
-                await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(schema, tableName, standardPK, tx: transaction);
+                var standardPK = new DmPrimaryKeyConstraint(expectedName, pk.KeyColumnNames.ToArray())
+                {
+                    SchemaName = schema,
+                    TableName = tableName
+                };
+                await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(standardPK, tx: transaction);
                 
                 transaction.Commit();
                 Console.WriteLine($"  ✅ Renamed to '{expectedName}'");

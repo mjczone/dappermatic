@@ -50,7 +50,7 @@ public static class DmForeignKeyActionExtensions
             DmForeignKeyAction.Cascade => "CASCADE",
             DmForeignKeyAction.Restrict => "RESTRICT",
             DmForeignKeyAction.SetNull => "SET NULL",
-            _ => "NO ACTION"
+            _ => "NO ACTION",
         };
     }
 
@@ -67,7 +67,23 @@ public static class DmForeignKeyActionExtensions
             "CASCADE" => DmForeignKeyAction.Cascade,
             "RESTRICT" => DmForeignKeyAction.Restrict,
             "SETNULL" => DmForeignKeyAction.SetNull,
-            _ => DmForeignKeyAction.NoAction
+            _ => DmForeignKeyAction.NoAction,
         };
+    }
+
+    /// <summary>
+    /// Parses a string representation of a foreign key action.
+    /// </summary>
+    /// <param name="input">The string representation of the foreign key action (e.g., "CASCADE", "NO ACTION", "RESTRICT", "SET NULL").</param>
+    /// <returns>A <see cref="DmForeignKeyAction"/> instance.</returns>
+    /// <exception cref="ArgumentException">Thrown when input is null or whitespace.</exception>
+    public static DmForeignKeyAction Parse(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            throw new ArgumentException("Input cannot be null or whitespace.", nameof(input));
+        }
+
+        return input.ToForeignKeyAction();
     }
 }

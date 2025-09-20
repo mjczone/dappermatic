@@ -6,9 +6,66 @@ DapperMatic is designed to work with minimal configuration, following convention
 
 The `DmTableFactory` provides methods to customize how classes are mapped to `DmTable` instances.
 
+### When Configuration is Applied
+
+**Important**: Configuration in DapperMatic is applied **only when creating database schema objects (DDL operations)**, not during data queries. Specifically:
+
+- ✅ **Applied during**: `CreateTableIfNotExistsAsync()`, `CreateViewIfNotExistsAsync()`, and other DDL operations
+- ✅ **Applied when**: `DmTableFactory.GetTable(typeof(MyClass))` is called to generate table definitions
+- ❌ **NOT applied during**: `QueryAsync()`, `ExecuteAsync()`, or any data access operations
+- ❌ **NOT used for**: Query result mapping to C# objects
+
+### What Adding Default Columns Does
+
+When you add columns through configuration, you are **modifying the table schema definition** that DapperMatic will create in your database. This affects:
+
+1. **Database Schema Creation**: Added columns become real database columns with constraints and defaults
+2. **DDL Generation**: The columns are included in CREATE TABLE statements
+3. **Schema Introspection**: DapperMatic will detect these columns when reading existing table structures
+4. **Schema Validation**: The columns are considered part of the expected table structure
+
+**Example Impact**:
+```csharp
+// Original User class (no created_at field)
+[DmTable("dbo", "users")]
+public class User
+{
+    [DmColumn("id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("name", length: 100)]
+    public string Name { get; set; }
+
+    [DmColumn("email", length: 200)]
+    public string Email { get; set; }
+}
+
+// Configure audit columns
+DmTableFactory.Configure((type, table) => {
+    // This adds REAL database columns
+    table.Columns = table.Columns.Concat(new[] {
+        new DmColumn("created_at", typeof(DateTime)) { DefaultExpression = "GETDATE()" }
+    }).ToArray();
+});
+
+// When you call this, the created_at column will be physically created in the database
+var userTable = DmTableFactory.GetTable(typeof(User));
+await connection.CreateTableIfNotExistsAsync(userTable);
+
+// The database now has: id, name, email, created_at (with GETDATE() default)
+// Even though User class only has 3 properties, the table has 4 columns!
+// Future INSERTs will automatically populate created_at if not specified
+```
+
 ### Global Configuration
 
 Configure mapping behavior for all types at application startup:
+
+> **⚠️ Configuration Timing**: Configure DapperMatic **before** calling `DmTableFactory.GetTable(typeof(SomeClass))` for any type, as type-to-table mappings are cached after first generation. Ideally, set up configuration during application startup.
+
+> **📝 What Gets Cached**: DapperMatic caches the **C# Type → DmTable mapping**, NOT database schema. The cache stores the result of analyzing your C# classes (attributes, properties, configuration) and converting them to `DmTable` objects. This is purely in-memory and has nothing to do with database introspection or schema caching.
+
+> **🔄 Cache Management**: Currently, there is **no public API to clear or refresh the mapping cache**. Once a type is processed by `DmTableFactory.GetTable(typeof(SomeClass))`, its `DmTable` definition is permanently cached for the application lifetime. To apply new configuration to already-processed types, you need to restart the application.
 
 ```csharp
 // Configure custom mapping logic for all types
@@ -51,19 +108,20 @@ DmTableFactory.Configure<Customer>(table =>
     // Customize the Customer table
     table.TableName = "app_customers";
 
-    // Add a computed column
-    var computedColumn = new DmColumn("full_name", typeof(string))
+    // Add a custom column for business logic
+    var statusColumn = new DmColumn("status", typeof(string))
     {
-        IsNullable = true,
-        IsComputed = true,
-        ComputedExpression = "first_name + ' ' + last_name"
+        Length = 20,
+        IsNullable = false,
+        DefaultExpression = "'Active'"
     };
-    table.Columns = table.Columns.Concat(new[] { computedColumn }).ToArray();
+    table.Columns = table.Columns.Concat(new[] { statusColumn }).ToArray();
 
     // Add additional constraints
     table.CheckConstraints = table.CheckConstraints.Concat(new[]
     {
-        new DmCheckConstraint("CK_Customer_Email_Valid", "email LIKE '%@%'")
+        new DmCheckConstraint("CK_Customer_Email_Valid", "email LIKE '%@%'"),
+        new DmCheckConstraint("CK_Customer_Status_Valid", "status IN ('Active', 'Inactive', 'Suspended')")
     }).ToArray();
 });
 
@@ -116,7 +174,7 @@ public class DatabaseConfig
             },
             new DmColumn("created_by", typeof(string))
             {
-                MaxLength = 100,
+                Length = 100,
                 IsNullable = false,
                 DefaultExpression = "SYSTEM_USER"
             }
@@ -135,7 +193,7 @@ DatabaseConfig.ConfigureDapperMatic();
 
 ## Extension Method Parameters
 
-DapperMatic extension methods accept standard Dapper parameters for customization:
+DapperMatic extension methods accept standard Dapper method parameters (e.g.: QueryAsync, ExecuteAsync, ...) for customization:
 
 ### Command Timeout
 
@@ -143,10 +201,12 @@ Control how long database operations wait before timing out:
 
 ```csharp
 // Set timeout for individual operations
-await connection.CreateTableIfNotExistsAsync(schema, table, commandTimeout: 120); // 2 minutes
+var table = new DmTable(schema, "TableName", columns);
+await connection.CreateTableIfNotExistsAsync(table, commandTimeout: 120); // 2 minutes
 
 // For complex operations like large table creation
-await connection.CreateTableIfNotExistsAsync("dbo", complexTable, commandTimeout: 300); // 5 minutes
+var complexTable = new DmTable("dbo", "ComplexTable", complexColumns);
+await connection.CreateTableIfNotExistsAsync(complexTable, commandTimeout: 300); // 5 minutes
 
 // Apply timeout to introspection operations
 var tables = await connection.GetTablesAsync("dbo", commandTimeout: 60);
@@ -162,9 +222,12 @@ using var transaction = connection.BeginTransaction();
 try
 {
     // Create multiple related tables in a transaction
-    await connection.CreateTableIfNotExistsAsync("dbo", usersTable, tx: transaction);
-    await connection.CreateTableIfNotExistsAsync("dbo", ordersTable, tx: transaction);
-    await connection.CreateTableIfNotExistsAsync("dbo", orderItemsTable, tx: transaction);
+    var usersTable = new DmTable("dbo", "Users", userColumns);
+    var ordersTable = new DmTable("dbo", "Orders", orderColumns);
+    var orderItemsTable = new DmTable("dbo", "OrderItems", orderItemColumns);
+    await connection.CreateTableIfNotExistsAsync(usersTable, tx: transaction);
+    await connection.CreateTableIfNotExistsAsync(ordersTable, tx: transaction);
+    await connection.CreateTableIfNotExistsAsync(orderItemsTable, tx: transaction);
 
     transaction.Commit();
 }
@@ -186,8 +249,8 @@ public async Task CreateSchemaAsync(CancellationToken cancellationToken = defaul
 
     foreach (var table in tables)
     {
+        var table = new DmTable("dbo", "TableName", tableColumns);
         await connection.CreateTableIfNotExistsAsync(
-            "dbo",
             table,
             cancellationToken: cancellationToken
         );
@@ -279,7 +342,7 @@ public static class DatabaseSetup
         {
             var debugColumn = new DmColumn("debug_info", typeof(string))
             {
-                MaxLength = 1000,
+                Length = 1000,
                 IsNullable = true
             };
             table.Columns = table.Columns.Concat(new[] { debugColumn }).ToArray();
@@ -310,13 +373,13 @@ public static class ConfigurationValidator
         var table = DmTableFactory.GetTable(typeof(T));
 
         // Validate table has primary key
-        if (table.PrimaryKey == null || table.PrimaryKey.Columns.Length == 0)
+        if (table.PrimaryKeyConstraint == null || table.PrimaryKeyConstraint.Columns.Count == 0)
         {
             throw new InvalidOperationException($"Table {table.TableName} must have a primary key");
         }
 
         // Validate foreign key references exist
-        foreach (var fk in table.ForeignKeys ?? Array.Empty<DmForeignKeyConstraint>())
+        foreach (var fk in table.ForeignKeyConstraints ?? [])
         {
             if (string.IsNullOrEmpty(fk.ReferencedTableName))
             {
@@ -330,13 +393,13 @@ public static class ConfigurationValidator
 
     private static void ValidateIndexCoverage(DmTable table)
     {
-        var foreignKeyColumns = table.ForeignKeys?
+        var foreignKeyColumns = table.ForeignKeyConstraints
             .SelectMany(fk => fk.Columns.Select(c => c.ColumnName))
-            .ToHashSet() ?? new HashSet<string>();
+            .ToHashSet();
 
-        var indexedColumns = table.Indexes?
+        var indexedColumns = table.Indexes
             .SelectMany(idx => idx.Columns.Select(c => c.ColumnName))
-            .ToHashSet() ?? new HashSet<string>();
+            .ToHashSet();
 
         var unindexedForeignKeys = foreignKeyColumns.Except(indexedColumns);
 

@@ -116,7 +116,7 @@ Create a check constraint only if it doesn't already exist using a DmCheckConstr
 
 ```csharp
 // Create check constraint if it doesn't exist
-bool created = await connection.CreateCheckConstraintIfNotExistsAsync("sales", "orders", checkConstraint);
+bool created = await connection.CreateCheckConstraintIfNotExistsAsync(checkConstraint);
 
 if (created)
 {
@@ -134,7 +134,7 @@ else
 - `tableName` - Name of the table to add check constraint to
 - `checkConstraint` - DmCheckConstraint model defining the constraint
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was created, `false` if it already existed
@@ -159,7 +159,7 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
     "CK_Employees_ValidHireDate",
     "hire_date >= '1900-01-01' AND hire_date <= GETDATE()",
     tx: transaction,
-    commandTimeout: 60,
+    : 60,
     cancellationToken: cancellationToken
 );
 
@@ -187,7 +187,7 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
 - `constraintName` - Name of the check constraint
 - `expression` - SQL expression that must evaluate to true
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was created, `false` if it already existed
@@ -221,7 +221,7 @@ List<string> validationConstraints = await connection.GetCheckConstraintNamesAsy
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching check constraint names
@@ -257,7 +257,7 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find check constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the check constraint, or `null` if none exists on the column
@@ -292,7 +292,7 @@ List<DmCheckConstraint> constraints = await connection.GetCheckConstraintsAsync(
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmCheckConstraint>` - List of complete DmCheckConstraint models
@@ -337,7 +337,7 @@ else
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the check constraint to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmCheckConstraint?` - Complete check constraint model, or `null` if not found
@@ -377,7 +377,7 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find check constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmCheckConstraint?` - Check constraint model, or `null` if none exists on the column
@@ -429,7 +429,7 @@ catch
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the check constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was dropped, `false` if it didn't exist
@@ -466,7 +466,7 @@ await connection.CreateCheckConstraintIfNotExistsAsync(
 - `tableName` - Name of the table containing the constraint
 - `columnName` - Name of the column to drop check constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was dropped, `false` if none existed on the column

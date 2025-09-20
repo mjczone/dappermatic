@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using MJCZone.DapperMatic.Models;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.Providers.Sqlite;
 
@@ -91,6 +92,32 @@ public partial class SqliteMethods
     #endregion // Check Constraint Strings
 
     #region Default Constraint Strings
+
+    /// <summary>
+    /// Generates the SQL string for inline default column constraint.
+    /// SQLite doesn't support named default constraints, so this returns only the DEFAULT clause.
+    /// </summary>
+    /// <param name="constraintName">The constraint name (ignored in SQLite).</param>
+    /// <param name="defaultExpression">The default expression.</param>
+    /// <returns>The SQL string for inline default column constraint.</returns>
+    protected override string SqlInlineDefaultColumnConstraint(
+        string constraintName,
+        string defaultExpression
+    )
+    {
+        SqlExpressionValidator.ValidateDefaultExpression(defaultExpression, nameof(defaultExpression));
+
+        defaultExpression = defaultExpression.Trim();
+
+        // SQLite requires parentheses around function calls in DEFAULT clauses
+        var addParentheses =
+            (defaultExpression.Contains(' ', StringComparison.OrdinalIgnoreCase) || IsFunctionCall(defaultExpression))
+            && !(defaultExpression.StartsWith('(') && defaultExpression.EndsWith(')'))
+            && !(defaultExpression.StartsWith('"') && defaultExpression.EndsWith('"'))
+            && !(defaultExpression.StartsWith('\'') && defaultExpression.EndsWith('\''));
+
+        return $"DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
+    }
     #endregion // Default Constraint Strings
 
     #region Primary Key Strings

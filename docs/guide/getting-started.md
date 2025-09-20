@@ -19,9 +19,10 @@ DapperMatic is a C# library that provides IDbConnection extension methods for DD
 ```csharp
 using MJCZone.DapperMatic;
 using MJCZone.DapperMatic.Models;
+using System.Data.SqlClient;
 
 // Define a table model
-var table = new DmTable("Users")
+var table = new DmTable("dbo", "Users")
 {
     Columns = new[]
     {
@@ -30,12 +31,12 @@ var table = new DmTable("Users")
         new DmColumn("Email", typeof(string)) { MaxLength = 100, IsNullable = false },
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false }
     },
-    PrimaryKey = new DmPrimaryKeyConstraint("PK_Users", "Id")
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id")
 };
 
 // Create the table
 using var connection = new SqlConnection(connectionString);
-await connection.CreateTableIfNotExistsAsync("dbo", table);
+await connection.CreateTableIfNotExistsAsync(table);
 ```
 
 ## Next Steps

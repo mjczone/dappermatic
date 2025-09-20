@@ -542,3 +542,112 @@
 .scalar-api-reference [data-testid="models"][aria-expanded="true"] > div:nth-child(2) {
   display: block !important;
 }
+
+/* Choose Your Path section styling */
+.vp-feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.vp-feature-item {
+  background: var(--vp-c-bg-soft);
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+
+.vp-feature-item:hover {
+  border-color: var(--vp-c-brand-1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.vp-feature-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+}
+
+.vp-feature-item h3 {
+  margin: 0 0 1rem 0;
+  color: var(--vp-c-text-1);
+  font-size: 1.25rem;
+}
+
+.vp-feature-item p {
+  margin: 0 0 1rem 0;
+  color: var(--vp-c-text-2);
+}
+
+.vp-feature-item ul {
+  text-align: left;
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.vp-feature-item li {
+  margin: 0.5rem 0;
+  color: var(--vp-c-text-2);
+}
+
+.vp-feature-actions {
+  margin-top: 1.5rem;
+}
+
+.vp-button {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.vp-button-brand {
+  background: var(--vp-c-brand-1);
+  color: #ffffff !important;
+  text-decoration: none !important;
+}
+
+.vp-button-brand:hover {
+  background: var(--vp-c-brand-2);
+  color: #ffffff !important;
+}
+
+.vp-button-alt {
+  background: var(--vp-c-bg-alt);
+  color: var(--vp-c-text-1) !important;
+  border: 1px solid var(--vp-c-divider);
+  text-decoration: none !important;
+}
+
+.vp-button-alt:hover {
+  background: var(--vp-c-bg-soft);
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-text-1) !important;
+}
+
+/* Ensure buttons work properly in dark mode */
+.dark .vp-button-brand {
+  background: var(--vp-c-brand-1);
+  color: #ffffff !important;
+}
+
+.dark .vp-button-brand:hover {
+  background: var(--vp-c-brand-2);
+  color: #ffffff !important;
+}
+
+.dark .vp-button-alt {
+  background: var(--vp-c-bg-alt);
+  color: var(--vp-c-text-1) !important;
+  border: 1px solid var(--vp-c-divider);
+}
+
+.dark .vp-button-alt:hover {
+  background: var(--vp-c-bg-soft);
+  border-color: var(--vp-c-brand-1);
+  color: var(--vp-c-text-1) !important;
+}

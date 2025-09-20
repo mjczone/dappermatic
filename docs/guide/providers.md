@@ -30,7 +30,8 @@ var connectionString = "Server=localhost;Database=MyApp;Integrated Security=true
 using var connection = new SqlConnection(connectionString);
 
 // SQL Server uses schemas extensively
-await connection.CreateTableIfNotExistsAsync("dbo", table);
+var table = new DmTable("dbo", "TableName", columns);
+await connection.CreateTableIfNotExistsAsync(table);
 ```
 
 **Key Features:**
@@ -59,7 +60,8 @@ var connectionString = "Server=localhost;Database=myapp;Uid=user;Pwd=password;";
 using var connection = new MySqlConnection(connectionString);
 
 // MySQL doesn't use schemas - pass null or database name
-await connection.CreateTableIfNotExistsAsync(null, table);
+var table = new DmTable(null /* or databaseName */, "TableName", columns);
+await connection.CreateTableIfNotExistsAsync(table);
 ```
 
 **Key Features:**
@@ -89,7 +91,8 @@ var connectionString = "Host=localhost;Database=myapp;Username=user;Password=pas
 using var connection = new NpgsqlConnection(connectionString);
 
 // PostgreSQL is case-sensitive for quoted identifiers
-await connection.CreateTableIfNotExistsAsync("public", table);
+var table = new DmTable("public", "TableName", columns);
+await connection.CreateTableIfNotExistsAsync(table);
 ```
 
 **Key Features:**
@@ -107,7 +110,7 @@ await connection.CreateTableIfNotExistsAsync("public", table);
 
 ### SQLite
 
-**Supported Versions:** SQLite 3.35+ (via `System.Data.SQLite` driver)  
+**Supported Versions:** SQLite 3.35+  
 **Connection Package:** `Microsoft.Data.Sqlite` or `System.Data.SQLite`  
 **Schema Support:** Single database file (no schemas)
 
@@ -118,7 +121,8 @@ var connectionString = "Data Source=myapp.db";
 using var connection = new SqliteConnection(connectionString);
 
 // SQLite doesn't use schemas
-await connection.CreateTableIfNotExistsAsync(null, table);
+var table = new DmTable(null /* no schema support */, "TableName", columns);
+await connection.CreateTableIfNotExistsAsync(table);
 ```
 
 **Key Features:**
@@ -183,9 +187,9 @@ var baseConnection = new SqlConnection(connectionString);
 var profiledConnection = new ProfiledDbConnection(baseConnection, MiniProfiler.Current);
 
 // Now your profiled connection works with DapperMatic
-var table = new DmTable(null, "my_table", new[] {
-    new DmColumn(null, "my_table", "id", typeof(int), isPrimaryKey: true),
-    new DmColumn(null, "my_table", "name", typeof(string)),
+var table = new DmTable(null /* or schemaName */, "my_table", new[] {
+    new DmColumn("id", typeof(int)) { IsPrimaryKey = true },
+    new DmColumn("name", typeof(string)),
 });
 await profiledConnection.CreateTableIfNotExistsAsync(table);
 ```
@@ -218,9 +222,9 @@ var sqliteFile = Path.GetTempFileName();
 var factory = new OrmLiteConnectionFactory(sqliteFile, SqliteDialect.Provider);
 using (var connection = factory.OpenDbConnection())
 {
-    var table = new DmTable(null, "my_table", new[] {
-        new DmColumn(null, "my_table", "id", typeof(int), isPrimaryKey: true),
-        new DmColumn(null, "my_table", "name", typeof(string)),
+    var table = new DmTable(null /* or schemaName */, "my_table", new[] {
+        new DmColumn("id", typeof(int)) { IsPrimaryKey = true },
+        new DmColumn("name", typeof(string)),
     });
     await connection.CreateSchemaIfNotExistsAsync("reporting"); // returns false with SQLite
     await connection.CreateTableIfNotExistsAsync(table);
@@ -280,7 +284,8 @@ DatabaseMethodsProvider.RegisterFactory(
     new ResilientSqlServerMethodsFactory());
 
 // DDL operations now have automatic retry logic
-await resilientConnection.CreateTableIfNotExistsAsync("dbo", criticalTable);
+var criticalTable = new DmTable("dbo", "CriticalTable", criticalColumns);
+await resilientConnection.CreateTableIfNotExistsAsync(criticalTable);
 ```
 
 ### Native Custom Providers (Advanced)
@@ -326,7 +331,6 @@ public class CentipedeDbMethods : IDatabaseMethods
 {
     public async Task<bool> CreateTableIfNotExistsAsync(
         IDbConnection db,
-        string schemaName,
         DmTable table,
         IDbTransaction tx = null,
         CancellationToken cancellationToken = default)
@@ -356,7 +360,8 @@ public class CentipedeDbMethodsFactory : DatabaseMethodsFactoryBase
 DatabaseMethodsProvider.RegisterFactory("CentipedeDb", new CentipedeDbMethodsFactory());
 
 using var connection = new CentipedeDbConnection("Host=centipede-cluster;Database=analytics");
-await connection.CreateTableIfNotExistsAsync(null, customTable);
+var customTable = new DmTable(null /* or schemaName */, "CustomTable", customColumns);
+await connection.CreateTableIfNotExistsAsync(customTable);
 ```
 
 ### Additional Custom Provider Ideas
@@ -434,9 +439,8 @@ public void ConfigureServices(IServiceCollection services)
 public async Task CustomProvider_CreateTable_ShouldWork()
 {
     using var connection = new CustomDbConnection(connectionString);
-    var table = new DmTable("TestTable", columns);
-
-    var result = await connection.CreateTableIfNotExistsAsync("schema", table);
+    var table = new DmTable("schema", "TestTable", columns);
+    var result = await connection.CreateTableIfNotExistsAsync(table);
 
     Assert.IsTrue(result);
     Assert.IsTrue(await connection.DoesTableExistAsync("schema", "TestTable"));

@@ -38,7 +38,7 @@ if (exists)
 else
 {
     Console.WriteLine($"Index '{indexName}' does not exist");
-    await connection.CreateIndexIfNotExistsAsync("app", "employees", index);
+    await connection.CreateIndexIfNotExistsAsync(index);
 }
 
 
@@ -108,7 +108,7 @@ Create an index only if it doesn't already exist using a DmIndex model.
 
 ```csharp
 // Create index if it doesn't exist
-bool created = await connection.CreateIndexIfNotExistsAsync("app", "employees", index);
+bool created = await connection.CreateIndexIfNotExistsAsync(index);
 
 if (created)
 {
@@ -121,11 +121,8 @@ else
 ```
 
 **Parameters:**
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table to create index on
-- `index` - DmIndex model defining the index structure
+- `index` - DmIndex model defining the index structure (includes SchemaName and TableName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if index was created, `false` if it already existed
@@ -157,7 +154,6 @@ bool created = await connection.CreateIndexIfNotExistsAsync(
     },
     isUnique: false,
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 
@@ -192,7 +188,6 @@ bool created = await connection.CreateIndexIfNotExistsAsync(
 - `columns` - Array of DmOrderedColumn defining indexed columns and sort order
 - `isUnique` (optional) - Whether index enforces uniqueness (default: false)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if index was created, `false` if it already existed
@@ -212,20 +207,19 @@ foreach (string indexName in allIndexes)
 }
 
 // Get index names with wildcard filter
-List<string> performanceIndexes = await connection.GetIndexNamesAsync("app", "employees", "IX_*");
+List<string> performanceIndexes = await connection.GetIndexNamesAsync("app", "employees", indexNameFilter: "IX_*");
 // Finds: IX_Employees_LastName, IX_Employees_Email, etc.
 
 // Get indexes with pattern matching
-List<string> uniqueIndexes = await connection.GetIndexNamesAsync("app", "employees", "*_Unique");
+List<string> uniqueIndexes = await connection.GetIndexNamesAsync("app", "employees", indexNameFilter: "*_Unique");
 // Finds: IX_Employees_Email_Unique, IX_Employees_SSN_Unique, etc.
 ```
 
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to search
-- `nameFilter` (optional) - Wildcard pattern to filter index names (`*` = any characters, `?` = single character)
+- `indexNameFilter` (optional) - Wildcard pattern to filter index names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching index names
@@ -259,7 +253,6 @@ else
 - `tableName` - Name of the table to search
 - `columnName` - Name of the column to find indexes for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of index names that include the specified column
@@ -281,7 +274,7 @@ foreach (var index in indexes)
 }
 
 // Get specific indexes with pattern
-List<DmIndex> performanceIndexes = await connection.GetIndexesAsync("sales", "orders", "IX_Orders_*");
+List<DmIndex> performanceIndexes = await connection.GetIndexesAsync("sales", "orders", indexNameFilter: "IX_Orders_*");
 
 // With transaction
 using var transaction = connection.BeginTransaction();
@@ -291,9 +284,8 @@ List<DmIndex> indexes = await connection.GetIndexesAsync("app", "products", tx: 
 **Parameters:**
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to search
-- `nameFilter` (optional) - Wildcard pattern to filter index names
+- `indexNameFilter` (optional) - Wildcard pattern to filter index names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmIndex>` - List of complete DmIndex models
@@ -334,7 +326,6 @@ else
 - `tableName` - Name of the table containing the index
 - `indexName` - Name of the index to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmIndex?` - Complete index model, or `null` if index doesn't exist
@@ -372,7 +363,6 @@ foreach (var index in customerIdIndexes)
 - `tableName` - Name of the table to search
 - `columnName` - Name of the column to find indexes for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmIndex>` - List of DmIndex models that include the specified column
@@ -413,7 +403,6 @@ foreach (var indexName in indexesToRemove)
 - `tableName` - Name of the table containing the index
 - `indexName` - Name of the index to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if index was dropped, `false` if it didn't exist
@@ -443,7 +432,7 @@ await connection.DropIndexesOnColumnIfExistsAsync("app", "users", "email");
 // Note: AlterColumnAsync does not exist in DapperMatic
 // You would need to drop and recreate the column or table
 // Then recreate indexes with new structure
-await connection.CreateIndexIfNotExistsAsync("app", "users", newEmailIndex);
+await connection.CreateIndexIfNotExistsAsync(newEmailIndex);
 ```
 
 **Parameters:**
@@ -451,7 +440,6 @@ await connection.CreateIndexIfNotExistsAsync("app", "users", newEmailIndex);
 - `tableName` - Name of the table containing the indexes
 - `columnName` - Name of the column to drop indexes for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if any indexes were dropped, `false` if no indexes existed on the column
@@ -504,7 +492,7 @@ public async Task CreatePerformanceIndexesAsync(IDbConnection connection)
         {
             var tableName = ExtractTableNameFromIndex(index.IndexName);
             bool created = await connection.CreateIndexIfNotExistsAsync(
-                "app", tableName, index, tx: transaction);
+                index, tx: transaction);
                 
             Console.WriteLine($"Performance index '{index.IndexName}': {(created ? "Created" : "Already exists")}");
         }
@@ -828,7 +816,7 @@ public async Task CreateStandardIndexSetAsync(IDbConnection connection, string s
                 
                 if (allColumnsExist)
                 {
-                    bool created = await connection.CreateIndexIfNotExistsAsync(schema, tableName, index);
+                    bool created = await connection.CreateIndexIfNotExistsAsync(index);
                     Console.WriteLine($"  {index.IndexName}: {(created ? "Created" : "Already exists")}");
                 }
                 else

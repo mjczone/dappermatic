@@ -32,70 +32,67 @@ export default defineConfig({
     sidebar: {
       "/guide/": [
         {
-          text: "Getting Started",
+          text: "🛠️ Library Usage",
           collapsed: false,
           items: [
+            { text: "Getting Started", link: "/guide/getting-started" },
             { text: "Installation", link: "/guide/installation" },
             { text: "Providers", link: "/guide/providers" },
             { text: "Models", link: "/guide/models" },
             { text: "Data Annotations", link: "/guide/data-annotations" },
             { text: "Configuration", link: "/guide/configuration" },
-          ],
-        },
-        {
-          text: "Usage",
-          collapsed: false,
-          items: [
-            { text: "Extension Methods", link: "/guide/extension-methods/" },
             {
-              text: "General Methods",
-              link: "/guide/extension-methods/general-methods",
-            },
-            {
-              text: "Schema Methods",
-              link: "/guide/extension-methods/schema-methods",
-            },
-            {
-              text: "Table Methods",
-              link: "/guide/extension-methods/table-methods",
-            },
-            {
-              text: "Column Methods",
-              link: "/guide/extension-methods/column-methods",
-            },
-            {
-              text: "Primary Key Methods",
-              link: "/guide/extension-methods/primary-key-constraint-methods",
-            },
-            {
-              text: "Check Constraint Methods",
-              link: "/guide/extension-methods/check-constraint-methods",
-            },
-            {
-              text: "Default Constraint Methods",
-              link: "/guide/extension-methods/default-constraint-methods",
-            },
-            {
-              text: "Foreign Key Methods",
-              link: "/guide/extension-methods/foreign-key-constraint-methods",
-            },
-            {
-              text: "Unique Constraint Methods",
-              link: "/guide/extension-methods/unique-constraint-methods",
-            },
-            {
-              text: "Index Methods",
-              link: "/guide/extension-methods/index-methods",
-            },
-            {
-              text: "View Methods",
-              link: "/guide/extension-methods/view-methods",
+              text: "Extension Methods",
+              collapsed: true,
+              items: [
+                { text: "Overview", link: "/guide/extension-methods/" },
+                { text: "General Methods", link: "/guide/extension-methods/general-methods" },
+                {
+                  text: "Schema & Database",
+                  collapsed: true,
+                  items: [
+                    { text: "Schema Methods", link: "/guide/extension-methods/schema-methods" },
+                    { text: "Table Methods", link: "/guide/extension-methods/table-methods" },
+                    { text: "Column Methods", link: "/guide/extension-methods/column-methods" },
+                    { text: "View Methods", link: "/guide/extension-methods/view-methods" },
+                  ],
+                },
+                {
+                  text: "Constraints",
+                  collapsed: true,
+                  items: [
+                    { text: "Primary Key Methods", link: "/guide/extension-methods/primary-key-constraint-methods" },
+                    { text: "Foreign Key Methods", link: "/guide/extension-methods/foreign-key-constraint-methods" },
+                    { text: "Unique Constraint Methods", link: "/guide/extension-methods/unique-constraint-methods" },
+                    { text: "Check Constraint Methods", link: "/guide/extension-methods/check-constraint-methods" },
+                    { text: "Default Constraint Methods", link: "/guide/extension-methods/default-constraint-methods" },
+                  ],
+                },
+                {
+                  text: "Indexes",
+                  collapsed: true,
+                  items: [
+                    { text: "Index Methods", link: "/guide/extension-methods/index-methods" },
+                  ],
+                },
+              ],
             },
             { text: "Testing", link: "/guide/testing" },
           ],
         },
         {
-          text: "About",
+          text: "🌐 Web API Integration",
+          collapsed: true,
+          items: [
+            { text: "Getting Started", link: "/guide/web-api/getting-started" },
+            { text: "Setup & Configuration", link: "/guide/web-api/setup" },
+            { text: "Security & Authentication", link: "/guide/web-api/security" },
+            { text: "Endpoints Overview", link: "/guide/web-api/endpoints" },
+            { text: "Integration Examples", link: "/guide/web-api/examples" },
+          ],
+        },
+        {
+          text: "📚 Common Resources",
           collapsed: true,
           items: [
             { text: "Credits", link: "/guide/credits" },

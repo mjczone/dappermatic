@@ -321,7 +321,7 @@ public partial class SqlServerMethods
 
             // extract unique constraint information from constraints query
             var uniqueConstraintsInfo = tableConstraints
-                .Where(t => t is { is_unique_constraint: true, is_primary_key: false, })
+                .Where(t => t is { is_unique_constraint: true, is_primary_key: false })
                 .GroupBy(t => new
                 {
                     t.schema_name,
@@ -345,7 +345,7 @@ public partial class SqlServerMethods
 
             // extract index information from constraints query
             var indexesInfo = tableConstraints
-                .Where(t => t is { is_primary_key: false, is_unique_constraint: false, })
+                .Where(t => t is { is_primary_key: false, is_unique_constraint: false })
                 .GroupBy(t => new
                 {
                     t.schema_name,
@@ -445,24 +445,6 @@ public partial class SqlServerMethods
                     tableColumn.max_length,
                     tableColumn.numeric_precision,
                     tableColumn.numeric_scale,
-                    checkConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
-                    defaultConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
                     tableColumn.is_nullable,
                     primaryKeyConstraint != null
                         && primaryKeyConstraint.Columns.Any(c =>
@@ -481,14 +463,33 @@ public partial class SqlServerMethods
                         ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
                         ?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
-                    foreignKeyConstraint?.OnUpdate
+                    foreignKeyConstraint?.OnUpdate,
+                    checkExpression: checkConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression,
+                    defaultExpression: defaultConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression
                 );
 
                 // Apply standardized auto-increment detection
                 column.IsAutoIncrement = DetermineIsAutoIncrement(
                     column,
                     tableColumn.is_identity,
-                    tableColumn.data_type);
+                    tableColumn.data_type
+                );
 
                 columns.Add(column);
             }

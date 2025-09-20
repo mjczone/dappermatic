@@ -16,14 +16,23 @@ Add the DapperMatic package to your project:
 ::: code-group
 ```bash [.NET CLI]
 dotnet add package MJCZone.DapperMatic
+
+# Optional: Add your preferred Dapper version (supports 2.1.35-2.1.66+)
+# dotnet add package Dapper --version 2.1.66
 ```
 
 ```xml [PackageReference]
 <PackageReference Include="MJCZone.DapperMatic" Version="0.1.*" />
+
+<!-- Optional: Add your preferred Dapper version (supports 2.1.35-2.1.66+) -->
+<!-- <PackageReference Include="Dapper" Version="2.1.66" /> -->
 ```
 
 ```powershell [Package Manager]
 Install-Package MJCZone.DapperMatic
+
+# Optional: Add your preferred Dapper version (supports 2.1.35-2.1.66+)
+# Install-Package Dapper -Version 2.1.66
 ```
 :::
 

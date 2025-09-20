@@ -35,7 +35,7 @@ if (exists)
 else
 {
     Console.WriteLine("View 'vw_active_employees' does not exist");
-    await connection.CreateViewIfNotExistsAsync("app", view);
+    await connection.CreateViewIfNotExistsAsync(view);
 }
 
 
@@ -66,7 +66,7 @@ Create a view only if it doesn't already exist using a DmView model.
 
 ```csharp
 // Create view if it doesn't exist
-bool created = await connection.CreateViewIfNotExistsAsync("app", view);
+bool created = await connection.CreateViewIfNotExistsAsync(view);
 
 if (created)
 {
@@ -80,10 +80,8 @@ else
 
 **Parameters:**
 
-- `schemaName` - Schema to create the view in
-- `view` - DmView model defining the view structure
+- `view` - DmView model defining the view structure (includes SchemaName and ViewName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was created, `false` if it already existed
@@ -116,7 +114,7 @@ bool created = await connection.CreateViewIfNotExistsAsync(
         WHERE order_status = 'completed'
         GROUP BY YEAR(order_date), MONTH(order_date)",
     tx: transaction,
-    commandTimeout: 60,
+    : 60,
     cancellationToken: cancellationToken
 );
 
@@ -145,7 +143,7 @@ bool created = await connection.CreateViewIfNotExistsAsync(
 - `viewName` - Name of the view to create
 - `viewDefinition` - SQL query defining the view
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was created, `false` if it already existed
@@ -192,7 +190,7 @@ bool updated = await connection.UpdateViewIfExistsAsync(
     "vw_active_employees",
     newViewDefinition,
     tx: transaction,
-    commandTimeout: 60,
+    : 60,
     cancellationToken: cancellationToken
 );
 ```
@@ -203,7 +201,7 @@ bool updated = await connection.UpdateViewIfExistsAsync(
 - `viewName` - Name of the view to update
 - `viewDefinition` - New SQL query defining the view
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was updated, `false` if it didn't exist
@@ -236,7 +234,7 @@ List<string> employeeViews = await connection.GetViewNamesAsync("hr", "*employee
 - `schemaName` - Schema to search for views
 - `nameFilter` (optional) - Wildcard pattern to filter view names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching view names
@@ -278,7 +276,7 @@ List<DmView> views = await connection.GetViewsAsync("app", tx: transaction);
 - `schemaName` - Schema to search for views
 - `nameFilter` (optional) - Wildcard pattern to filter view names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmView>` - List of complete DmView models
@@ -336,7 +334,7 @@ private List<string> ExtractTableReferences(string? viewDefinition)
 - `schemaName` - Schema containing the view
 - `viewName` - Name of the view to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmView?` - Complete view model, or `null` if view doesn't exist
@@ -374,7 +372,7 @@ foreach (var viewName in viewsToRemove)
 - `schemaName` - Schema containing the view
 - `viewName` - Name of the view to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
+- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was dropped, `false` if it didn't exist

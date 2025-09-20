@@ -242,8 +242,9 @@ public abstract partial class DatabaseMethodsBase
         }
 #endif
 
+        var defaultExpression = column.GetDefaultExpression(ProviderType);
         if (
-            !string.IsNullOrWhiteSpace(column.DefaultExpression)
+            !string.IsNullOrWhiteSpace(defaultExpression)
             && tableConstraints.DefaultConstraints.All(dc =>
                 !dc.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
             )
@@ -254,7 +255,7 @@ public abstract partial class DatabaseMethodsBase
                 columnName
             );
             sql.Append(
-                $" {SqlInlineDefaultColumnConstraint(defConstraintName, column.DefaultExpression)}"
+                $" {SqlInlineDefaultColumnConstraint(defConstraintName, defaultExpression)}"
             );
         }
         else
@@ -274,8 +275,9 @@ public abstract partial class DatabaseMethodsBase
             }
         }
 
+        var checkExpression = column.GetCheckExpression(ProviderType);
         if (
-            !string.IsNullOrWhiteSpace(column.CheckExpression)
+            !string.IsNullOrWhiteSpace(checkExpression)
             && tableConstraints.CheckConstraints.All(ck =>
                 string.IsNullOrWhiteSpace(ck.ColumnName)
                 || !ck.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
@@ -288,7 +290,7 @@ public abstract partial class DatabaseMethodsBase
             );
             var ckInlineSql = SqlInlineCheckColumnConstraint(
                 ckConstraintName,
-                column.CheckExpression,
+                checkExpression,
                 out var useTableConstraint
             );
 
@@ -305,7 +307,7 @@ public abstract partial class DatabaseMethodsBase
                         tableName,
                         columnName,
                         ckConstraintName,
-                        column.CheckExpression
+                        checkExpression
                     )
                 );
             }
@@ -520,7 +522,8 @@ public abstract partial class DatabaseMethodsBase
             defaultExpression.Contains(' ', StringComparison.OrdinalIgnoreCase)
             && !(defaultExpression.StartsWith('(') && defaultExpression.EndsWith(')'))
             && !(defaultExpression.StartsWith('"') && defaultExpression.EndsWith('"'))
-            && !(defaultExpression.StartsWith('\'') && defaultExpression.EndsWith('\''));
+            && !(defaultExpression.StartsWith('\'') && defaultExpression.EndsWith('\''))
+            && !IsFunctionCall(defaultExpression);
 
         return $"CONSTRAINT {NormalizeName(constraintName)} DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
     }
@@ -1142,6 +1145,28 @@ public abstract partial class DatabaseMethodsBase
     protected virtual string SqlDropView(string? schemaName, string viewName)
     {
         return $"DROP VIEW {GetSchemaQualifiedIdentifierName(schemaName, viewName)}";
+    }
+
+    /// <summary>
+    /// Determines if the given expression appears to be a function call.
+    /// </summary>
+    /// <param name="expression">The expression to analyze.</param>
+    /// <returns>True if the expression appears to be a function call, false otherwise.</returns>
+    protected static bool IsFunctionCall(string expression)
+    {
+        // Check if the expression contains parentheses and looks like a function call
+        var parenIndex = expression.IndexOf('(', StringComparison.Ordinal);
+        if (parenIndex == -1 || !expression.EndsWith(')'))
+        {
+            return false;
+        }
+
+        // Get the part before the opening parenthesis
+        var functionPart = expression[..parenIndex].Trim();
+
+        // Check if it's a valid function name (contains only letters, numbers, underscores)
+        return !string.IsNullOrEmpty(functionPart) &&
+               functionPart.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
     #endregion // View Strings
 }

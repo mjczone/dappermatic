@@ -422,8 +422,8 @@ public partial class PostgreSqlMethods
                     ?.i;
 
                 var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(
-                    !string.IsNullOrWhiteSpace(tableColumn.data_type_ext) &&
-                    tableColumn.data_type.Length < tableColumn.data_type_ext.Length
+                    !string.IsNullOrWhiteSpace(tableColumn.data_type_ext)
+                    && tableColumn.data_type.Length < tableColumn.data_type_ext.Length
                         ? tableColumn.data_type_ext
                         : tableColumn.data_type
                 );
@@ -452,24 +452,6 @@ public partial class PostgreSqlMethods
                     dotnetTypeDescriptor.Length,
                     dotnetTypeDescriptor.Precision,
                     dotnetTypeDescriptor.Scale,
-                    tableCheckConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
-                    tableDefaultConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
                     tableColumn.is_nullable,
                     tablePrimaryKeyConstraint != null
                         && tablePrimaryKeyConstraint.Columns.Any(c =>
@@ -488,14 +470,33 @@ public partial class PostgreSqlMethods
                         ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
                         ?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
-                    foreignKeyConstraint?.OnUpdate
+                    foreignKeyConstraint?.OnUpdate,
+                    checkExpression: tableCheckConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression,
+                    defaultExpression: tableDefaultConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression
                 );
 
                 // Apply standardized auto-increment detection
                 column.IsAutoIncrement = DetermineIsAutoIncrement(
                     column,
                     tableColumn.is_identity,
-                    tableColumn.data_type_ext ?? tableColumn.data_type);
+                    tableColumn.data_type_ext ?? tableColumn.data_type
+                );
 
                 columns.Add(column);
             }

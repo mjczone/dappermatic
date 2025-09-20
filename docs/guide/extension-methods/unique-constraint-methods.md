@@ -116,7 +116,7 @@ Create a unique constraint only if it doesn't already exist using a DmUniqueCons
 
 ```csharp
 // Create unique constraint if it doesn't exist
-bool created = await connection.CreateUniqueConstraintIfNotExistsAsync("app", "users", uniqueConstraint);
+bool created = await connection.CreateUniqueConstraintIfNotExistsAsync(uniqueConstraint);
 
 if (created)
 {
@@ -130,11 +130,8 @@ else
 
 **Parameters:**
 
-- `schemaName` - Schema containing the table
-- `tableName` - Name of the table to add unique constraint to
-- `uniqueConstraint` - DmUniqueConstraint model defining the constraint
+- `constraint` - DmUniqueConstraint model defining the constraint (includes SchemaName and TableName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was created, `false` if it already existed
@@ -163,7 +160,6 @@ bool created = await connection.CreateUniqueConstraintIfNotExistsAsync(
         new DmOrderedColumn("SupplierId")
     },
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 
@@ -191,7 +187,6 @@ bool created = await connection.CreateUniqueConstraintIfNotExistsAsync(
 - `constraintName` - Name of the unique constraint
 - `columns` - Array of DmOrderedColumn defining the unique columns
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was created, `false` if it already existed

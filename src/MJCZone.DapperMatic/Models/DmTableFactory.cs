@@ -183,6 +183,17 @@ public static class DmTableFactory
     }
 
     /// <summary>
+    /// Internal method to clear the cache for testing purposes only.
+    /// This is not part of the public API and should not be used in production code.
+    /// </summary>
+    internal static void ClearCacheForTesting()
+    {
+        _cache.Clear();
+        _propertyCache.Clear();
+        _customMappingAction = null;
+    }
+
+    /// <summary>
     /// Generates a DmTable instance for the given type, including all column mappings and constraints.
     /// </summary>
     /// <param name="type">The type to map to a DmTable instance.</param>
@@ -356,12 +367,6 @@ public static class DmTableFactory
                 columnAttribute?.Length,
                 columnAttribute?.Precision,
                 columnAttribute?.Scale,
-                string.IsNullOrWhiteSpace(columnAttribute?.CheckExpression)
-                    ? null
-                    : columnAttribute.CheckExpression,
-                string.IsNullOrWhiteSpace(columnAttribute?.DefaultExpression)
-                    ? null
-                    : columnAttribute.DefaultExpression,
                 isNullable,
                 columnAttribute?.IsPrimaryKey ?? false,
                 columnAttribute?.IsAutoIncrement ?? false,
@@ -376,7 +381,13 @@ public static class DmTableFactory
                     ? null
                     : columnAttribute.ReferencedColumnName,
                 columnAttribute?.OnDelete ?? null,
-                columnAttribute?.OnUpdate ?? null
+                columnAttribute?.OnUpdate ?? null,
+                checkExpression: string.IsNullOrWhiteSpace(columnAttribute?.CheckExpression)
+                    ? null
+                    : columnAttribute.CheckExpression,
+                defaultExpression: string.IsNullOrWhiteSpace(columnAttribute?.DefaultExpression)
+                    ? null
+                    : columnAttribute.DefaultExpression
             );
             columns.Add(column);
             propertyMappings.Add(property.Name, column);

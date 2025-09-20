@@ -129,7 +129,6 @@ foreach (var schema in schemas)
 
 - `schemaName` - Name of the schema to create
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if schema was created, `false` if it already existed or if schemas are not supported
@@ -151,20 +150,19 @@ foreach (string schema in allSchemas)
 }
 
 // Get schemas with wildcard filter
-List<string> appSchemas = await connection.GetSchemaNamesAsync("app*");
+List<string> appSchemas = await connection.GetSchemaNamesAsync(schemaNameFilter: "app*");
 // Finds: app, app_dev, app_test, etc.
 
 // Get schemas with pattern matching
-List<string> testSchemas = await connection.GetSchemaNamesAsync("*test*");
+List<string> testSchemas = await connection.GetSchemaNamesAsync(schemaNameFilter: "*test*");
 // Finds: test, app_test, test_reporting, etc.
 
 ```
 
 **Parameters:**
 
-- `nameFilter` (optional) - Wildcard pattern to filter schema names (`*` = any characters, `?` = single character)
+- `schemaNameFilter` (optional) - Wildcard pattern to filter schema names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching schema names (empty list for providers without schema support)
@@ -203,7 +201,6 @@ foreach (var schema in schemasToClean)
 
 - `schemaName` - Name of the schema to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if schema was dropped, `false` if it didn't exist or if schemas are not supported
@@ -279,7 +276,7 @@ public async Task MigrateSchemaAsync(IDbConnection connection, string oldSchema,
         {
             // Create table in new schema
             table.SchemaName = newSchema;
-            await connection.CreateTableIfNotExistsAsync(newSchema, table, tx: transaction);
+            await connection.CreateTableIfNotExistsAsync(table, tx: transaction);
 
             // Copy data (implementation would vary)
             await CopyTableDataAsync(connection, oldSchema, newSchema, table.TableName, transaction);

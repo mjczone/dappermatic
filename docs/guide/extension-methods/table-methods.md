@@ -36,9 +36,8 @@ if (exists)
 else
 {
     Console.WriteLine("Table 'app_employees' does not exist");
-    await connection.CreateTableIfNotExistsAsync("app", table);
+    await connection.CreateTableIfNotExistsAsync(table);
 }
-
 
 // With transaction and cancellation
 using var transaction = connection.BeginTransaction();
@@ -67,7 +66,7 @@ Create a table only if it doesn't already exist using a DmTable model.
 
 ```csharp
 // Create table if it doesn't exist
-bool created = await connection.CreateTableIfNotExistsAsync("app", table);
+bool created = await connection.CreateTableIfNotExistsAsync(table);
 
 if (created)
 {
@@ -81,10 +80,8 @@ else
 
 **Parameters:**
 
-- `schemaName` - Schema to create the table in
-- `table` - DmTable model defining the table structure
+- `table` - DmTable model defining the table structure (includes SchemaName)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if table was created, `false` if it already existed
@@ -146,7 +143,6 @@ bool created = await connection.CreateTableIfNotExistsAsync(
     foreignKeyConstraints,
     indexes,
     tx: transaction,
-    commandTimeout: 60,
     cancellationToken: cancellationToken
 );
 ```
@@ -163,7 +159,6 @@ bool created = await connection.CreateTableIfNotExistsAsync(
 - `foreignKeyConstraints` (optional) - Array of foreign key constraints
 - `indexes` (optional) - Array of indexes
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if table was created, `false` if it already existed
@@ -183,20 +178,19 @@ foreach (string tableName in allTables)
 }
 
 // Get table names with wildcard filter
-List<string> appTables = await connection.GetTableNamesAsync("app", "app_*");
+List<string> appTables = await connection.GetTableNamesAsync("app", tableNameFilter: "app_*");
 // Finds: app_employees, app_departments, app_logs, etc.
 
 // Get tables with pattern matching
-List<string> logTables = await connection.GetTableNamesAsync("app", "*log*");
+List<string> logTables = await connection.GetTableNamesAsync("app", tableNameFilter: "*log*");
 // Finds: app_logs, error_logs, audit_log_entries, etc.
 ```
 
 **Parameters:**
 
 - `schemaName` - Schema to search for tables
-- `nameFilter` (optional) - Wildcard pattern to filter table names (`*` = any characters, `?` = single character)
+- `tableNameFilter` (optional) - Wildcard pattern to filter table names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching table names
@@ -225,7 +219,7 @@ foreach (var table in tables)
 }
 
 // Get specific tables with pattern
-List<DmTable> employeeTables = await connection.GetTablesAsync("hr", "employee*");
+List<DmTable> employeeTables = await connection.GetTablesAsync("hr", tableNameFilter: "employee*");
 
 // With transaction
 using var transaction = connection.BeginTransaction();
@@ -235,9 +229,8 @@ List<DmTable> tables = await connection.GetTablesAsync("app", tx: transaction);
 **Parameters:**
 
 - `schemaName` - Schema to search for tables
-- `nameFilter` (optional) - Wildcard pattern to filter table names
+- `tableNameFilter` (optional) - Wildcard pattern to filter table names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmTable>` - List of complete DmTable models
@@ -277,7 +270,6 @@ else
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmTable?` - Complete table model, or `null` if table doesn't exist
@@ -317,7 +309,6 @@ bool renamed = await connection.RenameTableIfExistsAsync(
 - `currentTableName` - Current name of the table
 - `newTableName` - New name for the table
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if table was renamed, `false` if it didn't exist
@@ -353,7 +344,6 @@ foreach (var tableName in tablesToTruncate)
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to truncate
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if table was truncated, `false` if it didn't exist
@@ -391,7 +381,6 @@ foreach (var tableName in tablesToDrop)
 - `schemaName` - Schema containing the table
 - `tableName` - Name of the table to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if table was dropped, `false` if it didn't exist
@@ -419,7 +408,7 @@ public async Task MigrateTableStructureAsync(IDbConnection connection, string sc
 
         // Create new table with updated structure
         var newTable = CreateUpdatedTableStructure(currentTable);
-        await connection.CreateTableIfNotExistsAsync(schema, newTable, tx: transaction);
+        await connection.CreateTableIfNotExistsAsync(newTable, tx: transaction);
 
         // Migrate data (implementation depends on changes)
         await MigrateTableDataAsync(connection, schema, backupTableName, tableName, transaction);
@@ -489,7 +478,7 @@ public async Task CreateTablesFromModelsAsync(IDbConnection connection,
         foreach (var table in sortedTables)
         {
             bool created = await connection.CreateTableIfNotExistsAsync(
-                schema, table, tx: transaction);
+                table, tx: transaction);
 
             Console.WriteLine($"Table '{table.TableName}': {(created ? "Created" : "Already exists")}");
         }

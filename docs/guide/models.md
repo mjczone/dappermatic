@@ -23,8 +23,10 @@ DapperMatic uses a model-first approach with `Dm*` prefixed classes to define da
 
 The `DmTable` class represents a database table with all its components.
 
+📝 **Test Examples:** [DatabaseMethodsTests.Tables.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Tables.cs)
+
 ```csharp
-var table = new DmTable("Users")
+var table = new DmTable(null /* or schemaName */, "Users")
 {
     TableName = "Users",
     Columns = new[]
@@ -35,7 +37,7 @@ var table = new DmTable("Users")
         new DmColumn("IsActive", typeof(bool)) { IsNullable = false, DefaultValue = "1" },
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false }
     },
-    PrimaryKey = new DmPrimaryKeyConstraint("PK_Users", "Id"),
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id"),
     Indexes = new[]
     {
         new DmIndex("IX_Users_Username", new[] { "Username" }) { IsUnique = true },
@@ -67,6 +69,8 @@ var table = new DmTable("Users")
 
 Defines a table column with its data type and properties.
 
+📝 **Test Examples:** [DatabaseMethodsTests.Columns.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Columns.cs)
+
 ```csharp
 // Auto-increment primary key
 var idColumn = new DmColumn("Id", typeof(int))
@@ -78,7 +82,7 @@ var idColumn = new DmColumn("Id", typeof(int))
 // String column with length
 var nameColumn = new DmColumn("Name", typeof(string))
 {
-    MaxLength = 100,
+    Length = 100,
     IsNullable = false
 };
 
@@ -90,25 +94,73 @@ var priceColumn = new DmColumn("Price", typeof(decimal))
     IsNullable = true
 };
 
-// Column with default value
+// Column with static default value
 var statusColumn = new DmColumn("Status", typeof(string))
 {
-    MaxLength = 20,
+    Length = 20,
     IsNullable = false,
-    DefaultValue = "'Active'"
+    DefaultExpression = "'Active'"
+};
+
+// Column with provider-specific default expression
+var isActiveColumn = new DmColumn("IsActive", typeof(bool))
+{
+    IsNullable = false,
+    DefaultExpressionFunc = CommonProviderDefaultExpressions.TrueValue
+};
+
+// Column with provider-specific check constraint
+var usernameColumn = new DmColumn("Username", typeof(string))
+{
+    Length = 50,
+    IsNullable = false,
+    CheckExpressionFunc = CommonProviderCheckExpressions.StringLengthGtCheck("Username", 0)
 };
 ```
 
 **Key Properties:**
 
+**Basic Properties:**
+- `SchemaName` - Schema name of the column (optional)
+- `TableName` - Table name containing this column
 - `ColumnName` - Name of the column
-- `DataType` - .NET type (automatically mapped to SQL type)
-- `IsNullable` - Whether the column allows NULL values
-- `IsAutoIncrement` - Whether the column auto-increments
-- `MaxLength` - Maximum length for string/binary types
+- `DotnetType` - .NET type (automatically mapped to SQL type)
+- `ProviderDataTypes` - Dictionary of provider-specific SQL type names
+
+**Size and Precision:**
+- `Length` - Maximum length for string/binary types (replaces deprecated MaxLength)
 - `Precision` - Total digits for numeric types
 - `Scale` - Decimal places for numeric types
-- `DefaultValue` - Default value expression
+
+**Column Characteristics:**
+- `IsNullable` - Whether the column allows NULL values
+- `IsPrimaryKey` - Whether the column is a primary key
+- `IsAutoIncrement` - Whether the column auto-increments
+- `IsUnique` - Whether the column has a unique constraint
+- `IsUnicode` - Whether the column explicitly supports unicode characters
+- `IsFixedLength` - Whether the column has fixed length (e.g., CHAR vs VARCHAR)
+- `IsIndexed` - Whether the column is indexed
+
+**Foreign Key Properties:**
+- `IsForeignKey` - Whether the column is a foreign key
+- `ReferencedTableName` - Referenced table name (for foreign keys)
+- `ReferencedColumnName` - Referenced column name (for foreign keys)
+- `OnDelete` - Action on delete (for foreign keys)
+- `OnUpdate` - Action on update (for foreign keys)
+
+**Default and Check Expressions:**
+- `DefaultExpression` - Static default value expression
+- `DefaultExpressionFunc` - Provider-specific default expression function
+- `CheckExpression` - Static check constraint expression
+- `CheckExpressionFunc` - Provider-specific check constraint function
+
+**Helper Methods:**
+- `GetDefaultExpression(DbProviderType)` - Gets appropriate default expression for provider
+- `GetCheckExpression(DbProviderType)` - Gets appropriate check expression for provider
+- `IsNumeric()` - Returns true if column is numeric type
+- `IsText()` - Returns true if column is text type
+- `IsDateTime()` - Returns true if column is date/time type
+- `IsBoolean()` - Returns true if column is boolean type
 
 ### DmColumnOrder
 
@@ -137,6 +189,8 @@ var compositeIndex = new DmIndex("IX_Products_Category_Price", new[]
 ### DmView
 
 Represents a database view with its definition.
+
+📝 **Test Examples:** [DatabaseMethodsTests.Views.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)
 
 ```csharp
 var view = new DmView("ActiveUsers")
@@ -204,6 +258,8 @@ public void ProcessConstraint(string constraintName, DmConstraintType constraint
 
 Defines a primary key constraint on one or more columns.
 
+📝 **Test Examples:** [DatabaseMethodsTests.PrimaryKeyConstraints.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.PrimaryKeyConstraints.cs)
+
 ```csharp
 // Single column primary key
 var singlePK = new DmPrimaryKeyConstraint("PK_Users", "Id");
@@ -215,6 +271,8 @@ var compositePK = new DmPrimaryKeyConstraint("PK_OrderItems", new[] { "OrderId",
 ### DmForeignKeyConstraint
 
 Defines relationships between tables.
+
+📝 **Test Examples:** [DatabaseMethodsTests.ForeignKeyConstraints.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.ForeignKeyConstraints.cs)
 
 ```csharp
 // Basic foreign key
@@ -267,6 +325,11 @@ var customerOrdersFK = new DmForeignKeyConstraint(
     OnUpdate = DmForeignKeyAction.NoAction    // Allow parent updates
 };
 
+// Parse from string representation
+var cascadeAction = DmForeignKeyActionExtensions.Parse("CASCADE");        // DmForeignKeyAction.Cascade
+var noActionAction = DmForeignKeyActionExtensions.Parse("NO ACTION");     // DmForeignKeyAction.NoAction
+var restrictAction = DmForeignKeyActionExtensions.Parse("RESTRICT");      // DmForeignKeyAction.Restrict
+
 // Extension method usage
 string sqlAction = DmForeignKeyAction.Cascade.ToSql(); // Returns "CASCADE"
 var actionFromString = "RESTRICT".ToForeignKeyAction(); // Returns DmForeignKeyAction.Restrict
@@ -283,6 +346,8 @@ var actionFromString = "RESTRICT".ToForeignKeyAction(); // Returns DmForeignKeyA
 
 Ensures uniqueness across one or more columns.
 
+📝 **Test Examples:** [DatabaseMethodsTests.UniqueConstraints.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.UniqueConstraints.cs)
+
 ```csharp
 // Single column unique constraint
 var emailUnique = new DmUniqueConstraint("UQ_Users_Email", new[] { "Email" });
@@ -297,6 +362,8 @@ var compositeUnique = new DmUniqueConstraint(
 ### DmCheckConstraint
 
 Defines business rules at the database level.
+
+📝 **Test Examples:** [DatabaseMethodsTests.CheckConstraints.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.CheckConstraints.cs)
 
 ```csharp
 // Simple value check
@@ -318,6 +385,8 @@ var dateCheck = new DmCheckConstraint(
 ### DmDefaultConstraint
 
 Provides default values for columns.
+
+📝 **Test Examples:** [DatabaseMethodsTests.DefaultConstraints.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.DefaultConstraints.cs)
 
 ```csharp
 // Current timestamp default
@@ -347,6 +416,8 @@ var statusDefault = new DmDefaultConstraint(
 ### DmIndex
 
 Defines database indexes for performance optimization.
+
+📝 **Test Examples:** [DatabaseMethodsTests.Indexes.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Indexes.cs)
 
 ```csharp
 // Simple index
@@ -400,6 +471,11 @@ var productIndex = new DmIndex("IX_Products_Category_Price", new[]
 // Create with default ascending order
 var simpleColumn = new DmOrderedColumn("CreatedAt"); // Defaults to Ascending
 
+// Parse from string representation
+var parsedAscending = DmOrderedColumn.Parse("CategoryId");        // CategoryId ASC
+var parsedDescending = DmOrderedColumn.Parse("Price DESC");       // Price DESC
+var parsedCaseSensitive = DmOrderedColumn.Parse("price desc");    // price DESC
+
 // String representation
 Console.WriteLine(ascendingColumn.ToString());  // "CategoryId"
 Console.WriteLine(descendingColumn.ToString()); // "Price DESC"
@@ -421,6 +497,8 @@ Console.WriteLine(descendingColumn.ToString(false)); // "Price" (excludes order)
 ### DmTableFactory
 
 Generate table models from .NET classes using attributes.
+
+📝 **Test Examples:** [DatabaseMethodsTests.TableFactory.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.TableFactory.cs)
 
 ```csharp
 // Define a class with attributes
@@ -447,6 +525,8 @@ DmTable table = DmTableFactory.GetTable(typeof(Employee));
 
 Generate view models from .NET classes.
 
+📝 **Test Examples:** [DatabaseMethodsTests.Views.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)
+
 ```csharp
 [View("vw_active_employees")]
 public class ActiveEmployeeView
@@ -466,7 +546,7 @@ DmView view = DmViewFactory.GetView(typeof(ActiveEmployeeView));
 Here's a comprehensive example showing how to create a complete table with all types of constraints:
 
 ```csharp
-var ordersTable = new DmTable("Orders")
+var ordersTable = new DmTable(null /* or schemaName */, "Orders")
 {
     Columns = new[]
     {
@@ -479,8 +559,8 @@ var ordersTable = new DmTable("Orders")
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false },
         new DmColumn("UpdatedAt", typeof(DateTime)) { IsNullable = true }
     },
-    PrimaryKey = new DmPrimaryKeyConstraint("PK_Orders", "Id"),
-    ForeignKeys = new[]
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Orders", "Id"),
+    ForeignKeyConstraints = new[]
     {
         new DmForeignKeyConstraint("FK_Orders_Users", new[] { "UserId" }, "Users", new[] { "Id" })
         {
@@ -514,7 +594,7 @@ var ordersTable = new DmTable("Orders")
 };
 
 // Create the table
-await connection.CreateTableIfNotExistsAsync("dbo", ordersTable);
+await connection.CreateTableIfNotExistsAsync(ordersTable);
 ```
 
 ## Best Practices

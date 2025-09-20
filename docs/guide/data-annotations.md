@@ -2,6 +2,10 @@
 
 DapperMatic provides comprehensive data annotation attributes that allow you to define database schema directly on your C# classes and properties. These attributes work with the factory methods to automatically generate `DmTable` and `DmView` objects from your annotated classes.
 
+::: warning
+**Important Note**: These data annotations are used **only for DDL (Data Definition Language) operations** such as creating tables, columns, and constraints. They are **not used by Dapper's query methods** (`QueryAsync`, `ExecuteAsync`, etc.) for mapping database results to object properties. Dapper uses its own mapping conventions for queries. While other libraries provide attribute-based query mapping, and we may add this capability in the future, DapperMatic's primary focus is DDL schema management at this time.
+:::
+
 ## Overview
 
 Data annotations provide a declarative way to define your database schema using attributes. Here's how they work with DapperMatic's factory methods:
@@ -16,13 +20,13 @@ public class User
     [DmColumn("user_id", isPrimaryKey: true, isAutoIncrement: true)]
     public int Id { get; set; }
 
-    [DmColumn("email", length: 200, isNullable: false)]
+    [DmColumn("email", length: 200)]
     public string Email { get; set; }
 
-    [DmColumn("full_name", length: 100, isNullable: false)]
+    [DmColumn("full_name", length: 100)]
     public string FullName { get; set; }
 
-    [DmColumn("created_at", defaultExpression: "GETDATE()", isNullable: false)]
+    [DmColumn("created_at", defaultExpression: "GETDATE()")]
     public DateTime CreatedAt { get; set; }
 }
 
@@ -30,7 +34,7 @@ public class User
 DmTable userTable = DmTableFactory.GetTable(typeof(User));
 
 // Create the table in your database
-await connection.CreateTableIfNotExistsAsync("dbo", userTable);
+await connection.CreateTableIfNotExistsAsync(userTable);
 ```
 
 ### View Generation Example
@@ -455,27 +459,27 @@ The most comprehensive attribute for defining column properties.
 ```csharp
 public class Product
 {
-    [DmColumn("product_id", isAutoIncrement: true, isPrimaryKey: true)]
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
     public int Id { get; set; }
 
-    [DmColumn("product_name", length: 100, isNullable: false)]
+    [DmColumn("product_name", length: 100)]
     public string Name { get; set; }
 
     [DmColumn("description", length: 500, isNullable: true)]
     public string? Description { get; set; }
 
-    [DmColumn("price", precision: 10, scale: 2, isNullable: false)]
+    [DmColumn("price", precision: 10, scale: 2)]
     public decimal Price { get; set; }
 
-    [DmColumn("category_id", isForeignKey: true, 
-              referencedTableName: "Categories", 
+    [DmColumn("category_id", isForeignKey: true,
+              referencedTableName: "Categories",
               referencedColumnName: "Id")]
     public int CategoryId { get; set; }
 
-    [DmColumn("created_at", defaultExpression: "GETDATE()", isNullable: false)]
+    [DmColumn("created_at", defaultExpression: "GETDATE()")]
     public DateTime CreatedAt { get; set; }
 
-    [DmColumn("is_active", defaultExpression: "1", isNullable: false)]
+    [DmColumn("is_active", defaultExpression: "1")]
     public bool IsActive { get; set; }
 }
 ```
@@ -584,7 +588,7 @@ public class Order
 
 // Foreign key on class with explicit table name
 [DmForeignKeyConstraint(
-    new[] { "CategoryId" }, 
+    sourceColumnNames: new[] { "CategoryId" },
     referencedTableName: "Categories",
     referencedColumnNames: new[] { "Id" },
     constraintName: "FK_Products_Categories")]
@@ -599,7 +603,6 @@ public class Product
 - `Restrict` - Prevent the action
 - `Cascade` - Cascade the action
 - `SetNull` - Set to NULL
-- `SetDefault` - Set to default value
 
 ### DmUniqueConstraintAttribute
 
@@ -667,18 +670,17 @@ public class User
 Creates database indexes for performance optimization.
 
 ```csharp
+// Simple index on property - Note: columnNames is required, even for single properties
+[DmIndex(columnNames: new[] { "Email" }, indexName: "IX_Users_Email")]
 public class User
 {
-    // Simple index on property
-    [DmIndex(indexName: "IX_Users_Email")]
     public string Email { get; set; }
 
-    // Unique index on property
-    [DmIndex(isUnique: true, indexName: "IX_Users_Username")]
+    // Unique index
     public string Username { get; set; }
 }
 
-// Composite index on class
+// Composite indexes on class
 [DmIndex(columnNames: new[] { "LastName", "FirstName" }, indexName: "IX_Users_Name")]
 [DmIndex(isUnique: true, columnNames: new[] { "Email" }, indexName: "IX_Users_Email_Unique")]
 public class User
@@ -698,33 +700,33 @@ Here's a comprehensive example showing multiple annotations on a single class:
 [DmIndex(columnNames: new[] { "UserId", "OrderDate" }, indexName: "IX_Orders_User_Date")]
 [DmCheckConstraint("CK_Orders_TotalAmount_Positive", "TotalAmount > 0")]
 [DmForeignKeyConstraint(
-    new[] { "UserId" }, 
-    typeof(User), 
-    new[] { "Id" },
-    "FK_Orders_Users",
-    DmForeignKeyAction.Restrict)]
+    sourceColumnNames: new[] { "UserId" },
+    referencedType: typeof(User),
+    referencedColumnNames: new[] { "Id" },
+    constraintName: "FK_Orders_Users",
+    onDelete: DmForeignKeyAction.Restrict)]
 public class Order
 {
     [DmColumn("order_id", isAutoIncrement: true, isPrimaryKey: true)]
     public int Id { get; set; }
 
-    [DmColumn("user_id", isNullable: false, isIndexed: true)]
+    [DmColumn("user_id", isIndexed: true)]
     public int UserId { get; set; }
 
-    [DmColumn("order_number", length: 50, isNullable: false)]
+    [DmColumn("order_number", length: 50)]
     [DmUniqueConstraint(constraintName: "UQ_Orders_OrderNumber")]
     public string OrderNumber { get; set; }
 
-    [DmColumn("order_date", isNullable: false, isIndexed: true)]
+    [DmColumn("order_date", isIndexed: true)]
     [DmDefaultConstraint("DF_Orders_OrderDate", "GETDATE()")]
     public DateTime OrderDate { get; set; }
 
-    [DmColumn("total_amount", precision: 10, scale: 2, isNullable: false)]
+    [DmColumn("total_amount", precision: 10, scale: 2)]
     public decimal TotalAmount { get; set; }
 
-    [DmColumn("status", length: 20, isNullable: false)]
+    [DmColumn("status", length: 20)]
     [DmDefaultConstraint("DF_Orders_Status", "'Pending'")]
-    [DmCheckConstraint("CK_Orders_Status_Valid", 
+    [DmCheckConstraint("CK_Orders_Status_Valid",
                        "Status IN ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled')")]
     public string Status { get; set; }
 
@@ -741,7 +743,7 @@ public class Order
 
 // Usage
 DmTable orderTable = DmTableFactory.GetTable(typeof(Order));
-await connection.CreateTableIfNotExistsAsync("dbo", orderTable);
+await connection.CreateTableIfNotExistsAsync(orderTable);
 ```
 
 ## Best Practices
@@ -761,10 +763,10 @@ You can gradually migrate from manual `DmTable` creation to data annotations:
 
 ```csharp
 // Before: Manual model creation
-var table = new DmTable("Users")
+var table = new DmTable(null /* or schemaName */, "Users")
 {
     Columns = new[] { /* ... */ },
-    PrimaryKey = new DmPrimaryKeyConstraint("PK_Users", "Id")
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id")
 };
 
 // After: Data annotations + factory

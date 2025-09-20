@@ -491,24 +491,6 @@ public partial class MySqlMethods
                         : null,
                     tableColumn.numeric_precision,
                     tableColumn.numeric_scale,
-                    checkConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
-                    defaultConstraints
-                        .FirstOrDefault(c =>
-                            !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
-                        )
-                        ?.Expression,
                     tableColumn.is_nullable,
                     primaryKeyConstraint?.Columns.Any(c =>
                         c.ColumnName.Equals(
@@ -526,7 +508,25 @@ public partial class MySqlMethods
                         ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
                         ?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
-                    foreignKeyConstraint?.OnUpdate
+                    foreignKeyConstraint?.OnUpdate,
+                    checkExpression: checkConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression,
+                    defaultExpression: defaultConstraints
+                        .FirstOrDefault(c =>
+                            !string.IsNullOrWhiteSpace(c.ColumnName)
+                            && c.ColumnName.Equals(
+                                tableColumn.column_name,
+                                StringComparison.OrdinalIgnoreCase
+                            )
+                        )
+                        ?.Expression
                 );
 
                 // Apply standardized auto-increment detection
