@@ -164,7 +164,7 @@ public abstract partial class DatabaseMethodsTests
                 new("Username", typeof(string), length: 50)
                 {
                     IsNullable = false,
-                    CheckExpressionFunc = CommonProviderCheckExpressions.StringLengthGtCheck(
+                    CheckExpressionFunc = CommonProviderCheckExpressions.LengthGreaterThanCheck(
                         "Username",
                         0
                     ),

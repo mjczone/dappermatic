@@ -63,7 +63,7 @@ public class DapperMaticServiceColumnsTests : IClassFixture<TestcontainersAssemb
         string.Equals(nameColumn!.ColumnName, "Name", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
 
         // Step 4: Add a new column
-        var addColumnRequest = new CreateTableColumnRequest
+        var addColumnRequest = new CreateColumnRequest
         {
             ColumnName = "Description",
             ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
@@ -213,7 +213,7 @@ public class DapperMaticServiceColumnsTests : IClassFixture<TestcontainersAssemb
         testTable.Should().NotBeNull();
 
         // Try to add a column that already exists
-        var addColumnRequest = new CreateTableColumnRequest
+        var addColumnRequest = new CreateColumnRequest
         {
             ColumnName = "Name", // This column already exists
             ProviderDataType = "nvarchar(100)",
@@ -308,7 +308,7 @@ public class DapperMaticServiceColumnsTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var addColumnRequest = new CreateTableColumnRequest
+        var addColumnRequest = new CreateColumnRequest
         {
             ColumnName = "TestColumn",
             ProviderDataType = "varchar(100)",
@@ -354,13 +354,13 @@ public class DapperMaticServiceColumnsTests : IClassFixture<TestcontainersAssemb
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
@@ -368,7 +368,7 @@ public class DapperMaticServiceColumnsTests : IClassFixture<TestcontainersAssemb
                         : "varchar(255)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer

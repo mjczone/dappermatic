@@ -69,8 +69,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var result = await response.ReadAsJsonAsync<SchemaListResponse>();
         result.Should().NotBeNull();
         result!.Result.Should().NotBeNull();
-        result.Result.Should().HaveCount(1);
-        result.Result.Should().Contain(s => s.SchemaName == "_");
+        result.Result.Should().HaveCount(0);
     }
 
     [Fact]
@@ -125,8 +124,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<SchemaResponse>();
         result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.SchemaName.Should().Be("_");
+        result!.Result.Should().BeNull();
     }
 
     [Fact]

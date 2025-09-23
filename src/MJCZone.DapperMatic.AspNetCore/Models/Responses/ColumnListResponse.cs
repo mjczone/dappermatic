@@ -8,20 +8,29 @@ using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 
 /// <summary>
-/// Response model for column list operations.
+/// Response model for listing multiple columns.
 /// </summary>
-public class ColumnListResponse : ResponseBase<IEnumerable<ColumnDto>>
+public class ColumnListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ColumnListResponse"/> class.
     /// </summary>
     public ColumnListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColumnListResponse"/> class.
     /// </summary>
-    /// <param name="columns">The list of columns.</param>
-    public ColumnListResponse(IEnumerable<ColumnDto> columns)
-        : base(columns) { }
+    /// <param name="result">The list of columns.</param>
+    public ColumnListResponse(IEnumerable<ColumnDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of columns.
+    /// </summary>
+    public IEnumerable<ColumnDto> Result { get; set; }
 }

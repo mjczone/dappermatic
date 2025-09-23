@@ -15,5 +15,5 @@ public interface IDapperMaticPermissions
     /// </summary>
     /// <param name="context">The authorization context containing operation and resource details.</param>
     /// <returns>True if the user is authorized; otherwise, false.</returns>
-    Task<bool> IsAuthorizedAsync(OperationContext context);
+    Task<bool> IsAuthorizedAsync(IOperationContext context);
 }

@@ -60,13 +60,13 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -75,7 +75,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                             : "varchar(255)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType =
@@ -133,7 +133,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         tablesAfterCreate.Should().HaveCount(initialTableCount + 1);
 
         // Step 6: Query the table (should be empty but structure should work)
-        var queryRequest = new QueryRequest { Take = 10, Skip = 0 };
+        var queryRequest = new QueryDto { Take = 10, Skip = 0 };
         var queryResponse = await client.PostAsJsonAsync(
             $"{baseUrl}/EndpointTestTable/query",
             queryRequest
@@ -154,7 +154,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         queryGetResult!.Result.Should().NotBeNull();
 
         // Step 8: Rename the table
-        var renameRequest = new RenameTableRequest { NewTableName = "EndpointTestTableRenamed" };
+        var renameRequest = new UpdateTableRequest { NewTableName = "EndpointTestTableRenamed" };
         var renameResponse = await client.PutAsJsonAsync(
             $"{baseUrl}/EndpointTestTable",
             renameRequest
@@ -212,13 +212,13 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = "nvarchar(255)",
@@ -248,7 +248,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             .BeTrue();
 
         // Step 4: Add a new column
-        var addColumnRequest = new CreateTableColumnRequest
+        var addColumnRequest = new CreateColumnRequest
         {
             ColumnName = "Email",
             ProviderDataType = "nvarchar(255)",
@@ -271,7 +271,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         columnsAfterAdd.Should().HaveCount(3);
 
         // Step 6: Update/Rename the column
-        var updateColumnRequest = new RenameColumnRequest { NewColumnName = "EmailAddress" };
+        var updateColumnRequest = new UpdateColumnRequest { NewColumnName = "EmailAddress" };
         var updateResponse = await client.PutAsJsonAsync(
             $"{baseUrl}/ColumnTestTable/columns/Email",
             updateColumnRequest
@@ -318,26 +318,26 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_IndexTestTable",
                 Columns = ["Id"],
@@ -434,19 +434,19 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType = "nvarchar(255)",
@@ -538,20 +538,20 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_FkReferencedTable",
                 Columns = ["Id"],
@@ -571,26 +571,26 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "ReferencedId",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = true,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_FkTestTable",
                 Columns = ["Id"],
@@ -713,26 +713,26 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Age",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Score",
                     ProviderDataType = "decimal(5,2)",
                     IsNullable = true,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_CheckTestTable",
                 Columns = ["Id"],
@@ -859,32 +859,32 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType = "nvarchar(255)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Username",
                     ProviderDataType = "nvarchar(100)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "PhoneNumber",
                     ProviderDataType = "nvarchar(20)",
                     IsNullable = true,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_UniqueTestTable",
                 Columns = ["Id"],
@@ -1018,32 +1018,32 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "CreatedDate",
                     ProviderDataType = "datetime2",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Status",
                     ProviderDataType = "nvarchar(50)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "IsActive",
                     ProviderDataType = "bit",
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = "PK_DefaultTestTable",
                 Columns = ["Id"],

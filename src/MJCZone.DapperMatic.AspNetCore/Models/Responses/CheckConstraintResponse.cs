@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for check constraint operations.
 /// </summary>
-public class CheckConstraintResponse : ResponseBase<CheckConstraintDto?>
+public class CheckConstraintResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CheckConstraintResponse"/> class.
     /// </summary>
-    public CheckConstraintResponse()
-        : base(null) { }
+    public CheckConstraintResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CheckConstraintResponse"/> class.
     /// </summary>
-    /// <param name="checkConstraint">The check constraint information.</param>
-    public CheckConstraintResponse(CheckConstraintDto? checkConstraint)
-        : base(checkConstraint) { }
+    /// <param name="result">The check constraint information.</param>
+    public CheckConstraintResponse(CheckConstraintDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the view data.
+    /// </summary>
+    public CheckConstraintDto? Result { get; set; }
 }

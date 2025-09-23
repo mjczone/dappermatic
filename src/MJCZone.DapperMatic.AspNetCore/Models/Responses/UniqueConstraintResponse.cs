@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for unique constraint operations.
 /// </summary>
-public class UniqueConstraintResponse : ResponseBase<UniqueConstraintDto?>
+public class UniqueConstraintResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="UniqueConstraintResponse"/> class.
     /// </summary>
-    public UniqueConstraintResponse()
-        : base(null) { }
+    public UniqueConstraintResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UniqueConstraintResponse"/> class.
     /// </summary>
-    /// <param name="uniqueConstraint">The unique constraint information.</param>
-    public UniqueConstraintResponse(UniqueConstraintDto? uniqueConstraint)
-        : base(uniqueConstraint) { }
+    /// <param name="result">The unique constraint information.</param>
+    public UniqueConstraintResponse(UniqueConstraintDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the unique constraint data.
+    /// </summary>
+    public UniqueConstraintDto? Result { get; set; }
 }

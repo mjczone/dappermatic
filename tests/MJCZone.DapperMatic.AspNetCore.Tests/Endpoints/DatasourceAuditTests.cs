@@ -33,7 +33,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = "AuditTest",
             Provider = "Sqlite",
@@ -41,7 +41,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
             DisplayName = "Audit Test Datasource",
         };
 
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
         response.Should().HaveStatusCode(HttpStatusCode.Created);
 
         // Verify audit event was logged
@@ -60,19 +60,19 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = TestcontainersAssemblyFixture.DatasourceId_SqlServer, // This already exists in test data but gets overwritten
             Provider = "Sqlite",
             ConnectionString = "Data Source=test.db",
             DisplayName = "Overwritten Test",
         };
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
         response.Should().HaveStatusCode(HttpStatusCode.Conflict);
 
         // Now overwrite it
         response = await client.PutAsJsonAsync(
-            $"/api/dm/datasources/{request.Id}",
+            $"/api/dm/d/{request.Id}",
             new UpdateDatasourceRequest
             {
                 Provider = "Sqlite",
@@ -103,7 +103,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var response = await client.GetAsync("/api/dm/datasources/Test-SqlServer");
+        var response = await client.GetAsync("/api/dm/d/Test-SqlServer");
         response.Should().HaveStatusCode(HttpStatusCode.OK);
 
         // Verify audit event was logged
@@ -122,7 +122,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
 
         var request = new UpdateDatasourceRequest { DisplayName = "Updated Test Name" };
 
-        var response = await client.PutAsJsonAsync("/api/dm/datasources/Test-SqlServer", request);
+        var response = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", request);
         response.Should().HaveStatusCode(HttpStatusCode.OK);
 
         // Verify audit event was logged
@@ -139,7 +139,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var response = await client.DeleteAsync("/api/dm/datasources/Test-SqlServer");
+        var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer");
         response.Should().HaveStatusCode(HttpStatusCode.OK);
 
         // Verify audit event was logged
@@ -156,7 +156,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var response = await client.GetAsync("/api/dm/datasources/");
+        var response = await client.GetAsync("/api/dm/d/");
         response.Should().HaveStatusCode(HttpStatusCode.OK);
 
         // Verify audit event was logged

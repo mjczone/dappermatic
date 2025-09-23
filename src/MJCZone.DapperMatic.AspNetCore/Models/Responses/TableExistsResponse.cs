@@ -6,20 +6,29 @@
 namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 
 /// <summary>
-/// Response model for table existence checks.
+/// Response model for checking if a table exists.
 /// </summary>
-public class TableExistsResponse : ResponseBase<bool>
+public class TableExistsResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TableExistsResponse"/> class.
     /// </summary>
     public TableExistsResponse()
-        : base(false) { }
+    {
+        Result = false;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TableExistsResponse"/> class.
     /// </summary>
     /// <param name="exists">Whether the table exists.</param>
     public TableExistsResponse(bool exists)
-        : base(exists) { }
+    {
+        Result = exists;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the table exists.
+    /// </summary>
+    public bool Result { get; set; }
 }

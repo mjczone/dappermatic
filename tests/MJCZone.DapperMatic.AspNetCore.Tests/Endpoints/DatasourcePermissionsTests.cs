@@ -38,7 +38,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         using var client = CreateClientWithPermissions(testPermissions);
 
-        var response = await client.GetAsync("/api/dm/datasources/");
+        var response = await client.GetAsync("/api/dm/d/");
 
         response.Should().HaveStatusCode(HttpStatusCode.Forbidden);
     }
@@ -51,7 +51,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         using var client = CreateClientWithPermissions(testPermissions);
 
-        var response = await client.GetAsync("/api/dm/datasources/");
+        var response = await client.GetAsync("/api/dm/d/");
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
     }
@@ -73,7 +73,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         };
         using var client = CreateClientWithPermissionsAndAuth(testPermissions, claims);
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = "PermissionTest",
             Provider = "Sqlite",
@@ -81,7 +81,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Permission Test",
         };
 
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.Created);
     }
@@ -103,7 +103,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         };
         using var client = CreateClientWithPermissionsAndAuth(testPermissions, claims);
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = "PermissionTest",
             Provider = "Sqlite",
@@ -111,7 +111,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Permission Test",
         };
 
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.Forbidden);
     }
@@ -134,11 +134,11 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         using var client = CreateClientWithPermissions(testPermissions);
 
         // Should allow access to Test-* datasources
-        var response1 = await client.GetAsync("/api/dm/datasources/Test-SqlServer");
+        var response1 = await client.GetAsync("/api/dm/d/Test-SqlServer");
         response1.Should().HaveStatusCode(HttpStatusCode.OK);
 
         // Should deny access to Private-* datasources (would need to exist first)
-        var response2 = await client.GetAsync("/api/dm/datasources/Private-Database");
+        var response2 = await client.GetAsync("/api/dm/d/Private-Database");
         response2.Should().HaveStatusCode(HttpStatusCode.Forbidden);
     }
 

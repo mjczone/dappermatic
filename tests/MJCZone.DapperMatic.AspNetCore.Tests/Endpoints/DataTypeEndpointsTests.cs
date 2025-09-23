@@ -40,7 +40,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().NotBeEmpty();
 
-        var providerDataTypesResponse = JsonSerializer.Deserialize<DataTypesResponse>(
+        var providerDataTypesResponse = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -94,7 +94,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().NotBeEmpty();
 
-        var result = JsonSerializer.Deserialize<DataTypesResponse>(
+        var result = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -130,7 +130,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         content.Should().NotBeEmpty();
 
-        var providerDataTypesResponse = JsonSerializer.Deserialize<DataTypesResponse>(
+        var providerDataTypesResponse = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -197,7 +197,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = JsonSerializer.Deserialize<DataTypesResponse>(
+        var result = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -240,7 +240,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var result = JsonSerializer.Deserialize<DataTypesResponse>(
+        var result = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -272,7 +272,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         response.Content.Headers.ContentType?.MediaType.Should().Be("application/json");
 
-        var result = JsonSerializer.Deserialize<DataTypesResponse>(
+        var result = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -306,7 +306,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
-        var providerDataTypesResponse = JsonSerializer.Deserialize<DataTypesResponse>(
+        var providerDataTypesResponse = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );
@@ -349,7 +349,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var content = await response.Content.ReadAsStringAsync();
-        var result = JsonSerializer.Deserialize<DataTypesResponse>(
+        var result = JsonSerializer.Deserialize<ProviderDataTypeListResponse>(
             content,
             new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }
         );

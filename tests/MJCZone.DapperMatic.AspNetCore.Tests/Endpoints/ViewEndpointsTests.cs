@@ -185,7 +185,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "ViewToUpdate"
         );
 
-        var request = new UpdateViewRequest { ViewDefinition = "SELECT 2 AS UpdatedColumn" };
+        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 2 AS UpdatedColumn" };
         var content = new StringContent(
             JsonSerializer.Serialize(request),
             Encoding.UTF8,
@@ -207,7 +207,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var request = new UpdateViewRequest { ViewDefinition = "SELECT 1 AS TestColumn" };
+        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 1 AS TestColumn" };
         var content = new StringContent(
             JsonSerializer.Serialize(request),
             Encoding.UTF8,
@@ -440,7 +440,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "SchemaViewToUpdate"
         );
 
-        var request = new UpdateViewRequest { ViewDefinition = "SELECT 2 AS UpdatedColumn" };
+        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 2 AS UpdatedColumn" };
         var content = new StringContent(
             JsonSerializer.Serialize(request),
             Encoding.UTF8,
@@ -654,7 +654,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         var request = new UpdateViewRequest
         {
-            ViewDefinition = "", // Empty definition
+            NewViewDefinition = "", // Empty definition
         };
         var content = new StringContent(
             JsonSerializer.Serialize(request),

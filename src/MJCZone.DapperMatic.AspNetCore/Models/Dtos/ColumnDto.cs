@@ -3,6 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.ComponentModel.DataAnnotations;
+
 namespace MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 
 /// <summary>
@@ -13,11 +15,14 @@ public class ColumnDto
     /// <summary>
     /// Gets or sets the column name.
     /// </summary>
+    [Required]
+    [StringLength(128, MinimumLength = 1)]
     public string ColumnName { get; set; } = default!;
 
     /// <summary>
     /// Gets or sets the friendly .NET type name (e.g., "string", "int?", "Dictionary&lt;string, object&gt;").
     /// </summary>
+    [Required]
     public string? DotnetTypeName { get; set; } = default!;
 
     /// <summary>

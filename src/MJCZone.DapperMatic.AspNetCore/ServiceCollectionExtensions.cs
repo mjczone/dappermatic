@@ -41,6 +41,10 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IDapperMaticService, DapperMaticService>();
 
+        // Register operation context services
+        services.TryAddScoped<IOperationContext, OperationContext>();
+        services.TryAddScoped<IOperationContextInitializer, OperationContextInitializer>();
+
         // Apply fluent configuration
         if (configure != null)
         {

@@ -34,33 +34,51 @@ public class DefaultDapperMaticPermissions : IDapperMaticPermissions
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAuthorizedAsync(OperationContext context)
+    public Task<bool> IsAuthorizedAsync(IOperationContext context)
     {
-        var isAuthenticated = context.User?.Identity?.IsAuthenticated == true;
-        var isInRequiredRole =
-            isAuthenticated
-            && !string.IsNullOrEmpty(_requireRole)
-            && context.User?.IsInRole(_requireRole) == true;
-        var isInReadOnlyRole =
-            isAuthenticated
-            && !string.IsNullOrEmpty(_readOnlyRole)
-            && context.User?.IsInRole(_readOnlyRole) == true;
-        var isGetOperation = OperationIdentifiers.IsGetOperation(context.Operation);
-        if (isGetOperation && !string.IsNullOrWhiteSpace(_readOnlyRole))
+        if (_defaultBehavior == PermissionDefault.AllowAll)
         {
-            return Task.FromResult(isInRequiredRole || isInReadOnlyRole);
+            return Task.FromResult(true);
         }
 
-        return Task.FromResult(
-            _defaultBehavior switch
+        var isAuthenticated = context.User?.Identity?.IsAuthenticated == true;
+        if (_defaultBehavior == PermissionDefault.RequireAuthentication)
+        {
+            return Task.FromResult(isAuthenticated);
+        }
+
+        if (_defaultBehavior == PermissionDefault.RequireRole)
+        {
+            // If not authenticated, no need to check roles
+            if (!isAuthenticated)
             {
-                PermissionDefault.AllowAll => true,
-                PermissionDefault.RequireAuthentication => context.User?.Identity?.IsAuthenticated
-                    == true,
-                PermissionDefault.RequireRole => isInRequiredRole,
-                _ => false,
+                return Task.FromResult(false);
             }
-        );
+
+            var isGetRequest = (context.HttpMethod ?? string.Empty).Equals(
+                "GET",
+                StringComparison.OrdinalIgnoreCase
+            );
+
+            if (
+                isGetRequest
+                && !string.IsNullOrEmpty(_readOnlyRole)
+                && context.User?.IsInRole(_readOnlyRole) == true
+            )
+            {
+                return Task.FromResult(true);
+            }
+
+            if (
+                !string.IsNullOrWhiteSpace(_requireRole)
+                && context.User?.IsInRole(_requireRole) == true
+            )
+            {
+                return Task.FromResult(true);
+            }
+        }
+
+        return Task.FromResult(false);
     }
 }
 

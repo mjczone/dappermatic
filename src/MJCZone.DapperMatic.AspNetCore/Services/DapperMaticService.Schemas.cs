@@ -4,359 +4,252 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
-using System.Security.Claims;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Security;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
 /// <summary>
 /// Partial class containing schema-related methods for DapperMaticService.
 /// </summary>
-public sealed partial class DapperMaticService
+public partial class DapperMaticService
 {
     /// <inheritdoc />
     public async Task<IEnumerable<SchemaDto>> GetSchemasAsync(
+        IOperationContext context,
         string datasourceId,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListSchemas,
-            DatasourceId = datasourceId,
-        };
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to list schemas for datasource '{datasourceId}'."
-            );
-        }
+            // Check if provider supports schemas
+            if (!connection.SupportsSchemas())
+            {
+                await LogAuditEventAsync(context, true, $"Attempted to retrieve schemas for datasource '{datasourceId}', but the provider does not support schemas.").ConfigureAwait(false);
+                return [];
+            }
 
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Get schema names using extension method
+            var schemaNames = await connection
+                .GetSchemaNamesAsync(cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Check if provider supports schemas
-                if (!connection.SupportsSchemas())
-                {
-                    // For providers that don't support schemas, return a single "_" schema
-                    await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    return new[] { new SchemaDto { SchemaName = "_" } };
-                }
+            // Convert to SchemaDto objects
+            var schemas = schemaNames.Select(name => new SchemaDto { SchemaName = name });
 
-                // Get schema names using extension method
-                var schemaNames = await connection
-                    .GetSchemaNamesAsync(cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                // Convert to SchemaDto objects
-                var schemas = schemaNames.Select(name => new SchemaDto { SchemaName = name });
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return schemas;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(context, true, $"Retrieved schemas for datasource '{datasourceId}'").ConfigureAwait(false);
+            return schemas;
         }
     }
 
     /// <inheritdoc />
-    public async Task<SchemaDto?> GetSchemaAsync(
+    public async Task<SchemaDto> GetSchemaAsync(
+        IOperationContext context,
         string datasourceId,
         string schemaName,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(schemaName))
-        {
-            throw new ArgumentException("Schema name is required.", nameof(schemaName));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetSchema,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-        };
+        var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to get schema '{schemaName}' from datasource '{datasourceId}'."
-            );
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(normalizedSchemaName, nameof(schemaName))
+            .Assert();
 
-        try
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check if provider supports schemas
+            if (!connection.SupportsSchemas())
+            {
+                throw new InvalidOperationException(
+                    $"The provider does not support schema operations."
+                );
+            }
+
+            // Check if schema exists using extension method
+            var exists = await connection
+                .DoesSchemaExistAsync(normalizedSchemaName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
+            if (!exists)
             {
-                // Check if provider supports schemas
-                if (!connection.SupportsSchemas())
-                {
-                    // For providers that don't support schemas, only "_" is valid
-                    await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    return schemaName == "_" ? new SchemaDto { SchemaName = "_" } : null;
-                }
-
-                // Check if schema exists using extension method
-                var exists = await connection
-                    .DoesSchemaExistAsync(schemaName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                var result = exists ? new SchemaDto { SchemaName = schemaName } : null;
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return result;
+                throw new KeyNotFoundException(
+                    $"Schema '{normalizedSchemaName}' does not exist in datasource '{datasourceId}'."
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, true, $"Retrieved schema '{normalizedSchemaName}' for datasource '{datasourceId}'").ConfigureAwait(false);
+            return new SchemaDto { SchemaName = normalizedSchemaName };
         }
     }
 
     /// <inheritdoc />
-    public async Task<SchemaDto?> CreateSchemaAsync(
+    public async Task<SchemaDto> CreateSchemaAsync(
+        IOperationContext context,
         string datasourceId,
         SchemaDto schema,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        ArgumentNullException.ThrowIfNull(schema);
-        if (string.IsNullOrWhiteSpace(schema.SchemaName))
-        {
-            throw new ArgumentException("Schema name is required.", nameof(schema));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.CreateSchema,
-            DatasourceId = datasourceId,
-            SchemaName = schema.SchemaName,
-            RequestBody = schema,
-        };
+        var normalizedSchemaName = NormalizeSchemaName(schema.SchemaName);
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to create schema '{schema.SchemaName}' in datasource '{datasourceId}'."
-            );
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNull(schema, nameof(schema))
+            .NotNullOrWhiteSpace(normalizedSchemaName, nameof(schema.SchemaName))
+            .Assert();
 
-        try
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check if provider supports schemas
+            if (!connection.SupportsSchemas())
+            {
+                throw new InvalidOperationException(
+                    $"The provider does not support schema operations."
+                );
+            }
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    normalizedSchemaName,
+                    connection,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
 
-            using (connection)
+            // Create schema using extension method
+            var created = await connection
+                .CreateSchemaIfNotExistsAsync(
+                    normalizedSchemaName,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (!created)
             {
-                // Check if provider supports schemas
-                if (!connection.SupportsSchemas())
-                {
-                    await LogAuditEventAsync(context, false, "Provider does not support schemas")
-                        .ConfigureAwait(false);
-                    throw new NotSupportedException(
-                        $"The provider does not support schema operations."
-                    );
-                }
-
-                // Create schema using extension method
-                var created = await connection
-                    .CreateSchemaIfNotExistsAsync(
-                        schema.SchemaName,
-                        cancellationToken: cancellationToken
-                    )
-                    .ConfigureAwait(false);
-
-                var result = created ? schema : null;
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return result;
+                throw new InvalidOperationException(
+                    $"Failed to create schema '{normalizedSchemaName}' for an unknown reason."
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, true, $"Created schema '{normalizedSchemaName}'")
+                .ConfigureAwait(false);
+            return new SchemaDto { SchemaName = normalizedSchemaName };
         }
     }
 
     /// <inheritdoc />
-    public async Task<bool> DropSchemaAsync(
+    public async Task DropSchemaAsync(
+        IOperationContext context,
         string datasourceId,
         string schemaName,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(schemaName))
-        {
-            throw new ArgumentException("Schema name is required.", nameof(schemaName));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.DropSchema,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-        };
+        var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to drop schema '{schemaName}' from datasource '{datasourceId}'."
-            );
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(normalizedSchemaName, nameof(schemaName))
+            .Assert();
 
-        try
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check if provider supports schemas
+            if (!connection.SupportsSchemas())
+            {
+                throw new InvalidOperationException(
+                    $"The provider does not support schema operations."
+                );
+            }
+
+            // Drop schema using extension method
+            var dropped = await connection
+                .DropSchemaIfExistsAsync(normalizedSchemaName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
+            if (!dropped)
             {
-                // Check if provider supports schemas
-                if (!connection.SupportsSchemas())
-                {
-                    await LogAuditEventAsync(context, false, "Provider does not support schemas")
-                        .ConfigureAwait(false);
-                    throw new NotSupportedException(
-                        $"The provider does not support schema operations."
-                    );
-                }
-
-                // Drop schema using extension method
-                var dropped = await connection
-                    .DropSchemaIfExistsAsync(schemaName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return dropped;
+                throw new InvalidOperationException(
+                    $"Failed to drop schema '{normalizedSchemaName}' for an unknown reason."
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, true, $"Dropped schema '{normalizedSchemaName}'")
+                .ConfigureAwait(false);
         }
     }
 
     /// <inheritdoc />
     public async Task<bool> SchemaExistsAsync(
+        IOperationContext context,
         string datasourceId,
         string schemaName,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(schemaName))
-        {
-            throw new ArgumentException("Schema name is required.", nameof(schemaName));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.SchemaExists,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-        };
+        var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to check if schema '{schemaName}' exists in datasource '{datasourceId}'."
-            );
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(normalizedSchemaName, nameof(schemaName))
+            .Assert();
 
-        try
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check if provider supports schemas
+            if (!connection.SupportsSchemas())
+            {
+                throw new InvalidOperationException(
+                    $"The provider does not support schema operations."
+                );
+            }
+
+            // Check if schema exists using extension method
+            var exists = await connection
+                .DoesSchemaExistAsync(normalizedSchemaName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Check if provider supports schemas
-                if (!connection.SupportsSchemas())
-                {
-                    // For providers that don't support schemas, only "_" exists
-                    await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    return schemaName == "_";
-                }
-
-                // Check if schema exists using extension method
-                var exists = await connection
-                    .DoesSchemaExistAsync(schemaName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return exists;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    exists == true
+                        ? $"Schema '{normalizedSchemaName}' exists."
+                        : $"Schema '{normalizedSchemaName}' does not exist."
+                )
+                .ConfigureAwait(false);
+            return exists;
         }
     }
 }

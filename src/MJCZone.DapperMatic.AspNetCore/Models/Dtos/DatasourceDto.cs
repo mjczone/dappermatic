@@ -3,6 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.ComponentModel.DataAnnotations;
+
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.Providers;
 
@@ -17,26 +19,31 @@ public sealed class DatasourceDto
     /// <summary>
     /// Gets or sets the unique name identifier for this datasource.
     /// </summary>
+    [StringLength(64)]
     public string? Id { get; set; }
 
     /// <summary>
     /// Gets or sets the database provider type.
     /// </summary>
+    [StringLength(10)]
     public string? Provider { get; set; }
 
     /// <summary>
     /// Gets or sets the connection string for database access.
     /// </summary>
+    [StringLength(2000)]
     public string? ConnectionString { get; set; }
 
     /// <summary>
     /// Gets or sets the display name for this datasource.
     /// </summary>
+    [StringLength(128)]
     public string? DisplayName { get; set; }
 
     /// <summary>
     /// Gets or sets a description of this datasource.
     /// </summary>
+    [StringLength(1000)]
     public string? Description { get; set; }
 
     /// <summary>

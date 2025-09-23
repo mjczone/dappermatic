@@ -127,11 +127,11 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAuthorizedAsync(OperationContext context)
+    public Task<bool> IsAuthorizedAsync(IOperationContext context)
     {
-        if (_rules.TryGetValue(context.Operation, out var rule))
+        if (context is OperationContext opContext && _rules.TryGetValue(opContext.Operation, out var rule))
         {
-            return Task.FromResult(rule(context));
+            return Task.FromResult(rule(opContext));
         }
 
         // Default to allow if no specific rule is set

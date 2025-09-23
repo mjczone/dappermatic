@@ -338,13 +338,13 @@ public class DapperMaticServiceIndexesTests : IClassFixture<TestcontainersAssemb
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
@@ -352,7 +352,7 @@ public class DapperMaticServiceIndexesTests : IClassFixture<TestcontainersAssemb
                         : "varchar(255)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
@@ -360,7 +360,7 @@ public class DapperMaticServiceIndexesTests : IClassFixture<TestcontainersAssemb
                         : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType = datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
@@ -371,7 +371,7 @@ public class DapperMaticServiceIndexesTests : IClassFixture<TestcontainersAssemb
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = $"PK_{tableName}",
                 Columns = ["Id"],

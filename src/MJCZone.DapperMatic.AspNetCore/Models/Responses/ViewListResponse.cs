@@ -10,18 +10,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for listing multiple views.
 /// </summary>
-public class ViewListResponse : ResponseBase<IEnumerable<ViewDto>>
+public class ViewListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewListResponse"/> class.
     /// </summary>
     public ViewListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewListResponse"/> class.
     /// </summary>
-    /// <param name="views">The list of views.</param>
-    public ViewListResponse(IEnumerable<ViewDto> views)
-        : base(views) { }
+    /// <param name="result">The list of views.</param>
+    public ViewListResponse(IEnumerable<ViewDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of views.
+    /// </summary>
+    public IEnumerable<ViewDto> Result { get; set; }
 }

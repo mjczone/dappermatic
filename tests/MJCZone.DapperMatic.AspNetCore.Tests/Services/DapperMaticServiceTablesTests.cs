@@ -145,7 +145,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         nonExistentExists.Should().BeFalse();
 
         // Step 6: Query table data (should be empty but structure should work)
-        var queryRequest = new QueryRequest { Take = 10, Skip = 0 };
+        var queryRequest = new QueryDto { Take = 10, Skip = 0 };
         var queryResult = await service.QueryTableAsync(
             datasourceId,
             "WorkflowTest_Data",
@@ -256,7 +256,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var request = new QueryRequest { Take = 10, Skip = 0 };
+        var request = new QueryDto { Take = 10, Skip = 0 };
 
         var act = async () =>
             await service.QueryTableAsync(
@@ -280,7 +280,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             TableName = "TestTable",
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
@@ -288,7 +288,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                 },
             ],
         };
-        var queryRequest = new QueryRequest { Take = 10, Skip = 0 };
+        var queryRequest = new QueryDto { Take = 10, Skip = 0 };
 
         // Test all methods with non-existent datasource
         var getTableAct = async () => await service.GetTableAsync("NonExistent", "TestTable");
@@ -349,7 +349,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         );
         testTable.Should().NotBeNull();
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
@@ -385,7 +385,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         );
         testTable.Should().NotBeNull();
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
@@ -419,7 +419,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         );
         testTable.Should().NotBeNull();
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
@@ -453,7 +453,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         );
         testTable.Should().NotBeNull();
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
@@ -487,7 +487,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         );
         testTable.Should().NotBeNull();
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 5,
             Skip = 10,
@@ -528,7 +528,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                 : null,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType =
@@ -540,7 +540,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsAutoIncrement =
                         datasourceId != TestcontainersAssemblyFixture.DatasourceId_PostgreSql,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -582,13 +582,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -616,13 +616,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Title",
                     ProviderDataType =
@@ -631,7 +631,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Description",
                     ProviderDataType =
@@ -640,7 +640,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "text",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
@@ -652,7 +652,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = $"PK_{tableName}",
                 Columns = ["Id"],
@@ -675,13 +675,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType =
@@ -690,13 +690,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Age",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Status",
                     ProviderDataType =
@@ -706,14 +706,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = $"PK_{tableName}",
                 Columns = ["Id"],
             },
             UniqueConstraints =
             [
-                new CreateTableUniqueConstraintRequest
+                new CreateUniqueConstraintRequest
                 {
                     ConstraintName = $"UQ_{tableName}_Email",
                     ColumnNames = ["Email"],
@@ -723,7 +723,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                 datasourceId != TestcontainersAssemblyFixture.DatasourceId_MySql
                     ? // MySQL doesn't support check constraints in older versions
                     [
-                        new CreateTableCheckConstraintRequest
+                        new CreateCheckConstraintRequest
                         {
                             ConstraintName = $"CK_{tableName}_Age",
                             CheckExpression = "Age >= 0 AND Age <= 150",
@@ -732,7 +732,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     : null,
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        return await service.CreateTableAsync(datasourceId, request, schemaName);
     }
 
     #endregion

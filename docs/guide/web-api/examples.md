@@ -68,7 +68,7 @@ Build a tool for managing database migrations:
 // Frontend JavaScript
 async function migrateDatabases() {
     // Get list of all datasources
-    const response = await fetch('/api/dm/datasources/', {
+    const response = await fetch('/api/dm/d/', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' }
     });
@@ -155,7 +155,7 @@ public class DapperMaticClient
 
     public async Task<IEnumerable<DatasourceDto>> GetDatasourcesAsync()
     {
-        var response = await _httpClient.GetAsync("/api/dm/datasources/");
+        var response = await _httpClient.GetAsync("/api/dm/d/");
 
         var result = await response.Content.ReadFromJsonAsync<ApiResponse<IEnumerable<DatasourceDto>>>();
         return result.Data;

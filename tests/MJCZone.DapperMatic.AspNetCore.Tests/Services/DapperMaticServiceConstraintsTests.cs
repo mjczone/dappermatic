@@ -681,13 +681,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Email",
                     ProviderDataType =
@@ -696,13 +696,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Age",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Status",
                     ProviderDataType =
@@ -711,7 +711,7 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                             : "varchar(50)",
                     IsNullable = true,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "CategoryId",
                     ProviderDataType = "int",
@@ -736,13 +736,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             SchemaName = schemaName,
             Columns =
             [
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateTableColumnRequest
+                new CreateColumnRequest
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -752,7 +752,7 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreateTablePrimaryKeyRequest
+            PrimaryKey = new CreatePrimaryKeyRequest
             {
                 ConstraintName = $"PK_{tableName}",
                 Columns = ["Id"],

@@ -49,7 +49,7 @@ All endpoints use the base path `/api/dm` by default (configurable via `DapperMa
 DapperMatic uses a consistent hierarchical URL structure that mirrors database organization:
 
 ```
-/api/dm/datasources                              # Datasource management
+/api/dm/d                              # Datasource management
 /api/dm/d/{datasourceId}/s                       # Schema management
 /api/dm/d/{datasourceId}/t                       # Tables (default schema)
 /api/dm/d/{datasourceId}/s/{schemaName}/t        # Tables (specific schema)
@@ -75,7 +75,7 @@ Manage database connections with metadata (display names, tags, etc.).
 
 **Example - Add Datasource:**
 ```json
-POST /api/dm/datasources/
+POST /api/dm/d/
 {
   "id": "ProductionDB",
   "provider": "SqlServer",
@@ -204,7 +204,7 @@ While the [API Browser](/api-browser/) has complete details, here are some commo
 
 ```bash
 # List all datasources
-GET /api/dm/datasources/
+GET /api/dm/d/
 
 # Create a table
 POST /api/dm/d/MyDB/t/

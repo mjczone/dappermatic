@@ -4,18 +4,16 @@
 // See LICENSE in the project root for license information.
 
 using System.Net;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using MJCZone.DapperMatic.AspNetCore.Extensions;
-using MJCZone.DapperMatic.AspNetCore.Models;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Services;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 
@@ -35,21 +33,7 @@ public static class DatasourceEndpoints
         string? basePath = null
     )
     {
-        basePath ??= "/api/dm";
-
-        // make sure basePath starts with a slash and does not end with a slash
-        if (!basePath.StartsWith('/'))
-        {
-            basePath = "/" + basePath;
-        }
-        if (basePath.EndsWith('/'))
-        {
-            basePath = basePath.TrimEnd('/');
-        }
-
-        var group = app.MapGroup($"{basePath}/datasources")
-            .WithTags(OperationTags.Datasources)
-            .WithOpenApi();
+        var group = app.MapDapperMaticEndpointGroup(basePath, "/d", OperationTags.Datasources);
 
         // List all datasources - GET only since no parameters needed
         group
@@ -61,7 +45,7 @@ public static class DatasourceEndpoints
 
         // Get specific datasource - POST with request body
         group
-            .MapGet("/{id}", GetDatasourceAsync)
+            .MapGet("/{datasourceId}", GetDatasourceAsync)
             .WithName("GetDatasource")
             .WithSummary("Gets a datasource by ID")
             .Produces<DatasourceResponse>((int)HttpStatusCode.OK)
@@ -70,7 +54,7 @@ public static class DatasourceEndpoints
 
         // Add new datasource - POST only
         group
-            .MapPost("/", AddDatasourceAsync)
+            .MapPost("/", CreateDatasourceAsync)
             .WithName("AddDatasource")
             .WithSummary("Adds a new datasource")
             .Produces<DatasourceResponse>((int)HttpStatusCode.Created)
@@ -79,7 +63,7 @@ public static class DatasourceEndpoints
 
         // Update existing datasource - PUT only
         group
-            .MapPut("/{id}", UpdateDatasourceAsync)
+            .MapPut("/{datasourceId}", UpdateDatasourceAsync)
             .WithName("UpdateDatasource")
             .WithSummary("Updates an existing datasource")
             .Produces<DatasourceResponse>((int)HttpStatusCode.OK)
@@ -88,7 +72,7 @@ public static class DatasourceEndpoints
 
         // Patch existing datasource - PATCH only
         group
-            .MapPatch("/{id}", UpdateDatasourceAsync)
+            .MapPatch("/{datasourceId}", UpdateDatasourceAsync)
             .WithName("PatchDatasource")
             .WithSummary("Patches an existing datasource")
             .Produces<DatasourceResponse>((int)HttpStatusCode.OK)
@@ -97,7 +81,7 @@ public static class DatasourceEndpoints
 
         // Remove datasource - DELETE only
         group
-            .MapDelete("/{id}", RemoveDatasourceAsync)
+            .MapDelete("/{datasourceId}", DeleteDatasourceAsync)
             .WithName("RemoveDatasource")
             .WithSummary("Removes a datasource")
             .Produces<DatasourceResponse>((int)HttpStatusCode.OK)
@@ -106,7 +90,7 @@ public static class DatasourceEndpoints
 
         // Test datasource connection - GET
         group
-            .MapGet("/{id}/test", TestDatasourceAsync)
+            .MapGet("/{datasourceId}/test", TestDatasourceAsync)
             .WithName("TestDatasource")
             .WithSummary("Tests datasource connectivity")
             .Produces<DatasourceTestResponse>((int)HttpStatusCode.OK)
@@ -117,288 +101,155 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> ListDatasourcesAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromQuery] string? filter = null,
         CancellationToken cancellationToken = default
     )
     {
-        try
+        var datasources = await service
+            .GetDatasourcesAsync(operationContext, cancellationToken)
+            .ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(filter))
         {
-            var datasources = await service
-                .GetDatasourcesAsync(user, cancellationToken)
-                .ConfigureAwait(false);
-            if (!string.IsNullOrWhiteSpace(filter))
-            {
-                datasources = datasources.Where(d =>
-                    (d.Id != null && d.Id.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                    || (
-                        d.DisplayName != null
-                        && d.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                    )
-                    || (
-                        d.Description != null
-                        && d.Description.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                    )
-                    || (
-                        d.Provider != null
-                        && d.Provider.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                    )
-                    || (
-                        d.Tags != null
-                        && d.Tags.Any(t => t.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                    )
-                );
-            }
-            return Results.Ok(new DatasourceListResponse(datasources));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
+            datasources = datasources.Where(d =>
+                (d.Id != null && d.Id.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                || (
+                    d.DisplayName != null
+                    && d.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                )
+                || (
+                    d.Description != null
+                    && d.Description.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                )
+                || (
+                    d.Provider != null
+                    && d.Provider.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                )
+                || (
+                    d.Tags != null
+                    && d.Tags.Any(t => t.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                )
             );
         }
+        return Results.Ok(new DatasourceListResponse(datasources));
     }
 
     private static async Task<IResult> GetDatasourceAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        [FromRoute] string id,
+        [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var datasource = await service
-                .GetDatasourceAsync(id, user, cancellationToken)
-                .ConfigureAwait(false);
+        var datasource = await service
+            .GetDatasourceAsync(operationContext, datasourceId, cancellationToken)
+            .ConfigureAwait(false);
 
-            return datasource == null
-                ? Results.NotFound($"Datasource '{id}' not found")
-                : Results.Ok(new DatasourceResponse(datasource));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return datasource != null
+            ? Results.Ok(new DatasourceResponse(datasource))
+            : throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
     }
 
-    private static async Task<IResult> AddDatasourceAsync(
-        HttpContext httpContext,
+    private static async Task<IResult> CreateDatasourceAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        AddDatasourceRequest request,
+        [FromBody] DatasourceDto datasource,
         CancellationToken cancellationToken = default
     )
     {
-        // Get the base path of the request to construct the location URL
-        var basePath = httpContext.Request.PathBase.HasValue
-            ? httpContext.Request.PathBase.Value
-            : string.Empty;
-        basePath += httpContext.Request.Path.HasValue
-            ? httpContext.Request.Path.Value
-            : string.Empty;
+        // API layer validation
+        Validate
+            .Object(datasource)
+            .MaxLength(r => r.Id, 64, nameof(DatasourceDto.Id), inclusive: true)
+            .NotNullOrWhiteSpace(r => r.Provider, nameof(DatasourceDto.Provider))
+            .MaxLength(r => r.Provider, 10, nameof(DatasourceDto.Provider), inclusive: true)
+            .MinLength(r => r.Provider, 2, nameof(DatasourceDto.Provider), inclusive: true)
+            .NotNullOrWhiteSpace(r => r.ConnectionString, nameof(DatasourceDto.ConnectionString))
+            .MaxLength(
+                r => r.ConnectionString,
+                2000,
+                nameof(DatasourceDto.ConnectionString),
+                inclusive: false
+            )
+            .NotNullOrWhiteSpace(r => r.DisplayName, nameof(DatasourceDto.DisplayName))
+            .MaxLength(r => r.DisplayName, 128, nameof(DatasourceDto.DisplayName), inclusive: true)
+            .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
+            .Assert();
 
-        try
-        {
-            var datasource = new DatasourceDto
-            {
-                Id = request.Id,
-                Provider = request.Provider,
-                ConnectionString = request.ConnectionString,
-                DisplayName = request.DisplayName,
-                Description = request.Description,
-                Tags = request.Tags,
-                IsEnabled = request.IsEnabled,
-            };
+        operationContext.RequestBody = datasource;
 
-            var created = await service
-                .AddDatasourceAsync(datasource, user, cancellationToken)
-                .ConfigureAwait(false);
+        var created = await service
+            .AddDatasourceAsync(operationContext, datasource, cancellationToken)
+            .ConfigureAwait(false);
 
-            return created != null
-                ? Results.Created(
-                    $"{basePath.TrimEnd('/')}/{created.Id}",
-                    new DatasourceResponse(created)
-                    {
-                        Success = true,
-                        Message = $"Datasource '{created.Id}' added successfully",
-                    }
-                )
-                : Results.Conflict(
-                    new DatasourceResponse(null)
-                    {
-                        Success = false,
-                        Message = $"Datasource '{datasource.Id}' already exists",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to add datasource: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return created != null
+            ? Results.Created(
+                $"{operationContext.EndpointPath?.TrimEnd('/')}/{created.Id}",
+                new DatasourceResponse(created)
+            )
+            : throw new DuplicateKeyException($"Datasource '{datasource.Id}' already exists");
     }
 
     private static async Task<IResult> UpdateDatasourceAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        [FromRoute] string id,
-        [FromBody] UpdateDatasourceRequest request,
+        [FromRoute] string datasourceId,
+        [FromBody] DatasourceDto datasource,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var datasource = new DatasourceDto
-            {
-                Id = id,
-                Provider = request.Provider,
-                ConnectionString = request.ConnectionString,
-                DisplayName = request.DisplayName,
-                Description = request.Description,
-                Tags = request.Tags,
-                IsEnabled = request.IsEnabled,
-            };
+        // API layer validation
+        Validate
+            .Object(datasource)
+            .MaxLength(r => r.Provider, 10, nameof(DatasourceDto.Provider), inclusive: true) // pgsql
+            .MinLength(r => r.Provider, 2, nameof(DatasourceDto.Provider), inclusive: true) // pg
+            .MaxLength(
+                r => r.ConnectionString,
+                2000,
+                nameof(DatasourceDto.ConnectionString),
+                inclusive: false
+            )
+            .MaxLength(r => r.DisplayName, 128, nameof(DatasourceDto.DisplayName), inclusive: true)
+            .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
+            .Assert();
 
-            var updated = await service
-                .UpdateDatasourceAsync(datasource, user, cancellationToken)
-                .ConfigureAwait(false);
+        operationContext.RequestBody = datasource;
 
-            return updated != null
-                ? Results.Ok(
-                    new DatasourceResponse(updated)
-                    {
-                        Success = true,
-                        Message = $"Datasource '{id}' updated successfully",
-                    }
-                )
-                : Results.NotFound(
-                    new DatasourceResponse(null)
-                    {
-                        Success = false,
-                        Message = $"Datasource '{id}' not found",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to update datasource: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        var updated = await service
+            .UpdateDatasourceAsync(operationContext, datasource, cancellationToken)
+            .ConfigureAwait(false);
+
+        return updated != null
+            ? Results.Ok(new DatasourceResponse(updated))
+            : throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
     }
 
-    private static async Task<IResult> RemoveDatasourceAsync(
+    private static async Task<IResult> DeleteDatasourceAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        [FromRoute] string id,
+        [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var success = await service
-                .RemoveDatasourceAsync(id, user, cancellationToken)
-                .ConfigureAwait(false);
+        await service
+            .RemoveDatasourceAsync(operationContext, datasourceId, cancellationToken)
+            .ConfigureAwait(false);
 
-            return success
-                ? Results.Ok(
-                    new DatasourceResponse(null)
-                    {
-                        Success = true,
-                        Message = $"Datasource '{id}' removed successfully",
-                    }
-                )
-                : Results.NotFound(
-                    new DatasourceResponse(null)
-                    {
-                        Success = false,
-                        Message = $"Datasource '{id}' not found",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to remove datasource: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> TestDatasourceAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        [FromRoute] string id,
+        [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var result = await service
-                .TestDatasourceAsync(id, user, cancellationToken)
-                .ConfigureAwait(false);
+        var datasourceConnectivityTest = await service
+            .TestDatasourceAsync(operationContext, datasourceId, cancellationToken)
+            .ConfigureAwait(false);
 
-            return result.IsConnected
-                ? Results.Ok(
-                    new DatasourceTestResponse(result)
-                    {
-                        Success = true,
-                        Message = $"Successfully connected to datasource '{id}'",
-                    }
-                )
-                : Results.Ok(
-                    new DatasourceTestResponse(result)
-                    {
-                        Success = false,
-                        Message = result.ErrorMessage ?? $"Failed to connect to datasource '{id}'",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to test datasource: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.Ok(new DatasourceTestResponse(datasourceConnectivityTest));
     }
 }

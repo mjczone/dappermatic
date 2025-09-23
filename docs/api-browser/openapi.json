@@ -14,7 +14,7 @@
     "version": "v1"
   },
   "paths": {
-    "/api/dm/datasources": {
+    "/api/dm/d": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -82,7 +82,7 @@
         }
       }
     },
-    "/api/dm/datasources/{id}": {
+    "/api/dm/d/{datasourceId}": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -244,7 +244,7 @@
         }
       }
     },
-    "/api/dm/datasources/{id}/test": {
+    "/api/dm/d/{datasourceId}/test": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -4804,7 +4804,7 @@
         },
         "additionalProperties": false
       },
-      "CreateTablePrimaryKeyRequest": {
+      "CreatePrimaryKeyRequest": {
         "required": [
           "columns"
         ],
@@ -4852,7 +4852,7 @@
             }
           },
           "primaryKey": {
-            "$ref": "#/components/schemas/CreateTablePrimaryKeyRequest"
+            "$ref": "#/components/schemas/CreatePrimaryKeyRequest"
           },
           "foreignKeys": {
             "type": "array",
@@ -4878,7 +4878,7 @@
           "uniqueConstraints": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateTableUniqueConstraintRequest"
+              "$ref": "#/components/schemas/CreateUniqueConstraintRequest"
             },
             "nullable": true
           },
@@ -4892,7 +4892,7 @@
         },
         "additionalProperties": false
       },
-      "CreateTableUniqueConstraintRequest": {
+      "CreateUniqueConstraintRequest": {
         "required": [
           "columnNames"
         ],
@@ -5162,7 +5162,7 @@
         "type": "object",
         "properties": {
           "result": {
-            "$ref": "#/components/schemas/DatasourceTestResult"
+            "$ref": "#/components/schemas/DatasourceConnectivityTestDto"
           },
           "message": {
             "type": "string",
@@ -5174,7 +5174,7 @@
         },
         "additionalProperties": false
       },
-      "DatasourceTestResult": {
+      "DatasourceConnectivityTestDto": {
         "type": "object",
         "properties": {
           "isConnected": {

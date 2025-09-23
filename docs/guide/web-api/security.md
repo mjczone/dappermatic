@@ -74,12 +74,12 @@ public class OperationContext
 
     // HTTP request information
     public string HttpMethod { get; set; }           // GET, POST, etc.
-    public string EndpointPath { get; set; }         // /api/dm/datasources/get
+    public string EndpointPath { get; set; }         // /api/dm/d/get
     public IQueryCollection? QueryParameters { get; set; }
     public object? RequestBody { get; set; }
 
     // Operation identification
-    public string Operation { get; set; }            // e.g., "datasources/add", "tables/create"
+    public string Operation { get; set; }            // e.g., "datasources/create", "tables/update"
 }
 ```
 

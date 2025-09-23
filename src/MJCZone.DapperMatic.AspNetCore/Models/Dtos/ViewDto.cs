@@ -7,6 +7,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 
 /// <summary>
 /// Data transfer object for view information.
+/// Properties are nullable to support partial updates via PUT/PATCH operations.
 /// </summary>
 public class ViewDto
 {
@@ -17,11 +18,13 @@ public class ViewDto
 
     /// <summary>
     /// Gets or sets the name of the view.
+    /// Required for create operations, optional for updates (used for rename when different from route parameter).
     /// </summary>
-    public required string ViewName { get; set; }
+    public string? ViewName { get; set; }
 
     /// <summary>
     /// Gets or sets the definition of the view.
+    /// Required for create operations, optional for updates.
     /// </summary>
-    public required string Definition { get; set; }
+    public string? Definition { get; set; }
 }

@@ -4,20 +4,18 @@
 // See LICENSE in the project root for license information.
 
 using System.Net;
-using System.Security.Claims;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.OpenApi.Any;
-
 using MJCZone.DapperMatic.AspNetCore.Extensions;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Services;
 using MJCZone.DapperMatic.AspNetCore.Utilities;
-using MJCZone.DapperMatic.Models;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 
@@ -46,29 +44,21 @@ public static class ViewEndpoints
         string? basePath = null
     )
     {
-        basePath ??= "/api/dm";
-
-        // make sure basePath starts with a slash and does not end with a slash
-        if (!basePath.StartsWith('/'))
-        {
-            basePath = "/" + basePath;
-        }
-        if (basePath.EndsWith('/'))
-        {
-            basePath = basePath.TrimEnd('/');
-        }
-
         // Register default schema endpoints (for single-schema scenarios)
-        var defaultGroup = app.MapGroup($"{basePath}/d/{{datasourceId}}/v")
-            .WithTags(OperationTags.DatasourceViews)
-            .WithOpenApi();
+        var defaultGroup = app.MapDapperMaticEndpointGroup(
+            basePath,
+            "/d/{datasourceId}/v",
+            OperationTags.DatasourceViews
+        );
 
         RegisterViewEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false);
 
         // Register schema-specific endpoints (for multi-tenant scenarios)
-        var schemaGroup = app.MapGroup($"{basePath}/d/{{datasourceId}}/s/{{schemaName}}/v")
-            .WithTags(OperationTags.DatasourceViews)
-            .WithOpenApi();
+        var schemaGroup = app.MapDapperMaticEndpointGroup(
+            basePath,
+            "/d/{datasourceId}/s/{schemaName}/v",
+            OperationTags.DatasourceViews
+        );
 
         RegisterViewEndpoints(schemaGroup, "Schema", isSchemaSpecific: true);
 
@@ -86,16 +76,7 @@ public static class ViewEndpoints
 
         // List all views
         group
-            .MapGet(
-                "/",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    [Microsoft.AspNetCore.Mvc.FromQuery] string? include,
-                    CancellationToken ct
-                ) => ListViewsAsync(ctx, service, user, include, isSchemaSpecific, ct)
-            )
+            .MapGet("/", ListViewsAsync)
             .WithName($"List{namePrefix}Views")
             .WithSummary($"Gets all views for {schemaText}")
             .WithOpenApi(operation =>
@@ -103,7 +84,8 @@ public static class ViewEndpoints
                 var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
                 if (includeParam != null)
                 {
-                    includeParam.Description = "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.";
+                    includeParam.Description =
+                        "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.";
                     includeParam.Example = new OpenApiString("definition");
                 }
                 return operation;
@@ -114,17 +96,7 @@ public static class ViewEndpoints
 
         // Get specific view
         group
-            .MapGet(
-                "/{viewName}",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    [Microsoft.AspNetCore.Mvc.FromQuery] string? include,
-                    CancellationToken ct
-                ) => GetViewAsync(ctx, service, user, viewName, include, isSchemaSpecific, ct)
-            )
+            .MapGet("/{viewName}", GetViewAsync)
             .WithName($"Get{namePrefix}View")
             .WithSummary($"Gets a view by name from {schemaText}")
             .WithOpenApi(operation =>
@@ -132,8 +104,9 @@ public static class ViewEndpoints
                 var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
                 if (includeParam != null)
                 {
-                    includeParam.Description = "Comma-separated list of fields to include in the response. Use 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.";
-                    includeParam.Example = new Microsoft.OpenApi.Any.OpenApiString("definition");
+                    includeParam.Description =
+                        "Comma-separated list of fields to include in the response. Use 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.";
+                    includeParam.Example = new OpenApiString("definition");
                 }
                 return operation;
             })
@@ -141,36 +114,9 @@ public static class ViewEndpoints
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
 
-        // Query view via GET with URL parameters
-        group
-            .MapGet(
-                "/{viewName}/query",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    CancellationToken ct
-                ) => QueryViewViaGetAsync(ctx, service, user, viewName, isSchemaSpecific, ct)
-            )
-            .WithName($"Query{namePrefix}ViewViaGet")
-            .WithSummary($"Queries a view {schemaInText} using URL parameters")
-            .Produces<QueryResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
-
         // Create new view
         group
-            .MapPost(
-                "/",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    CreateViewRequest request,
-                    CancellationToken ct
-                ) => CreateViewAsync(ctx, service, user, request, isSchemaSpecific, ct)
-            )
+            .MapPost("/", CreateViewAsync)
             .WithName($"Create{namePrefix}View")
             .WithSummary($"Creates a new view {schemaInText}")
             .Produces<ViewResponse>((int)HttpStatusCode.Created)
@@ -180,17 +126,7 @@ public static class ViewEndpoints
 
         // Update existing view
         group
-            .MapPut(
-                "/{viewName}",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    UpdateViewRequest request,
-                    CancellationToken ct
-                ) => UpdateViewAsync(ctx, service, user, viewName, request, isSchemaSpecific, ct)
-            )
+            .MapPut("/{viewName}", UpdateViewAsync)
             .WithName($"Update{namePrefix}View")
             .WithSummary($"Updates an existing view {schemaInText}")
             .Produces<ViewResponse>((int)HttpStatusCode.OK)
@@ -199,53 +135,34 @@ public static class ViewEndpoints
 
         // Drop view
         group
-            .MapDelete(
-                "/{viewName}",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    CancellationToken ct
-                ) => DropViewAsync(ctx, service, user, viewName, isSchemaSpecific, ct)
-            )
+            .MapDelete("/{viewName}", DropViewAsync)
             .WithName($"Drop{namePrefix}View")
             .WithSummary($"Drops a view from {schemaText}")
-            .Produces<ViewResponse>((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.NoContent)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
 
         // Check if view exists
         group
-            .MapGet(
-                "/{viewName}/exists",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    CancellationToken ct
-                ) => ViewExistsAsync(ctx, service, user, viewName, isSchemaSpecific, ct)
-            )
+            .MapGet("/{viewName}/exists", ViewExistsAsync)
             .WithName($"{namePrefix}ViewExists")
             .WithSummary($"Checks if a view exists {schemaInText}")
             .Produces<ViewExistsResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
 
+        // Query view via GET with URL parameters
+        group
+            .MapGet("/{viewName}/query", QueryViewViaGetAsync)
+            .WithName($"Query{namePrefix}ViewViaGet")
+            .WithSummary($"Queries a view {schemaInText} using URL parameters")
+            .Produces<QueryResponse>((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.Forbidden);
+
         // Query view with filtering, sorting, and pagination
         group
-            .MapPost(
-                "/{viewName}/query",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string viewName,
-                    QueryRequest request,
-                    CancellationToken ct
-                ) => QueryViewAsync(ctx, service, user, viewName, request, isSchemaSpecific, ct)
-            )
+            .MapPost("/{viewName}/query", QueryViewAsync)
             .WithName($"Query{namePrefix}View")
             .WithSummary($"Queries a view {schemaInText} with filtering, sorting, and pagination")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -254,535 +171,306 @@ public static class ViewEndpoints
     }
 
     private static async Task<IResult> ListViewsAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string? include,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromQuery] string? include,
+        [FromQuery] string? filter,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
-        var filter = httpContext.Request.Query["filter"].FirstOrDefault();
+        var views = await service
+            .GetViewsAsync(operationContext, datasourceId, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-        try
+        if (!string.IsNullOrWhiteSpace(filter))
         {
-            var views = await service
-                .GetViewsAsync(datasourceId, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            if (!string.IsNullOrWhiteSpace(filter))
-            {
-                views = views.Where(v =>
-                    v.ViewName != null
-                    && v.ViewName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                );
-            }
-
-            // Parse the include parameter
-            var includes = IncludeParameterHelper.ParseIncludeParameter(include);
-
-            // Shape the response based on the include parameter
-            if (!IncludeParameterHelper.ShouldInclude(includes, "definition"))
-            {
-                // Exclude definitions from all views (default behavior)
-                views = views.Select(v => new DmView(v.SchemaName, v.ViewName, string.Empty));
-            }
-
-            return Results.Ok(new ViewListResponse(views.ToViewDtos()));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
+            views = views.Where(v =>
+                v.ViewName != null
+                && v.ViewName.Contains(filter, StringComparison.OrdinalIgnoreCase)
             );
         }
+
+        // Parse the include parameter
+        var includes = IncludeParameterHelper.ParseIncludeParameter(include);
+
+        // Shape the response based on the include parameter
+        if (!IncludeParameterHelper.ShouldInclude(includes, "definition"))
+        {
+            // Exclude definitions from all views (default behavior)
+            views = views.Select(v => new ViewDto
+            {
+                SchemaName = v.SchemaName,
+                ViewName = v.ViewName,
+                Definition = null,
+            });
+        }
+
+        return Results.Ok(new ViewListResponse(views));
     }
 
     private static async Task<IResult> GetViewAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        string? include,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
+        [FromQuery] string? include,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
+        var view = await service
+            .GetViewAsync(operationContext, datasourceId, viewName, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-        try
+        // Parse the include parameter
+        var includes = IncludeParameterHelper.ParseIncludeParameter(include);
+
+        // Shape the response based on the include parameter
+        if (IncludeParameterHelper.ShouldInclude(includes, "definition"))
         {
-            var view = await service
-                .GetViewAsync(datasourceId, viewName, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            if (view == null)
-            {
-                var message = isSchemaSpecific
-                    ? $"View '{viewName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
-                    : $"View '{viewName}' not found in datasource '{datasourceId}'";
-                return Results.NotFound(message);
-            }
-
-            // Parse the include parameter
-            var includes = IncludeParameterHelper.ParseIncludeParameter(include);
-
-            // Shape the response based on the include parameter
-            if (IncludeParameterHelper.ShouldInclude(includes, "definition"))
-            {
-                // Return full view with definition
-                return Results.Ok(new ViewResponse(view.ToViewDto()));
-            }
-            else
-            {
-                // Return view without definition (default behavior)
-                var viewWithoutDefinition = new DmView(view.SchemaName, view.ViewName, string.Empty);
-                return Results.Ok(new ViewResponse(viewWithoutDefinition.ToViewDto()));
-            }
+            // Return full view with definition
+            return Results.Ok(new ViewResponse(view));
         }
-        catch (UnauthorizedAccessException)
+        else
         {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
-            );
+            // Return view without definition (default behavior)
+            var viewWithoutDefinition = new ViewDto
+            {
+                SchemaName = view.SchemaName,
+                ViewName = view.ViewName,
+                Definition = null,
+            };
+            return Results.Ok(new ViewResponse(viewWithoutDefinition));
         }
     }
 
     private static async Task<IResult> CreateViewAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        CreateViewRequest request,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
+        [FromBody] ViewDto view,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : request.SchemaName;
+        // API layer validation
+        Validate
+            .Object(view)
+            .NotNullOrWhiteSpace(v => v.ViewName, nameof(ViewDto.ViewName))
+            .MaxLength(v => v.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
+            .MinLength(v => v.ViewName, 1, nameof(ViewDto.ViewName), inclusive: true)
+            .NotNullOrWhiteSpace(v => v.Definition, nameof(ViewDto.Definition))
+            .Assert();
 
-        // Get the base path of the request to construct the location URL
-        var basePath = httpContext.Request.PathBase.HasValue
-            ? httpContext.Request.PathBase.Value
-            : string.Empty;
-        basePath += httpContext.Request.Path.HasValue
-            ? httpContext.Request.Path.Value
-            : string.Empty;
+        // Route parameters take priority
+        view.SchemaName = schemaName;
+        view.ViewName = viewName;
 
-        // Validate request
-        if (string.IsNullOrWhiteSpace(request.ViewName))
-        {
-            return Results.BadRequest(
-                new ViewResponse(null)
-                {
-                    Success = false,
-                    Message = "View name is required and cannot be empty",
-                }
-            );
-        }
+        operationContext.RequestBody = view;
 
-        if (string.IsNullOrWhiteSpace(request.ViewDefinition))
-        {
-            return Results.BadRequest(
-                new ViewResponse(null)
-                {
-                    Success = false,
-                    Message = "View definition is required and cannot be empty",
-                }
-            );
-        }
+        var created = await service
+            .CreateViewAsync(operationContext, datasourceId, view, cancellationToken)
+            .ConfigureAwait(false);
 
-        try
-        {
-            var view = new DmView
-            {
-                SchemaName = schemaName,
-                ViewName = request.ViewName,
-                Definition = request.ViewDefinition,
-            };
-
-            var created = await service
-                .CreateViewAsync(datasourceId, view, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            return created != null
-                ? Results.Created(
-                    $"{basePath.TrimEnd('/')}/{created.ViewName}",
-                    new ViewResponse(created.ToViewDto())
-                    {
-                        Success = true,
-                        Message = isSchemaSpecific
-                            ? $"View '{created.ViewName}' created successfully in schema '{schemaName}'"
-                            : $"View '{created.ViewName}' created successfully",
-                    }
-                )
-                : Results.Conflict(
-                    new ViewResponse(null)
-                    {
-                        Success = false,
-                        Message = isSchemaSpecific
-                            ? $"View '{view.ViewName}' already exists in schema '{schemaName}'"
-                            : $"View '{view.ViewName}' already exists",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to create view: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.Created(
+            $"{operationContext.EndpointPath?.TrimEnd('/') ?? string.Empty}/{created.ViewName}",
+            new ViewResponse(created)
+        );
     }
 
     private static async Task<IResult> UpdateViewAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        UpdateViewRequest request,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
+        [FromBody] ViewDto updates,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
+        // API layer validation
+        Validate
+            .Object(updates)
+            .MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
+            .Assert();
 
-        // Validate request
-        if (string.IsNullOrWhiteSpace(request.ViewDefinition))
+        // Ensure schema name from DTO matches route parameter
+        updates.SchemaName = schemaName;
+
+        operationContext.RequestBody = updates;
+
+        // Check if this is a rename (ViewName in body differs from route parameter)
+        var isRename = !string.IsNullOrWhiteSpace(updates.ViewName) && updates.ViewName != viewName;
+        var hasPropertyUpdates = !string.IsNullOrWhiteSpace(updates.Definition);
+
+        if (!isRename && !hasPropertyUpdates)
         {
-            return Results.BadRequest(
-                new ViewResponse(null)
-                {
-                    Success = false,
-                    Message = "View definition is required and cannot be empty",
-                }
+            throw new InvalidOperationException(
+                "No changes provided - ViewName or Definition must be specified"
             );
         }
 
-        try
+        var currentViewName = viewName;
+
+        ViewDto? updated = null;
+
+        // Handle property updates first
+        if (hasPropertyUpdates)
         {
-            var updated = await service
+            updated = await service
                 .UpdateViewAsync(
+                    operationContext,
                     datasourceId,
-                    viewName,
-                    request.NewViewName,
-                    request.ViewDefinition,
+                    currentViewName,
+                    updates,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+        }
+
+        // Handle rename separately if needed
+        if (isRename)
+        {
+            var renamed = await service
+                .RenameViewAsync(
+                    operationContext,
+                    datasourceId,
+                    currentViewName,
+                    updates.ViewName!,
                     schemaName,
-                    user,
                     cancellationToken
                 )
                 .ConfigureAwait(false);
 
-            return updated != null
-                ? Results.Ok(
-                    new ViewResponse(updated.ToViewDto())
-                    {
-                        Success = true,
-                        Message = isSchemaSpecific
-                            ? $"View '{viewName}' updated successfully in schema '{schemaName}'"
-                            : $"View '{viewName}' updated successfully",
-                    }
-                )
-                : Results.NotFound(
-                    new ViewResponse(null)
-                    {
-                        Success = false,
-                        Message = isSchemaSpecific
-                            ? $"View '{viewName}' not found in schema '{schemaName}'"
-                            : $"View '{viewName}' not found",
-                    }
-                );
+            return Results.Ok(new ViewResponse(renamed));
         }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to update view: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+
+        // Get the updated view if only properties were changed
+        updated ??= await service
+            .GetViewAsync(
+                operationContext,
+                datasourceId,
+                currentViewName,
+                schemaName,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+
+        return Results.Ok(new ViewResponse(updated));
     }
 
     private static async Task<IResult> DropViewAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
+        await service
+            .DropViewAsync(operationContext, datasourceId, viewName, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-        try
-        {
-            var success = await service
-                .DropViewAsync(datasourceId, viewName, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            return success
-                ? Results.Ok(
-                    new ViewResponse(null)
-                    {
-                        Success = true,
-                        Message = isSchemaSpecific
-                            ? $"View '{viewName}' dropped successfully from schema '{schemaName}'"
-                            : $"View '{viewName}' dropped successfully",
-                    }
-                )
-                : Results.NotFound(
-                    new ViewResponse(null)
-                    {
-                        Success = false,
-                        Message = isSchemaSpecific
-                            ? $"View '{viewName}' not found in schema '{schemaName}'"
-                            : $"View '{viewName}' not found",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to drop view: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> ViewExistsAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
+        var exists = await service
+            .ViewExistsAsync(
+                operationContext,
+                datasourceId,
+                viewName,
+                schemaName,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
 
-        try
-        {
-            var exists = await service
-                .ViewExistsAsync(datasourceId, viewName, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            return Results.Ok(new ViewExistsResponse(exists) { Success = true });
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.Ok(new ViewExistsResponse(exists));
     }
 
     private static async Task<IResult> QueryViewAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        QueryRequest request,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
+        [FromBody] QueryDto query,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : httpContext.Request.Query["schemaName"].FirstOrDefault();
-
-        try
+        if (!string.IsNullOrWhiteSpace(schemaName))
         {
-            var result = await service
-                .QueryViewAsync(
-                    datasourceId,
-                    viewName,
-                    request,
-                    schemaName,
-                    user,
-                    cancellationToken
-                )
-                .ConfigureAwait(false);
+            // Set it on the request to pass it down
+            query.SchemaName = schemaName;
+        }
+        operationContext.RequestBody = query;
 
-            return Results.Ok(
-                new QueryResponse(result)
-                {
-                    Success = true,
-                    Message = isSchemaSpecific
-                        ? $"Query executed successfully on view '{viewName}' in schema '{schemaName}'. Returned {result.Data.Count()} records."
-                        : $"Query executed successfully. Returned {result.Data.Count()} records.",
-                }
-            );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
-                || ex.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+        var queryResult = await service
+            .QueryViewAsync(
+                operationContext,
+                datasourceId,
+                viewName,
+                query,
+                schemaName,
+                cancellationToken
             )
-        {
-            var message = isSchemaSpecific
-                ? $"View '{viewName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
-                : $"View '{viewName}' not found in datasource '{datasourceId}'";
-            return Results.NotFound(message);
-        }
-        catch (Exception ex)
-        {
-            var detail = isSchemaSpecific
-                ? $"Failed to query view in schema: {ex.Message}"
-                : $"Failed to query view: {ex.Message}";
-            return Results.Problem(detail: detail, title: "Internal server error", statusCode: 500);
-        }
+            .ConfigureAwait(false);
+
+        return Results.Ok(
+            new QueryResponse(queryResult.Data)
+            {
+                Pagination = queryResult.Pagination,
+                Fields = queryResult.Fields,
+            }
+        );
     }
 
     private static async Task<IResult> QueryViewViaGetAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string viewName,
-        bool isSchemaSpecific,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string viewName,
         CancellationToken cancellationToken = default
     )
     {
-        var datasourceId =
-            httpContext.Request.RouteValues["datasourceId"]?.ToString() ?? string.Empty;
-        var schemaName = isSchemaSpecific
-            ? httpContext.Request.RouteValues["schemaName"]?.ToString()
-            : null;
-
-        try
+        var query = QueryDto.FromQueryParameters(operationContext.QueryParameters ?? []);
+        if (!string.IsNullOrWhiteSpace(schemaName))
         {
-            var request = QueryRequest.FromQueryParameters(httpContext.Request.Query);
-
-            var result = await service
-                .QueryViewAsync(
-                    datasourceId,
-                    viewName,
-                    request,
-                    schemaName,
-                    user,
-                    cancellationToken
-                )
-                .ConfigureAwait(false);
-
-            return Results.Ok(
-                new QueryResponse(result)
-                {
-                    Success = true,
-                    Message = isSchemaSpecific
-                        ? $"Query executed successfully on view '{viewName}' in schema '{schemaName}'. Returned {result.Data.Count()} records."
-                        : $"Query executed successfully. Returned {result.Data.Count()} records.",
-                }
-            );
+            // Set it on the request to pass it down
+            query.SchemaName = schemaName;
         }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase)
-                || ex.Message.Contains("does not exist", StringComparison.OrdinalIgnoreCase)
+        operationContext.RequestBody = query;
+
+        var queryResult = await service
+            .QueryViewAsync(
+                operationContext,
+                datasourceId,
+                viewName,
+                query,
+                schemaName,
+                cancellationToken
             )
-        {
-            var message = isSchemaSpecific
-                ? $"View '{viewName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
-                : $"View '{viewName}' not found in datasource '{datasourceId}'";
-            return Results.NotFound(message);
-        }
-        catch (Exception ex)
-        {
-            var detail = isSchemaSpecific
-                ? $"Failed to query view in schema: {ex.Message}"
-                : $"Failed to query view: {ex.Message}";
-            return Results.Problem(detail: detail, title: "Internal server error", statusCode: 500);
-        }
+            .ConfigureAwait(false);
+
+        return Results.Ok(
+            new QueryResponse(queryResult.Data)
+            {
+                Pagination = queryResult.Pagination,
+                Fields = queryResult.Fields,
+            }
+        );
     }
 }

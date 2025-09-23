@@ -8,18 +8,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for checking if a view exists.
 /// </summary>
-public class ViewExistsResponse : ResponseBase<bool>
+public class ViewExistsResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewExistsResponse"/> class.
     /// </summary>
     public ViewExistsResponse()
-        : base(false) { }
+    {
+        Result = false;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewExistsResponse"/> class.
     /// </summary>
     /// <param name="exists">Whether the view exists.</param>
     public ViewExistsResponse(bool exists)
-        : base(exists) { }
+    {
+        Result = exists;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the view exists.
+    /// </summary>
+    public bool Result { get; set; }
 }

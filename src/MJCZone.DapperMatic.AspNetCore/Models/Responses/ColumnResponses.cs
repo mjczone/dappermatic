@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for column operations.
 /// </summary>
-public class ColumnResponse : ResponseBase<ColumnDto?>
+public class ColumnResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ColumnResponse"/> class.
     /// </summary>
-    public ColumnResponse()
-        : base(null) { }
+    public ColumnResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ColumnResponse"/> class.
     /// </summary>
-    /// <param name="column">The column information.</param>
-    public ColumnResponse(ColumnDto? column)
-        : base(column) { }
+    /// <param name="result">The column information.</param>
+    public ColumnResponse(ColumnDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the column data.
+    /// </summary>
+    public ColumnDto? Result { get; set; }
 }

@@ -5,6 +5,8 @@
 
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
+
 using MJCZone.DapperMatic.AspNetCore.Auditing;
 
 namespace MJCZone.DapperMatic.AspNetCore;
@@ -12,7 +14,7 @@ namespace MJCZone.DapperMatic.AspNetCore;
 /// <summary>
 /// Context for DapperMatic operations.
 /// </summary>
-public class OperationContext
+public class OperationContext : IOperationContext
 {
     /// <summary>
     /// Gets or sets the user's claims principal.
@@ -20,9 +22,9 @@ public class OperationContext
     public ClaimsPrincipal? User { get; set; }
 
     /// <summary>
-    /// Gets or sets the operation being performed (e.g., "datasources/get", "datasources/add").
+    /// Gets or sets the operation being performed (e.g., "datasources/create", "tables/update").
     /// </summary>
-    public string Operation { get; set; } = string.Empty;
+    public string? Operation { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the datasource being accessed, if applicable.
@@ -62,12 +64,12 @@ public class OperationContext
     /// <summary>
     /// Gets or sets the HTTP method (GET, POST, etc.).
     /// </summary>
-    public string HttpMethod { get; set; } = string.Empty;
+    public string? HttpMethod { get; set; }
 
     /// <summary>
     /// Gets or sets the endpoint path.
     /// </summary>
-    public string EndpointPath { get; set; } = string.Empty;
+    public string? EndpointPath { get; set; }
 
     /// <summary>
     /// Gets or sets the request payload, if any.
@@ -77,12 +79,32 @@ public class OperationContext
     /// <summary>
     /// Gets or sets the query parameters, if any.
     /// </summary>
-    public IQueryCollection? QueryParameters { get; set; }
+    public Dictionary<string, StringValues>? QueryParameters { get; set; }
+
+    /// <summary>
+    /// Gets or sets the route values, if any.
+    /// </summary>
+    public Dictionary<string, string>? RouteValues { get; set; }
+
+    /// <summary>
+    /// Gets or sets the header values as a case-insensitive dictionary, if any.
+    /// </summary>
+    public Dictionary<string, string>? HeaderValues { get; set; }
+
+    /// <summary>
+    /// Gets or sets the IP address of the client.
+    /// </summary>
+    public string? IpAddress { get; set; }
+
+    /// <summary>
+    /// Gets or sets the request ID for correlating logs.
+    /// </summary>
+    public string? RequestId { get; set; }
 
     /// <summary>
     /// Gets or sets additional properties for custom authorization logic.
     /// </summary>
-    public Dictionary<string, object> Properties { get; set; } = [];
+    public Dictionary<string, object>? Properties { get; set; }
 
     /// <summary>
     /// Gets the request body as a specific type.
@@ -119,7 +141,7 @@ public static class OperationContextExtensions
     /// <param name="errorMessage">Optional error message if the operation failed.</param>
     /// <returns>The corresponding audit event.</returns>
     public static DapperMaticAuditEvent ToAuditEvent(
-        this OperationContext context,
+        this IOperationContext context,
         bool success,
         string? errorMessage = null
     )
@@ -131,7 +153,7 @@ public static class OperationContextExtensions
                 ?? context.User?.FindFirst(ClaimTypes.Name)?.Value
                 ?? context.User?.FindFirst("sub")?.Value
                 ?? "Anonymous",
-            Operation = context.Operation,
+            Operation = context.Operation ?? string.Empty,
             DatasourceId = context.DatasourceId,
             SchemaName = context.SchemaName,
             TableName = context.TableName,
@@ -141,6 +163,8 @@ public static class OperationContextExtensions
             ConstraintName = context.ConstraintName,
             Success = success,
             ErrorMessage = errorMessage,
+            IpAddress = context.IpAddress,
+            RequestId = context.RequestId,
             Timestamp = DateTimeOffset.UtcNow,
         };
     }

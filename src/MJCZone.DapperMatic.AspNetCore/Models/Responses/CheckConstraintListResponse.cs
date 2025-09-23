@@ -8,20 +8,29 @@ using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 
 /// <summary>
-/// Response model for check constraint list operations.
+/// Response model for listing multiple check constraints.
 /// </summary>
-public class CheckConstraintListResponse : ResponseBase<IEnumerable<CheckConstraintDto>>
+public class CheckConstraintListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="CheckConstraintListResponse"/> class.
     /// </summary>
     public CheckConstraintListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="CheckConstraintListResponse"/> class.
     /// </summary>
-    /// <param name="checkConstraints">The list of check constraints.</param>
-    public CheckConstraintListResponse(IEnumerable<CheckConstraintDto> checkConstraints)
-        : base(checkConstraints) { }
+    /// <param name="result">The list of views.</param>
+    public CheckConstraintListResponse(IEnumerable<CheckConstraintDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of views.
+    /// </summary>
+    public IEnumerable<CheckConstraintDto> Result { get; set; }
 }

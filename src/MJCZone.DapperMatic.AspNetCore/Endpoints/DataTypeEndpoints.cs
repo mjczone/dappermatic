@@ -4,9 +4,9 @@
 // See LICENSE in the project root for license information.
 
 using System.Net;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
@@ -31,35 +31,15 @@ public static class DataTypeEndpoints
         string? basePath = null
     )
     {
-        basePath ??= "/api/dm";
-
-        // make sure basePath starts with a slash and does not end with a slash
-        if (!basePath.StartsWith('/'))
-        {
-            basePath = "/" + basePath;
-        }
-        if (basePath.EndsWith('/'))
-        {
-            basePath = basePath.TrimEnd('/');
-        }
-
-        var group = app.MapGroup($"{basePath}/d/{{datasourceId}}/datatypes")
-            .WithTags(OperationTags.DatasourceDataTypes)
-            .WithOpenApi();
+        var group = app.MapDapperMaticEndpointGroup(
+            basePath,
+            "/d/{datasourceId}/datatypes",
+            OperationTags.DatasourceDataTypes
+        );
 
         // Get available data types for a specific datasource
         group
-            .MapGet(
-                "/",
-                (
-                    HttpContext ctx,
-                    IDapperMaticService service,
-                    ClaimsPrincipal user,
-                    string datasourceId,
-                    [Microsoft.AspNetCore.Mvc.FromQuery] string? include,
-                    CancellationToken ct
-                ) => GetDatasourceDataTypesAsync(ctx, service, user, datasourceId, include, ct)
-            )
+            .MapGet("/", ListDatasourceDataTypes)
             .WithName("GetDatasourceDataTypes")
             .WithSummary("Gets all available data types for a specific datasource")
             .WithDescription(
@@ -70,55 +50,46 @@ public static class DataTypeEndpoints
                 var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
                 if (includeParam != null)
                 {
-                    includeParam.Description = "Optional parameter to include additional data. Use 'customTypes' to discover user-defined types from the database (PostgreSQL domains, enums, composite types).";
+                    includeParam.Description =
+                        "Optional parameter to include additional data. Use 'customTypes' to discover user-defined types from the database (PostgreSQL domains, enums, composite types).";
                     includeParam.Example = new Microsoft.OpenApi.Any.OpenApiString("customTypes");
                 }
                 return operation;
             })
-            .Produces<DataTypesResponse>((int)HttpStatusCode.OK)
+            .Produces<ProviderDataTypeListResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
 
         return app;
     }
 
-    private static async Task<IResult> GetDatasourceDataTypesAsync(
-        HttpContext httpContext,
+    private static async Task<IResult> ListDatasourceDataTypes(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
-        string datasourceId,
-        string? include,
+        [FromRoute] string datasourceId,
+        [FromQuery] string? include,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            // Parse include parameter to determine if custom types should be included
-            var includeCustomTypes = !string.IsNullOrWhiteSpace(include) &&
-                include.Contains("customTypes", StringComparison.OrdinalIgnoreCase);
+        // Parse include parameter to determine if custom types should be included
+        var includeCustomTypes =
+            !string.IsNullOrWhiteSpace(include)
+            && include.Contains("customTypes", StringComparison.OrdinalIgnoreCase);
 
-            var (providerName, dataTypes) = await service
-                .GetDatasourceDataTypesAsync(datasourceId, user, includeCustomTypes, cancellationToken)
-                .ConfigureAwait(false);
+        var (providerName, dataTypes) = await service
+            .GetDatasourceDataTypesAsync(
+                operationContext,
+                datasourceId,
+                includeCustomTypes,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
 
-            var dataTypeDtos = dataTypes.ToDataTypeDtos()
-                .OrderBy(dt => dt.Category)
-                .ThenBy(dt => dt.DataType)
-                .ToList();
-            return Results.Ok(new DataTypesResponse(providerName, dataTypeDtos));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(detail: ex.Message, title: "Internal server error", statusCode: 500);
-        }
+        var dataTypeDtos = dataTypes
+            .ToDataTypeDtos()
+            .OrderBy(dt => dt.Category)
+            .ThenBy(dt => dt.DataType)
+            .ToList();
+        return Results.Ok(new ProviderDataTypeListResponse(providerName, dataTypeDtos));
     }
 }

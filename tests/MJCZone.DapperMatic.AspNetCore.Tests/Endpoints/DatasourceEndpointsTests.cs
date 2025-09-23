@@ -33,7 +33,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/dm/datasources/");
+        var response = await client.GetAsync("/api/dm/d/");
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceListResponse>();
@@ -52,7 +52,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/dm/datasources/?filter=Server");
+        var response = await client.GetAsync("/api/dm/d/?filter=Server");
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceListResponse>();
@@ -70,7 +70,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/dm/datasources/Test-SqlServer");
+        var response = await client.GetAsync("/api/dm/d/Test-SqlServer");
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -87,7 +87,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.GetAsync("/api/dm/datasources/NonExistent");
+        var response = await client.GetAsync("/api/dm/d/NonExistent");
 
         response.Should().HaveStatusCode(HttpStatusCode.NotFound);
     }
@@ -98,7 +98,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository([]);
         var client = factory.CreateClient();
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = "NewDatasource",
             Provider = "Sqlite",
@@ -109,7 +109,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             IsEnabled = true
         };
 
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.Created);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -126,7 +126,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository([]);
         var client = factory.CreateClient();
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Provider = "Sqlite",
             ConnectionString = "Data Source=test.db",
@@ -136,7 +136,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             IsEnabled = true,
         };
 
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.Created);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -154,7 +154,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var request = new AddDatasourceRequest
+        var request = new CreateDatasourceRequest
         {
             Id = "Test-SqlServer-ABC", // Duplicate ID - gets overwritten
             Provider = "Sqlite",
@@ -162,10 +162,10 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             DisplayName = "Overwritten Datasource",
         };
         // First, create it
-        var response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
         response.Should().HaveStatusCode(HttpStatusCode.Created);
         // Next, try again to trigger duplicate handling
-        response = await client.PostAsJsonAsync("/api/dm/datasources/", request);
+        response = await client.PostAsJsonAsync("/api/dm/d/", request);
         response.Should().HaveStatusCode(HttpStatusCode.Conflict);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
         result.Should().NotBeNull();
@@ -189,7 +189,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             IsEnabled = false
         };
 
-        var response = await client.PutAsJsonAsync("/api/dm/datasources/Test-SqlServer", request);
+        var response = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -212,7 +212,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             ConnectionString = "Data Source=test.db"
         };
 
-        var response = await client.PutAsJsonAsync("/api/dm/datasources/NonExistent", request);
+        var response = await client.PutAsJsonAsync("/api/dm/d/NonExistent", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.NotFound);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -232,7 +232,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             DisplayName = "Patched Display Name"
         };
 
-        var response = await client.PatchAsJsonAsync("/api/dm/datasources/Test-SqlServer", request);
+        var response = await client.PatchAsJsonAsync("/api/dm/d/Test-SqlServer", request);
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -248,7 +248,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.DeleteAsync("/api/dm/datasources/Test-SqlServer");
+        var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer");
 
         response.Should().HaveStatusCode(HttpStatusCode.OK);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();
@@ -257,7 +257,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         result.Message.Should().Contain("removed successfully");
 
         // Verify it's actually removed
-        var getResponse = await client.GetAsync("/api/dm/datasources/Test-SqlServer");
+        var getResponse = await client.GetAsync("/api/dm/d/Test-SqlServer");
         getResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
     }
 
@@ -267,7 +267,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
 
-        var response = await client.DeleteAsync("/api/dm/datasources/NonExistent");
+        var response = await client.DeleteAsync("/api/dm/d/NonExistent");
 
         response.Should().HaveStatusCode(HttpStatusCode.NotFound);
         var result = await response.ReadAsJsonAsync<DatasourceResponse>();

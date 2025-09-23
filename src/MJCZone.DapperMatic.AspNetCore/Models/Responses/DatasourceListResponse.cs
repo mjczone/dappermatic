@@ -10,18 +10,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for listing multiple datasources.
 /// </summary>
-public class DatasourceListResponse : ResponseBase<IEnumerable<DatasourceDto>>
+public class DatasourceListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DatasourceListResponse"/> class.
     /// </summary>
     public DatasourceListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DatasourceListResponse"/> class.
     /// </summary>
-    /// <param name="datasources">The list of datasources.</param>
-    public DatasourceListResponse(IEnumerable<DatasourceDto> datasources)
-        : base(datasources) { }
+    /// <param name="result">The list of datasources.</param>
+    public DatasourceListResponse(IEnumerable<DatasourceDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of datasources.
+    /// </summary>
+    public IEnumerable<DatasourceDto> Result { get; set; }
 }

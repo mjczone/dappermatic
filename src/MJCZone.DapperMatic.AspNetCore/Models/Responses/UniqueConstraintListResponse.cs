@@ -8,20 +8,29 @@ using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 
 /// <summary>
-/// Response model for unique constraint list operations.
+/// Response model for listing multiple unique constraints.
 /// </summary>
-public class UniqueConstraintListResponse : ResponseBase<IEnumerable<UniqueConstraintDto>>
+public class UniqueConstraintListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="UniqueConstraintListResponse"/> class.
     /// </summary>
     public UniqueConstraintListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="UniqueConstraintListResponse"/> class.
     /// </summary>
-    /// <param name="uniqueConstraints">The list of unique constraints.</param>
-    public UniqueConstraintListResponse(IEnumerable<UniqueConstraintDto> uniqueConstraints)
-        : base(uniqueConstraints) { }
+    /// <param name="result">The list of unique constraints.</param>
+    public UniqueConstraintListResponse(IEnumerable<UniqueConstraintDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of unique constraints.
+    /// </summary>
+    public IEnumerable<UniqueConstraintDto> Result { get; set; }
 }

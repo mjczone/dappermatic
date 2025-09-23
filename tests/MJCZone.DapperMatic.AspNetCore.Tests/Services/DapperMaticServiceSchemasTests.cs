@@ -23,13 +23,31 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         _fixture = fixture;
     }
 
+    public IOperationContext GetOperationContext(
+        string op,
+        string dsId,
+        ClaimsPrincipal? user = null
+    )
+    {
+        return new OperationContext
+        {
+            User = user ?? new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "test-user")])),
+            Operation = op,
+            DatasourceId = dsId,
+        };
+    }
+
     [Fact]
     public async Task GetSchemasAsync_SqlServer_ReturnsSchemas()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var result = await service.GetSchemasAsync(
+        var operationContext = GetOperationContext(
+            "d/s/get",
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer
+        );
+        var result = await service.GetSchemasAsync( operationContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer
         );
 
@@ -44,7 +62,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var operationContext = GetOperationContext(
+            "d/s/get",
+            TestcontainersAssemblyFixture.DatasourceId_PostgreSql
+        );
         var result = await service.GetSchemasAsync(
+            operationContext,
             TestcontainersAssemblyFixture.DatasourceId_PostgreSql
         );
 
@@ -59,7 +82,11 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var act = async () => await service.GetSchemasAsync("NonExistent");
+        var operationContext = GetOperationContext(
+            "d/s/get",
+            "NonExistent"
+        );
+        var act = async () => await service.GetSchemasAsync(operationContext, "NonExistent");
 
         await act.Should()
             .ThrowAsync<ArgumentException>()
@@ -72,7 +99,9 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var operationContext = GetOperationContext("d/s/get", TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         var result = await service.GetSchemaAsync(
+            operationContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "dbo"
         );
@@ -87,7 +116,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var operationContext = GetOperationContext(
+            "d/s/get",
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer
+        );
         var result = await service.GetSchemaAsync(
+            operationContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "nonexistent"
         );
@@ -278,9 +312,14 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
         var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "test-user")]));
 
-        var result = await service.GetSchemasAsync(
+        var operationContext = GetOperationContext(
+            "d/s/get",
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             user
+        );
+        var result = await service.GetSchemasAsync(
+            operationContext,
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer
         );
 
         result.Should().NotBeNull();
@@ -303,7 +342,8 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var result = await service.GetSchemasAsync(datasourceId);
+        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var result = await service.GetSchemasAsync(operationContext, datasourceId);
 
         result.Should().NotBeNull();
         result.Should().NotBeEmpty();
@@ -311,7 +351,6 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         if (supportsSchemas)
         {
             // Providers that support schemas should return actual schema names
-            result.Should().NotContain(s => s.SchemaName == "_");
             result.Count().Should().BeGreaterThan(0);
 
             switch (datasourceId)
@@ -326,9 +365,8 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         }
         else
         {
-            // Providers that don't support schemas should return only "_"
-            result.Should().HaveCount(1);
-            result.Should().Contain(s => s.SchemaName == "_");
+            // Providers that don't support schemas
+            result.Should().HaveCount(0);
         }
     }
 
@@ -342,13 +380,19 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         var schema = new SchemaDto { SchemaName = $"TestSchema_{Guid.NewGuid():N}"[..20] };
 
-        var result = await service.CreateSchemaAsync(datasourceId, schema);
+        var operationContext = GetOperationContext("d/s/post", datasourceId);
+        var result = await service.CreateSchemaAsync(operationContext, datasourceId, schema);
 
         result.Should().NotBeNull();
         result!.SchemaName.Should().Be(schema.SchemaName);
 
         // Verify it exists
-        var exists = await service.SchemaExistsAsync(datasourceId, schema.SchemaName);
+        operationContext = GetOperationContext("d/s/get", datasourceId);
+        var exists = await service.SchemaExistsAsync(
+            operationContext,
+            datasourceId,
+            schema.SchemaName
+        );
         exists.Should().BeTrue();
     }
 
@@ -364,7 +408,9 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         var schema = new SchemaDto { SchemaName = "TestSchema" };
 
-        var act = async () => await service.CreateSchemaAsync(datasourceId, schema);
+        var operationContext = GetOperationContext("d/s/post", datasourceId);
+        var act = async () =>
+            await service.CreateSchemaAsync(operationContext, datasourceId, schema);
 
         await act.Should()
             .ThrowAsync<NotSupportedException>()
@@ -379,17 +425,28 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var operationContext = GetOperationContext("d/s/post", datasourceId);
         // First create a schema
         var schema = new SchemaDto { SchemaName = $"TempSchema_{Guid.NewGuid():N}"[..20] };
-        await service.CreateSchemaAsync(datasourceId, schema);
+        await service.CreateSchemaAsync(operationContext, datasourceId, schema);
 
         // Then drop it
-        var result = await service.DropSchemaAsync(datasourceId, schema.SchemaName);
+        operationContext = GetOperationContext("d/s/delete", datasourceId);
+        var result = await service.DropSchemaAsync(
+            operationContext,
+            datasourceId,
+            schema.SchemaName
+        );
 
         result.Should().BeTrue();
 
         // Verify it's gone
-        var exists = await service.SchemaExistsAsync(datasourceId, schema.SchemaName);
+        operationContext = GetOperationContext("d/s/get", datasourceId);
+        var exists = await service.SchemaExistsAsync(
+            operationContext,
+            datasourceId,
+            schema.SchemaName
+        );
         exists.Should().BeFalse();
     }
 
@@ -403,7 +460,9 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var act = async () => await service.DropSchemaAsync(datasourceId, "someschema");
+        var operationContext = GetOperationContext("d/s/delete", datasourceId);
+        var act = async () =>
+            await service.DropSchemaAsync(operationContext, datasourceId, "someschema");
 
         await act.Should()
             .ThrowAsync<NotSupportedException>()
@@ -415,9 +474,9 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_SqlServer, "nonexistent", false)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public", true)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "nonexistent", false)]
-    [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, "_", true)]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, "_", false)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, "nonexistent", false)]
-    [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, "_", true)]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, "_", false)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, "nonexistent", false)]
     public async Task SchemaExistsAsync_AllProviders_ReturnsCorrectResults(
         string datasourceId,
@@ -428,7 +487,8 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var result = await service.SchemaExistsAsync(datasourceId, schemaName);
+        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var result = await service.SchemaExistsAsync(operationContext, datasourceId, schemaName);
 
         result.Should().Be(expectedExists);
     }
@@ -446,90 +506,48 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var result = await service.GetSchemaAsync(datasourceId, schemaName);
+        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var result = await service.GetSchemaAsync(operationContext, datasourceId, schemaName);
 
         result.Should().NotBeNull();
         result!.SchemaName.Should().Be(schemaName);
     }
 
     [Fact]
-    public async Task SQLite_OnlyUnderscoreSchemaIsValid()
+    public async Task Providers_WithoutSchemas_SchemasAreInvalid()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        // Only "_" should exist for SQLite
-        var schemas = await service.GetSchemasAsync(
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite
-        );
-        schemas.Should().HaveCount(1);
-        schemas.Should().Contain(s => s.SchemaName == "_");
+        foreach (
+            var dsId in new[]
+            {
+                TestcontainersAssemblyFixture.DatasourceId_Sqlite,
+                TestcontainersAssemblyFixture.DatasourceId_MySql,
+            }
+        )
+        {
+            var operationContext = GetOperationContext("d/s/get", dsId);
 
-        // Only "_" should be retrievable
-        var validSchema = await service.GetSchemaAsync(
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite,
-            "_"
-        );
-        validSchema.Should().NotBeNull();
+            var schemas = await service.GetSchemasAsync(operationContext, dsId);
+            schemas.Should().HaveCount(0);
 
-        var invalidSchema = await service.GetSchemaAsync(
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite,
-            "anything_else"
-        );
-        invalidSchema.Should().BeNull();
+            var validSchema = await service.GetSchemaAsync(operationContext, dsId, "_");
+            validSchema.Should().BeNull();
 
-        // Only "_" should exist
-        var underscoreExists = await service.SchemaExistsAsync(
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite,
-            "_"
-        );
-        underscoreExists.Should().BeTrue();
+            var invalidSchema = await service.GetSchemaAsync(
+                operationContext,
+                dsId,
+                "anything_else"
+            );
+            invalidSchema.Should().BeNull();
 
-        var otherExists = await service.SchemaExistsAsync(
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite,
-            "other"
-        );
-        otherExists.Should().BeFalse();
-    }
+            var underscoreExists = await service.SchemaExistsAsync(operationContext, dsId, "_");
+            underscoreExists.Should().BeFalse();
 
-    [Fact]
-    public async Task MySQL_OnlyUnderscoreSchemaIsValid()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var service = factory.Services.GetRequiredService<IDapperMaticService>();
-
-        // Only "_" should exist for MySQL
-        var schemas = await service.GetSchemasAsync(
-            TestcontainersAssemblyFixture.DatasourceId_MySql
-        );
-        schemas.Should().HaveCount(1);
-        schemas.Should().Contain(s => s.SchemaName == "_");
-
-        // Only "_" should be retrievable
-        var validSchema = await service.GetSchemaAsync(
-            TestcontainersAssemblyFixture.DatasourceId_MySql,
-            "_"
-        );
-        validSchema.Should().NotBeNull();
-
-        var invalidSchema = await service.GetSchemaAsync(
-            TestcontainersAssemblyFixture.DatasourceId_MySql,
-            "anything_else"
-        );
-        invalidSchema.Should().BeNull();
-
-        // Only "_" should exist
-        var underscoreExists = await service.SchemaExistsAsync(
-            TestcontainersAssemblyFixture.DatasourceId_MySql,
-            "_"
-        );
-        underscoreExists.Should().BeTrue();
-
-        var otherExists = await service.SchemaExistsAsync(
-            TestcontainersAssemblyFixture.DatasourceId_MySql,
-            "other"
-        );
-        otherExists.Should().BeFalse();
+            var otherExists = await service.SchemaExistsAsync(operationContext, dsId, "other");
+            otherExists.Should().BeFalse();
+        }
     }
 
     [Fact]
@@ -548,16 +566,25 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         foreach (var (datasourceId, expectedSchema) in testCases)
         {
+            var operationContext = GetOperationContext("d/s/get", datasourceId);
             // All providers should have at least one schema
-            var schemas = await service.GetSchemasAsync(datasourceId);
+            var schemas = await service.GetSchemasAsync(operationContext, datasourceId);
             schemas.Should().NotBeEmpty($"datasource {datasourceId} should have schemas");
 
             // The expected schema should exist
-            var schema = await service.GetSchemaAsync(datasourceId, expectedSchema);
+            var schema = await service.GetSchemaAsync(
+                operationContext,
+                datasourceId,
+                expectedSchema
+            );
             schema.Should().NotBeNull($"schema {expectedSchema} should exist in {datasourceId}");
 
             // The expected schema should report as existing
-            var exists = await service.SchemaExistsAsync(datasourceId, expectedSchema);
+            var exists = await service.SchemaExistsAsync(
+                operationContext,
+                datasourceId,
+                expectedSchema
+            );
             exists.Should().BeTrue($"schema {expectedSchema} should exist in {datasourceId}");
         }
     }

@@ -10,20 +10,37 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for query operations.
 /// </summary>
-public class QueryResponse : ResponseBase<QueryResultDto>
+public class QueryResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="QueryResponse"/> class.
     /// </summary>
     public QueryResponse()
-        : base() { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="QueryResponse"/> class.
     /// </summary>
-    /// <param name="result">The query result.</param>
-    /// <param name="success">Indicates whether the operation was successful.</param>
-    /// <param name="message">An optional message providing additional information.</param>
-    public QueryResponse(QueryResultDto? result, bool success = true, string? message = null)
-        : base(result!, success, message) { }
+    /// <param name="result">The list of query results.</param>
+    public QueryResponse(IEnumerable<object> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of query results.
+    /// </summary>
+    public IEnumerable<object> Result { get; set; }
+
+    /// <summary>
+    /// Gets or sets the pagination information.
+    /// </summary>
+    public PaginationDto Pagination { get; set; } = new();
+
+    /// <summary>
+    /// Gets or sets the field information for the results.
+    /// </summary>
+    public IEnumerable<FieldDto> Fields { get; set; } = [];
 }

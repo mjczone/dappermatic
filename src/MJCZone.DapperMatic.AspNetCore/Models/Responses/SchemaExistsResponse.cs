@@ -8,18 +8,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for checking if a schema exists.
 /// </summary>
-public class SchemaExistsResponse : ResponseBase<bool>
+public class SchemaExistsResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaExistsResponse"/> class.
     /// </summary>
     public SchemaExistsResponse()
-        : base(false) { }
+    {
+        Result = false;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaExistsResponse"/> class.
     /// </summary>
     /// <param name="exists">Whether the schema exists.</param>
     public SchemaExistsResponse(bool exists)
-        : base(exists) { }
+    {
+        Result = exists;
+    }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the schema exists.
+    /// </summary>
+    public bool Result { get; set; }
 }

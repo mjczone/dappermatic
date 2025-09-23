@@ -26,7 +26,10 @@ public static class IncludeParameterHelper
         }
 
         var includes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var parts = includeParameter.Split(Separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var parts = includeParameter.Split(
+            Separator,
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+        );
 
         foreach (var part in parts)
         {

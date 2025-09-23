@@ -17,7 +17,7 @@ export default {
     "version": "v1"
   },
   "paths": {
-    "/api/dm/datasources": {
+    "/api/dm/d": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -85,7 +85,7 @@ export default {
         }
       }
     },
-    "/api/dm/datasources/{id}": {
+    "/api/dm/d/{datasourceId}": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -247,7 +247,7 @@ export default {
         }
       }
     },
-    "/api/dm/datasources/{id}/test": {
+    "/api/dm/d/{datasourceId}/test": {
       "get": {
         "tags": [
           "DapperMatic Datasources"
@@ -4807,7 +4807,7 @@ export default {
         },
         "additionalProperties": false
       },
-      "CreateTablePrimaryKeyRequest": {
+      "CreatePrimaryKeyRequest": {
         "required": [
           "columns"
         ],
@@ -4855,7 +4855,7 @@ export default {
             }
           },
           "primaryKey": {
-            "$ref": "#/components/schemas/CreateTablePrimaryKeyRequest"
+            "$ref": "#/components/schemas/CreatePrimaryKeyRequest"
           },
           "foreignKeys": {
             "type": "array",
@@ -4881,7 +4881,7 @@ export default {
           "uniqueConstraints": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateTableUniqueConstraintRequest"
+              "$ref": "#/components/schemas/CreateUniqueConstraintRequest"
             },
             "nullable": true
           },
@@ -4895,7 +4895,7 @@ export default {
         },
         "additionalProperties": false
       },
-      "CreateTableUniqueConstraintRequest": {
+      "CreateUniqueConstraintRequest": {
         "required": [
           "columnNames"
         ],
@@ -5165,7 +5165,7 @@ export default {
         "type": "object",
         "properties": {
           "result": {
-            "$ref": "#/components/schemas/DatasourceTestResult"
+            "$ref": "#/components/schemas/DatasourceConnectivityTestDto"
           },
           "message": {
             "type": "string",
@@ -5177,7 +5177,7 @@ export default {
         },
         "additionalProperties": false
       },
-      "DatasourceTestResult": {
+      "DatasourceConnectivityTestDto": {
         "type": "object",
         "properties": {
           "isConnected": {

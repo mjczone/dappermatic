@@ -4,13 +4,9 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
-using System.Security.Claims;
-
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
-using MJCZone.DapperMatic.AspNetCore.Models.Responses;
-using MJCZone.DapperMatic.AspNetCore.Security;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
@@ -18,1587 +14,843 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 /// <summary>
 /// Partial class containing table-related methods for DapperMaticService.
 /// </summary>
-public sealed partial class DapperMaticService
+public partial class DapperMaticService
 {
     /// <summary>
     /// Gets all tables from the specified datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">Optional schema name filter.</param>
     /// <param name="includeColumns">Whether to include column information.</param>
     /// <param name="includeIndexes">Whether to include index information.</param>
     /// <param name="includeConstraints">Whether to include constraint information.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of tables.</returns>
     public async Task<IEnumerable<TableDto>> GetTablesAsync(
+        IOperationContext context,
         string datasourceId,
         string? schemaName = null,
         bool includeColumns = false,
         bool includeIndexes = false,
         bool includeConstraints = false,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListTables,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-        };
+        schemaName = NormalizeSchemaName(schemaName);
 
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException($"Access denied to datasource '{datasourceId}'");
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .Assert();
 
-        try
+        // Create connection to get tables
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            // Create connection to get tables
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
-            using (connection)
+
+            IEnumerable<DmTable> tables;
+
+            if (includeColumns || includeIndexes || includeConstraints)
             {
-                IEnumerable<DmTable> tables;
+                // Get detailed table information
+                tables = await connection
+                    .GetTablesAsync(schemaName, null, null, cancellationToken)
+                    .ConfigureAwait(false);
 
-                if (includeColumns || includeIndexes || includeConstraints)
+                // Remove column details if not requested
+                foreach (var table in tables)
                 {
-                    // Get detailed table information
-                    tables = await connection
-                        .GetTablesAsync(schemaName, null, null, cancellationToken)
-                        .ConfigureAwait(false);
+                    if (!includeColumns)
+                    {
+                        table.Columns = [];
+                    }
+
+                    if (!includeIndexes)
+                    {
+                        table.Indexes = [];
+                    }
+
+                    if (!includeConstraints)
+                    {
+                        table.PrimaryKeyConstraint = null;
+                        table.ForeignKeyConstraints = [];
+                        table.UniqueConstraints = [];
+                        table.CheckConstraints = [];
+                        table.DefaultConstraints = [];
+                    }
                 }
-                else
-                {
-                    // Get just table names and basic info
-                    var tableNames = await connection
-                        .GetTableNamesAsync(schemaName, null, null, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    tables = tableNames.Select(name => new DmTable(schemaName, name));
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return tables.ToTableDtos(includeColumns, includeIndexes, includeConstraints);
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            else
+            {
+                // Get just table names and basic info
+                var tableNames = await connection
+                    .GetTableNamesAsync(schemaName, null, null, cancellationToken)
+                    .ConfigureAwait(false);
+
+                tables = tableNames.Select(name => new DmTable(schemaName, name));
+            }
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Retrieved tables for datasource '{datasourceId}'"
+                )
+                .ConfigureAwait(false);
+            return tables.ToTableDtos(includeColumns, includeIndexes, includeConstraints);
         }
     }
 
     /// <summary>
     /// Gets a specific table from the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="includeColumns">Whether to include column information.</param>
     /// <param name="includeIndexes">Whether to include index information.</param>
     /// <param name="includeConstraints">Whether to include constraint information.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The table if found, otherwise null.</returns>
-    public async Task<TableDto?> GetTableAsync(
+    /// <returns>The table.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table does not exist.</exception>
+    public async Task<TableDto> GetTableAsync(
+        IOperationContext context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
         bool includeColumns = true,
         bool includeIndexes = true,
         bool includeConstraints = true,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
+        schemaName = NormalizeSchemaName(schemaName);
 
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetTable,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-        };
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .Assert();
 
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        // Create connection to get table
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to get table
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
-            using (connection)
+
+            var table = await connection
+                .GetTableAsync(schemaName, tableName, null, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (table == null)
             {
-                var table = await connection
-                    .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (table == null)
-                {
-                    await LogAuditEventAsync(context, true, "Table not found")
-                        .ConfigureAwait(false);
-                    return null;
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return table.ToTableDto(includeColumns, includeIndexes, includeConstraints);
+                throw new KeyNotFoundException(
+                    !string.IsNullOrWhiteSpace(schemaName)
+                        ? $"Table '{tableName}' not found in schema '{schemaName}'"
+                        : $"Table '{tableName}' not found"
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            if (!includeColumns)
+            {
+                table.Columns = [];
+            }
+
+            if (!includeIndexes)
+            {
+                table.Indexes = [];
+            }
+
+            if (!includeConstraints)
+            {
+                table.PrimaryKeyConstraint = null;
+                table.ForeignKeyConstraints = [];
+                table.UniqueConstraints = [];
+                table.CheckConstraints = [];
+                table.DefaultConstraints = [];
+            }
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Retrieved table '{tableName}' for datasource '{datasourceId}'"
+                )
+                .ConfigureAwait(false);
+            return table.ToTableDto(includeColumns, includeIndexes, includeConstraints);
         }
     }
 
     /// <summary>
     /// Creates a new table in the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="request">The table creation request.</param>
-    /// <param name="user">The user making the request.</param>
+    /// <param name="table">The table information.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The created table if successful, otherwise null.</returns>
-    public async Task<TableDto?> CreateTableAsync(
+    /// <returns>The created table.</returns>
+    public async Task<TableDto> CreateTableAsync(
+        IOperationContext context,
         string datasourceId,
-        CreateTableRequest request,
-        ClaimsPrincipal? user = null,
+        TableDto table,
         CancellationToken cancellationToken = default
     )
     {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        ArgumentNullException.ThrowIfNull(request);
+        // Convert DTO to domain model for validation
+        var dmTable = table.ToDmTable();
+        var schemaName = NormalizeSchemaName(dmTable.SchemaName);
 
-        if (string.IsNullOrWhiteSpace(request.TableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(request));
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNull(table, nameof(table))
+            .NotNullOrWhiteSpace(table.TableName, "TableName is required")
+            .Assert();
 
-        if (request.Columns == null || request.Columns.Count == 0)
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            throw new ArgumentException("At least one column is required.", nameof(request));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.CreateTable,
-            DatasourceId = datasourceId,
-            SchemaName = request.SchemaName,
-            TableName = request.TableName,
-            RequestBody = request,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to create table '{request.TableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to drop table
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
-            using (connection)
+
+            // Check view does not already exist
+            await AssertTableDoesNotExistAsync(
+                    datasourceId,
+                    dmTable.TableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Create table using extension method
+            var created = await connection
+                .CreateTableIfNotExistsAsync(dmTable, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!created)
             {
-                DmColumn[] columns =
-                [
-                    .. request.Columns.Select(c =>
-                    {
-                        var column = new DmColumn(
-                            c.ColumnName,
-                            null,
-                            providerDataTypes: new Dictionary<DbProviderType, string>
-                            {
-                                { connection.GetDbProviderType(), c.ProviderDataType },
-                            },
-                            isPrimaryKey: c.IsPrimaryKey,
-                            isAutoIncrement: c.IsAutoIncrement,
-                            isUnicode: c.IsUnique == true,
-                            isUnique: c.IsUnique,
-                            isIndexed: c.IsIndexed,
-                            isNullable: c.IsNullable,
-                            defaultExpression: c.DefaultExpression,
-                            checkExpression: c.CheckExpression
-                        );
-                        return column;
-                    }),
-                ];
-                DmIndex[] indexes =
-                [
-                    .. request
-                        .Indexes?.Select(i =>
-                        {
-                            var index = new DmIndex(
-                                i.IndexName,
-                                [.. i.Columns.Select(ci => DmOrderedColumn.Parse(ci))],
-                                isUnique: i.IsUnique
-                            );
-                            return index;
-                        })
-                        .ToList() ?? [],
-                ];
-                DmPrimaryKeyConstraint? primaryKeyConstraint =
-                    request.PrimaryKey == null
-                        ? null
-                        : new DmPrimaryKeyConstraint(
-                            request.PrimaryKey.ConstraintName ?? string.Empty,
-                            [.. request.PrimaryKey.Columns.Select(c => DmOrderedColumn.Parse(c))]
-                        );
-                DmCheckConstraint[]? checkConstraints =
-                    request.CheckConstraints == null
-                        ? null
-                        :
-                        [
-                            .. request.CheckConstraints.Select(c => new DmCheckConstraint(
-                                string.IsNullOrWhiteSpace(c.ColumnName) ? null : c.ColumnName,
-                                c.ConstraintName ?? string.Empty,
-                                c.CheckExpression
-                            )),
-                        ];
-                DmDefaultConstraint[]? defaultConstraints =
-                    request.DefaultConstraints == null
-                        ? null
-                        :
-                        [
-                            .. request.DefaultConstraints.Select(c => new DmDefaultConstraint(
-                                c.ColumnName,
-                                c.ConstraintName ?? string.Empty,
-                                c.DefaultExpression
-                            )),
-                        ];
-                DmUniqueConstraint[]? uniqueConstraints =
-                    request.UniqueConstraints == null
-                        ? null
-                        :
-                        [
-                            .. request.UniqueConstraints.Select(c => new DmUniqueConstraint(
-                                c.ConstraintName ?? string.Empty,
-                                [.. c.ColumnNames.Select(col => DmOrderedColumn.Parse(col))]
-                            )),
-                        ];
-                DmForeignKeyConstraint[]? foreignKeyConstraints =
-                    request.ForeignKeys == null
-                        ? null
-                        :
-                        [
-                            .. request.ForeignKeys.Select(c => new DmForeignKeyConstraint(
-                                c.ConstraintName ?? string.Empty,
-                                [.. c.Columns.Select(col => DmOrderedColumn.Parse(col))],
-                                c.ReferencedTableName,
-                                [.. c.ReferencedColumns.Select(col => DmOrderedColumn.Parse(col))],
-                                onUpdate: c.OnUpdate?.ToForeignKeyAction()
-                                    ?? DmForeignKeyAction.NoAction,
-                                onDelete: c.OnDelete?.ToForeignKeyAction()
-                                    ?? DmForeignKeyAction.NoAction
-                            )),
-                        ];
-
-                var table = new DmTable(
-                    request.SchemaName,
-                    request.TableName,
-                    columns,
-                    primaryKeyConstraint,
-                    checkConstraints,
-                    defaultConstraints,
-                    uniqueConstraints,
-                    foreignKeyConstraints,
-                    indexes
+                throw new InvalidOperationException(
+                    $"Failed to create table '{dmTable.TableName}' for an unknown reason."
                 );
+            }
 
-                var created = await connection
-                    .CreateTableIfNotExistsAsync(table, null, cancellationToken)
-                    .ConfigureAwait(false);
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Table '{dmTable.TableName}' created successfully."
+                )
+                .ConfigureAwait(false);
 
-                var message = created ? "Table created successfully" : "Table already exists";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
+            var createdTable = await connection
+                .GetTableAsync(schemaName, dmTable.TableName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
 
-                if (created)
+            return (
+                createdTable
+                ?? throw new InvalidOperationException(
+                    $"Table '{dmTable.TableName}' was created but could not be retrieved."
+                )
+            ).ToTableDto();
+        }
+    }
+
+    /// <summary>
+    /// Updates an existing table in the datasource.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The name of the table to update.</param>
+    /// <param name="updates">The table updates.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The updated table.</returns>
+    public async Task<TableDto> UpdateTableAsync(
+        IOperationContext context,
+        string datasourceId,
+        string tableName,
+        TableDto updates,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        var schemaName = NormalizeSchemaName(updates.SchemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .NotNull(updates, nameof(updates))
+            .Assert();
+
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
+        {
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
+                    tableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            var changesMade = false;
+            var transaction = connection.BeginTransaction();
+            try
+            {
+                // Update table if changes are provided
+                if (updates.Columns != null && updates.Columns.Count > 0)
                 {
-                    // If created, fetch the full table details
-                    table =
-                        await connection
-                            .GetTableAsync(
-                                request.SchemaName,
-                                request.TableName,
-                                null,
+                    foreach (var columnDto in updates.Columns)
+                    {
+                        var column = columnDto.ToDmColumn(schemaName, tableName);
+                        column.SchemaName = schemaName;
+                        column.TableName = tableName;
+
+                        // Add new column
+                        var added = await connection
+                            .CreateColumnIfNotExistsAsync(column, transaction, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Column '{column.ColumnName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
+
+                    foreach (var indexDto in updates.Indexes ?? [])
+                    {
+                        var index = indexDto.ToDmIndex(schemaName, tableName);
+                        index.SchemaName = schemaName;
+                        index.TableName = tableName;
+
+                        // Add new index
+                        var added = await connection
+                            .CreateIndexIfNotExistsAsync(index, transaction, cancellationToken)
+                            .ConfigureAwait(false);
+
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Index '{index.IndexName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
+
+                    foreach (var constraintDto in updates.ForeignKeyConstraints ?? [])
+                    {
+                        var constraint = constraintDto.ToDmForeignKeyConstraint(
+                            schemaName,
+                            tableName
+                        );
+                        constraint.SchemaName = schemaName;
+                        constraint.TableName = tableName;
+
+                        // Add new foreign key constraint
+                        var added = await connection
+                            .CreateForeignKeyConstraintIfNotExistsAsync(
+                                constraint,
+                                transaction,
                                 cancellationToken
                             )
-                            .ConfigureAwait(false) ?? table;
+                            .ConfigureAwait(false);
 
-                    return table.ToTableDto(true, true, true);
-                }
-            }
-            return null;
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Foreign key constraint '{constraint.ConstraintName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
 
-    /// <summary>
-    /// Drops a table from the datasource.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The name of the table to drop.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the table was dropped, false if it didn't exist.</returns>
-    public async Task<bool> DropTableAsync(
-        string datasourceId,
-        string tableName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+                    foreach (var constraintDto in updates.UniqueConstraints ?? [])
+                    {
+                        var constraint = constraintDto.ToDmUniqueConstraint(schemaName, tableName);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+                        // Add new unique constraint
+                        var added = await connection
+                            .CreateUniqueConstraintIfNotExistsAsync(
+                                constraint,
+                                transaction,
+                                cancellationToken
+                            )
+                            .ConfigureAwait(false);
 
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Unique constraint '{constraint.ConstraintName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
 
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.DropTable,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-        };
+                    foreach (var constraintDto in updates.CheckConstraints ?? [])
+                    {
+                        var constraint = constraintDto.ToDmCheckConstraint(schemaName, tableName);
+                        constraint.SchemaName = schemaName;
+                        constraint.TableName = tableName;
 
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to drop table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
+                        // Add new check constraint
+                        var added = await connection
+                            .CreateCheckConstraintIfNotExistsAsync(
+                                constraint,
+                                transaction,
+                                cancellationToken
+                            )
+                            .ConfigureAwait(false);
 
-        try
-        {
-            // Create connection to drop table
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var dropped = await connection
-                    .DropTableIfExistsAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Check constraint '{constraint.ConstraintName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
 
-                var message = dropped ? "Table dropped successfully" : "Table not found";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
+                    foreach (var constraintDto in updates.DefaultConstraints ?? [])
+                    {
+                        var constraint = constraintDto.ToDmDefaultConstraint(schemaName, tableName);
+                        constraint.SchemaName = schemaName;
+                        constraint.TableName = tableName;
 
-                return dropped;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
+                        // Add new default constraint
+                        var added = await connection
+                            .CreateDefaultConstraintIfNotExistsAsync(
+                                constraint,
+                                transaction,
+                                cancellationToken
+                            )
+                            .ConfigureAwait(false);
 
-    /// <summary>
-    /// Checks if a table exists in the datasource.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the table exists, otherwise false.</returns>
-    public async Task<bool> TableExistsAsync(
-        string datasourceId,
-        string tableName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.TableExists,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to check table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to check table existence
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var exists = await connection
-                    .DoesTableExistAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                var message = exists ? "Table exists" : "Table does not exist";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                return exists;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Queries a table with filtering, sorting, and pagination.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name to query.</param>
-    /// <param name="request">The query parameters.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The query results with pagination information.</returns>
-    public async Task<QueryResultDto> QueryTableAsync(
-        string datasourceId,
-        string tableName,
-        QueryRequest request,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        ArgumentNullException.ThrowIfNull(request);
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.QueryTable,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            RequestBody = request,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to query table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to check table existence
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                // First verify the view exists
-                var tableExists = await connection
-                    .DoesTableExistAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (!tableExists)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
+                        if (added)
+                        {
+                            changesMade = true;
+                            await LogAuditEventAsync(
+                                    context,
+                                    true,
+                                    $"Default constraint '{constraint.ConstraintName}' added to table '{tableName}'."
+                                )
+                                .ConfigureAwait(false);
+                        }
+                    }
                 }
 
-                // Build the query using provider-specific identifier naming
-                var qualifiedFromName = connection.GetSchemaQualifiedTableName(
-                    schemaName,
-                    tableName
-                );
+                // Update table if needed in future (e.g., table-level properties)
+                transaction.Commit();
+            }
+            catch
+            {
+                transaction.Rollback();
+                throw;
+            }
+            finally
+            {
+                transaction.Dispose();
+            }
 
-                var result = await ExecuteDataQueryAsync(
-                        connection,
-                        qualifiedFromName,
-                        request,
-                        schemaName,
-                        tableName
+            if (!changesMade)
+            {
+                await LogAuditEventAsync(
+                        context,
+                        false,
+                        "No changes made - no valid definition provided"
                     )
                     .ConfigureAwait(false);
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return result;
+                throw new InvalidOperationException(
+                    "No changes made - no valid definition provided"
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            // Get the updated table
+            var updatedTable = await connection
+                .GetTableAsync(schemaName, tableName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                updatedTable
+                ?? throw new InvalidOperationException(
+                    $"Table '{tableName}' was updated but could not be retrieved."
+                )
+            ).ToTableDto();
         }
     }
 
     /// <summary>
     /// Renames an existing table in the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The current name of the table.</param>
+    /// <param name="currentTableName">The current name of the table.</param>
     /// <param name="newTableName">The new name for the table.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the table was renamed successfully, false if it didn't exist.</returns>
-    public async Task<bool> RenameTableAsync(
+    /// <returns>The renamed table.</returns>
+    public async Task<TableDto> RenameTableAsync(
+        IOperationContext context,
         string datasourceId,
-        string tableName,
+        string currentTableName,
         string newTableName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(currentTableName, nameof(currentTableName))
+            .IsTrue(
+                string.IsNullOrWhiteSpace(newTableName) || newTableName.Length <= 128,
+                nameof(newTableName),
+                "New table name must be 128 characters or fewer."
+            )
+            .Assert();
+
+        // Create connection to rename table
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        if (string.IsNullOrWhiteSpace(newTableName))
-        {
-            throw new ArgumentException("New table name is required.", nameof(newTableName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.RenameTable,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            RequestBody = new { NewTableName = newTableName },
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to rename table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to rename table
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var renamed = await connection
-                    .RenameTableIfExistsAsync(
-                        schemaName,
-                        tableName,
-                        newTableName,
-                        null,
-                        cancellationToken
-                    )
-                    .ConfigureAwait(false);
-
-                var message = renamed
-                    ? $"Table renamed from '{tableName}' to '{newTableName}' successfully"
-                    : "Table not found";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                return renamed;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    #region Column Management
-
-    /// <summary>
-    /// Gets all columns from the specified table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A collection of columns.</returns>
-    public async Task<IEnumerable<ColumnDto>> GetColumnsAsync(
-        string datasourceId,
-        string tableName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListColumns,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to columns in table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to get columns
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var table = await connection
-                    .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (table == null)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return table.Columns.ToColumnDtos();
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Gets a specific column from the table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="columnName">The column name.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The column if found, otherwise null.</returns>
-    public async Task<ColumnDto?> GetColumnAsync(
-        string datasourceId,
-        string tableName,
-        string columnName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        if (string.IsNullOrWhiteSpace(columnName))
-        {
-            throw new ArgumentException("Column name is required.", nameof(columnName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetColumn,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            ColumnName = columnName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to column '{columnName}' in table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to get column
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var table = await connection
-                    .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (table == null)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
-                }
-
-                var column = table.Columns.FirstOrDefault(c =>
-                    string.Equals(c.ColumnName, columnName, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (column == null)
-                {
-                    await LogAuditEventAsync(context, true, "Column not found")
-                        .ConfigureAwait(false);
-                    return null;
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return column.ToColumnDto();
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Adds a new column to an existing table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="request">The add column request.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The added column information if successful, otherwise null.</returns>
-    public async Task<ColumnDto?> AddColumnAsync(
-        string datasourceId,
-        string tableName,
-        CreateTableColumnRequest request,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        ArgumentNullException.ThrowIfNull(request);
-        if (string.IsNullOrWhiteSpace(request.ColumnName))
-        {
-            throw new ArgumentException("Column name is required.", nameof(request));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.AddColumn,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            ColumnName = request.ColumnName,
-            RequestBody = request,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to create column '{tableName}.{request.ColumnName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var column = new DmColumn(
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
                     schemaName,
-                    tableName,
-                    request.ColumnName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
+                    currentTableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Rename the table
+            var renamed = await connection
+                .RenameTableIfExistsAsync(
+                    schemaName,
+                    currentTableName,
+                    newTableName,
                     null,
-                    providerDataTypes: new Dictionary<DbProviderType, string>
-                    {
-                        { connection.GetDbProviderType(), request.ProviderDataType },
-                    },
-                    isPrimaryKey: request.IsPrimaryKey,
-                    isAutoIncrement: request.IsAutoIncrement,
-                    isUnicode: request.IsUnique == true,
-                    isUnique: request.IsUnique,
-                    isIndexed: request.IsIndexed,
-                    isNullable: request.IsNullable,
-                    defaultExpression: request.DefaultExpression,
-                    checkExpression: request.CheckExpression
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (!renamed)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to rename table '{currentTableName}' to '{newTableName}'."
                 );
-                var created = await connection
-                    .CreateColumnIfNotExistsAsync(column, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                var message = created ? "Column added successfully" : "Column already exists";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                if (created)
-                {
-                    // If created, fetch the full column details
-                    column =
-                        await connection
-                            .GetColumnAsync(
-                                schemaName,
-                                tableName,
-                                request.ColumnName,
-                                cancellationToken: cancellationToken
-                            )
-                            .ConfigureAwait(false) ?? column;
-
-                    return column.ToColumnDto();
-                }
             }
-            return null;
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Table '{currentTableName}' renamed to '{newTableName}' successfully."
+                )
+                .ConfigureAwait(false);
+
+            // Get the renamed table
+            var renamedTable = await connection
+                .GetTableAsync(schemaName, newTableName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                renamedTable
+                ?? throw new InvalidOperationException(
+                    $"Table '{newTableName}' was renamed but could not be retrieved."
+                )
+            ).ToTableDto();
         }
     }
 
     /// <summary>
-    /// Updates an existing column in a table.
+    /// Drops a table from the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="columnName">The column name to update.</param>
-    /// <param name="newColumnName">The new column name.</param>
+    /// <param name="tableName">The name of the table to drop.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The updated column information if successful, otherwise null.</returns>
-    public async Task<ColumnDto?> RenameColumnAsync(
-        string datasourceId,
-        string tableName,
-        string columnName,
-        string newColumnName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        if (string.IsNullOrWhiteSpace(columnName))
-        {
-            throw new ArgumentException("Column name is required.", nameof(columnName));
-        }
-
-        if (string.IsNullOrWhiteSpace(newColumnName))
-        {
-            throw new ArgumentException("New column name is required.", nameof(newColumnName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.UpdateColumn,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            ColumnName = columnName,
-            RequestBody = new { NewColumnName = newColumnName },
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to update column '{tableName}.{columnName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var renamed = await connection
-                    .RenameColumnIfExistsAsync(
-                        schemaName,
-                        tableName,
-                        columnName,
-                        newColumnName,
-                        null,
-                        cancellationToken
-                    )
-                    .ConfigureAwait(false);
-
-                var message = renamed ? "Column renamed successfully" : "Column already exists";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                if (renamed)
-                {
-                    // If renamed, fetch the full column details
-                    var column = await connection
-                        .GetColumnAsync(
-                            schemaName,
-                            tableName,
-                            newColumnName,
-                            cancellationToken: cancellationToken
-                        )
-                        .ConfigureAwait(false);
-
-                    return column?.ToColumnDto();
-                }
-            }
-            return null;
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Drops a column from an existing table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="columnName">The column name to drop.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the column was dropped, false if it didn't exist.</returns>
-    public async Task<bool> DropColumnAsync(
-        string datasourceId,
-        string tableName,
-        string columnName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        if (string.IsNullOrWhiteSpace(columnName))
-        {
-            throw new ArgumentException("Column name is required.", nameof(columnName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.DropColumn,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            ColumnName = columnName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to drop column '{columnName}' from table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to drop column
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var dropped = await connection
-                    .DropColumnIfExistsAsync(
-                        schemaName,
-                        tableName,
-                        columnName,
-                        null,
-                        cancellationToken
-                    )
-                    .ConfigureAwait(false);
-
-                var message = dropped ? "Column dropped successfully" : "Column not found";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                return dropped;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    #endregion
-
-    #region Index Management
-
-    /// <summary>
-    /// Gets all indexes from the specified table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A collection of indexes.</returns>
-    public async Task<IEnumerable<IndexDto>> GetIndexesAsync(
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table does not exist.</exception>
+    public async Task DropTableAsync(
+        IOperationContext context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .Assert();
+
+        // Create connection to drop table
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListIndexes,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to indexes in table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to get indexes
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var table = await connection
-                    .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (table == null)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return table.Indexes.ToIndexDtos();
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Gets a specific index from the table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="indexName">The index name.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The index if found, otherwise null.</returns>
-    public async Task<IndexDto?> GetIndexAsync(
-        string datasourceId,
-        string tableName,
-        string indexName,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        if (string.IsNullOrWhiteSpace(indexName))
-        {
-            throw new ArgumentException("Index name is required.", nameof(indexName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetIndex,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            IndexName = indexName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to index '{indexName}' in table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to get index
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                var table = await connection
-                    .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (table == null)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
-                }
-
-                var index = table.Indexes.FirstOrDefault(i =>
-                    string.Equals(i.IndexName, indexName, StringComparison.OrdinalIgnoreCase)
-                );
-
-                if (index == null)
-                {
-                    await LogAuditEventAsync(context, true, "Index not found")
-                        .ConfigureAwait(false);
-                    return null;
-                }
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-                return index.ToIndexDto();
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Creates a new index on a table.
-    /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="tableName">The table name.</param>
-    /// <param name="request">The index creation request.</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The created index if successful, otherwise null.</returns>
-    public async Task<IndexDto?> CreateIndexAsync(
-        string datasourceId,
-        string tableName,
-        CreateIndexRequest request,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
-
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
-
-        ArgumentNullException.ThrowIfNull(request);
-
-        if (string.IsNullOrWhiteSpace(request.IndexName))
-        {
-            throw new ArgumentException("Index name is required.", nameof(request));
-        }
-
-        if (request.Columns == null || request.Columns.Count == 0)
-        {
-            throw new ArgumentException("At least one column is required.", nameof(request));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.CreateIndex,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            IndexName = request.IndexName,
-            RequestBody = request,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to create index '{request.IndexName}' on table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to create index
-            var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            using (connection)
-            {
-                // Check if table exists
-                var tableExists = await connection
-                    .DoesTableExistAsync(schemaName, tableName, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (!tableExists)
-                {
-                    throw new ArgumentException($"Table '{tableName}' does not exist.");
-                }
-
-                var index = new DmIndex(
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
                     schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
                     tableName,
-                    request.IndexName,
-                    [.. request.Columns.Select(c => DmOrderedColumn.Parse(c))],
-                    isUnique: request.IsUnique
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            var dropped = await connection
+                .DropTableIfExistsAsync(schemaName, tableName, null, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!dropped)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to drop table '{tableName}' for an unknown reason."
                 );
-
-                var created = await connection
-                    .CreateIndexIfNotExistsAsync(index, null, cancellationToken)
-                    .ConfigureAwait(false);
-
-                var message = created ? "Index created successfully" : "Index already exists";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
-
-                if (created)
-                {
-                    // If created, fetch the index details
-                    var table = await connection
-                        .GetTableAsync(schemaName, tableName, null, cancellationToken)
-                        .ConfigureAwait(false);
-
-                    var createdIndex = table?.Indexes.FirstOrDefault(i =>
-                        string.Equals(
-                            i.IndexName,
-                            request.IndexName,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    );
-
-                    return createdIndex?.ToIndexDto();
-                }
             }
-            return null;
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, dropped, $"Table '{tableName}' dropped successfully.")
+                .ConfigureAwait(false);
         }
     }
 
     /// <summary>
-    /// Drops an index from a table.
+    /// Checks if a table exists in the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="tableName">The table name.</param>
-    /// <param name="indexName">The index name to drop.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the index was dropped, false if it didn't exist.</returns>
-    public async Task<bool> DropIndexAsync(
+    /// <returns>True if the table exists, otherwise false.</returns>
+    public async Task<bool> TableExistsAsync(
+        IOperationContext context,
         string datasourceId,
         string tableName,
-        string indexName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        schemaName = NormalizeSchemaName(schemaName);
 
-        if (string.IsNullOrWhiteSpace(tableName))
-        {
-            throw new ArgumentException("Table name is required.", nameof(tableName));
-        }
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .Assert();
 
-        if (string.IsNullOrWhiteSpace(indexName))
+        // Create connection to check table existence
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            throw new ArgumentException("Index name is required.", nameof(indexName));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.DropIndex,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            TableName = tableName,
-            IndexName = indexName,
-        };
-
-        // Check permissions
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to drop index '{indexName}' from table '{tableName}' in datasource '{datasourceId}'"
-            );
-        }
-
-        try
-        {
-            // Create connection to drop index
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
-            using (connection)
-            {
-                var dropped = await connection
-                    .DropIndexIfExistsAsync(
-                        schemaName,
-                        tableName,
-                        indexName,
-                        null,
-                        cancellationToken
-                    )
-                    .ConfigureAwait(false);
 
-                var message = dropped ? "Index dropped successfully" : "Index not found";
-                await LogAuditEventAsync(context, true, message).ConfigureAwait(false);
+            // Check if the table exists
+            var exists = await connection
+                .DoesTableExistAsync(schemaName, tableName, null, cancellationToken)
+                .ConfigureAwait(false);
 
-                return dropped;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException and not ArgumentException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    exists == true
+                        ? $"Table '{tableName}' exists."
+                        : $"Table '{tableName}' does not exist."
+                )
+                .ConfigureAwait(false);
+            return exists;
         }
     }
 
-    #endregion
+    /// <summary>
+    /// Queries a table with filtering, sorting, and pagination.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name to query.</param>
+    /// <param name="request">The query parameters.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The query results with pagination information.</returns>
+    public async Task<QueryResultDto> QueryTableAsync(
+        IOperationContext context,
+        string datasourceId,
+        string tableName,
+        QueryDto request,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .NotNull(request, nameof(request))
+            .Object(
+                request,
+                nameof(request),
+                builder =>
+                    builder
+                        .Custom(
+                            r => r.Take > 0 && r.Take <= 1000,
+                            nameof(request.Take),
+                            "Take must be greater than 0 and less than or equal to 1000."
+                        )
+                        .Custom(
+                            r => r.Skip >= 0,
+                            nameof(request.Skip),
+                            "Skip must be greater than or equal to 0."
+                        )
+            )
+            .Assert();
+
+        // Create connection to check table existence
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
+        {
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
+                    tableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Build the query using provider-specific identifier naming
+            var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, tableName);
+
+            var result = await ExecuteDataQueryAsync(
+                    connection,
+                    qualifiedFromName,
+                    request,
+                    schemaName,
+                    tableName
+                )
+                .ConfigureAwait(false);
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Queried table '{tableName}' for datasource '{datasourceId}'"
+                )
+                .ConfigureAwait(false);
+            return result;
+        }
+    }
 }

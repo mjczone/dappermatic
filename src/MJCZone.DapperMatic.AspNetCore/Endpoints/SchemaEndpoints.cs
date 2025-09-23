@@ -4,16 +4,16 @@
 // See LICENSE in the project root for license information.
 
 using System.Net;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Services;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 
@@ -33,21 +33,11 @@ public static class SchemaEndpoints
         string? basePath = null
     )
     {
-        basePath ??= "/api/dm";
-
-        // make sure basePath starts with a slash and does not end with a slash
-        if (!basePath.StartsWith('/'))
-        {
-            basePath = "/" + basePath;
-        }
-        if (basePath.EndsWith('/'))
-        {
-            basePath = basePath.TrimEnd('/');
-        }
-
-        var group = app.MapGroup($"{basePath}/d/{{datasourceId}}/s")
-            .WithTags(OperationTags.DatasourceSchemas)
-            .WithOpenApi();
+        var group = app.MapDapperMaticEndpointGroup(
+            basePath,
+            "/d/{datasourceId}/s",
+            OperationTags.DatasourceSchemas
+        );
 
         // List all schemas for a datasource
         group
@@ -99,241 +89,102 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> ListSchemasAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromRoute] string datasourceId,
         [FromQuery] string? filter = null,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var schemas = await service
-                .GetSchemasAsync(datasourceId, user, cancellationToken)
-                .ConfigureAwait(false);
+        var schemas = await service
+            .GetSchemasAsync(operationContext, datasourceId, cancellationToken)
+            .ConfigureAwait(false);
 
-            if (!string.IsNullOrWhiteSpace(filter))
-            {
-                schemas = schemas.Where(s =>
-                    s.SchemaName != null
-                    && s.SchemaName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                );
-            }
-
-            return Results.Ok(new SchemaListResponse(schemas));
-        }
-        catch (UnauthorizedAccessException)
+        if (!string.IsNullOrWhiteSpace(filter))
         {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
+            schemas = schemas.Where(s =>
+                s.SchemaName != null
+                && s.SchemaName.Contains(filter, StringComparison.OrdinalIgnoreCase)
             );
         }
+
+        return Results.Ok(new SchemaListResponse(schemas));
     }
 
     private static async Task<IResult> GetSchemaAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var schema = await service
-                .GetSchemaAsync(datasourceId, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
+        var schema = await service
+            .GetSchemaAsync(operationContext, datasourceId, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-            return schema == null
-                ? Results.NotFound(
-                    $"Schema '{schemaName}' not found in datasource '{datasourceId}'"
-                )
-                : Results.Ok(new SchemaResponse(schema));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
+        return schema != null
+            ? Results.Ok(new SchemaResponse(schema))
+            : throw new KeyNotFoundException(
+                $"Schema '{schemaName}' not found in datasource '{datasourceId}'"
             );
-        }
     }
 
     private static async Task<IResult> CreateSchemaAsync(
-        HttpContext httpContext,
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromRoute] string datasourceId,
-        CreateSchemaRequest request,
+        [FromBody] SchemaDto schema,
         CancellationToken cancellationToken = default
     )
     {
-        // Get the base path of the request to construct the location URL
-        var basePath = httpContext.Request.PathBase.HasValue
-            ? httpContext.Request.PathBase.Value
-            : string.Empty;
-        basePath += httpContext.Request.Path.HasValue
-            ? httpContext.Request.Path.Value
-            : string.Empty;
+        // API layer validation
+        Validate
+            .Object(schema)
+            .NotNullOrWhiteSpace(r => r.SchemaName, nameof(SchemaDto.SchemaName))
+            .MaxLength(r => r.SchemaName, 128, nameof(SchemaDto.SchemaName), inclusive: true)
+            .MinLength(r => r.SchemaName, 1, nameof(SchemaDto.SchemaName), inclusive: true)
+            .Assert();
 
-        // Validate request
-        if (string.IsNullOrWhiteSpace(request.SchemaName))
-        {
-            return Results.BadRequest(
-                new SchemaResponse(null)
-                {
-                    Success = false,
-                    Message = "Schema name is required and cannot be empty",
-                }
-            );
-        }
+        operationContext.RequestBody = schema;
 
-        try
-        {
-            var schema = new SchemaDto { SchemaName = request.SchemaName };
+        var created = await service
+            .CreateSchemaAsync(operationContext, datasourceId, schema, cancellationToken)
+            .ConfigureAwait(false);
 
-            var created = await service
-                .CreateSchemaAsync(datasourceId, schema, user, cancellationToken)
-                .ConfigureAwait(false);
-
-            return created != null
-                ? Results.Created(
-                    $"{basePath.TrimEnd('/')}/{created.SchemaName}",
-                    new SchemaResponse(created)
-                    {
-                        Success = true,
-                        Message = $"Schema '{created.SchemaName}' created successfully",
-                    }
-                )
-                : Results.Conflict(
-                    new SchemaResponse(null)
-                    {
-                        Success = false,
-                        Message = $"Schema '{schema.SchemaName}' already exists",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to create schema: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.Created(
+            $"{operationContext.EndpointPath?.TrimEnd('/')}/{created.SchemaName}",
+            new SchemaResponse(created)
+        );
     }
 
     private static async Task<IResult> DropSchemaAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var success = await service
-                .DropSchemaAsync(datasourceId, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
+        await service
+            .DropSchemaAsync(operationContext, datasourceId, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-            return success
-                ? Results.Ok(
-                    new SchemaResponse(null)
-                    {
-                        Success = true,
-                        Message = $"Schema '{schemaName}' dropped successfully",
-                    }
-                )
-                : Results.NotFound(
-                    new SchemaResponse(null)
-                    {
-                        Success = false,
-                        Message = $"Schema '{schemaName}' not found",
-                    }
-                );
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: $"Failed to drop schema: {ex.Message}",
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.NoContent();
     }
 
     private static async Task<IResult> SchemaExistsAsync(
+        IOperationContext operationContext,
         IDapperMaticService service,
-        ClaimsPrincipal user,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,
         CancellationToken cancellationToken = default
     )
     {
-        try
-        {
-            var exists = await service
-                .SchemaExistsAsync(datasourceId, schemaName, user, cancellationToken)
-                .ConfigureAwait(false);
+        var exists = await service
+            .SchemaExistsAsync(operationContext, datasourceId, schemaName, cancellationToken)
+            .ConfigureAwait(false);
 
-            return Results.Ok(new SchemaExistsResponse(exists) { Success = true });
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Results.Forbid();
-        }
-        catch (ArgumentException ex)
-            when (ex.Message.Contains("not found", StringComparison.OrdinalIgnoreCase))
-        {
-            return Results.NotFound($"Datasource '{datasourceId}' not found");
-        }
-        catch (Exception ex)
-        {
-            return Results.Problem(
-                detail: ex.Message,
-                title: "Internal server error",
-                statusCode: 500
-            );
-        }
+        return Results.Ok(new SchemaExistsResponse(exists));
     }
 }

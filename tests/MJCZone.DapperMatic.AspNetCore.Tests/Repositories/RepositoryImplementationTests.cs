@@ -34,7 +34,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     [Fact]
     public async Task InMemoryRepository_DataPersistsWithinApplication_ButNotBetweenRestarts()
     {
-        var addRequest = new AddDatasourceRequest
+        var addRequest = new CreateDatasourceRequest
         {
             Id = "Test-InMemoryPersistence",
             Provider = "Sqlite",
@@ -47,7 +47,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             // Arrange
             var client = waFactory.CreateClient();
 
-            var addResponse = await client.PostAsJsonAsync("/api/dm/datasources/", addRequest);
+            var addResponse = await client.PostAsJsonAsync("/api/dm/d/", addRequest);
             if (addResponse.StatusCode != HttpStatusCode.Created)
             {
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
@@ -56,7 +56,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
 
             // Verify datasource exists in same application instance
-            var getResponse1 = await client.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse1 = await client.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
 
             await waFactory.DisposeAsync();
@@ -68,7 +68,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             var client = waFactory.CreateClient();
 
             // Verify datasource does NOT exist in new application instance
-            var getResponse2 = await client.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse2 = await client.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse2.Should().HaveStatusCode(HttpStatusCode.NotFound);
 
             await waFactory.DisposeAsync();
@@ -80,7 +80,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     {
         WafWithFileDatasourceRepository.DeleteDatasourcesFile();
 
-        var addRequest = new AddDatasourceRequest
+        var addRequest = new CreateDatasourceRequest
         {
             Id = "Test-FilePersistence",
             Provider = "Sqlite",
@@ -94,7 +94,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
         {
             using var client1 = factory1.CreateClient();
 
-            var addResponse = await client1.PostAsJsonAsync("/api/dm/datasources/", addRequest);
+            var addResponse = await client1.PostAsJsonAsync("/api/dm/d/", addRequest);
             if (addResponse.StatusCode != HttpStatusCode.Created)
             {
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
@@ -103,7 +103,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
 
             // Verify datasource exists
-            var getResponse1 = await client1.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse1 = await client1.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
             var result1 = await getResponse1.ReadAsJsonAsync<DatasourceResponse>();
             result1.Should().NotBeNull();
@@ -119,7 +119,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             using var client2 = factory2.CreateClient();
 
             // Verify datasource DOES exist in new application instance
-            var getResponse2 = await client2.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse2 = await client2.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
             var result2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
             result2.Should().NotBeNull();
@@ -139,7 +139,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     {
         WafWithDatabaseDatasourceRepository.DeleteDatabaseFile();
 
-        var addRequest = new AddDatasourceRequest
+        var addRequest = new CreateDatasourceRequest
         {
             Id = "Test-DatabasePersistence",
             Provider = "Sqlite",
@@ -154,7 +154,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
         {
             using var client1 = factory1.CreateClient();
 
-            var addResponse = await client1.PostAsJsonAsync("/api/dm/datasources/", addRequest);
+            var addResponse = await client1.PostAsJsonAsync("/api/dm/d/", addRequest);
             if (addResponse.StatusCode != HttpStatusCode.Created)
             {
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
@@ -163,7 +163,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
 
             // Verify datasource exists
-            var getResponse1 = await client1.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse1 = await client1.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
             var result1 = await getResponse1.ReadAsJsonAsync<DatasourceResponse>();
             result1.Should().NotBeNull();
@@ -179,7 +179,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             using var client2 = factory2.CreateClient();
 
             // Verify datasource DOES exist in new application instance
-            var getResponse2 = await client2.GetAsync($"/api/dm/datasources/{addRequest.Id}");
+            var getResponse2 = await client2.GetAsync($"/api/dm/d/{addRequest.Id}");
             getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
             var result2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
             result2.Should().NotBeNull();
@@ -203,7 +203,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
         // Add a small delay to ensure file system operations complete
         await Task.Delay(100);
 
-        var testDatasource = new AddDatasourceRequest
+        var testDatasource = new CreateDatasourceRequest
         {
             Id = "CRUD-Test",
             Provider = "Sqlite",
@@ -230,7 +230,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             using var client = factory.CreateClient();
 
             // CREATE
-            var addResponse = await client.PostAsJsonAsync("/api/dm/datasources/", testDatasource);
+            var addResponse = await client.PostAsJsonAsync("/api/dm/d/", testDatasource);
             if (addResponse.StatusCode != HttpStatusCode.Created)
             {
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
@@ -241,7 +241,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
             addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
 
             // READ
-            var getResponse = await client.GetAsync($"/api/dm/datasources/{testDatasource.Id}");
+            var getResponse = await client.GetAsync($"/api/dm/d/{testDatasource.Id}");
             getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
             var getResult = await getResponse.ReadAsJsonAsync<DatasourceResponse>();
             getResult.Should().NotBeNull();
@@ -259,14 +259,14 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 IsEnabled = false,
             };
             var updateResponse = await client.PutAsJsonAsync(
-                $"/api/dm/datasources/{testDatasource.Id}",
+                $"/api/dm/d/{testDatasource.Id}",
                 updateRequest
             );
             updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
 
             // Verify update
             var getUpdatedResponse = await client.GetAsync(
-                $"/api/dm/datasources/{testDatasource.Id}"
+                $"/api/dm/d/{testDatasource.Id}"
             );
             var getUpdatedResult = await getUpdatedResponse.ReadAsJsonAsync<DatasourceResponse>();
             getUpdatedResult!.Result!.DisplayName.Should().Be("Updated CRUD Test");
@@ -274,13 +274,13 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
 
             // DELETE
             var deleteResponse = await client.DeleteAsync(
-                $"/api/dm/datasources/{testDatasource.Id}"
+                $"/api/dm/d/{testDatasource.Id}"
             );
             deleteResponse.Should().HaveStatusCode(HttpStatusCode.OK);
 
             // Verify deletion
             var getDeletedResponse = await client.GetAsync(
-                $"/api/dm/datasources/{testDatasource.Id}"
+                $"/api/dm/d/{testDatasource.Id}"
             );
             getDeletedResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
 

@@ -70,7 +70,8 @@ public partial class MySqlMethods
         var schemaQualifiedTableName = GetSchemaQualifiedIdentifierName(schemaName, tableName);
 
         // Check MySQL version to determine syntax
-        var version = await GetDatabaseVersionAsync(db, tx, cancellationToken).ConfigureAwait(false);
+        var version = await GetDatabaseVersionAsync(db, tx, cancellationToken)
+            .ConfigureAwait(false);
 
         if (version >= new Version(8, 0, 0))
         {
@@ -103,7 +104,9 @@ public partial class MySqlMethods
                     db,
                     $"""
                     ALTER TABLE {schemaQualifiedTableName}
-                                        CHANGE {GetQuotedIdentifier(columnName)} {GetQuotedIdentifier(newColumnName)} {columnDefinition}
+                                        CHANGE {GetQuotedIdentifier(
+                        columnName
+                    )} {GetQuotedIdentifier(newColumnName)} {columnDefinition}
                     """,
                     tx: tx,
                     cancellationToken: cancellationToken
@@ -156,7 +159,9 @@ public partial class MySqlMethods
         var result = results.FirstOrDefault();
         if (result == default)
         {
-            throw new InvalidOperationException($"Column '{columnName}' not found in table '{tableName}'");
+            throw new InvalidOperationException(
+                $"Column '{columnName}' not found in table '{tableName}'"
+            );
         }
 
         var definition = result.ColumnType; // e.g., "varchar(255)", "int(11)", etc.
@@ -182,7 +187,11 @@ public partial class MySqlMethods
         // Add COMMENT
         if (!string.IsNullOrEmpty(result.ColumnComment))
         {
-            string escapedComment = result.ColumnComment.Replace("'", "''", StringComparison.Ordinal);
+            string escapedComment = result.ColumnComment.Replace(
+                "'",
+                "''",
+                StringComparison.Ordinal
+            );
             definition += $" COMMENT '{escapedComment}'";
         }
 
