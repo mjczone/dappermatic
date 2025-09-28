@@ -65,7 +65,7 @@ public static class IndexEndpoints
 
         // Index management endpoints
         group
-            .MapGet("/", ListIndexesAsync)
+            .MapGet("/", isSchemaSpecific ? ListSchemaIndexesAsync : ListIndexesAsync)
             .WithName($"List{namePrefix}Indexes")
             .WithSummary($"Gets all indexes for a table {schemaInText}")
             .Produces<IndexListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +73,7 @@ public static class IndexEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{indexName}", GetIndexAsync)
+            .MapGet("/{indexName}", isSchemaSpecific ? GetSchemaIndexAsync : GetIndexAsync)
             .WithName($"Get{namePrefix}Index")
             .WithSummary($"Gets a specific index from a table {schemaInText}")
             .Produces<IndexResponse>((int)HttpStatusCode.OK)
@@ -81,7 +81,7 @@ public static class IndexEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", CreateIndexAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaIndexAsync : CreateIndexAsync)
             .WithName($"Create{namePrefix}Index")
             .WithSummary($"Creates a new index on a table {schemaInText}")
             .Produces<IndexResponse>((int)HttpStatusCode.Created)
@@ -90,7 +90,7 @@ public static class IndexEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{indexName}", DropIndexAsync)
+            .MapDelete("/{indexName}", isSchemaSpecific ? DropSchemaIndexAsync : DropIndexAsync)
             .WithName($"Drop{namePrefix}Index")
             .WithSummary($"Drops an index from a table {schemaInText}")
             .Produces<IndexResponse>((int)HttpStatusCode.OK)
@@ -99,7 +99,15 @@ public static class IndexEndpoints
     }
 
     // Index management endpoint implementations
-    private static async Task<IResult> ListIndexesAsync(
+    private static Task<IResult> ListIndexesAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => ListSchemaIndexesAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> ListSchemaIndexesAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -121,7 +129,16 @@ public static class IndexEndpoints
         return Results.Ok(new IndexListResponse(indexes));
     }
 
-    private static async Task<IResult> GetIndexAsync(
+    private static Task<IResult> GetIndexAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string indexName,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
+
+    private static async Task<IResult> GetSchemaIndexAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -145,7 +162,16 @@ public static class IndexEndpoints
         return Results.Ok(new IndexResponse(index));
     }
 
-    private static async Task<IResult> CreateIndexAsync(
+    private static Task<IResult> CreateIndexAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] IndexDto index,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, index, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaIndexAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -185,7 +211,16 @@ public static class IndexEndpoints
         );
     }
 
-    private static async Task<IResult> DropIndexAsync(
+    private static Task<IResult> DropIndexAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string indexName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaIndexAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

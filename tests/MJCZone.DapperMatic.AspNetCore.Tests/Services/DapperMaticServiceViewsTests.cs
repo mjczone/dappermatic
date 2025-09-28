@@ -6,10 +6,9 @@
 using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Services;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
-using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Services;
 
@@ -41,7 +40,12 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
         // Step 1: Verify initial state - get initial view count
-        var initialViews = await service.GetViewsAsync(datasourceId, schemaName: schemaName);
+        var context = OperationIdentifiers.ForViewList(datasourceId, schemaName);
+        var initialViews = await service.GetViewsAsync(
+            context,
+            datasourceId,
+            schemaName: schemaName
+        );
         initialViews.Should().NotBeNull();
         var initialViewCount = initialViews.Count();
 
@@ -70,7 +74,11 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         dataView.Should().NotBeNull();
 
         // Step 3: Verify view creation - should now have 3 more views
-        var viewsAfterCreation = await service.GetViewsAsync(datasourceId, schemaName: schemaName);
+        var viewsAfterCreation = await service.GetViewsAsync(
+            context,
+            datasourceId,
+            schemaName: schemaName
+        );
         viewsAfterCreation.Should().HaveCount(initialViewCount + 3);
         viewsAfterCreation
             .Should()
@@ -101,7 +109,13 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             );
 
         // Step 4: Get specific view with full details
+        var getContext = OperationIdentifiers.ForViewGet(
+            datasourceId,
+            "WorkflowTest_ComplexView",
+            schemaName
+        );
         var specificView = await service.GetViewAsync(
+            getContext,
             datasourceId,
             "WorkflowTest_ComplexView",
             schemaName: schemaName
@@ -117,22 +131,46 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         specificView.Definition.Should().NotBeNullOrEmpty();
 
         // Step 5: Check view existence
+        var simpleExistsContext = OperationIdentifiers.ForViewExists(
+            datasourceId,
+            "WorkflowTest_SimpleView",
+            schemaName
+        );
         var simpleExists = await service.ViewExistsAsync(
+            simpleExistsContext,
             datasourceId,
             "WorkflowTest_SimpleView",
             schemaName: schemaName
         );
+        var complexExistsContext = OperationIdentifiers.ForViewExists(
+            datasourceId,
+            "WorkflowTest_ComplexView",
+            schemaName
+        );
         var complexExists = await service.ViewExistsAsync(
+            complexExistsContext,
             datasourceId,
             "WorkflowTest_ComplexView",
             schemaName: schemaName
         );
+        var dataExistsContext = OperationIdentifiers.ForViewExists(
+            datasourceId,
+            "WorkflowTest_DataView",
+            schemaName
+        );
         var dataExists = await service.ViewExistsAsync(
+            dataExistsContext,
             datasourceId,
             "WorkflowTest_DataView",
             schemaName: schemaName
         );
+        var nonExistentExistsContext = OperationIdentifiers.ForViewExists(
+            datasourceId,
+            "NonExistentView",
+            schemaName
+        );
         var nonExistentExists = await service.ViewExistsAsync(
+            nonExistentExistsContext,
             datasourceId,
             "NonExistentView",
             schemaName: schemaName
@@ -143,25 +181,33 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         dataExists.Should().BeTrue();
         nonExistentExists.Should().BeFalse();
 
-        // Step 6: Test duplicate view creation (should return null)
-        var duplicateView = new DmView
+        // Step 6: Test duplicate view creation (should throw exception)
+        var duplicateView = new ViewDto
         {
             SchemaName = schemaName,
             ViewName = "WorkflowTest_SimpleView",
             Definition = "SELECT 999 AS TestColumn",
         };
-        var duplicateResult = await service.CreateViewAsync(datasourceId, duplicateView);
-        duplicateResult.Should().BeNull();
+        var duplicateContext = OperationIdentifiers.ForViewCreate(datasourceId, duplicateView);
+        var duplicateAct = async () =>
+            await service.CreateViewAsync(duplicateContext, datasourceId, duplicateView);
+        await duplicateAct.Should().ThrowAsync<Exception>(); // Should throw exception for duplicate
 
         // Step 7: Update a view (get the exact name first to handle case sensitivity)
         var viewToUpdate = viewsAfterCreation.First(v =>
             string.Equals(v.ViewName, "WorkflowTest_SimpleView", StringComparison.OrdinalIgnoreCase)
         );
-        var updateResult = await service.UpdateViewAsync(
+        var updateDto = new ViewDto { Definition = "SELECT 42 AS UpdatedColumn" };
+        var updateContext = OperationIdentifiers.ForViewUpdate(
             datasourceId,
-            viewToUpdate.ViewName, // Use the exact name from the database
-            null, // Not renaming
-            "SELECT 42 AS UpdatedColumn"
+            viewToUpdate.ViewName!,
+            updateDto
+        );
+        var updateResult = await service.UpdateViewAsync(
+            updateContext,
+            datasourceId,
+            viewToUpdate.ViewName!, // Use the exact name from the database
+            updateDto
         );
         updateResult.Should().NotBeNull();
         // Use case-insensitive assertion for MySQL compatibility
@@ -169,9 +215,15 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         updateResult.Definition.Should().ContainEquivalentOf("UpdatedColumn");
 
         // Step 8: Verify update worked
-        var updatedView = await service.GetViewAsync(
+        var verifyUpdateContext = OperationIdentifiers.ForViewGet(
             datasourceId,
-            viewToUpdate.ViewName, // Use the exact name from the database
+            viewToUpdate.ViewName!,
+            schemaName
+        );
+        var updatedView = await service.GetViewAsync(
+            verifyUpdateContext,
+            datasourceId,
+            viewToUpdate.ViewName!, // Use the exact name from the database
             schemaName: schemaName
         );
         updatedView.Should().NotBeNull();
@@ -179,15 +231,25 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         updatedView.Definition.Should().ContainEquivalentOf("UpdatedColumn");
 
         // Step 9: Drop a view
-        var dropResult = await service.DropViewAsync(
+        var dropContext = OperationIdentifiers.ForViewDrop(
+            datasourceId,
+            "WorkflowTest_ComplexView",
+            schemaName
+        );
+        await service.DropViewAsync(
+            dropContext,
             datasourceId,
             "WorkflowTest_ComplexView",
             schemaName: schemaName
         );
-        dropResult.Should().BeTrue();
 
         // Step 10: Verify final state - should have initial count + 2 (created 3, dropped 1)
-        var finalViews = await service.GetViewsAsync(datasourceId, schemaName: schemaName);
+        var finalContext = OperationIdentifiers.ForViewList(datasourceId, schemaName);
+        var finalViews = await service.GetViewsAsync(
+            finalContext,
+            datasourceId,
+            schemaName: schemaName
+        );
         finalViews.Should().HaveCount(initialViewCount + 2);
         finalViews
             .Should()
@@ -218,7 +280,13 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             ); // dropped
 
         // Verify dropped view no longer exists
+        var droppedViewExistsContext = OperationIdentifiers.ForViewExists(
+            datasourceId,
+            "WorkflowTest_ComplexView",
+            schemaName
+        );
         var droppedViewExists = await service.ViewExistsAsync(
+            droppedViewExistsContext,
             datasourceId,
             "WorkflowTest_ComplexView",
             schemaName: schemaName
@@ -244,14 +312,20 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             "SELECT 1 AS Id, 'Test' AS Name"
         );
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
             IncludeTotal = true,
         };
 
+        var queryContext = OperationIdentifiers.ForViewQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "QueryableView",
+            request
+        );
         var result = await service.QueryViewAsync(
+            queryContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "QueryableView",
             request
@@ -278,14 +352,20 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             "SELECT 1 AS Id, 'Active' AS Status UNION SELECT 2, 'Inactive'"
         );
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
             Filters = new Dictionary<string, string> { { "Status.eq", "Active" } },
         };
 
+        var queryContext = OperationIdentifiers.ForViewQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "FilterableView",
+            request
+        );
         var result = await service.QueryViewAsync(
+            queryContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "FilterableView",
             request
@@ -310,14 +390,20 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             "SELECT 1 AS Id, 'Test' AS Name, 'Description' AS Description"
         );
 
-        var request = new QueryRequest
+        var request = new QueryDto
         {
             Take = 10,
             Skip = 0,
             Select = "Id,Name",
         };
 
+        var queryContext = OperationIdentifiers.ForViewQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "SelectableView",
+            request
+        );
         var result = await service.QueryViewAsync(
+            queryContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "SelectableView",
             request
@@ -334,10 +420,16 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var request = new QueryRequest { Take = 10, Skip = 0 };
+        var request = new QueryDto { Take = 10, Skip = 0 };
 
+        var queryContext = OperationIdentifiers.ForViewQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "NonExistentView",
+            request
+        );
         var act = async () =>
             await service.QueryViewAsync(
+                queryContext,
                 TestcontainersAssemblyFixture.DatasourceId_SqlServer,
                 "NonExistentView",
                 request
@@ -356,7 +448,8 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var act = async () => await service.GetViewsAsync("NonExistent");
+        var context = OperationIdentifiers.ForViewList("NonExistent");
+        var act = async () => await service.GetViewsAsync(context, "NonExistent");
 
         await act.Should()
             .ThrowAsync<ArgumentException>()
@@ -369,43 +462,62 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var view = new DmView { ViewName = "TestView", Definition = "SELECT 1 AS TestColumn" };
-        var queryRequest = new QueryRequest { Take = 10, Skip = 0 };
+        var view = new ViewDto { ViewName = "TestView", Definition = "SELECT 1 AS TestColumn" };
+        var queryRequest = new QueryDto { Take = 10, Skip = 0 };
 
         // Test all methods with non-existent datasource
-        var getViewAct = async () => await service.GetViewAsync("NonExistent", "TestView");
+        var getViewContext = OperationIdentifiers.ForViewGet("NonExistent", "TestView");
+        var getViewAct = async () =>
+            await service.GetViewAsync(getViewContext, "NonExistent", "TestView");
         await getViewAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
-        var createViewAct = async () => await service.CreateViewAsync("NonExistent", view);
+        var createViewContext = OperationIdentifiers.ForViewCreate("NonExistent", view);
+        var createViewAct = async () =>
+            await service.CreateViewAsync(createViewContext, "NonExistent", view);
         await createViewAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
+        var updateDto = new ViewDto { Definition = "SELECT 1" };
+        var updateViewContext = OperationIdentifiers.ForViewUpdate(
+            "NonExistent",
+            "TestView",
+            updateDto
+        );
         var updateViewAct = async () =>
-            await service.UpdateViewAsync("NonExistent", "TestView", null, "SELECT 1");
+            await service.UpdateViewAsync(updateViewContext, "NonExistent", "TestView", updateDto);
         await updateViewAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
-        var dropViewAct = async () => await service.DropViewAsync("NonExistent", "TestView");
+        var dropViewContext = OperationIdentifiers.ForViewDrop("NonExistent", "TestView");
+        var dropViewAct = async () =>
+            await service.DropViewAsync(dropViewContext, "NonExistent", "TestView");
         await dropViewAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
-        var viewExistsAct = async () => await service.ViewExistsAsync("NonExistent", "TestView");
+        var viewExistsContext = OperationIdentifiers.ForViewExists("NonExistent", "TestView");
+        var viewExistsAct = async () =>
+            await service.ViewExistsAsync(viewExistsContext, "NonExistent", "TestView");
         await viewExistsAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
+        var queryViewContext = OperationIdentifiers.ForViewQuery(
+            "NonExistent",
+            "TestView",
+            queryRequest
+        );
         var queryViewAct = async () =>
-            await service.QueryViewAsync("NonExistent", "TestView", queryRequest);
+            await service.QueryViewAsync(queryViewContext, "NonExistent", "TestView", queryRequest);
         await queryViewAct
             .Should()
             .ThrowAsync<ArgumentException>()
@@ -423,9 +535,10 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         string viewDefinition = "SELECT 1 AS TestColumn"
     )
     {
-        var view = new DmView { ViewName = viewName, Definition = viewDefinition };
+        var view = new ViewDto { ViewName = viewName, Definition = viewDefinition };
 
-        var result = await service.CreateViewAsync(datasourceId, view);
+        var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
+        var result = await service.CreateViewAsync(context, datasourceId, view);
         result
             .Should()
             .NotBeNull($"Failed to create view '{viewName}' in datasource '{datasourceId}'");
@@ -439,34 +552,36 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
         string viewDefinition = "SELECT 1 AS TestColumn"
     )
     {
-        var view = new DmView
+        var view = new ViewDto
         {
             SchemaName = schemaName,
             ViewName = viewName,
             Definition = viewDefinition,
         };
 
-        await service.CreateViewAsync(datasourceId, view);
+        var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
+        await service.CreateViewAsync(context, datasourceId, view);
     }
 
-    private static async Task<DmView?> CreateSimpleTestView(
+    private static async Task<ViewDto?> CreateSimpleTestView(
         IDapperMaticService service,
         string datasourceId,
         string viewName,
         string? schemaName
     )
     {
-        var view = new DmView
+        var view = new ViewDto
         {
             SchemaName = schemaName,
             ViewName = viewName,
             Definition = "SELECT 1 AS Id, 'Simple' AS Name",
         };
 
-        return await service.CreateViewAsync(datasourceId, view);
+        var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
+        return await service.CreateViewAsync(context, datasourceId, view);
     }
 
-    private static async Task<DmView?> CreateComplexTestView(
+    private static async Task<ViewDto?> CreateComplexTestView(
         IDapperMaticService service,
         string datasourceId,
         string viewName,
@@ -487,24 +602,25 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
             _ => "SELECT 1 AS Id, 'Complex' AS Title, 'Description text' AS Description",
         };
 
-        var view = new DmView
+        var view = new ViewDto
         {
             SchemaName = schemaName,
             ViewName = viewName,
             Definition = definition,
         };
 
-        return await service.CreateViewAsync(datasourceId, view);
+        var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
+        return await service.CreateViewAsync(context, datasourceId, view);
     }
 
-    private static async Task<DmView?> CreateTestViewWithData(
+    private static async Task<ViewDto?> CreateTestViewWithData(
         IDapperMaticService service,
         string datasourceId,
         string viewName,
         string? schemaName
     )
     {
-        var view = new DmView
+        var view = new ViewDto
         {
             SchemaName = schemaName,
             ViewName = viewName,
@@ -512,7 +628,8 @@ public class DapperMaticServiceViewsTests : IClassFixture<TestcontainersAssembly
                 "SELECT 1 AS Id, 'Active' AS Status, 25 AS Age UNION ALL SELECT 2, 'Inactive', 30",
         };
 
-        return await service.CreateViewAsync(datasourceId, view);
+        var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
+        return await service.CreateViewAsync(context, datasourceId, view);
     }
 
     #endregion

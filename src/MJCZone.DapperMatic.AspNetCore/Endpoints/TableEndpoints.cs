@@ -76,7 +76,7 @@ public static class TableEndpoints
 
         // List all tables
         group
-            .MapGet("/", ListTablesAsync)
+            .MapGet("/", isSchemaSpecific ? ListSchemaTablesAsync : ListTablesAsync)
             .WithName($"List{namePrefix}Tables")
             .WithSummary($"Gets all tables for {schemaText}")
             .WithOpenApi(operation =>
@@ -96,7 +96,7 @@ public static class TableEndpoints
 
         // Get specific table
         group
-            .MapGet("/{tableName}", GetTableAsync)
+            .MapGet("/{tableName}", isSchemaSpecific ? GetSchemaTableAsync : GetTableAsync)
             .WithName($"Get{namePrefix}Table")
             .WithSummary($"Gets a table by name from {schemaText}")
             .WithOpenApi(operation =>
@@ -116,7 +116,7 @@ public static class TableEndpoints
 
         // Create new table
         group
-            .MapPost("/", CreateTableAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaTableAsync : CreateTableAsync)
             .WithName($"Create{namePrefix}Table")
             .WithSummary($"Creates a new table {schemaInText}")
             .Produces<TableResponse>((int)HttpStatusCode.Created)
@@ -126,7 +126,7 @@ public static class TableEndpoints
 
         // Update table
         group
-            .MapPut("/{tableName}", UpdateTableAsync)
+            .MapPut("/{tableName}", isSchemaSpecific ? UpdateSchemaTableAsync : UpdateTableAsync)
             .WithName($"Update{namePrefix}Table")
             .WithSummary($"Updates a table {schemaInText}")
             .Produces<TableResponse>((int)HttpStatusCode.OK)
@@ -135,7 +135,7 @@ public static class TableEndpoints
 
         // Drop table
         group
-            .MapDelete("/{tableName}", DropTableAsync)
+            .MapDelete("/{tableName}", isSchemaSpecific ? DropSchemaTableAsync : DropTableAsync)
             .WithName($"Drop{namePrefix}Table")
             .WithSummary($"Drops a table from {schemaText}")
             .Produces<TableResponse>((int)HttpStatusCode.OK)
@@ -144,7 +144,7 @@ public static class TableEndpoints
 
         // Check if table exists
         group
-            .MapGet("/{tableName}/exists", TableExistsAsync)
+            .MapGet("/{tableName}/exists", isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync)
             .WithName($"{namePrefix}TableExists")
             .WithSummary($"Checks if a table exists {schemaInText}")
             .Produces<TableExistsResponse>((int)HttpStatusCode.OK)
@@ -153,7 +153,7 @@ public static class TableEndpoints
 
         // Query table via GET with URL parameters
         group
-            .MapGet("/{tableName}/query", QueryTableViaGetAsync)
+            .MapGet("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync)
             .WithName($"Query{namePrefix}TableViaGet")
             .WithSummary($"Queries a table {schemaInText} using URL parameters")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -162,7 +162,7 @@ public static class TableEndpoints
 
         // Query table with filtering, sorting, and pagination
         group
-            .MapPost("/{tableName}/query", QueryTableAsync)
+            .MapPost("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync)
             .WithName($"Query{namePrefix}Table")
             .WithSummary($"Queries a table {schemaInText} with filtering, sorting, and pagination")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -170,7 +170,16 @@ public static class TableEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
     }
 
-    private static async Task<IResult> ListTablesAsync(
+    private static Task<IResult> ListTablesAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromQuery] string? include,
+        [FromQuery] string? filter,
+        CancellationToken cancellationToken = default
+    ) => ListSchemaTablesAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
+
+    private static async Task<IResult> ListSchemaTablesAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -224,7 +233,16 @@ public static class TableEndpoints
         return Results.Ok(new TableListResponse(tables));
     }
 
-    private static async Task<IResult> GetTableAsync(
+    private static Task<IResult> GetTableAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromQuery] string? include,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaTableAsync(operationContext, service, datasourceId, null, tableName, include, cancellationToken);
+
+    private static async Task<IResult> GetSchemaTableAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -264,7 +282,15 @@ public static class TableEndpoints
         return Results.Ok(new TableResponse(table));
     }
 
-    private static async Task<IResult> CreateTableAsync(
+    private static Task<IResult> CreateTableAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromBody] TableDto table,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaTableAsync(operationContext, service, datasourceId, null, table, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaTableAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -302,7 +328,16 @@ public static class TableEndpoints
         );
     }
 
-    private static async Task<IResult> UpdateTableAsync(
+    private static Task<IResult> UpdateTableAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] TableDto updates,
+        CancellationToken cancellationToken = default
+    ) => UpdateSchemaTableAsync(operationContext, service, datasourceId, null, tableName, updates, cancellationToken);
+
+    private static async Task<IResult> UpdateSchemaTableAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -393,7 +428,15 @@ public static class TableEndpoints
         return Results.Ok(new TableResponse(updated));
     }
 
-    private static async Task<IResult> DropTableAsync(
+    private static Task<IResult> DropTableAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaTableAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaTableAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -415,7 +458,15 @@ public static class TableEndpoints
         return Results.NoContent();
     }
 
-    private static async Task<IResult> TableExistsAsync(
+    private static Task<IResult> TableExistsAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => SchemaTableExistsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> SchemaTableExistsAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -437,7 +488,16 @@ public static class TableEndpoints
         return Results.Ok(new TableExistsResponse(exists));
     }
 
-    private static async Task<IResult> QueryTableAsync(
+    private static Task<IResult> QueryTableAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] QueryDto request,
+        CancellationToken cancellationToken = default
+    ) => QuerySchemaTableAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+
+    private static async Task<IResult> QuerySchemaTableAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -469,7 +529,15 @@ public static class TableEndpoints
         );
     }
 
-    private static async Task<IResult> QueryTableViaGetAsync(
+    private static Task<IResult> QueryTableViaGetAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => QuerySchemaTableViaGetAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> QuerySchemaTableViaGetAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

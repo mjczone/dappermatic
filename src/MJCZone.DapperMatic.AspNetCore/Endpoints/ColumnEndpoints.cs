@@ -65,7 +65,7 @@ public static class ColumnEndpoints
 
         // Column management endpoints
         group
-            .MapGet("/", ListColumnsAsync)
+            .MapGet("/", isSchemaSpecific ? ListSchemaColumnsAsync : ListColumnsAsync)
             .WithName($"List{namePrefix}Columns")
             .WithSummary($"Gets all columns for a table {schemaInText}")
             .Produces<ColumnListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +73,7 @@ public static class ColumnEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{columnName}", GetColumnAsync)
+            .MapGet("/{columnName}", isSchemaSpecific ? GetSchemaColumnAsync : GetColumnAsync)
             .WithName($"Get{namePrefix}Column")
             .WithSummary($"Gets a specific column from a table {schemaInText}")
             .Produces<ColumnResponse>((int)HttpStatusCode.OK)
@@ -81,7 +81,7 @@ public static class ColumnEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", CreateColumnAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaColumnAsync : CreateColumnAsync)
             .WithName($"Add{namePrefix}Column")
             .WithSummary($"Adds a new column to a table {schemaInText}")
             .Produces<ColumnResponse>((int)HttpStatusCode.Created)
@@ -90,7 +90,7 @@ public static class ColumnEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPut("/{columnName}", UpdateColumnAsync)
+            .MapPut("/{columnName}", isSchemaSpecific ? UpdateSchemaColumnAsync : UpdateColumnAsync)
             .WithName($"Update{namePrefix}Column")
             .WithSummary($"Updates a column in a table {schemaInText}")
             .Produces<ColumnResponse>((int)HttpStatusCode.OK)
@@ -98,7 +98,7 @@ public static class ColumnEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{columnName}", DropColumnAsync)
+            .MapDelete("/{columnName}", isSchemaSpecific ? DropSchemaColumnAsync : DropColumnAsync)
             .WithName($"Drop{namePrefix}Column")
             .WithSummary($"Drops a column from a table {schemaInText}")
             .Produces((int)HttpStatusCode.NoContent)
@@ -107,7 +107,15 @@ public static class ColumnEndpoints
     }
 
     // Column management endpoint implementations
-    private static async Task<IResult> ListColumnsAsync(
+    private static Task<IResult> ListColumnsAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => ListSchemaColumnsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> ListSchemaColumnsAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -129,7 +137,16 @@ public static class ColumnEndpoints
         return Results.Ok(new ColumnListResponse(columns));
     }
 
-    private static async Task<IResult> GetColumnAsync(
+    private static Task<IResult> GetColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
+
+    private static async Task<IResult> GetSchemaColumnAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -153,7 +170,16 @@ public static class ColumnEndpoints
         return Results.Ok(new ColumnResponse(column));
     }
 
-    private static async Task<IResult> CreateColumnAsync(
+    private static Task<IResult> CreateColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] ColumnDto column,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, column, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaColumnAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -189,7 +215,17 @@ public static class ColumnEndpoints
         );
     }
 
-    private static async Task<IResult> UpdateColumnAsync(
+    private static Task<IResult> UpdateColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        [FromBody] ColumnDto column,
+        CancellationToken cancellationToken = default
+    ) => UpdateSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, column, cancellationToken);
+
+    private static async Task<IResult> UpdateSchemaColumnAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -241,7 +277,16 @@ public static class ColumnEndpoints
         }
     }
 
-    private static async Task<IResult> DropColumnAsync(
+    private static Task<IResult> DropColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaColumnAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

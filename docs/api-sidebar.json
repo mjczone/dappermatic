@@ -68,6 +68,10 @@
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore/"
             },
             {
+              "text": "📦 / Validation",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.validation/"
+            },
+            {
               "text": "📦 / Utilities",
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.utilities/"
             },
@@ -86,10 +90,6 @@
             {
               "text": "📦 / Models.Responses",
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.responses/"
-            },
-            {
-              "text": "📦 / Models.Requests",
-              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.requests/"
             },
             {
               "text": "📦 / Models.Dtos",

@@ -65,7 +65,7 @@ public static class UniqueConstraintEndpoints
 
         // Unique constraint endpoints
         group
-            .MapGet("/", ListUniqueConstraintsAsync)
+            .MapGet("/", isSchemaSpecific ? ListSchemaUniqueConstraintsAsync : ListUniqueConstraintsAsync)
             .WithName($"List{namePrefix}UniqueConstraints")
             .WithSummary($"Gets all unique constraints for a table {schemaInText}")
             .Produces<UniqueConstraintListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +73,7 @@ public static class UniqueConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{constraintName}", GetUniqueConstraintAsync)
+            .MapGet("/{constraintName}", isSchemaSpecific ? GetSchemaUniqueConstraintAsync : GetUniqueConstraintAsync)
             .WithName($"Get{namePrefix}UniqueConstraint")
             .WithSummary($"Gets a specific unique constraint from a table {schemaInText}")
             .Produces<UniqueConstraintResponse>((int)HttpStatusCode.OK)
@@ -81,7 +81,7 @@ public static class UniqueConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", CreateUniqueConstraintAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaUniqueConstraintAsync : CreateUniqueConstraintAsync)
             .WithName($"Create{namePrefix}UniqueConstraint")
             .WithSummary($"Creates a unique constraint on a table {schemaInText}")
             .Produces<UniqueConstraintResponse>((int)HttpStatusCode.Created)
@@ -90,7 +90,7 @@ public static class UniqueConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", DropUniqueConstraintAsync)
+            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaUniqueConstraintAsync : DropUniqueConstraintAsync)
             .WithName($"Drop{namePrefix}UniqueConstraint")
             .WithSummary($"Drops a unique constraint from a table {schemaInText}")
             .Produces<UniqueConstraintResponse>((int)HttpStatusCode.OK)
@@ -99,7 +99,15 @@ public static class UniqueConstraintEndpoints
     }
 
     // Unique constraint endpoint implementations
-    private static async Task<IResult> ListUniqueConstraintsAsync(
+    private static Task<IResult> ListUniqueConstraintsAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => ListSchemaUniqueConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> ListSchemaUniqueConstraintsAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -121,7 +129,16 @@ public static class UniqueConstraintEndpoints
         return Results.Ok(new UniqueConstraintListResponse(uniqueConstraints));
     }
 
-    private static async Task<IResult> GetUniqueConstraintAsync(
+    private static Task<IResult> GetUniqueConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string constraintName,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+
+    private static async Task<IResult> GetSchemaUniqueConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -145,7 +162,16 @@ public static class UniqueConstraintEndpoints
         return Results.Ok(new UniqueConstraintResponse(uniqueConstraint));
     }
 
-    private static async Task<IResult> CreateUniqueConstraintAsync(
+    private static Task<IResult> CreateUniqueConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] UniqueConstraintDto uniqueConstraint,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, uniqueConstraint, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaUniqueConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -185,7 +211,16 @@ public static class UniqueConstraintEndpoints
         );
     }
 
-    private static async Task<IResult> DropUniqueConstraintAsync(
+    private static Task<IResult> DropUniqueConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string constraintName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaUniqueConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

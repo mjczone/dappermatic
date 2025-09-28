@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore.Models;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Repositories;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
@@ -34,7 +34,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     [Fact]
     public async Task InMemoryRepository_DataPersistsWithinApplication_ButNotBetweenRestarts()
     {
-        var addRequest = new CreateDatasourceRequest
+        var addRequest = new DatasourceDto
         {
             Id = "Test-InMemoryPersistence",
             Provider = "Sqlite",
@@ -80,7 +80,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     {
         WafWithFileDatasourceRepository.DeleteDatasourcesFile();
 
-        var addRequest = new CreateDatasourceRequest
+        var addRequest = new DatasourceDto
         {
             Id = "Test-FilePersistence",
             Provider = "Sqlite",
@@ -139,7 +139,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
     {
         WafWithDatabaseDatasourceRepository.DeleteDatabaseFile();
 
-        var addRequest = new CreateDatasourceRequest
+        var addRequest = new DatasourceDto
         {
             Id = "Test-DatabasePersistence",
             Provider = "Sqlite",
@@ -203,7 +203,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
         // Add a small delay to ensure file system operations complete
         await Task.Delay(100);
 
-        var testDatasource = new CreateDatasourceRequest
+        var testDatasource = new DatasourceDto
         {
             Id = "CRUD-Test",
             Provider = "Sqlite",
@@ -252,7 +252,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 .Be(testDatasource.Id.ToLowerInvariant());
 
             // UPDATE
-            var updateRequest = new UpdateDatasourceRequest
+            var updateRequest = new DatasourceDto
             {
                 DisplayName = "Updated CRUD Test",
                 Description = "Updated description",

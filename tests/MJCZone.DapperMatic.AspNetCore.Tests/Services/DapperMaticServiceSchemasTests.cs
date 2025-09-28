@@ -23,31 +23,17 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         _fixture = fixture;
     }
 
-    public IOperationContext GetOperationContext(
-        string op,
-        string dsId,
-        ClaimsPrincipal? user = null
-    )
-    {
-        return new OperationContext
-        {
-            User = user ?? new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "test-user")])),
-            Operation = op,
-            DatasourceId = dsId,
-        };
-    }
-
     [Fact]
     public async Task GetSchemasAsync_SqlServer_ReturnsSchemas()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext(
-            "d/s/get",
+        var operationContext = OperationIdentifiers.ForSchemaList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer
         );
-        var result = await service.GetSchemasAsync( operationContext,
+        var result = await service.GetSchemasAsync(
+            operationContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer
         );
 
@@ -62,8 +48,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext(
-            "d/s/get",
+        var operationContext = OperationIdentifiers.ForSchemaList(
             TestcontainersAssemblyFixture.DatasourceId_PostgreSql
         );
         var result = await service.GetSchemasAsync(
@@ -82,10 +67,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext(
-            "d/s/get",
-            "NonExistent"
-        );
+        var operationContext = OperationIdentifiers.ForSchemaList("NonExistent");
         var act = async () => await service.GetSchemasAsync(operationContext, "NonExistent");
 
         await act.Should()
@@ -99,7 +81,10 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/get", TestcontainersAssemblyFixture.DatasourceId_SqlServer);
+        var operationContext = OperationIdentifiers.ForSchemaGet(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "dbo"
+        );
         var result = await service.GetSchemaAsync(
             operationContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
@@ -116,9 +101,9 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext(
-            "d/s/get",
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer
+        var operationContext = OperationIdentifiers.ForSchemaGet(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "nonexistent"
         );
         var result = await service.GetSchemaAsync(
             operationContext,
@@ -136,7 +121,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
         var schema = new SchemaDto { SchemaName = "TestSchema" };
+        var createContext = OperationIdentifiers.ForSchemaCreate(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            schema
+        );
         var result = await service.CreateSchemaAsync(
+            createContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             schema
         );
@@ -145,7 +135,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         result!.SchemaName.Should().Be("TestSchema");
 
         // Verify it was created
+        var existsContext = OperationIdentifiers.ForSchemaExists(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "TestSchema"
+        );
         var exists = await service.SchemaExistsAsync(
+            existsContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "TestSchema"
         );
@@ -159,7 +154,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
         var schema = new SchemaDto { SchemaName = "dbo" };
+        var createContext = OperationIdentifiers.ForSchemaCreate(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            schema
+        );
         var result = await service.CreateSchemaAsync(
+            createContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             schema
         );
@@ -175,21 +175,34 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         // First create a schema
         var schema = new SchemaDto { SchemaName = "TempSchema" };
+        var createContext = OperationIdentifiers.ForSchemaCreate(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            schema
+        );
         await service.CreateSchemaAsync(
+            createContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             schema
         );
 
         // Then drop it
-        var result = await service.DropSchemaAsync(
+        var dropContext = OperationIdentifiers.ForSchemaDrop(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "TempSchema"
+        );
+        await service.DropSchemaAsync(
+            dropContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "TempSchema"
         );
 
-        result.Should().BeTrue();
-
         // Verify it was dropped
+        var existsContext = OperationIdentifiers.ForSchemaExists(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "TempSchema"
+        );
         var exists = await service.SchemaExistsAsync(
+            existsContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "TempSchema"
         );
@@ -202,12 +215,17 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var result = await service.DropSchemaAsync(
+        var dropContext = OperationIdentifiers.ForSchemaDrop(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "nonexistent"
+        );
+        await service.DropSchemaAsync(
+            dropContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "nonexistent"
         );
 
-        result.Should().BeFalse();
+        // Drop operation doesn't return a result - it either succeeds or throws an exception
     }
 
     [Fact]
@@ -216,7 +234,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var existsContext = OperationIdentifiers.ForSchemaExists(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "dbo"
+        );
         var result = await service.SchemaExistsAsync(
+            existsContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "dbo"
         );
@@ -230,7 +253,12 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var existsContext = OperationIdentifiers.ForSchemaExists(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "nonexistent"
+        );
         var result = await service.SchemaExistsAsync(
+            existsContext,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "nonexistent"
         );
@@ -249,7 +277,8 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var act = async () => await service.GetSchemasAsync(datasourceId!);
+        var context = OperationIdentifiers.ForSchemaList(datasourceId!);
+        var act = async () => await service.GetSchemasAsync(context, datasourceId!);
 
         await act.Should()
             .ThrowAsync<ArgumentException>()
@@ -265,8 +294,13 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var context = OperationIdentifiers.ForSchemaGet(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            schemaName!
+        );
         var act = async () =>
             await service.GetSchemaAsync(
+                context,
                 TestcontainersAssemblyFixture.DatasourceId_SqlServer,
                 schemaName!
             );
@@ -280,8 +314,13 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
+        var context = OperationIdentifiers.ForSchemaCreate(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            null!
+        );
         var act = async () =>
             await service.CreateSchemaAsync(
+                context,
                 TestcontainersAssemblyFixture.DatasourceId_SqlServer,
                 null!
             );
@@ -296,8 +335,13 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
         var schema = new SchemaDto { SchemaName = "" };
+        var context = OperationIdentifiers.ForSchemaCreate(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            schema
+        );
         var act = async () =>
             await service.CreateSchemaAsync(
+                context,
                 TestcontainersAssemblyFixture.DatasourceId_SqlServer,
                 schema
             );
@@ -312,8 +356,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
         var user = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "test-user")]));
 
-        var operationContext = GetOperationContext(
-            "d/s/get",
+        var operationContext = OperationIdentifiers.ForSchemaList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             user
         );
@@ -342,7 +385,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var operationContext = OperationIdentifiers.ForSchemaList(datasourceId);
         var result = await service.GetSchemasAsync(operationContext, datasourceId);
 
         result.Should().NotBeNull();
@@ -380,16 +423,16 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         var schema = new SchemaDto { SchemaName = $"TestSchema_{Guid.NewGuid():N}"[..20] };
 
-        var operationContext = GetOperationContext("d/s/post", datasourceId);
-        var result = await service.CreateSchemaAsync(operationContext, datasourceId, schema);
+        var createContext = OperationIdentifiers.ForSchemaCreate(datasourceId, schema);
+        var result = await service.CreateSchemaAsync(createContext, datasourceId, schema);
 
         result.Should().NotBeNull();
         result!.SchemaName.Should().Be(schema.SchemaName);
 
         // Verify it exists
-        operationContext = GetOperationContext("d/s/get", datasourceId);
+        var existsContext = OperationIdentifiers.ForSchemaExists(datasourceId, schema.SchemaName);
         var exists = await service.SchemaExistsAsync(
-            operationContext,
+            existsContext,
             datasourceId,
             schema.SchemaName
         );
@@ -408,7 +451,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         var schema = new SchemaDto { SchemaName = "TestSchema" };
 
-        var operationContext = GetOperationContext("d/s/post", datasourceId);
+        var operationContext = OperationIdentifiers.ForSchemaCreate(datasourceId, schema);
         var act = async () =>
             await service.CreateSchemaAsync(operationContext, datasourceId, schema);
 
@@ -425,25 +468,19 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/post", datasourceId);
         // First create a schema
         var schema = new SchemaDto { SchemaName = $"TempSchema_{Guid.NewGuid():N}"[..20] };
-        await service.CreateSchemaAsync(operationContext, datasourceId, schema);
+        var createContext = OperationIdentifiers.ForSchemaCreate(datasourceId, schema);
+        await service.CreateSchemaAsync(createContext, datasourceId, schema);
 
         // Then drop it
-        operationContext = GetOperationContext("d/s/delete", datasourceId);
-        var result = await service.DropSchemaAsync(
-            operationContext,
-            datasourceId,
-            schema.SchemaName
-        );
-
-        result.Should().BeTrue();
+        var dropContext = OperationIdentifiers.ForSchemaDrop(datasourceId, schema.SchemaName);
+        await service.DropSchemaAsync(dropContext, datasourceId, schema.SchemaName);
 
         // Verify it's gone
-        operationContext = GetOperationContext("d/s/get", datasourceId);
+        var existsContext = OperationIdentifiers.ForSchemaExists(datasourceId, schema.SchemaName);
         var exists = await service.SchemaExistsAsync(
-            operationContext,
+            existsContext,
             datasourceId,
             schema.SchemaName
         );
@@ -460,7 +497,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/delete", datasourceId);
+        var operationContext = OperationIdentifiers.ForSchemaDrop(datasourceId, "someschema");
         var act = async () =>
             await service.DropSchemaAsync(operationContext, datasourceId, "someschema");
 
@@ -487,7 +524,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var operationContext = OperationIdentifiers.ForSchemaExists(datasourceId, schemaName);
         var result = await service.SchemaExistsAsync(operationContext, datasourceId, schemaName);
 
         result.Should().Be(expectedExists);
@@ -506,7 +543,7 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var operationContext = GetOperationContext("d/s/get", datasourceId);
+        var operationContext = OperationIdentifiers.ForSchemaGet(datasourceId, schemaName);
         var result = await service.GetSchemaAsync(operationContext, datasourceId, schemaName);
 
         result.Should().NotBeNull();
@@ -527,25 +564,32 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
             }
         )
         {
-            var operationContext = GetOperationContext("d/s/get", dsId);
-
-            var schemas = await service.GetSchemasAsync(operationContext, dsId);
+            var listContext = OperationIdentifiers.ForSchemaList(dsId);
+            var schemas = await service.GetSchemasAsync(listContext, dsId);
             schemas.Should().HaveCount(0);
 
-            var validSchema = await service.GetSchemaAsync(operationContext, dsId, "_");
+            var validSchemaContext = OperationIdentifiers.ForSchemaGet(dsId, "_");
+            var validSchema = await service.GetSchemaAsync(validSchemaContext, dsId, "_");
             validSchema.Should().BeNull();
 
+            var invalidSchemaContext = OperationIdentifiers.ForSchemaGet(dsId, "anything_else");
             var invalidSchema = await service.GetSchemaAsync(
-                operationContext,
+                invalidSchemaContext,
                 dsId,
                 "anything_else"
             );
             invalidSchema.Should().BeNull();
 
-            var underscoreExists = await service.SchemaExistsAsync(operationContext, dsId, "_");
+            var underscoreExistsContext = OperationIdentifiers.ForSchemaExists(dsId, "_");
+            var underscoreExists = await service.SchemaExistsAsync(
+                underscoreExistsContext,
+                dsId,
+                "_"
+            );
             underscoreExists.Should().BeFalse();
 
-            var otherExists = await service.SchemaExistsAsync(operationContext, dsId, "other");
+            var otherExistsContext = OperationIdentifiers.ForSchemaExists(dsId, "other");
+            var otherExists = await service.SchemaExistsAsync(otherExistsContext, dsId, "other");
             otherExists.Should().BeFalse();
         }
     }
@@ -566,22 +610,20 @@ public class DapperMaticServiceSchemasTests : IClassFixture<TestcontainersAssemb
 
         foreach (var (datasourceId, expectedSchema) in testCases)
         {
-            var operationContext = GetOperationContext("d/s/get", datasourceId);
             // All providers should have at least one schema
-            var schemas = await service.GetSchemasAsync(operationContext, datasourceId);
+            var listContext = OperationIdentifiers.ForSchemaList(datasourceId);
+            var schemas = await service.GetSchemasAsync(listContext, datasourceId);
             schemas.Should().NotBeEmpty($"datasource {datasourceId} should have schemas");
 
             // The expected schema should exist
-            var schema = await service.GetSchemaAsync(
-                operationContext,
-                datasourceId,
-                expectedSchema
-            );
+            var getContext = OperationIdentifiers.ForSchemaGet(datasourceId, expectedSchema);
+            var schema = await service.GetSchemaAsync(getContext, datasourceId, expectedSchema);
             schema.Should().NotBeNull($"schema {expectedSchema} should exist in {datasourceId}");
 
             // The expected schema should report as existing
+            var existsContext = OperationIdentifiers.ForSchemaExists(datasourceId, expectedSchema);
             var exists = await service.SchemaExistsAsync(
-                operationContext,
+                existsContext,
                 datasourceId,
                 expectedSchema
             );

@@ -133,7 +133,7 @@ public class DefaultDapperMaticPermissionsTests
         );
         var permissions = new DefaultDapperMaticPermissions(options);
         var context = CreateOperationContext(
-            OperationIdentifiers.GetDatasource,
+            "datasources/get",
             authenticated: true,
             roles: ["DataReader"]
         );
@@ -151,7 +151,7 @@ public class DefaultDapperMaticPermissionsTests
         );
         var permissions = new DefaultDapperMaticPermissions(options);
         var context = CreateOperationContext(
-            OperationIdentifiers.AddDatasource,
+            "datasources/add",
             authenticated: true,
             roles: ["DataReader"]
         );
@@ -169,7 +169,7 @@ public class DefaultDapperMaticPermissionsTests
         );
         var permissions = new DefaultDapperMaticPermissions(options);
         var context = CreateOperationContext(
-            OperationIdentifiers.AddDatasource,
+            "datasources/add",
             authenticated: true,
             roles: ["DataAdmin"]
         );

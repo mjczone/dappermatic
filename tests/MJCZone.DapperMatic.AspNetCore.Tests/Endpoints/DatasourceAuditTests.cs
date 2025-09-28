@@ -8,7 +8,7 @@ using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Auditing;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 using MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
@@ -33,7 +33,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new CreateDatasourceRequest
+        var request = new DatasourceDto
         {
             Id = "AuditTest",
             Provider = "Sqlite",
@@ -47,7 +47,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.AddDatasource);
+        auditEvent.Operation.Should().Be("datasources/add");
         auditEvent.DatasourceId.Should().Be("AuditTest");
         auditEvent.Success.Should().BeTrue();
         auditEvent.ErrorMessage.Should().BeNull();
@@ -60,7 +60,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new CreateDatasourceRequest
+        var request = new DatasourceDto
         {
             Id = TestcontainersAssemblyFixture.DatasourceId_SqlServer, // This already exists in test data but gets overwritten
             Provider = "Sqlite",
@@ -73,7 +73,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Now overwrite it
         response = await client.PutAsJsonAsync(
             $"/api/dm/d/{request.Id}",
-            new UpdateDatasourceRequest
+            new DatasourceDto
             {
                 Provider = "Sqlite",
                 ConnectionString = "Data Source=test_overwrite.db",
@@ -85,13 +85,13 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify success audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(2);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.AddDatasource);
+        auditEvent.Operation.Should().Be("datasources/add");
         auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         auditEvent.Success.Should().BeFalse();
         auditEvent.ErrorMessage.Should().NotBeNull();
 
         auditEvent = auditLogger.AuditEvents[1];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.UpdateDatasource);
+        auditEvent.Operation.Should().Be("datasources/update");
         auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         auditEvent.Success.Should().BeTrue();
         auditEvent.ErrorMessage.Should().BeNull();
@@ -109,7 +109,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.GetDatasource);
+        auditEvent.Operation.Should().Be("datasources/get");
         auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         auditEvent.Success.Should().BeTrue();
     }
@@ -120,7 +120,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new UpdateDatasourceRequest { DisplayName = "Updated Test Name" };
+        var request = new DatasourceDto { DisplayName = "Updated Test Name" };
 
         var response = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", request);
         response.Should().HaveStatusCode(HttpStatusCode.OK);
@@ -128,7 +128,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.UpdateDatasource);
+        auditEvent.Operation.Should().Be("datasources/update");
         auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         auditEvent.Success.Should().BeTrue();
     }
@@ -145,7 +145,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.RemoveDatasource);
+        auditEvent.Operation.Should().Be("datasources/remove");
         auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
         auditEvent.Success.Should().BeTrue();
     }
@@ -162,7 +162,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
         var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be(OperationIdentifiers.ListDatasources);
+        auditEvent.Operation.Should().Be("datasources/list");
         auditEvent.Success.Should().BeTrue();
         auditEvent.DatasourceId.Should().BeNull(); // List operation doesn't target specific datasource
     }

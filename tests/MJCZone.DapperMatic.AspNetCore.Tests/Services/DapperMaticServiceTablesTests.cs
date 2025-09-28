@@ -3,10 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Security.Claims;
 using FluentAssertions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
 using MJCZone.DapperMatic.AspNetCore.Services;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 
@@ -40,7 +38,12 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
         // Step 1: Verify initial state - get initial table count (may include system tables)
-        var initialTables = await service.GetTablesAsync(datasourceId, schemaName: schemaName);
+        var context = OperationIdentifiers.ForTableList(datasourceId, schemaName);
+        var initialTables = await service.GetTablesAsync(
+            context,
+            datasourceId,
+            schemaName: schemaName
+        );
         initialTables.Should().NotBeNull();
         var initialTableCount = initialTables.Count();
 
@@ -70,6 +73,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
 
         // Step 3: Verify table creation - should now have 3 more tables
         var tablesAfterCreation = await service.GetTablesAsync(
+            context,
             datasourceId,
             schemaName: schemaName
         );
@@ -99,13 +103,16 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             );
 
         // Step 4: Get specific table with full details
-        var specificTable = await service.GetTableAsync(
+        var getContext = OperationIdentifiers.ForTableGet(
             datasourceId,
             "WorkflowTest_Complex",
-            schemaName: schemaName,
-            includeColumns: true,
-            includeIndexes: true,
-            includeConstraints: true
+            schemaName
+        );
+        var specificTable = await service.GetTableAsync(
+            getContext,
+            datasourceId,
+            "WorkflowTest_Complex",
+            schemaName: schemaName
         );
         specificTable.Should().NotBeNull();
         string.Equals(
@@ -118,22 +125,46 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         specificTable.Columns.Should().NotBeEmpty();
 
         // Step 5: Check table existence
+        var simpleExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Simple",
+            schemaName
+        );
         var simpleExists = await service.TableExistsAsync(
+            simpleExistsContext,
             datasourceId,
             "WorkflowTest_Simple",
             schemaName: schemaName
         );
+        var complexExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Complex",
+            schemaName
+        );
         var complexExists = await service.TableExistsAsync(
+            complexExistsContext,
             datasourceId,
             "WorkflowTest_Complex",
             schemaName: schemaName
         );
+        var dataExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Data",
+            schemaName
+        );
         var dataExists = await service.TableExistsAsync(
+            dataExistsContext,
             datasourceId,
             "WorkflowTest_Data",
             schemaName: schemaName
         );
+        var nonExistentExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "NonExistentTable",
+            schemaName
+        );
         var nonExistentExists = await service.TableExistsAsync(
+            nonExistentExistsContext,
             datasourceId,
             "NonExistentTable",
             schemaName: schemaName
@@ -146,7 +177,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
 
         // Step 6: Query table data (should be empty but structure should work)
         var queryRequest = new QueryDto { Take = 10, Skip = 0 };
+        var queryContext = OperationIdentifiers.ForTableQuery(
+            datasourceId,
+            "WorkflowTest_Data",
+            queryRequest,
+            schemaName
+        );
         var queryResult = await service.QueryTableAsync(
+            queryContext,
             datasourceId,
             "WorkflowTest_Data",
             queryRequest,
@@ -157,21 +195,40 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         // queryResult.Columns.Should().NotBeEmpty();
 
         // Step 7: Rename a table
+        var renameContext = OperationIdentifiers.ForTableRename(
+            datasourceId,
+            "WorkflowTest_Simple",
+            "WorkflowTest_Renamed",
+            schemaName
+        );
         var renameResult = await service.RenameTableAsync(
+            renameContext,
             datasourceId,
             "WorkflowTest_Simple",
             "WorkflowTest_Renamed",
             schemaName: schemaName
         );
-        renameResult.Should().BeTrue();
+        renameResult.Should().NotBeNull();
 
         // Step 8: Verify rename - old name shouldn't exist, new name should exist
+        var oldNameExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Simple",
+            schemaName
+        );
         var oldNameExists = await service.TableExistsAsync(
+            oldNameExistsContext,
             datasourceId,
             "WorkflowTest_Simple",
             schemaName: schemaName
         );
+        var newNameExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Renamed",
+            schemaName
+        );
         var newNameExists = await service.TableExistsAsync(
+            newNameExistsContext,
             datasourceId,
             "WorkflowTest_Renamed",
             schemaName: schemaName
@@ -180,15 +237,25 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         newNameExists.Should().BeTrue();
 
         // Step 9: Drop a table
-        var dropResult = await service.DropTableAsync(
+        var dropContext = OperationIdentifiers.ForTableDrop(
+            datasourceId,
+            "WorkflowTest_Complex",
+            schemaName
+        );
+        await service.DropTableAsync(
+            dropContext,
             datasourceId,
             "WorkflowTest_Complex",
             schemaName: schemaName
         );
-        dropResult.Should().BeTrue();
 
         // Step 10: Verify final state - should have initial count + 2 (created 3, dropped 1)
-        var finalTables = await service.GetTablesAsync(datasourceId, schemaName: schemaName);
+        var finalContext = OperationIdentifiers.ForTableList(datasourceId, schemaName);
+        var finalTables = await service.GetTablesAsync(
+            finalContext,
+            datasourceId,
+            schemaName: schemaName
+        );
         finalTables.Should().HaveCount(initialTableCount + 2);
         finalTables
             .Should()
@@ -224,7 +291,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             ); // dropped
 
         // Verify dropped table no longer exists
+        var droppedTableExistsContext = OperationIdentifiers.ForTableExists(
+            datasourceId,
+            "WorkflowTest_Complex",
+            schemaName
+        );
         var droppedTableExists = await service.TableExistsAsync(
+            droppedTableExistsContext,
             datasourceId,
             "WorkflowTest_Complex",
             schemaName: schemaName
@@ -242,13 +315,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var act = async () => await service.GetTablesAsync("NonExistent");
+        var context = OperationIdentifiers.ForTableList("NonExistent");
+        var act = async () => await service.GetTablesAsync(context, "NonExistent");
 
         await act.Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
     }
-
 
     [Fact]
     public async Task QueryTableAsync_NonExistentTable_ThrowsException()
@@ -258,8 +331,15 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
 
         var request = new QueryDto { Take = 10, Skip = 0 };
 
+        var queryContext = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "NonExistentTable",
+            request,
+            "dbo"
+        );
         var act = async () =>
             await service.QueryTableAsync(
+                queryContext,
                 TestcontainersAssemblyFixture.DatasourceId_SqlServer,
                 "NonExistentTable",
                 request,
@@ -275,12 +355,12 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var createRequest = new CreateTableRequest
+        var createRequest = new TableDto
         {
             TableName = "TestTable",
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
@@ -291,40 +371,62 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         var queryRequest = new QueryDto { Take = 10, Skip = 0 };
 
         // Test all methods with non-existent datasource
-        var getTableAct = async () => await service.GetTableAsync("NonExistent", "TestTable");
+        var getTableContext = OperationIdentifiers.ForTableGet("NonExistent", "TestTable");
+        var getTableAct = async () =>
+            await service.GetTableAsync(getTableContext, "NonExistent", "TestTable");
         await getTableAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
+        var createTableContext = OperationIdentifiers.ForTableCreate("NonExistent", createRequest);
         var createTableAct = async () =>
-            await service.CreateTableAsync("NonExistent", createRequest);
+            await service.CreateTableAsync(createTableContext, "NonExistent", createRequest);
         await createTableAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
-        var dropTableAct = async () => await service.DropTableAsync("NonExistent", "TestTable");
+        var dropTableContext = OperationIdentifiers.ForTableDrop("NonExistent", "TestTable");
+        var dropTableAct = async () =>
+            await service.DropTableAsync(dropTableContext, "NonExistent", "TestTable");
         await dropTableAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
-        var tableExistsAct = async () => await service.TableExistsAsync("NonExistent", "TestTable");
+        var tableExistsContext = OperationIdentifiers.ForTableExists("NonExistent", "TestTable");
+        var tableExistsAct = async () =>
+            await service.TableExistsAsync(tableExistsContext, "NonExistent", "TestTable");
         await tableExistsAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
+        var renameTableContext = OperationIdentifiers.ForTableRename(
+            "NonExistent",
+            "OldName",
+            "NewName"
+        );
         var renameTableAct = async () =>
-            await service.RenameTableAsync("NonExistent", "OldName", "NewName");
+            await service.RenameTableAsync(renameTableContext, "NonExistent", "OldName", "NewName");
         await renameTableAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage("Datasource 'NonExistent' not found. (Parameter 'datasourceId')");
 
+        var queryTableContext = OperationIdentifiers.ForTableQuery(
+            "NonExistent",
+            "TestTable",
+            queryRequest
+        );
         var queryTableAct = async () =>
-            await service.QueryTableAsync("NonExistent", "TestTable", queryRequest);
+            await service.QueryTableAsync(
+                queryTableContext,
+                "NonExistent",
+                "TestTable",
+                queryRequest
+            );
         await queryTableAct
             .Should()
             .ThrowAsync<ArgumentException>()
@@ -356,7 +458,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             IncludeTotal = true,
         };
 
+        var context = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "QueryableTable",
+            request,
+            "dbo"
+        );
         var result = await service.QueryTableAsync(
+            context,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "QueryableTable",
             request,
@@ -392,7 +501,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             Filters = new Dictionary<string, string> { { "Status.eq", "Active" } },
         };
 
+        var context = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "FilterableTable",
+            request,
+            "dbo"
+        );
         var result = await service.QueryTableAsync(
+            context,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "FilterableTable",
             request,
@@ -426,7 +542,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             Select = "Id,Title",
         };
 
+        var context = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "SelectableTable",
+            request,
+            "dbo"
+        );
         var result = await service.QueryTableAsync(
+            context,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "SelectableTable",
             request,
@@ -460,7 +583,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             OrderBy = "Email.desc",
         };
 
+        var context = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "SortableTable",
+            request,
+            "dbo"
+        );
         var result = await service.QueryTableAsync(
+            context,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "SortableTable",
             request,
@@ -494,7 +624,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             IncludeTotal = true,
         };
 
+        var context = OperationIdentifiers.ForTableQuery(
+            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+            "PaginatedTable",
+            request,
+            "dbo"
+        );
         var result = await service.QueryTableAsync(
+            context,
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "PaginatedTable",
             request,
@@ -519,7 +656,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         string tableName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName =
@@ -528,7 +665,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                 : null,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType =
@@ -540,7 +677,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsAutoIncrement =
                         datasourceId != TestcontainersAssemblyFixture.DatasourceId_PostgreSql,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -552,7 +689,8 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             ],
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     private static async Task<TableDto?> CreateTestTableWithData(
@@ -576,19 +714,19 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         string? schemaName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName = schemaName,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -600,7 +738,8 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
             ],
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     private static async Task<TableDto?> CreateComplexTestTable(
@@ -610,19 +749,19 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         string? schemaName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName = schemaName,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Title",
                     ProviderDataType =
@@ -631,7 +770,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Description",
                     ProviderDataType =
@@ -640,7 +779,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "text",
                     IsNullable = true,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
@@ -652,14 +791,15 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreatePrimaryKeyRequest
+            PrimaryKeyConstraint = new PrimaryKeyConstraintDto
             {
                 ConstraintName = $"PK_{tableName}",
-                Columns = ["Id"],
+                ColumnNames = ["Id"],
             },
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     private static async Task<TableDto?> CreateTestTableWithConstraints(
@@ -669,19 +809,19 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
         string? schemaName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName = schemaName,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Email",
                     ProviderDataType =
@@ -690,13 +830,13 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Age",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Status",
                     ProviderDataType =
@@ -706,14 +846,14 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreatePrimaryKeyRequest
+            PrimaryKeyConstraint = new PrimaryKeyConstraintDto
             {
                 ConstraintName = $"PK_{tableName}",
-                Columns = ["Id"],
+                ColumnNames = ["Id"],
             },
             UniqueConstraints =
             [
-                new CreateUniqueConstraintRequest
+                new UniqueConstraintDto
                 {
                     ConstraintName = $"UQ_{tableName}_Email",
                     ColumnNames = ["Email"],
@@ -723,7 +863,7 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                 datasourceId != TestcontainersAssemblyFixture.DatasourceId_MySql
                     ? // MySQL doesn't support check constraints in older versions
                     [
-                        new CreateCheckConstraintRequest
+                        new CheckConstraintDto
                         {
                             ConstraintName = $"CK_{tableName}_Age",
                             CheckExpression = "Age >= 0 AND Age <= 150",
@@ -732,7 +872,8 @@ public class DapperMaticServiceTablesTests : IClassFixture<TestcontainersAssembl
                     : null,
         };
 
-        return await service.CreateTableAsync(datasourceId, request, schemaName);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     #endregion

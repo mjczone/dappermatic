@@ -59,7 +59,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AddDatasourceRequest"
+                "$ref": "#/components/schemas/DatasourceDto"
               }
             }
           },
@@ -94,7 +94,7 @@ export default {
         "operationId": "GetDatasource",
         "parameters": [
           {
-            "name": "id",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -129,7 +129,7 @@ export default {
         "operationId": "UpdateDatasource",
         "parameters": [
           {
-            "name": "id",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -141,7 +141,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDatasourceRequest"
+                "$ref": "#/components/schemas/DatasourceDto"
               }
             }
           },
@@ -174,7 +174,7 @@ export default {
         "operationId": "PatchDatasource",
         "parameters": [
           {
-            "name": "id",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -186,7 +186,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDatasourceRequest"
+                "$ref": "#/components/schemas/DatasourceDto"
               }
             }
           },
@@ -219,7 +219,7 @@ export default {
         "operationId": "RemoveDatasource",
         "parameters": [
           {
-            "name": "id",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -256,7 +256,7 @@ export default {
         "operationId": "TestDatasource",
         "parameters": [
           {
-            "name": "id",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
@@ -317,7 +317,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DataTypesResponse"
+                  "$ref": "#/components/schemas/ProviderDataTypeListResponse"
                 }
               }
             }
@@ -394,7 +394,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSchemaRequest"
+                "$ref": "#/components/schemas/SchemaDto"
               }
             }
           },
@@ -565,6 +565,14 @@ export default {
         "operationId": "ListDefaultSchemaTables",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "include",
             "in": "query",
             "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.",
@@ -572,6 +580,13 @@ export default {
               "type": "string"
             },
             "example": "columns,indexes"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -599,11 +614,21 @@ export default {
         ],
         "summary": "Creates a new table in the default schema",
         "operationId": "CreateDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTableRequest"
+                "$ref": "#/components/schemas/TableDto"
               }
             }
           },
@@ -641,6 +666,14 @@ export default {
         "operationId": "GetDefaultSchemaTable",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -677,13 +710,21 @@ export default {
           }
         }
       },
-      "delete": {
+      "put": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Drops a table from the default schema",
-        "operationId": "DropDefaultSchemaTable",
+        "summary": "Updates a table in the default schema",
+        "operationId": "UpdateDefaultSchemaTable",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -693,6 +734,16 @@ export default {
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -712,13 +763,21 @@ export default {
           }
         }
       },
-      "put": {
+      "delete": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Renames a table in the default schema",
-        "operationId": "RenameDefaultSchemaTable",
+        "summary": "Drops a table from the default schema",
+        "operationId": "DropDefaultSchemaTable",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -728,16 +787,6 @@ export default {
             }
           }
         ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RenameTableRequest"
-              }
-            }
-          },
-          "required": true
-        },
         "responses": {
           "200": {
             "description": "OK",
@@ -766,6 +815,14 @@ export default {
         "summary": "Checks if a table exists in the default schema",
         "operationId": "DefaultSchemaTableExists",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -804,6 +861,14 @@ export default {
         "operationId": "QueryDefaultSchemaTableViaGet",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -839,6 +904,14 @@ export default {
         "operationId": "QueryDefaultSchemaTable",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -851,7 +924,457 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/QueryRequest"
+                "$ref": "#/components/schemas/QueryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all tables for a specific schema",
+        "operationId": "ListSchemaTables",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "columns,indexes"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a new table in a specific schema",
+        "operationId": "CreateSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a table by name from a specific schema",
+        "operationId": "GetSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "columns,indexes,constraints"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Updates a table in a specific schema",
+        "operationId": "UpdateSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a table from a specific schema",
+        "operationId": "DropSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Checks if a table exists in a specific schema",
+        "operationId": "SchemaTableExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableExistsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/query": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in a specific schema using URL parameters",
+        "operationId": "QuerySchemaTableViaGet",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in a specific schema with filtering, sorting, and pagination",
+        "operationId": "QuerySchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryDto"
               }
             }
           },
@@ -885,6 +1408,14 @@ export default {
         "summary": "Gets all columns for a table in the default schema",
         "operationId": "ListDefaultSchemaColumns",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -921,6 +1452,14 @@ export default {
         "operationId": "AddDefaultSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -933,7 +1472,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTableColumnRequest"
+                "$ref": "#/components/schemas/ColumnDto"
               }
             }
           },
@@ -970,6 +1509,14 @@ export default {
         "summary": "Gets a specific column from a table in the default schema",
         "operationId": "GetDefaultSchemaColumn",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -1014,6 +1561,14 @@ export default {
         "operationId": "UpdateDefaultSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -1034,7 +1589,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameColumnRequest"
+                "$ref": "#/components/schemas/ColumnDto"
               }
             }
           },
@@ -1067,6 +1622,14 @@ export default {
         "operationId": "DropDefaultSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -1084,1321 +1647,8 @@ export default {
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ColumnResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/indexes": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all indexes for a table in the default schema",
-        "operationId": "ListDefaultSchemaIndexes",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a new index on a table in the default schema",
-        "operationId": "CreateDefaultSchemaIndex",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateIndexRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/indexes/{indexName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific index from a table in the default schema",
-        "operationId": "GetDefaultSchemaIndex",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "indexName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops an index from a table in the default schema",
-        "operationId": "DropDefaultSchemaIndex",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "indexName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/primarykey": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets the primary key constraint for a table in the default schema",
-        "operationId": "GetDefaultSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a primary key constraint on a table in the default schema",
-        "operationId": "CreateDefaultSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePrimaryKeyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops the primary key constraint from a table in the default schema",
-        "operationId": "DropDefaultSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/foreignkeys": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all foreign key constraints for a table in the default schema",
-        "operationId": "ListDefaultSchemaForeignKeys",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a foreign key constraint on a table in the default schema",
-        "operationId": "CreateDefaultSchemaForeignKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateForeignKeyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/foreignkeys/{constraintName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific foreign key constraint from a table in the default schema",
-        "operationId": "GetDefaultSchemaForeignKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a foreign key constraint from a table in the default schema",
-        "operationId": "DropDefaultSchemaForeignKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/checkconstraints": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all check constraints for a table in the default schema",
-        "operationId": "ListDefaultSchemaCheckConstraints",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckConstraintListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a check constraint on a table in the default schema",
-        "operationId": "CreateDefaultSchemaCheckConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateCheckConstraintRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/checkconstraints/{constraintName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific check constraint from a table in the default schema",
-        "operationId": "GetDefaultSchemaCheckConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a check constraint from a table in the default schema",
-        "operationId": "DropDefaultSchemaCheckConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CheckConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/uniqueconstraints": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all unique constraints for a table in the default schema",
-        "operationId": "ListDefaultSchemaUniqueConstraints",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a unique constraint on a table in the default schema",
-        "operationId": "CreateDefaultSchemaUniqueConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateUniqueConstraintRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/uniqueconstraints/{constraintName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific unique constraint from a table in the default schema",
-        "operationId": "GetDefaultSchemaUniqueConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a unique constraint from a table in the default schema",
-        "operationId": "DropDefaultSchemaUniqueConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/defaultconstraints": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all default constraints for a table in the default schema",
-        "operationId": "ListDefaultSchemaDefaultConstraints",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DefaultConstraintListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a default constraint on a table in the default schema",
-        "operationId": "CreateDefaultSchemaDefaultConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateDefaultConstraintRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DefaultConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/defaultconstraints/{constraintName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific default constraint from a table in the default schema",
-        "operationId": "GetDefaultSchemaDefaultConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DefaultConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a default constraint from a table in the default schema",
-        "operationId": "DropDefaultSchemaDefaultConstraint",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "constraintName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DefaultConstraintResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all tables for a specific schema",
-        "operationId": "ListSchemaTables",
-        "parameters": [
-          {
-            "name": "include",
-            "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "columns,indexes"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a new table in a specific schema",
-        "operationId": "CreateSchemaTable",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTableRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a table by name from a specific schema",
-        "operationId": "GetSchemaTable",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields.",
-            "schema": {
-              "type": "string"
-            },
-            "example": "columns,indexes,constraints"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a table from a specific schema",
-        "operationId": "DropSchemaTable",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Renames a table in a specific schema",
-        "operationId": "RenameSchemaTable",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/RenameTableRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Checks if a table exists in a specific schema",
-        "operationId": "SchemaTableExists",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/query": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in a specific schema using URL parameters",
-        "operationId": "QuerySchemaTableViaGet",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in a specific schema with filtering, sorting, and pagination",
-        "operationId": "QuerySchemaTable",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
+          "204": {
+            "description": "No Content"
           },
           "403": {
             "description": "Forbidden"
@@ -2417,6 +1667,21 @@ export default {
         "summary": "Gets all columns for a table in a specific schema",
         "operationId": "ListSchemaColumns",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -2453,6 +1718,21 @@ export default {
         "operationId": "AddSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -2465,7 +1745,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateTableColumnRequest"
+                "$ref": "#/components/schemas/ColumnDto"
               }
             }
           },
@@ -2502,6 +1782,21 @@ export default {
         "summary": "Gets a specific column from a table in a specific schema",
         "operationId": "GetSchemaColumn",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -2546,6 +1841,21 @@ export default {
         "operationId": "UpdateSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -2566,7 +1876,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RenameColumnRequest"
+                "$ref": "#/components/schemas/ColumnDto"
               }
             }
           },
@@ -2599,6 +1909,21 @@ export default {
         "operationId": "DropSchemaColumn",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -2616,15 +1941,8 @@ export default {
           }
         ],
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ColumnResponse"
-                }
-              }
-            }
+          "204": {
+            "description": "No Content"
           },
           "403": {
             "description": "Forbidden"
@@ -2635,14 +1953,22 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/indexes": {
+    "/api/dm/d/{datasourceId}/t/{tableName}/check-constraints": {
       "get": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Gets all indexes for a table in a specific schema",
-        "operationId": "ListSchemaIndexes",
+        "summary": "Gets all check constraints for a table in the default schema",
+        "operationId": "ListDefaultSchemaCheckConstraints",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -2658,7 +1984,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IndexListResponse"
+                  "$ref": "#/components/schemas/CheckConstraintListResponse"
                 }
               }
             }
@@ -2675,9 +2001,17 @@ export default {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Creates a new index on a table in a specific schema",
-        "operationId": "CreateSchemaIndex",
+        "summary": "Creates a check constraint on a table in the default schema",
+        "operationId": "CreateDefaultSchemaCheckConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -2691,7 +2025,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateIndexRequest"
+                "$ref": "#/components/schemas/CheckConstraintDto"
               }
             }
           },
@@ -2703,7 +2037,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
+                  "$ref": "#/components/schemas/CheckConstraintResponse"
                 }
               }
             }
@@ -2720,307 +2054,22 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/indexes/{indexName}": {
+    "/api/dm/d/{datasourceId}/t/{tableName}/check-constraints/{constraintName}": {
       "get": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Gets a specific index from a table in a specific schema",
-        "operationId": "GetSchemaIndex",
+        "summary": "Gets a specific check constraint from a table in the default schema",
+        "operationId": "GetDefaultSchemaCheckConstraint",
         "parameters": [
           {
-            "name": "tableName",
+            "name": "datasourceId",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string"
             }
           },
-          {
-            "name": "indexName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops an index from a table in a specific schema",
-        "operationId": "DropSchemaIndex",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "indexName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IndexResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/primarykey": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets the primary key constraint for a table in a specific schema",
-        "operationId": "GetSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a primary key constraint on a table in a specific schema",
-        "operationId": "CreateSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreatePrimaryKeyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops the primary key constraint from a table in a specific schema",
-        "operationId": "DropSchemaPrimaryKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PrimaryKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/foreignkeys": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all foreign key constraints for a table in a specific schema",
-        "operationId": "ListSchemaForeignKeys",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a foreign key constraint on a table in a specific schema",
-        "operationId": "CreateSchemaForeignKey",
-        "parameters": [
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateForeignKeyRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/foreignkeys/{constraintName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a specific foreign key constraint from a table in a specific schema",
-        "operationId": "GetSchemaForeignKey",
-        "parameters": [
           {
             "name": "tableName",
             "in": "path",
@@ -3044,7 +2093,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                  "$ref": "#/components/schemas/CheckConstraintResponse"
                 }
               }
             }
@@ -3061,9 +2110,17 @@ export default {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Drops a foreign key constraint from a table in a specific schema",
-        "operationId": "DropSchemaForeignKey",
+        "summary": "Drops a check constraint from a table in the default schema",
+        "operationId": "DropDefaultSchemaCheckConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3087,7 +2144,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                  "$ref": "#/components/schemas/CheckConstraintResponse"
                 }
               }
             }
@@ -3101,7 +2158,7 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/checkconstraints": {
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/check-constraints": {
       "get": {
         "tags": [
           "DapperMatic Tables"
@@ -3109,6 +2166,21 @@ export default {
         "summary": "Gets all check constraints for a table in a specific schema",
         "operationId": "ListSchemaCheckConstraints",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3145,6 +2217,21 @@ export default {
         "operationId": "CreateSchemaCheckConstraint",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -3157,7 +2244,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCheckConstraintRequest"
+                "$ref": "#/components/schemas/CheckConstraintDto"
               }
             }
           },
@@ -3186,7 +2273,7 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/checkconstraints/{constraintName}": {
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/check-constraints/{constraintName}": {
       "get": {
         "tags": [
           "DapperMatic Tables"
@@ -3194,6 +2281,21 @@ export default {
         "summary": "Gets a specific check constraint from a table in a specific schema",
         "operationId": "GetSchemaCheckConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3238,6 +2340,21 @@ export default {
         "operationId": "DropSchemaCheckConstraint",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -3274,14 +2391,22 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/uniqueconstraints": {
+    "/api/dm/d/{datasourceId}/t/{tableName}/default-constraints": {
       "get": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Gets all unique constraints for a table in a specific schema",
-        "operationId": "ListSchemaUniqueConstraints",
+        "summary": "Gets all default constraints for a table in the default schema",
+        "operationId": "ListDefaultSchemaDefaultConstraints",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3297,7 +2422,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintListResponse"
+                  "$ref": "#/components/schemas/DefaultConstraintListResponse"
                 }
               }
             }
@@ -3314,9 +2439,17 @@ export default {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Creates a unique constraint on a table in a specific schema",
-        "operationId": "CreateSchemaUniqueConstraint",
+        "summary": "Creates a default constraint on a table in the default schema",
+        "operationId": "CreateDefaultSchemaDefaultConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3330,7 +2463,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateUniqueConstraintRequest"
+                "$ref": "#/components/schemas/DefaultConstraintDto"
               }
             }
           },
@@ -3342,7 +2475,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
                 }
               }
             }
@@ -3359,14 +2492,22 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/uniqueconstraints/{constraintName}": {
+    "/api/dm/d/{datasourceId}/t/{tableName}/default-constraints/{constraintName}": {
       "get": {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Gets a specific unique constraint from a table in a specific schema",
-        "operationId": "GetSchemaUniqueConstraint",
+        "summary": "Gets a specific default constraint from a table in the default schema",
+        "operationId": "GetDefaultSchemaDefaultConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3390,7 +2531,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
                 }
               }
             }
@@ -3407,9 +2548,17 @@ export default {
         "tags": [
           "DapperMatic Tables"
         ],
-        "summary": "Drops a unique constraint from a table in a specific schema",
-        "operationId": "DropSchemaUniqueConstraint",
+        "summary": "Drops a default constraint from a table in the default schema",
+        "operationId": "DropDefaultSchemaDefaultConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3433,7 +2582,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
                 }
               }
             }
@@ -3447,7 +2596,7 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/defaultconstraints": {
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/default-constraints": {
       "get": {
         "tags": [
           "DapperMatic Tables"
@@ -3455,6 +2604,21 @@ export default {
         "summary": "Gets all default constraints for a table in a specific schema",
         "operationId": "ListSchemaDefaultConstraints",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3491,6 +2655,21 @@ export default {
         "operationId": "CreateSchemaDefaultConstraint",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -3503,7 +2682,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDefaultConstraintRequest"
+                "$ref": "#/components/schemas/DefaultConstraintDto"
               }
             }
           },
@@ -3532,7 +2711,7 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/defaultconstraints/{constraintName}": {
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/default-constraints/{constraintName}": {
       "get": {
         "tags": [
           "DapperMatic Tables"
@@ -3540,6 +2719,21 @@ export default {
         "summary": "Gets a specific default constraint from a table in a specific schema",
         "operationId": "GetSchemaDefaultConstraint",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "tableName",
             "in": "path",
@@ -3584,6 +2778,21 @@ export default {
         "operationId": "DropSchemaDefaultConstraint",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "tableName",
             "in": "path",
             "required": true,
@@ -3620,6 +2829,1629 @@ export default {
         }
       }
     },
+    "/api/dm/d/{datasourceId}/t/{tableName}/foreign-key-constraints": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all foreign key constraints for a table in the default schema",
+        "operationId": "ListDefaultSchemaForeignKeyConstraints",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a foreign key constraint on a table in the default schema",
+        "operationId": "CreateDefaultSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForeignKeyConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/foreign-key-constraints/{constraintName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific foreign key constraint from a table in the default schema",
+        "operationId": "GetDefaultSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a foreign key constraint from a table in the default schema",
+        "operationId": "DropDefaultSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/foreign-key-constraints": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all foreign key constraints for a table in a specific schema",
+        "operationId": "ListSchemaForeignKeyConstraints",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a foreign key constraint on a table in a specific schema",
+        "operationId": "CreateSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForeignKeyConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/foreign-key-constraints/{constraintName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific foreign key constraint from a table in a specific schema",
+        "operationId": "GetSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a foreign key constraint from a table in a specific schema",
+        "operationId": "DropSchemaForeignKeyConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ForeignKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/primary-key-constraint": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets the primary key constraint for a table in the default schema",
+        "operationId": "GetDefaultSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a primary key constraint on a table in the default schema",
+        "operationId": "CreateDefaultSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrimaryKeyConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops the primary key constraint from a table in the default schema",
+        "operationId": "DropDefaultSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/primary-key-constraint": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets the primary key constraint for a table in a specific schema",
+        "operationId": "GetSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a primary key constraint on a table in a specific schema",
+        "operationId": "CreateSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PrimaryKeyConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops the primary key constraint from a table in a specific schema",
+        "operationId": "DropSchemaPrimaryKey",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PrimaryKeyResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/unique-constraints": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all unique constraints for a table in the default schema",
+        "operationId": "ListDefaultSchemaUniqueConstraints",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a unique constraint on a table in the default schema",
+        "operationId": "CreateDefaultSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniqueConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/unique-constraints/{constraintName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific unique constraint from a table in the default schema",
+        "operationId": "GetDefaultSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a unique constraint from a table in the default schema",
+        "operationId": "DropDefaultSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/unique-constraints": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all unique constraints for a table in a specific schema",
+        "operationId": "ListSchemaUniqueConstraints",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a unique constraint on a table in a specific schema",
+        "operationId": "CreateSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UniqueConstraintDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/unique-constraints/{constraintName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific unique constraint from a table in a specific schema",
+        "operationId": "GetSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a unique constraint from a table in a specific schema",
+        "operationId": "DropSchemaUniqueConstraint",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UniqueConstraintResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/indexes": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all indexes for a table in the default schema",
+        "operationId": "ListDefaultSchemaIndexes",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a new index on a table in the default schema",
+        "operationId": "CreateDefaultSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/indexes/{indexName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific index from a table in the default schema",
+        "operationId": "GetDefaultSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops an index from a table in the default schema",
+        "operationId": "DropDefaultSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/indexes": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all indexes for a table in a specific schema",
+        "operationId": "ListSchemaIndexes",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a new index on a table in a specific schema",
+        "operationId": "CreateSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IndexDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/indexes/{indexName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific index from a table in a specific schema",
+        "operationId": "GetSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops an index from a table in a specific schema",
+        "operationId": "DropSchemaIndex",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "indexName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IndexResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/dm/d/{datasourceId}/v": {
       "get": {
         "tags": [
@@ -3629,6 +4461,14 @@ export default {
         "operationId": "ListDefaultSchemaViews",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "include",
             "in": "query",
             "description": "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
@@ -3636,6 +4476,13 @@ export default {
               "type": "string"
             },
             "example": "definition"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3663,11 +4510,21 @@ export default {
         ],
         "summary": "Creates a new view in the default schema",
         "operationId": "CreateDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateViewRequest"
+                "$ref": "#/components/schemas/ViewDto"
               }
             }
           },
@@ -3704,6 +4561,14 @@ export default {
         "summary": "Gets a view by name from the default schema",
         "operationId": "GetDefaultSchemaView",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "viewName",
             "in": "path",
@@ -3749,6 +4614,14 @@ export default {
         "operationId": "UpdateDefaultSchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -3761,7 +4634,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateViewRequest"
+                "$ref": "#/components/schemas/ViewDto"
               }
             }
           },
@@ -3794,6 +4667,52 @@ export default {
         "operationId": "DropDefaultSchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v/{viewName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Checks if a view exists in the default schema",
+        "operationId": "DefaultSchemaViewExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -3808,7 +4727,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
+                  "$ref": "#/components/schemas/ViewExistsResponse"
                 }
               }
             }
@@ -3830,6 +4749,14 @@ export default {
         "summary": "Queries a view in the default schema using URL parameters",
         "operationId": "QueryDefaultSchemaViewViaGet",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "viewName",
             "in": "path",
@@ -3866,6 +4793,14 @@ export default {
         "operationId": "QueryDefaultSchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -3878,7 +4813,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/QueryRequest"
+                "$ref": "#/components/schemas/QueryDto"
               }
             }
           },
@@ -3904,43 +4839,6 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/v/{viewName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Checks if a view exists in the default schema",
-        "operationId": "DefaultSchemaViewExists",
-        "parameters": [
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/api/dm/d/{datasourceId}/s/{schemaName}/v": {
       "get": {
         "tags": [
@@ -3950,6 +4848,21 @@ export default {
         "operationId": "ListSchemaViews",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "include",
             "in": "query",
             "description": "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
@@ -3957,6 +4870,13 @@ export default {
               "type": "string"
             },
             "example": "definition"
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -3984,11 +4904,28 @@ export default {
         ],
         "summary": "Creates a new view in a specific schema",
         "operationId": "CreateSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateViewRequest"
+                "$ref": "#/components/schemas/ViewDto"
               }
             }
           },
@@ -4025,6 +4962,21 @@ export default {
         "summary": "Gets a view by name from a specific schema",
         "operationId": "GetSchemaView",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "viewName",
             "in": "path",
@@ -4070,6 +5022,21 @@ export default {
         "operationId": "UpdateSchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -4082,7 +5049,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateViewRequest"
+                "$ref": "#/components/schemas/ViewDto"
               }
             }
           },
@@ -4115,6 +5082,66 @@ export default {
         "operationId": "DropSchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Checks if a view exists in a specific schema",
+        "operationId": "SchemaViewExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -4129,7 +5156,7 @@ export default {
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
+                  "$ref": "#/components/schemas/ViewExistsResponse"
                 }
               }
             }
@@ -4151,6 +5178,21 @@ export default {
         "summary": "Queries a view in a specific schema using URL parameters",
         "operationId": "QuerySchemaViewViaGet",
         "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "viewName",
             "in": "path",
@@ -4187,6 +5229,21 @@ export default {
         "operationId": "QuerySchemaView",
         "parameters": [
           {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "viewName",
             "in": "path",
             "required": true,
@@ -4199,7 +5256,7 @@ export default {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/QueryRequest"
+                "$ref": "#/components/schemas/QueryDto"
               }
             }
           },
@@ -4224,110 +5281,31 @@ export default {
           }
         }
       }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Checks if a view exists in a specific schema",
-        "operationId": "SchemaViewExists",
-        "parameters": [
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
-      "AddDatasourceRequest": {
+      "CheckConstraintDto": {
         "required": [
-          "connectionString",
-          "displayName",
-          "provider"
+          "checkExpression"
         ],
         "type": "object",
         "properties": {
-          "id": {
-            "maxLength": 64,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "provider": {
-            "maxLength": 10,
-            "minLength": 2,
-            "type": "string"
-          },
-          "connectionString": {
-            "maxLength": 2000,
-            "minLength": 0,
-            "type": "string"
-          },
-          "displayName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string"
-          },
-          "description": {
-            "maxLength": 1000,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "isEnabled": {
-            "type": "boolean",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CheckConstraintDto": {
-        "type": "object",
-        "properties": {
           "constraintName": {
+            "maxLength": 128,
+            "minLength": 1,
             "type": "string",
             "nullable": true
           },
           "columnName": {
+            "maxLength": 128,
+            "minLength": 1,
             "type": "string",
             "nullable": true
           },
           "checkExpression": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4341,13 +5319,6 @@ export default {
               "$ref": "#/components/schemas/CheckConstraintDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -4357,27 +5328,25 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/CheckConstraintDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
       "ColumnDto": {
+        "required": [
+          "columnName",
+          "dotnetTypeName"
+        ],
         "type": "object",
         "properties": {
           "columnName": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
           },
           "dotnetTypeName": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           },
           "providerDataType": {
             "type": "string",
@@ -4450,13 +5419,6 @@ export default {
               "$ref": "#/components/schemas/ColumnDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -4466,500 +5428,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/ColumnDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateCheckConstraintRequest": {
-        "required": [
-          "checkExpression"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "columnName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "checkExpression": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateDefaultConstraintRequest": {
-        "required": [
-          "columnName",
-          "defaultExpression"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "columnName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "defaultExpression": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateForeignKeyRequest": {
-        "required": [
-          "columns",
-          "referencedColumns",
-          "referencedTableName"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "referencedTableName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "referencedColumns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "onUpdate": {
-            "type": "string",
-            "nullable": true
-          },
-          "onDelete": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateIndexRequest": {
-        "required": [
-          "columns",
-          "indexName"
-        ],
-        "type": "object",
-        "properties": {
-          "indexName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "isUnique": {
-            "type": "boolean"
-          },
-          "filterExpression": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreatePrimaryKeyRequest": {
-        "required": [
-          "columns"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateSchemaRequest": {
-        "required": [
-          "schemaName"
-        ],
-        "type": "object",
-        "properties": {
-          "schemaName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableCheckConstraintRequest": {
-        "required": [
-          "checkExpression"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columnName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "checkExpression": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableColumnRequest": {
-        "required": [
-          "columnName",
-          "providerDataType"
-        ],
-        "type": "object",
-        "properties": {
-          "columnName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "providerDataType": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "checkExpression": {
-            "type": "string",
-            "nullable": true
-          },
-          "defaultExpression": {
-            "type": "string",
-            "nullable": true
-          },
-          "isNullable": {
-            "type": "boolean"
-          },
-          "isPrimaryKey": {
-            "type": "boolean"
-          },
-          "isAutoIncrement": {
-            "type": "boolean"
-          },
-          "isUnique": {
-            "type": "boolean"
-          },
-          "isUnicode": {
-            "type": "boolean",
-            "nullable": true
-          },
-          "isIndexed": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableDefaultConstraintRequest": {
-        "required": [
-          "columnName",
-          "defaultExpression"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columnName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "defaultExpression": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableForeignKeyRequest": {
-        "required": [
-          "columns",
-          "referencedColumns",
-          "referencedTableName"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "referencedTableName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "referencedSchemaName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "referencedColumns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "onDelete": {
-            "type": "string",
-            "nullable": true
-          },
-          "onUpdate": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableIndexRequest": {
-        "required": [
-          "columns",
-          "indexName"
-        ],
-        "type": "object",
-        "properties": {
-          "indexName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "isUnique": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreatePrimaryKeyRequest": {
-        "required": [
-          "columns"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateTableRequest": {
-        "required": [
-          "columns",
-          "tableName"
-        ],
-        "type": "object",
-        "properties": {
-          "tableName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "schemaName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateTableColumnRequest"
-            }
-          },
-          "primaryKey": {
-            "$ref": "#/components/schemas/CreatePrimaryKeyRequest"
-          },
-          "foreignKeys": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateTableForeignKeyRequest"
-            },
-            "nullable": true
-          },
-          "checkConstraints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateTableCheckConstraintRequest"
-            },
-            "nullable": true
-          },
-          "defaultConstraints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateTableDefaultConstraintRequest"
-            },
-            "nullable": true
-          },
-          "uniqueConstraints": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateUniqueConstraintRequest"
-            },
-            "nullable": true
-          },
-          "indexes": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateTableIndexRequest"
-            },
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateUniqueConstraintRequest": {
-        "required": [
-          "columnNames"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "columnNames": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateUniqueConstraintRequest": {
-        "required": [
-          "columns"
-        ],
-        "type": "object",
-        "properties": {
-          "constraintName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          },
-          "columns": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateViewRequest": {
-        "required": [
-          "viewDefinition",
-          "viewName"
-        ],
-        "type": "object",
-        "properties": {
-          "viewName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string"
-          },
-          "schemaName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "viewDefinition": {
-            "minLength": 1,
-            "type": "string"
           }
         },
         "additionalProperties": false
@@ -5056,26 +5524,35 @@ export default {
         },
         "additionalProperties": false
       },
-      "DataTypesResponse": {
+      "DatasourceConnectivityTestDto": {
         "type": "object",
         "properties": {
-          "result": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeDto"
-            },
-            "nullable": true
-          },
-          "message": {
+          "datasourceId": {
             "type": "string",
             "nullable": true
           },
-          "success": {
+          "connected": {
             "type": "boolean"
           },
-          "providerName": {
+          "provider": {
             "type": "string",
             "nullable": true
+          },
+          "serverVersion": {
+            "type": "string",
+            "nullable": true
+          },
+          "databaseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "errorMessage": {
+            "type": "string",
+            "nullable": true
+          },
+          "responseTimeMs": {
+            "type": "integer",
+            "format": "int64"
           }
         },
         "additionalProperties": false
@@ -5084,22 +5561,32 @@ export default {
         "type": "object",
         "properties": {
           "id": {
+            "maxLength": 64,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "provider": {
+            "maxLength": 10,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "connectionString": {
+            "maxLength": 2000,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "displayName": {
+            "maxLength": 128,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "description": {
+            "maxLength": 1000,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
@@ -5134,13 +5621,6 @@ export default {
               "$ref": "#/components/schemas/DatasourceDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5150,13 +5630,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/DatasourceDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5166,64 +5639,31 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/DatasourceConnectivityTestDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "DatasourceConnectivityTestDto": {
-        "type": "object",
-        "properties": {
-          "isConnected": {
-            "type": "boolean"
-          },
-          "datasourceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "provider": {
-            "type": "string",
-            "nullable": true
-          },
-          "serverVersion": {
-            "type": "string",
-            "nullable": true
-          },
-          "databaseName": {
-            "type": "string",
-            "nullable": true
-          },
-          "errorMessage": {
-            "type": "string",
-            "nullable": true
-          },
-          "responseTimeMs": {
-            "type": "integer",
-            "format": "int64"
           }
         },
         "additionalProperties": false
       },
       "DefaultConstraintDto": {
+        "required": [
+          "columnName",
+          "defaultExpression"
+        ],
         "type": "object",
         "properties": {
           "constraintName": {
+            "maxLength": 128,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "columnName": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
           },
           "defaultExpression": {
-            "type": "string",
-            "nullable": true
+            "minLength": 1,
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -5237,13 +5677,6 @@ export default {
               "$ref": "#/components/schemas/DefaultConstraintDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5253,13 +5686,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/DefaultConstraintDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5282,35 +5708,47 @@ export default {
         "additionalProperties": false
       },
       "ForeignKeyConstraintDto": {
+        "required": [
+          "columnNames",
+          "referencedColumnNames",
+          "referencedTableName"
+        ],
         "type": "object",
         "properties": {
           "constraintName": {
+            "maxLength": 128,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "columnNames": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "referencedTableName": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
           },
           "referencedColumnNames": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "onDelete": {
+            "maxLength": 20,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "onUpdate": {
+            "maxLength": 20,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           }
@@ -5326,13 +5764,6 @@ export default {
               "$ref": "#/components/schemas/ForeignKeyConstraintDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5342,30 +5773,28 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/ForeignKeyConstraintDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
       "IndexDto": {
+        "required": [
+          "columnNames",
+          "indexName"
+        ],
         "type": "object",
         "properties": {
           "indexName": {
-            "type": "string",
-            "nullable": true
+            "maxLength": 128,
+            "minLength": 0,
+            "type": "string"
           },
           "columnNames": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "isUnique": {
             "type": "boolean"
@@ -5385,13 +5814,6 @@ export default {
               "$ref": "#/components/schemas/IndexDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5401,13 +5823,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/IndexDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5446,18 +5861,23 @@ export default {
         "additionalProperties": false
       },
       "PrimaryKeyConstraintDto": {
+        "required": [
+          "columnNames"
+        ],
         "type": "object",
         "properties": {
           "constraintName": {
+            "maxLength": 128,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "columnNames": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -5467,18 +5887,28 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/PrimaryKeyConstraintDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
-      "QueryRequest": {
+      "ProviderDataTypeListResponse": {
+        "type": "object",
+        "properties": {
+          "providerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "result": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataTypeDto"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryDto": {
         "type": "object",
         "properties": {
           "take": {
@@ -5510,6 +5940,10 @@ export default {
           "select": {
             "type": "string",
             "nullable": true
+          },
+          "schemaName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5518,22 +5952,6 @@ export default {
         "type": "object",
         "properties": {
           "result": {
-            "$ref": "#/components/schemas/QueryResultDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "QueryResultDto": {
-        "type": "object",
-        "properties": {
-          "data": {
             "type": "array",
             "items": {},
             "nullable": true
@@ -5551,41 +5969,16 @@ export default {
         },
         "additionalProperties": false
       },
-      "RenameColumnRequest": {
-        "type": "object",
-        "properties": {
-          "newColumnName": {
-            "maxLength": 128,
-            "minLength": 1,
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "RenameTableRequest": {
+      "SchemaDto": {
         "required": [
-          "newTableName"
+          "schemaName"
         ],
         "type": "object",
         "properties": {
-          "newTableName": {
+          "schemaName": {
+            "maxLength": 128,
             "minLength": 1,
             "type": "string"
-          },
-          "schemaName": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "SchemaDto": {
-        "type": "object",
-        "properties": {
-          "schemaName": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -5594,13 +5987,6 @@ export default {
         "type": "object",
         "properties": {
           "result": {
-            "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
             "type": "boolean"
           }
         },
@@ -5615,13 +6001,6 @@ export default {
               "$ref": "#/components/schemas/SchemaDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5631,13 +6010,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/SchemaDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5645,6 +6017,10 @@ export default {
       "TableDto": {
         "type": "object",
         "properties": {
+          "schemaName": {
+            "type": "string",
+            "nullable": true
+          },
           "tableName": {
             "type": "string",
             "nullable": true
@@ -5702,13 +6078,6 @@ export default {
         "properties": {
           "result": {
             "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5722,13 +6091,6 @@ export default {
               "$ref": "#/components/schemas/TableDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5738,30 +6100,28 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/TableDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
       },
       "UniqueConstraintDto": {
+        "required": [
+          "columnNames"
+        ],
         "type": "object",
         "properties": {
           "constraintName": {
+            "maxLength": 128,
+            "minLength": 0,
             "type": "string",
             "nullable": true
           },
           "columnNames": {
+            "minItems": 1,
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -5775,13 +6135,6 @@ export default {
               "$ref": "#/components/schemas/UniqueConstraintDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5791,77 +6144,11 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/UniqueConstraintDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateDatasourceRequest": {
-        "type": "object",
-        "properties": {
-          "provider": {
-            "maxLength": 10,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "connectionString": {
-            "maxLength": 2000,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "displayName": {
-            "maxLength": 128,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "description": {
-            "maxLength": 1000,
-            "minLength": 0,
-            "type": "string",
-            "nullable": true
-          },
-          "tags": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            },
-            "nullable": true
-          },
-          "isEnabled": {
-            "type": "boolean",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
-      "UpdateViewRequest": {
-        "type": "object",
-        "properties": {
-          "newViewName": {
-            "type": "string",
-            "nullable": true
-          },
-          "viewDefinition": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
       },
       "ViewDto": {
-        "required": [
-          "definition",
-          "viewName"
-        ],
         "type": "object",
         "properties": {
           "schemaName": {
@@ -5884,13 +6171,6 @@ export default {
         "properties": {
           "result": {
             "type": "boolean"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5904,13 +6184,6 @@ export default {
               "$ref": "#/components/schemas/ViewDto"
             },
             "nullable": true
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -5920,13 +6193,6 @@ export default {
         "properties": {
           "result": {
             "$ref": "#/components/schemas/ViewDto"
-          },
-          "message": {
-            "type": "string",
-            "nullable": true
-          },
-          "success": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false

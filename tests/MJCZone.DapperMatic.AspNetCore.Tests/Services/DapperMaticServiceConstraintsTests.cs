@@ -3,10 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Security.Claims;
 using FluentAssertions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
 using MJCZone.DapperMatic.AspNetCore.Services;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 
@@ -58,13 +56,20 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         // === PRIMARY KEY CONSTRAINT TESTS (3 methods) ===
 
         // Step 1: Create a primary key constraint
-        var primaryKeyRequest = new CreatePrimaryKeyRequest
+        var primaryKeyRequest = new PrimaryKeyConstraintDto
         {
             ConstraintName = "PK_ConstraintTest_Id",
-            Columns = ["Id"],
+            ColumnNames = ["Id"],
         };
 
+        var primaryKeyCreateContext = OperationIdentifiers.ForPrimaryKeyCreate(
+            datasourceId,
+            "ConstraintTest",
+            primaryKeyRequest,
+            schemaName
+        );
         var primaryKey = await service.CreatePrimaryKeyAsync(
+            primaryKeyCreateContext,
             datasourceId,
             "ConstraintTest",
             primaryKeyRequest,
@@ -80,7 +85,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .BeTrue();
 
         // Step 2: Get the primary key
+        var primaryKeyGetContext = OperationIdentifiers.ForPrimaryKeyGet(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
         var retrievedPrimaryKey = await service.GetPrimaryKeyAsync(
+            primaryKeyGetContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
@@ -97,13 +108,20 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         // === UNIQUE CONSTRAINT TESTS (4 methods) ===
 
         // Step 3: Create a unique constraint
-        var uniqueConstraintRequest = new CreateUniqueConstraintRequest
+        var uniqueConstraintRequest = new UniqueConstraintDto
         {
             ConstraintName = "UQ_ConstraintTest_Email",
-            Columns = ["Email"],
+            ColumnNames = ["Email"],
         };
 
+        var uniqueCreateContext = OperationIdentifiers.ForUniqueConstraintCreate(
+            datasourceId,
+            "ConstraintTest",
+            uniqueConstraintRequest,
+            schemaName
+        );
         var uniqueConstraint = await service.CreateUniqueConstraintAsync(
+            uniqueCreateContext,
             datasourceId,
             "ConstraintTest",
             uniqueConstraintRequest,
@@ -119,7 +137,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .BeTrue();
 
         // Step 4: Get all unique constraints
+        var uniqueListContext = OperationIdentifiers.ForUniqueConstraintList(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
         var uniqueConstraints = await service.GetUniqueConstraintsAsync(
+            uniqueListContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
@@ -136,7 +160,14 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             );
 
         // Step 5: Get specific unique constraint
+        var uniqueGetContext = OperationIdentifiers.ForUniqueConstraintGet(
+            datasourceId,
+            "ConstraintTest",
+            "UQ_ConstraintTest_Email",
+            schemaName
+        );
         var specificUniqueConstraint = await service.GetUniqueConstraintAsync(
+            uniqueGetContext,
             datasourceId,
             "ConstraintTest",
             "UQ_ConstraintTest_Email",
@@ -155,14 +186,21 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         if (datasourceId != TestcontainersAssemblyFixture.DatasourceId_MySql)
         {
             // Step 6: Create a check constraint
-            var checkConstraintRequest = new CreateCheckConstraintRequest
+            var checkConstraintRequest = new CheckConstraintDto
             {
                 ConstraintName = "CK_ConstraintTest_Age",
                 ColumnName = "Age",
                 CheckExpression = "Age >= 0 AND Age <= 120",
             };
 
+            var checkCreateContext = OperationIdentifiers.ForCheckConstraintCreate(
+                datasourceId,
+                "ConstraintTest",
+                checkConstraintRequest,
+                schemaName
+            );
             var checkConstraint = await service.CreateCheckConstraintAsync(
+                checkCreateContext,
                 datasourceId,
                 "ConstraintTest",
                 checkConstraintRequest,
@@ -178,7 +216,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                 .BeTrue();
 
             // Step 7: Get all check constraints
+            var checkListContext = OperationIdentifiers.ForCheckConstraintList(
+                datasourceId,
+                "ConstraintTest",
+                schemaName
+            );
             var checkConstraints = await service.GetCheckConstraintsAsync(
+                checkListContext,
                 datasourceId,
                 "ConstraintTest",
                 schemaName: schemaName
@@ -195,7 +239,14 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                 );
 
             // Step 8: Get specific check constraint
+            var checkGetContext = OperationIdentifiers.ForCheckConstraintGet(
+                datasourceId,
+                "ConstraintTest",
+                "CK_ConstraintTest_Age",
+                schemaName
+            );
             var specificCheckConstraint = await service.GetCheckConstraintAsync(
+                checkGetContext,
                 datasourceId,
                 "ConstraintTest",
                 "CK_ConstraintTest_Age",
@@ -214,17 +265,24 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         // === FOREIGN KEY CONSTRAINT TESTS (4 methods) ===
 
         // Step 9: Create a foreign key constraint
-        var foreignKeyRequest = new CreateForeignKeyRequest
+        var foreignKeyRequest = new ForeignKeyConstraintDto
         {
             ConstraintName = "FK_ConstraintTest_CategoryId",
-            Columns = ["CategoryId"],
+            ColumnNames = ["CategoryId"],
             ReferencedTableName = "RefTable",
-            ReferencedColumns = ["Id"],
+            ReferencedColumnNames = ["Id"],
             OnUpdate = "Cascade",
             OnDelete = "SetNull",
         };
 
+        var foreignKeyCreateContext = OperationIdentifiers.ForForeignKeyCreate(
+            datasourceId,
+            "ConstraintTest",
+            foreignKeyRequest,
+            schemaName
+        );
         var foreignKey = await service.CreateForeignKeyAsync(
+            foreignKeyCreateContext,
             datasourceId,
             "ConstraintTest",
             foreignKeyRequest,
@@ -240,7 +298,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .BeTrue();
 
         // Step 10: Get all foreign keys
+        var foreignKeyListContext = OperationIdentifiers.ForForeignKeyList(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
         var foreignKeys = await service.GetForeignKeysAsync(
+            foreignKeyListContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
@@ -257,7 +321,14 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             );
 
         // Step 11: Get specific foreign key
+        var foreignKeyGetContext = OperationIdentifiers.ForForeignKeyGet(
+            datasourceId,
+            "ConstraintTest",
+            "FK_ConstraintTest_CategoryId",
+            schemaName
+        );
         var specificForeignKey = await service.GetForeignKeyAsync(
+            foreignKeyGetContext,
             datasourceId,
             "ConstraintTest",
             "FK_ConstraintTest_CategoryId",
@@ -276,14 +347,21 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         if (datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
         {
             // Step 12: Create a default constraint
-            var defaultConstraintRequest = new CreateDefaultConstraintRequest
+            var defaultConstraintRequest = new DefaultConstraintDto
             {
                 ConstraintName = "DF_ConstraintTest_Status",
                 ColumnName = "Status",
                 DefaultExpression = "'Active'",
             };
 
+            var defaultCreateContext = OperationIdentifiers.ForDefaultConstraintCreate(
+                datasourceId,
+                "ConstraintTest",
+                defaultConstraintRequest,
+                schemaName
+            );
             var defaultConstraint = await service.CreateDefaultConstraintAsync(
+                defaultCreateContext,
                 datasourceId,
                 "ConstraintTest",
                 defaultConstraintRequest,
@@ -299,7 +377,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                 .BeTrue();
 
             // Step 13: Get all default constraints
+            var defaultListContext = OperationIdentifiers.ForDefaultConstraintList(
+                datasourceId,
+                "ConstraintTest",
+                schemaName
+            );
             var defaultConstraints = await service.GetDefaultConstraintsAsync(
+                defaultListContext,
                 datasourceId,
                 "ConstraintTest",
                 schemaName: schemaName
@@ -316,7 +400,14 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                 );
 
             // Step 14: Get specific default constraint
+            var defaultGetContext = OperationIdentifiers.ForDefaultConstraintGet(
+                datasourceId,
+                "ConstraintTest",
+                "DF_ConstraintTest_Status",
+                schemaName
+            );
             var specificDefaultConstraint = await service.GetDefaultConstraintAsync(
+                defaultGetContext,
                 datasourceId,
                 "ConstraintTest",
                 "DF_ConstraintTest_Status",
@@ -337,64 +428,106 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         // Step 15: Drop constraints (in proper order to avoid dependency issues)
 
         // Drop foreign key first
-        var dropForeignKeyResult = await service.DropForeignKeyAsync(
+        var dropForeignKeyContext = OperationIdentifiers.ForForeignKeyDrop(
+            datasourceId,
+            "ConstraintTest",
+            "FK_ConstraintTest_CategoryId",
+            schemaName
+        );
+        await service.DropForeignKeyAsync(
+            dropForeignKeyContext,
             datasourceId,
             "ConstraintTest",
             "FK_ConstraintTest_CategoryId",
             schemaName: schemaName
         );
-        dropForeignKeyResult.Should().BeTrue();
 
         // Drop default constraint (SQL Server only)
         if (datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
         {
-            var dropDefaultResult = await service.DropDefaultConstraintAsync(
+            var dropDefaultContext = OperationIdentifiers.ForDefaultConstraintDrop(
+                datasourceId,
+                "ConstraintTest",
+                "DF_ConstraintTest_Status",
+                schemaName
+            );
+            await service.DropDefaultConstraintAsync(
+                dropDefaultContext,
                 datasourceId,
                 "ConstraintTest",
                 "DF_ConstraintTest_Status",
                 schemaName: schemaName
             );
-            dropDefaultResult.Should().BeTrue();
         }
 
         // Drop check constraint (non-MySQL)
         if (datasourceId != TestcontainersAssemblyFixture.DatasourceId_MySql)
         {
-            var dropCheckResult = await service.DropCheckConstraintAsync(
+            var dropCheckContext = OperationIdentifiers.ForCheckConstraintDrop(
+                datasourceId,
+                "ConstraintTest",
+                "CK_ConstraintTest_Age",
+                schemaName
+            );
+            await service.DropCheckConstraintAsync(
+                dropCheckContext,
                 datasourceId,
                 "ConstraintTest",
                 "CK_ConstraintTest_Age",
                 schemaName: schemaName
             );
-            dropCheckResult.Should().BeTrue();
         }
 
         // Drop unique constraint
-        var dropUniqueResult = await service.DropUniqueConstraintAsync(
+        var dropUniqueContext = OperationIdentifiers.ForUniqueConstraintDrop(
+            datasourceId,
+            "ConstraintTest",
+            "UQ_ConstraintTest_Email",
+            schemaName
+        );
+        await service.DropUniqueConstraintAsync(
+            dropUniqueContext,
             datasourceId,
             "ConstraintTest",
             "UQ_ConstraintTest_Email",
             schemaName: schemaName
         );
-        dropUniqueResult.Should().BeTrue();
 
         // Drop primary key last
-        var dropPrimaryKeyResult = await service.DropPrimaryKeyAsync(
+        var dropPrimaryKeyContext = OperationIdentifiers.ForPrimaryKeyDrop(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
+        await service.DropPrimaryKeyAsync(
+            dropPrimaryKeyContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
         );
-        dropPrimaryKeyResult.Should().BeTrue();
 
         // Step 16: Verify constraints were dropped
-        var finalPrimaryKey = await service.GetPrimaryKeyAsync(
+        var finalPrimaryKeyContext = OperationIdentifiers.ForPrimaryKeyGet(
             datasourceId,
             "ConstraintTest",
-            schemaName: schemaName
+            schemaName
         );
-        finalPrimaryKey.Should().BeNull();
+        var finalPrimaryKeyAct = async () =>
+            await service.GetPrimaryKeyAsync(
+                finalPrimaryKeyContext,
+                datasourceId,
+                "ConstraintTest",
+                schemaName: schemaName
+            );
+        await finalPrimaryKeyAct.Should().ThrowAsync<KeyNotFoundException>();
 
+        var finalUniqueConstraintsContext = OperationIdentifiers.ForUniqueConstraintList(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
         var finalUniqueConstraints = await service.GetUniqueConstraintsAsync(
+            finalUniqueConstraintsContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
@@ -409,7 +542,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                 )
             );
 
+        var finalForeignKeysContext = OperationIdentifiers.ForForeignKeyList(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
         var finalForeignKeys = await service.GetForeignKeysAsync(
+            finalForeignKeysContext,
             datasourceId,
             "ConstraintTest",
             schemaName: schemaName
@@ -425,8 +564,28 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             );
 
         // Cleanup: Drop test tables
-        await service.DropTableAsync(datasourceId, "ConstraintTest", schemaName: schemaName);
-        await service.DropTableAsync(datasourceId, "RefTable", schemaName: schemaName);
+        var dropTableContext1 = OperationIdentifiers.ForTableDrop(
+            datasourceId,
+            "ConstraintTest",
+            schemaName
+        );
+        await service.DropTableAsync(
+            dropTableContext1,
+            datasourceId,
+            "ConstraintTest",
+            schemaName: schemaName
+        );
+        var dropTableContext2 = OperationIdentifiers.ForTableDrop(
+            datasourceId,
+            "RefTable",
+            schemaName
+        );
+        await service.DropTableAsync(
+            dropTableContext2,
+            datasourceId,
+            "RefTable",
+            schemaName: schemaName
+        );
     }
 
     #endregion
@@ -439,29 +598,29 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var primaryKeyRequest = new CreatePrimaryKeyRequest
+        var primaryKeyRequest = new PrimaryKeyConstraintDto
         {
             ConstraintName = "PK_Test",
-            Columns = ["Id"],
+            ColumnNames = ["Id"],
         };
-        var foreignKeyRequest = new CreateForeignKeyRequest
+        var foreignKeyRequest = new ForeignKeyConstraintDto
         {
             ConstraintName = "FK_Test",
-            Columns = ["RefId"],
+            ColumnNames = ["RefId"],
             ReferencedTableName = "RefTable",
-            ReferencedColumns = ["Id"],
+            ReferencedColumnNames = ["Id"],
         };
-        var uniqueConstraintRequest = new CreateUniqueConstraintRequest
+        var uniqueConstraintRequest = new UniqueConstraintDto
         {
             ConstraintName = "UQ_Test",
-            Columns = ["Email"],
+            ColumnNames = ["Email"],
         };
-        var checkConstraintRequest = new CreateCheckConstraintRequest
+        var checkConstraintRequest = new CheckConstraintDto
         {
             ConstraintName = "CK_Test",
             CheckExpression = "Age >= 0",
         };
-        var defaultConstraintRequest = new CreateDefaultConstraintRequest
+        var defaultConstraintRequest = new DefaultConstraintDto
         {
             ConstraintName = "DF_Test",
             ColumnName = "Status",
@@ -472,73 +631,149 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         var expectedMessage = "Datasource 'NonExistent' not found. (Parameter 'datasourceId')";
 
         // Primary Key methods
+        var getPrimaryKeyContext = OperationIdentifiers.ForPrimaryKeyGet(
+            "NonExistent",
+            "TestTable"
+        );
         var getPrimaryKeyAct = async () =>
-            await service.GetPrimaryKeyAsync("NonExistent", "TestTable");
+            await service.GetPrimaryKeyAsync(getPrimaryKeyContext, "NonExistent", "TestTable");
         await getPrimaryKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var createPrimaryKeyContext = OperationIdentifiers.ForPrimaryKeyCreate(
+            "NonExistent",
+            "TestTable",
+            primaryKeyRequest
+        );
         var createPrimaryKeyAct = async () =>
-            await service.CreatePrimaryKeyAsync("NonExistent", "TestTable", primaryKeyRequest);
+            await service.CreatePrimaryKeyAsync(
+                createPrimaryKeyContext,
+                "NonExistent",
+                "TestTable",
+                primaryKeyRequest
+            );
         await createPrimaryKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var dropPrimaryKeyContext = OperationIdentifiers.ForPrimaryKeyDrop(
+            "NonExistent",
+            "TestTable"
+        );
         var dropPrimaryKeyAct = async () =>
-            await service.DropPrimaryKeyAsync("NonExistent", "TestTable");
+            await service.DropPrimaryKeyAsync(dropPrimaryKeyContext, "NonExistent", "TestTable");
         await dropPrimaryKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
         // Foreign Key methods
+        var getForeignKeysContext = OperationIdentifiers.ForForeignKeyList(
+            "NonExistent",
+            "TestTable"
+        );
         var getForeignKeysAct = async () =>
-            await service.GetForeignKeysAsync("NonExistent", "TestTable");
+            await service.GetForeignKeysAsync(getForeignKeysContext, "NonExistent", "TestTable");
         await getForeignKeysAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var getForeignKeyContext = OperationIdentifiers.ForForeignKeyGet(
+            "NonExistent",
+            "TestTable",
+            "FK_Test"
+        );
         var getForeignKeyAct = async () =>
-            await service.GetForeignKeyAsync("NonExistent", "TestTable", "FK_Test");
+            await service.GetForeignKeyAsync(
+                getForeignKeyContext,
+                "NonExistent",
+                "TestTable",
+                "FK_Test"
+            );
         await getForeignKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var createForeignKeyContext = OperationIdentifiers.ForForeignKeyCreate(
+            "NonExistent",
+            "TestTable",
+            foreignKeyRequest
+        );
         var createForeignKeyAct = async () =>
-            await service.CreateForeignKeyAsync("NonExistent", "TestTable", foreignKeyRequest);
+            await service.CreateForeignKeyAsync(
+                createForeignKeyContext,
+                "NonExistent",
+                "TestTable",
+                foreignKeyRequest
+            );
         await createForeignKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var dropForeignKeyContext = OperationIdentifiers.ForForeignKeyDrop(
+            "NonExistent",
+            "TestTable",
+            "FK_Test"
+        );
         var dropForeignKeyAct = async () =>
-            await service.DropForeignKeyAsync("NonExistent", "TestTable", "FK_Test");
+            await service.DropForeignKeyAsync(
+                dropForeignKeyContext,
+                "NonExistent",
+                "TestTable",
+                "FK_Test"
+            );
         await dropForeignKeyAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
         // Unique Constraint methods
+        var getUniqueConstraintsContext = OperationIdentifiers.ForUniqueConstraintList(
+            "NonExistent",
+            "TestTable"
+        );
         var getUniqueConstraintsAct = async () =>
-            await service.GetUniqueConstraintsAsync("NonExistent", "TestTable");
+            await service.GetUniqueConstraintsAsync(
+                getUniqueConstraintsContext,
+                "NonExistent",
+                "TestTable"
+            );
         await getUniqueConstraintsAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var getUniqueConstraintContext = OperationIdentifiers.ForUniqueConstraintGet(
+            "NonExistent",
+            "TestTable",
+            "UQ_Test"
+        );
         var getUniqueConstraintAct = async () =>
-            await service.GetUniqueConstraintAsync("NonExistent", "TestTable", "UQ_Test");
+            await service.GetUniqueConstraintAsync(
+                getUniqueConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "UQ_Test"
+            );
         await getUniqueConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var createUniqueConstraintContext = OperationIdentifiers.ForUniqueConstraintCreate(
+            "NonExistent",
+            "TestTable",
+            uniqueConstraintRequest
+        );
         var createUniqueConstraintAct = async () =>
             await service.CreateUniqueConstraintAsync(
+                createUniqueConstraintContext,
                 "NonExistent",
                 "TestTable",
                 uniqueConstraintRequest
@@ -548,30 +783,64 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var dropUniqueConstraintContext = OperationIdentifiers.ForUniqueConstraintDrop(
+            "NonExistent",
+            "TestTable",
+            "UQ_Test"
+        );
         var dropUniqueConstraintAct = async () =>
-            await service.DropUniqueConstraintAsync("NonExistent", "TestTable", "UQ_Test");
+            await service.DropUniqueConstraintAsync(
+                dropUniqueConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "UQ_Test"
+            );
         await dropUniqueConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
         // Check Constraint methods
+        var getCheckConstraintsContext = OperationIdentifiers.ForCheckConstraintList(
+            "NonExistent",
+            "TestTable"
+        );
         var getCheckConstraintsAct = async () =>
-            await service.GetCheckConstraintsAsync("NonExistent", "TestTable");
+            await service.GetCheckConstraintsAsync(
+                getCheckConstraintsContext,
+                "NonExistent",
+                "TestTable"
+            );
         await getCheckConstraintsAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var getCheckConstraintContext = OperationIdentifiers.ForCheckConstraintGet(
+            "NonExistent",
+            "TestTable",
+            "CK_Test"
+        );
         var getCheckConstraintAct = async () =>
-            await service.GetCheckConstraintAsync("NonExistent", "TestTable", "CK_Test");
+            await service.GetCheckConstraintAsync(
+                getCheckConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "CK_Test"
+            );
         await getCheckConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var createCheckConstraintContext = OperationIdentifiers.ForCheckConstraintCreate(
+            "NonExistent",
+            "TestTable",
+            checkConstraintRequest
+        );
         var createCheckConstraintAct = async () =>
             await service.CreateCheckConstraintAsync(
+                createCheckConstraintContext,
                 "NonExistent",
                 "TestTable",
                 checkConstraintRequest
@@ -581,30 +850,64 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var dropCheckConstraintContext = OperationIdentifiers.ForCheckConstraintDrop(
+            "NonExistent",
+            "TestTable",
+            "CK_Test"
+        );
         var dropCheckConstraintAct = async () =>
-            await service.DropCheckConstraintAsync("NonExistent", "TestTable", "CK_Test");
+            await service.DropCheckConstraintAsync(
+                dropCheckConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "CK_Test"
+            );
         await dropCheckConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
         // Default Constraint methods
+        var getDefaultConstraintsContext = OperationIdentifiers.ForDefaultConstraintList(
+            "NonExistent",
+            "TestTable"
+        );
         var getDefaultConstraintsAct = async () =>
-            await service.GetDefaultConstraintsAsync("NonExistent", "TestTable");
+            await service.GetDefaultConstraintsAsync(
+                getDefaultConstraintsContext,
+                "NonExistent",
+                "TestTable"
+            );
         await getDefaultConstraintsAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var getDefaultConstraintContext = OperationIdentifiers.ForDefaultConstraintGet(
+            "NonExistent",
+            "TestTable",
+            "Status"
+        );
         var getDefaultConstraintAct = async () =>
-            await service.GetDefaultConstraintAsync("NonExistent", "TestTable", "Status");
+            await service.GetDefaultConstraintAsync(
+                getDefaultConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "Status"
+            );
         await getDefaultConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var createDefaultConstraintContext = OperationIdentifiers.ForDefaultConstraintCreate(
+            "NonExistent",
+            "TestTable",
+            defaultConstraintRequest
+        );
         var createDefaultConstraintAct = async () =>
             await service.CreateDefaultConstraintAsync(
+                createDefaultConstraintContext,
                 "NonExistent",
                 "TestTable",
                 defaultConstraintRequest
@@ -614,8 +917,18 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             .ThrowAsync<ArgumentException>()
             .WithMessage(expectedMessage);
 
+        var dropDefaultConstraintContext = OperationIdentifiers.ForDefaultConstraintDrop(
+            "NonExistent",
+            "TestTable",
+            "Status"
+        );
         var dropDefaultConstraintAct = async () =>
-            await service.DropDefaultConstraintAsync("NonExistent", "TestTable", "Status");
+            await service.DropDefaultConstraintAsync(
+                dropDefaultConstraintContext,
+                "NonExistent",
+                "TestTable",
+                "Status"
+            );
         await dropDefaultConstraintAct
             .Should()
             .ThrowAsync<ArgumentException>()
@@ -623,45 +936,80 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
     }
 
     [Fact]
-    public async Task GetConstraints_NonExistentTable_ReturnsNull()
+    public async Task GetConstraints_NonExistentTable_ThrowsKeyNotFoundException()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
 
-        var primaryKey = await service.GetPrimaryKeyAsync(
+        var primaryKeyContext = OperationIdentifiers.ForPrimaryKeyGet(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "NonExistentTable",
-            schemaName: "dbo"
+            "dbo"
         );
-        primaryKey.Should().BeNull();
+        var primaryKeyAct = async () =>
+            await service.GetPrimaryKeyAsync(
+                primaryKeyContext,
+                TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+                "NonExistentTable",
+                schemaName: "dbo"
+            );
+        await primaryKeyAct.Should().ThrowAsync<KeyNotFoundException>();
 
-        var foreignKeyConstraints = await service.GetForeignKeysAsync(
+        var foreignKeyConstraintsContext = OperationIdentifiers.ForForeignKeyList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "NonExistentTable",
-            schemaName: "dbo"
+            "dbo"
         );
-        foreignKeyConstraints.Should().BeEmpty();
+        var foreignKeyConstraintsAct = async () =>
+            await service.GetForeignKeysAsync(
+                foreignKeyConstraintsContext,
+                TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+                "NonExistentTable",
+                schemaName: "dbo"
+            );
+        await foreignKeyConstraintsAct.Should().ThrowAsync<KeyNotFoundException>();
 
-        var uniqueConstraints = await service.GetUniqueConstraintsAsync(
+        var uniqueConstraintsContext = OperationIdentifiers.ForUniqueConstraintList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "NonExistentTable",
-            schemaName: "dbo"
+            "dbo"
         );
-        uniqueConstraints.Should().BeEmpty();
+        var uniqueConstraintsAct = async () =>
+            await service.GetUniqueConstraintsAsync(
+                uniqueConstraintsContext,
+                TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+                "NonExistentTable",
+                schemaName: "dbo"
+            );
+        await uniqueConstraintsAct.Should().ThrowAsync<KeyNotFoundException>();
 
-        var checkConstraints = await service.GetCheckConstraintsAsync(
+        var checkConstraintsContext = OperationIdentifiers.ForCheckConstraintList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "NonExistentTable",
-            schemaName: "dbo"
+            "dbo"
         );
-        checkConstraints.Should().BeEmpty();
+        var checkConstraintsAct = async () =>
+            await service.GetCheckConstraintsAsync(
+                checkConstraintsContext,
+                TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+                "NonExistentTable",
+                schemaName: "dbo"
+            );
+        await checkConstraintsAct.Should().ThrowAsync<KeyNotFoundException>();
 
-        var defaultConstraints = await service.GetDefaultConstraintsAsync(
+        var defaultConstraintsContext = OperationIdentifiers.ForDefaultConstraintList(
             TestcontainersAssemblyFixture.DatasourceId_SqlServer,
             "NonExistentTable",
-            schemaName: "dbo"
+            "dbo"
         );
-        defaultConstraints.Should().BeEmpty();
+        var defaultConstraintsAct = async () =>
+            await service.GetDefaultConstraintsAsync(
+                defaultConstraintsContext,
+                TestcontainersAssemblyFixture.DatasourceId_SqlServer,
+                "NonExistentTable",
+                schemaName: "dbo"
+            );
+        await defaultConstraintsAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
     #endregion
@@ -675,19 +1023,19 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         string? schemaName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName = schemaName,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Email",
                     ProviderDataType =
@@ -696,13 +1044,13 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                             : "varchar(255)",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Age",
                     ProviderDataType = "int",
                     IsNullable = true,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Status",
                     ProviderDataType =
@@ -711,7 +1059,7 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                             : "varchar(50)",
                     IsNullable = true,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "CategoryId",
                     ProviderDataType = "int",
@@ -720,7 +1068,8 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
             ],
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     private static async Task<TableDto?> CreateReferencedTableForConstraints(
@@ -730,19 +1079,19 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
         string? schemaName
     )
     {
-        var request = new CreateTableRequest
+        var request = new TableDto
         {
             TableName = tableName,
             SchemaName = schemaName,
             Columns =
             [
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Id",
                     ProviderDataType = "int",
                     IsNullable = false,
                 },
-                new CreateColumnRequest
+                new ColumnDto
                 {
                     ColumnName = "Name",
                     ProviderDataType =
@@ -752,14 +1101,15 @@ public class DapperMaticServiceConstraintsTests : IClassFixture<TestcontainersAs
                     IsNullable = false,
                 },
             ],
-            PrimaryKey = new CreatePrimaryKeyRequest
+            PrimaryKeyConstraint = new PrimaryKeyConstraintDto
             {
                 ConstraintName = $"PK_{tableName}",
-                Columns = ["Id"],
+                ColumnNames = ["Id"],
             },
         };
 
-        return await service.CreateTableAsync(datasourceId, request);
+        var context = OperationIdentifiers.ForTableCreate(datasourceId, request);
+        return await service.CreateTableAsync(context, datasourceId, request);
     }
 
     #endregion

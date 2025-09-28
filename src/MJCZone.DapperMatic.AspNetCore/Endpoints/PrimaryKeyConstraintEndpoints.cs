@@ -69,7 +69,7 @@ public static class PrimaryKeyConstraintEndpoints
 
         // Primary key constraint endpoints
         group
-            .MapGet("/", GetPrimaryKeyAsync)
+            .MapGet("/", isSchemaSpecific ? GetSchemaPrimaryKeyAsync : GetPrimaryKeyAsync)
             .WithName($"Get{namePrefix}PrimaryKey")
             .WithSummary($"Gets the primary key constraint for a table {schemaInText}")
             .Produces<PrimaryKeyResponse>((int)HttpStatusCode.OK)
@@ -77,7 +77,7 @@ public static class PrimaryKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", CreatePrimaryKeyAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaPrimaryKeyAsync : CreatePrimaryKeyAsync)
             .WithName($"Create{namePrefix}PrimaryKey")
             .WithSummary($"Creates a primary key constraint on a table {schemaInText}")
             .Produces<PrimaryKeyResponse>((int)HttpStatusCode.Created)
@@ -86,7 +86,7 @@ public static class PrimaryKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/", DropPrimaryKeyAsync)
+            .MapDelete("/", isSchemaSpecific ? DropSchemaPrimaryKeyAsync : DropPrimaryKeyAsync)
             .WithName($"Drop{namePrefix}PrimaryKey")
             .WithSummary($"Drops the primary key constraint from a table {schemaInText}")
             .Produces<PrimaryKeyResponse>((int)HttpStatusCode.OK)
@@ -95,7 +95,15 @@ public static class PrimaryKeyConstraintEndpoints
     }
 
     // Primary key constraint endpoint implementations
-    private static async Task<IResult> GetPrimaryKeyAsync(
+    private static Task<IResult> GetPrimaryKeyAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> GetSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -117,7 +125,16 @@ public static class PrimaryKeyConstraintEndpoints
         return Results.Ok(new PrimaryKeyResponse(result));
     }
 
-    private static async Task<IResult> CreatePrimaryKeyAsync(
+    private static Task<IResult> CreatePrimaryKeyAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] PrimaryKeyConstraintDto primaryKey,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, primaryKey, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -157,7 +174,15 @@ public static class PrimaryKeyConstraintEndpoints
         );
     }
 
-    private static async Task<IResult> DropPrimaryKeyAsync(
+    private static Task<IResult> DropPrimaryKeyAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

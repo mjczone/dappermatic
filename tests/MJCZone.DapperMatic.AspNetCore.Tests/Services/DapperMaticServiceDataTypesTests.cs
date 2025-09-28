@@ -3,7 +3,6 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Security.Claims;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
 using MJCZone.DapperMatic.AspNetCore.Extensions;
@@ -31,13 +30,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -70,13 +69,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: true);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: true
         );
 
@@ -104,12 +103,12 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -149,12 +148,12 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = "non-existent-datasource";
 
         // Act & Assert
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId);
         var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
-            service.GetDatasourceDataTypesAsync(datasourceId, user)
+            service.GetDatasourceDataTypesAsync(context, datasourceId)
         );
 
         exception.Message.Should().Contain("not found");
@@ -166,13 +165,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -182,8 +181,7 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         var dataTypeDtos = result.dataTypes.ToDataTypeDtos().ToList();
 
         // Test string type metadata
-        var varcharType = dataTypeDtos
-            .FirstOrDefault(dt => dt.DataType == "varchar");
+        var varcharType = dataTypeDtos.FirstOrDefault(dt => dt.DataType == "varchar");
         varcharType.Should().NotBeNull();
         varcharType!.Category.Should().Be("Text");
         varcharType.SupportsLength.Should().BeTrue();
@@ -219,13 +217,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -249,7 +247,6 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
 
         var testCases = new[]
         {
@@ -262,9 +259,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         foreach (var (datasourceId, expectedProvider) in testCases)
         {
             // Act
-            var result = await service.GetDatasourceDataTypesAsync(
+            var context = OperationIdentifiers.ForDataTypeGet(
                 datasourceId,
-                user,
+                includeCustomTypes: false
+            );
+            var result = await service.GetDatasourceDataTypesAsync(
+                context,
+                datasourceId,
                 includeCustomTypes: false
             );
 
@@ -285,7 +286,8 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act - test with default parameters
-        var result = await service.GetDatasourceDataTypesAsync(datasourceId);
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId);
+        var result = await service.GetDatasourceDataTypesAsync(context, datasourceId);
 
         // Assert
         result.providerName.ToLowerInvariant().Should().Be("sqlserver");
@@ -299,13 +301,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -332,13 +334,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_PostgreSql;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -355,7 +357,11 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         result.dataTypes.Should().Contain(dt => dt.DataType == "hstore");
 
         // Verify categories specific to PostgreSQL
-        var categories = result.dataTypes.ToDataTypeDtos().Select(dt => dt.Category).Distinct().ToList();
+        var categories = result
+            .dataTypes.ToDataTypeDtos()
+            .Select(dt => dt.Category)
+            .Distinct()
+            .ToList();
         categories.Should().Contain("Network");
         categories.Should().Contain("Range");
         categories.Should().Contain("Array");
@@ -367,13 +373,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_MySql;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 
@@ -389,7 +395,11 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         result.dataTypes.Should().Contain(dt => dt.DataType == "point");
 
         // Verify MySQL has spatial category
-        var categories = result.dataTypes.ToDataTypeDtos().Select(dt => dt.Category).Distinct().ToList();
+        var categories = result
+            .dataTypes.ToDataTypeDtos()
+            .Select(dt => dt.Category)
+            .Distinct()
+            .ToList();
         categories.Should().Contain("Spatial");
     }
 
@@ -399,13 +409,13 @@ public class DapperMaticServiceDataTypesTests : IClassFixture<TestcontainersAsse
         // Arrange
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var service = factory.Services.GetRequiredService<IDapperMaticService>();
-        var user = new ClaimsPrincipal();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_Sqlite;
 
         // Act
+        var context = OperationIdentifiers.ForDataTypeGet(datasourceId, includeCustomTypes: false);
         var result = await service.GetDatasourceDataTypesAsync(
+            context,
             datasourceId,
-            user,
             includeCustomTypes: false
         );
 

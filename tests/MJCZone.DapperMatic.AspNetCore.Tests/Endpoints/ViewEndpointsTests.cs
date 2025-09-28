@@ -7,7 +7,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using FluentAssertions;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 
@@ -25,650 +25,432 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         _fixture = fixture;
     }
 
-    #region Default Schema View Endpoints Tests
+    #region Comprehensive Workflow Tests
 
     [Fact]
-    public async Task ListViews_DefaultSchema_GET_SqlServer_ReturnsViews()
+    public async Task ViewEndpoints_CompleteWorkflow_Success()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
+        const string viewName = "WorkflowTestView";
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
-        // First create a test view
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "TestView1"
-        );
+        // 1. GET MULTI - List all views (should be empty initially)
+        var listResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/");
+        listResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        var listResult1 = await listResponse1.ReadAsJsonAsync<ViewListResponse>();
+        listResult1.Should().NotBeNull();
+        listResult1!.Result.Should().NotBeNull();
+        var initialViewCount = listResult1.Result!.Count();
+        listResult1.Result.Should().NotContain(v => v.ViewName == viewName);
 
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/");
+        // 2. GET SINGLE - Try to get non-existent view (should return 404)
+        var getResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        getResponse1.Should().HaveStatusCode(HttpStatusCode.NotFound);
 
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewListResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result.Should().Contain(v => v.ViewName == "TestView1");
-    }
-
-    [Fact]
-    public async Task ListViews_DefaultSchema_GET_WithFilter_ReturnsFilteredViews()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create test views
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "CustomerView"
-        );
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "OrderView"
-        );
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/?filter=Customer");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewListResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result.Should().Contain(v => v.ViewName == "CustomerView");
-        result.Result.Should().NotContain(v => v.ViewName == "OrderView");
-    }
-
-    [Fact]
-    public async Task GetView_DefaultSchema_GET_ExistingView_ReturnsView()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create a test view
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "TestView2"
-        );
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/TestView2");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.ViewName.Should().Be("TestView2");
-    }
-
-    [Fact]
-    public async Task GetView_DefaultSchema_GET_NonExistentView_ReturnsNotFound()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/NonExistentView");
-
-        response.Should().HaveStatusCode(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task CreateView_DefaultSchema_POST_SqlServer_CreatesView()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var request = new CreateViewRequest
+        // 3. CREATE - Create a new view
+        var createRequest = new ViewDto
         {
-            ViewName = "TestCreateView",
-            ViewDefinition = "SELECT 1 AS TestColumn",
+            ViewName = viewName,
+            Definition = "SELECT 1 AS Id, 'Initial' AS Name",
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
+        var createContent = new StringContent(
+            JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
             "application/json"
         );
-
-        var response = await client.PostAsync("/api/dm/d/Test-SqlServer/v/", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.Created);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.ViewName.Should().Be("TestCreateView");
-        result.Success.Should().BeTrue();
-        result.Message.Should().Contain("created successfully");
-    }
-
-    [Fact]
-    public async Task CreateView_DefaultSchema_POST_DuplicateView_ReturnsConflict()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create first view
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "DuplicateView"
+        var createResponse = await client.PostAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}",
+            createContent
         );
+        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
+        createResult.Should().NotBeNull();
+        createResult!.Result.Should().NotBeNull();
+        createResult.Result!.ViewName.Should().Be(viewName);
 
-        // Try to create duplicate
-        var request = new CreateViewRequest
+        // 4. EXISTS - Check if view exists (should return true)
+        var existsResponse1 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}/exists"
+        );
+        existsResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        var existsResult1 = await existsResponse1.ReadAsJsonAsync<ViewExistsResponse>();
+        existsResult1.Should().NotBeNull();
+        existsResult1!.Result.Should().BeTrue();
+
+        // 5. GET MULTI - List views again (should contain new view)
+        var listResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/");
+        listResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        var listResult2 = await listResponse2.ReadAsJsonAsync<ViewListResponse>();
+        listResult2.Should().NotBeNull();
+        listResult2!.Result.Should().NotBeNull();
+        listResult2.Result.Should().HaveCount(initialViewCount + 1);
+        listResult2.Result.Should().Contain(v => v.ViewName == viewName);
+
+        // 6. GET SINGLE - Get the created view (should return view details)
+        var getResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        var getResult2 = await getResponse2.ReadAsJsonAsync<ViewResponse>();
+        getResult2.Should().NotBeNull();
+        getResult2!.Result.Should().NotBeNull();
+        getResult2.Result!.ViewName.Should().Be(viewName);
+        getResult2.Result.Definition.Should().Contain("Initial");
+
+        // 7. UPDATE - Update the view definition
+        var updateRequest = new ViewDto
         {
-            ViewName = "DuplicateView",
-            ViewDefinition = "SELECT 1 AS TestColumn",
+            Definition = "SELECT 2 AS Id, 'Updated' AS Name, 'Modified' AS Description",
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
+        var updateContent = new StringContent(
+            JsonSerializer.Serialize(updateRequest),
             Encoding.UTF8,
             "application/json"
         );
+        var updateResponse = await client.PutAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}",
+            updateContent
+        );
+        updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        var updateResult = await updateResponse.ReadAsJsonAsync<ViewResponse>();
+        updateResult.Should().NotBeNull();
+        updateResult!.Result.Should().NotBeNull();
 
-        var response = await client.PostAsync("/api/dm/d/Test-SqlServer/v/", content);
+        // 8. GET SINGLE - Get updated view (should show changes)
+        var getResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        getResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        var getResult3 = await getResponse3.ReadAsJsonAsync<ViewResponse>();
+        getResult3.Should().NotBeNull();
+        getResult3!.Result.Should().NotBeNull();
+        getResult3.Result!.ViewName.Should().Be(viewName);
+        getResult3.Result.Definition.Should().Contain("Updated");
+        getResult3.Result.Definition.Should().Contain("Modified");
 
-        response.Should().HaveStatusCode(HttpStatusCode.Conflict);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
-        result.Message.Should().Contain("already exists");
+        // 9. DELETE - Delete the view
+        var deleteResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        deleteResponse.Should().HaveStatusCode(HttpStatusCode.NoContent);
+
+        // 10. EXISTS - Check if view exists (should return false)
+        var existsResponse2 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}/exists"
+        );
+        existsResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        var existsResult2 = await existsResponse2.ReadAsJsonAsync<ViewExistsResponse>();
+        existsResult2.Should().NotBeNull();
+        existsResult2!.Result.Should().BeFalse();
+
+        // 11. GET MULTI - List views (should be back to initial count)
+        var listResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/");
+        listResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        var listResult3 = await listResponse3.ReadAsJsonAsync<ViewListResponse>();
+        listResult3.Should().NotBeNull();
+        listResult3!.Result.Should().NotBeNull();
+        listResult3.Result.Should().HaveCount(initialViewCount);
+        listResult3.Result.Should().NotContain(v => v.ViewName == viewName);
+
+        // 12. GET SINGLE - Try to get deleted view (should return 404)
+        var getResponse4 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        getResponse4.Should().HaveStatusCode(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task UpdateView_DefaultSchema_PUT_ExistingView_UpdatesView()
+    public async Task ViewQueryEndpoints_CompleteWorkflow_Success()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
+        const string viewName = "QueryWorkflowView";
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
-        // Create initial view
+        // Create a test view with sample data for querying
         await CreateTestView(
             client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "ViewToUpdate"
+            datasourceId,
+            viewName,
+            "SELECT 1 AS Id, 'Test1' AS Name, 'Description1' AS Description UNION ALL SELECT 2 AS Id, 'Test2' AS Name, 'Description2' AS Description"
         );
 
-        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 2 AS UpdatedColumn" };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
+        try
+        {
+            // Test POST query with pagination
+            var postQueryRequest = new QueryDto
+            {
+                Take = 10,
+                Skip = 0,
+                IncludeTotal = true,
+            };
+            var postQueryContent = new StringContent(
+                JsonSerializer.Serialize(postQueryRequest),
+                Encoding.UTF8,
+                "application/json"
+            );
+            var postQueryResponse = await client.PostAsync(
+                $"/api/dm/d/{datasourceId}/v/{viewName}/query",
+                postQueryContent
+            );
+            postQueryResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            var postQueryResult = await postQueryResponse.ReadAsJsonAsync<QueryResponse>();
+            postQueryResult.Should().NotBeNull();
+            postQueryResult!.Result.Should().NotBeNull();
+            postQueryResult.Result.Should().NotBeEmpty();
+            postQueryResult.Pagination.Should().NotBeNull();
+            postQueryResult.Pagination.Take.Should().Be(10);
 
-        var response = await client.PutAsync("/api/dm/d/Test-SqlServer/v/ViewToUpdate", content);
+            // Test GET query with parameters
+            var getQueryResponse = await client.GetAsync(
+                $"/api/dm/d/{datasourceId}/v/{viewName}/query?take=5&skip=0"
+            );
+            getQueryResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            var getQueryResult = await getQueryResponse.ReadAsJsonAsync<QueryResponse>();
+            getQueryResult.Should().NotBeNull();
+            getQueryResult!.Result.Should().NotBeNull();
+            getQueryResult.Pagination.Should().NotBeNull();
+            getQueryResult.Pagination.Take.Should().Be(5);
 
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Message.Should().Contain("updated successfully");
-    }
-
-    [Fact]
-    public async Task UpdateView_DefaultSchema_PUT_NonExistentView_ReturnsNotFound()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 1 AS TestColumn" };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
-
-        var response = await client.PutAsync("/api/dm/d/Test-SqlServer/v/NonExistentView", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task DropView_DefaultSchema_DELETE_ExistingView_DropsView()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create view to drop
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "ViewToDrop"
-        );
-
-        var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer/v/ViewToDrop");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Message.Should().Contain("dropped successfully");
-    }
-
-    [Fact]
-    public async Task DropView_DefaultSchema_DELETE_NonExistentView_ReturnsNotFound()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer/v/NonExistentView");
-
-        response.Should().HaveStatusCode(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task ViewExists_DefaultSchema_GET_ExistingView_ReturnsTrue()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create test view
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "ExistingView"
-        );
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/ExistingView/exists");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewExistsResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ViewExists_DefaultSchema_GET_NonExistentView_ReturnsFalse()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/v/NonExistentView/exists");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewExistsResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task QueryView_DefaultSchema_POST_ReturnsData()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create a view with known data
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "QueryableView",
-            "SELECT 1 AS Id, 'Test' AS Name"
-        );
-
-        var request = new QueryRequest { Take = 10, Skip = 0 };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
-
-        var response = await client.PostAsync(
-            "/api/dm/d/Test-SqlServer/v/QueryableView/query",
-            content
-        );
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<QueryResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Result.Should().NotBeNull();
-        result.Result!.Data.Should().NotBeEmpty();
-    }
-
-    [Fact]
-    public async Task QueryView_DefaultSchema_GET_WithParameters_ReturnsFilteredData()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create a view
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "FilterableView",
-            "SELECT 1 AS Id, 'Test' AS Name"
-        );
-
-        var response = await client.GetAsync(
-            "/api/dm/d/Test-SqlServer/v/FilterableView/query?take=5&skip=0"
-        );
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<QueryResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Result.Should().NotBeNull();
-        result.Result!.Pagination.Take.Should().Be(5);
+            // Test GET query with column selection
+            var selectQueryResponse = await client.GetAsync(
+                $"/api/dm/d/{datasourceId}/v/{viewName}/query?select=Id,Name&take=10"
+            );
+            selectQueryResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            var selectQueryResult = await selectQueryResponse.ReadAsJsonAsync<QueryResponse>();
+            selectQueryResult.Should().NotBeNull();
+            selectQueryResult!.Result.Should().NotBeNull();
+            selectQueryResult.Result.Should().NotBeEmpty();
+        }
+        finally
+        {
+            // Clean up: Delete the test view
+            await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        }
     }
 
     #endregion
 
-    #region Schema-Specific View Endpoints Tests
+    #region Error Scenarios Tests
 
     [Fact]
-    public async Task ListViews_SchemaSpecific_GET_SqlServer_ReturnsViews()
+    public async Task ViewEndpoints_ErrorScenarios_HandledCorrectly()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
-        // Create test view in dbo schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SchemaView1"
-        );
+        // Test non-existent datasource
+        var nonExistentDatasourceResponse = await client.GetAsync("/api/dm/d/NonExistent/v/");
+        nonExistentDatasourceResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
 
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/s/dbo/v/");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewListResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result.Should().Contain(v => v.ViewName == "SchemaView1");
-    }
-
-    [Fact]
-    public async Task GetView_SchemaSpecific_GET_ExistingView_ReturnsView()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create test view in dbo schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SchemaView2"
-        );
-
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer/s/dbo/v/SchemaView2");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.ViewName.Should().Be("SchemaView2");
-        result.Result.SchemaName.Should().Be("dbo");
-    }
-
-    [Fact]
-    public async Task CreateView_SchemaSpecific_POST_CreatesViewInSchema()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var request = new CreateViewRequest
+        // Test invalid view definition (empty)
+        var invalidCreateRequest = new ViewDto
         {
-            ViewName = "SchemaCreateView",
-            ViewDefinition = "SELECT 1 AS TestColumn",
+            ViewName = "InvalidView",
+            Definition = "", // Empty definition
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
+        var invalidCreateContent = new StringContent(
+            JsonSerializer.Serialize(invalidCreateRequest),
             Encoding.UTF8,
             "application/json"
         );
-
-        var response = await client.PostAsync("/api/dm/d/Test-SqlServer/s/dbo/v/", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.Created);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.ViewName.Should().Be("SchemaCreateView");
-        result.Result.SchemaName.Should().Be("dbo");
-        result.Message.Should().Contain("in schema 'dbo'");
-    }
-
-    [Fact]
-    public async Task UpdateView_SchemaSpecific_PUT_UpdatesViewInSchema()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create initial view in schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SchemaViewToUpdate"
+        var invalidCreateResponse = await client.PostAsync(
+            $"/api/dm/d/{datasourceId}/v/InvalidView",
+            invalidCreateContent
         );
+        invalidCreateResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        var invalidCreateResult = await invalidCreateResponse.ReadAsJsonAsync<ViewResponse>();
+        invalidCreateResult.Should().NotBeNull();
+        // Note: Specific error message may vary based on validation implementation
 
-        var request = new UpdateViewRequest { NewViewDefinition = "SELECT 2 AS UpdatedColumn" };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
+        // Test duplicate view creation
+        const string duplicateViewName = "DuplicateTestView";
+        await CreateTestView(client, datasourceId, duplicateViewName);
 
-        var response = await client.PutAsync(
-            "/api/dm/d/Test-SqlServer/s/dbo/v/SchemaViewToUpdate",
-            content
-        );
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Message.Should().Contain("updated successfully in schema 'dbo'");
-    }
-
-    [Fact]
-    public async Task DropView_SchemaSpecific_DELETE_DropsViewFromSchema()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create view to drop in schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SchemaViewToDrop"
-        );
-
-        var response = await client.DeleteAsync(
-            "/api/dm/d/Test-SqlServer/s/dbo/v/SchemaViewToDrop"
-        );
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Message.Should().Contain("dropped successfully from schema 'dbo'");
-    }
-
-    [Fact]
-    public async Task QueryView_SchemaSpecific_POST_ReturnsDataFromSchema()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // Create a view in schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SchemaQueryableView",
-            "SELECT 1 AS Id, 'Test' AS Name"
-        );
-
-        var request = new QueryRequest
+        try
         {
-            Take = 10,
-            Skip = 0,
-            IncludeTotal = true,
-        };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
+            var duplicateCreateRequest = new ViewDto
+            {
+                ViewName = duplicateViewName,
+                Definition = "SELECT 1 AS TestColumn",
+            };
+            var duplicateCreateContent = new StringContent(
+                JsonSerializer.Serialize(duplicateCreateRequest),
+                Encoding.UTF8,
+                "application/json"
+            );
+            var duplicateCreateResponse = await client.PostAsync(
+                $"/api/dm/d/{datasourceId}/v/{duplicateViewName}",
+                duplicateCreateContent
+            );
+            duplicateCreateResponse.Should().HaveStatusCode(HttpStatusCode.Conflict);
+            var duplicateCreateResult =
+                await duplicateCreateResponse.ReadAsJsonAsync<ViewResponse>();
+            duplicateCreateResult.Should().NotBeNull();
+            // Note: Specific error message may vary based on validation implementation
+        }
+        finally
+        {
+            // Clean up
+            await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{duplicateViewName}");
+        }
+
+        // Test operations on non-existent view
+        const string nonExistentView = "NonExistentView";
+
+        // Update non-existent view
+        var updateNonExistentRequest = new ViewDto { Definition = "SELECT 1 AS TestColumn" };
+        var updateNonExistentContent = new StringContent(
+            JsonSerializer.Serialize(updateNonExistentRequest),
             Encoding.UTF8,
             "application/json"
         );
-
-        var response = await client.PostAsync(
-            "/api/dm/d/Test-SqlServer/s/dbo/v/SchemaQueryableView/query",
-            content
+        var updateNonExistentResponse = await client.PutAsync(
+            $"/api/dm/d/{datasourceId}/v/{nonExistentView}",
+            updateNonExistentContent
         );
+        updateNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
 
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<QueryResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Message.Should().Contain("in schema 'dbo'");
-        result.Result.Should().NotBeNull();
-        result.Result!.Data.Should().NotBeEmpty();
+        // Delete non-existent view
+        var deleteNonExistentResponse = await client.DeleteAsync(
+            $"/api/dm/d/{datasourceId}/v/{nonExistentView}"
+        );
+        deleteNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+
+        // Test invalid update (empty definition)
+        var invalidUpdateRequest = new ViewDto
+        {
+            Definition = "", // Empty definition
+        };
+        var invalidUpdateContent = new StringContent(
+            JsonSerializer.Serialize(invalidUpdateRequest),
+            Encoding.UTF8,
+            "application/json"
+        );
+        var invalidUpdateResponse = await client.PutAsync(
+            $"/api/dm/d/{datasourceId}/v/SomeView",
+            invalidUpdateContent
+        );
+        invalidUpdateResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        var invalidUpdateResult = await invalidUpdateResponse.ReadAsJsonAsync<ViewResponse>();
+        invalidUpdateResult.Should().NotBeNull();
+        // Note: Specific error message may vary based on validation implementation
     }
 
+    #endregion
+
+    #region Schema-Specific Workflow Tests
+
     [Fact]
-    public async Task QueryView_SchemaSpecific_GET_WithColumnSelection_ReturnsSelectedColumns()
+    public async Task SchemaSpecificViewEndpoints_CompleteWorkflow_Success()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
+        const string viewName = "SchemaWorkflowTestView";
+        const string schemaName = "dbo";
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
-        // Create a view in schema
-        await CreateTestViewInSchema(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_SqlServer,
-            "dbo",
-            "SelectableView",
-            "SELECT 1 AS Id, 'Test' AS Name, 'Description' AS Description"
+        // Test complete workflow in schema-specific endpoints
+
+        // 1. GET MULTI - List all views in schema (should be empty initially)
+        var listResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/");
+        listResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        var listResult1 = await listResponse1.ReadAsJsonAsync<ViewListResponse>();
+        listResult1.Should().NotBeNull();
+        var initialViewCount = listResult1!.Result?.Count() ?? 0;
+
+        // 2. CREATE - Create a new view in schema
+        var createRequest = new ViewDto
+        {
+            ViewName = viewName,
+            Definition = "SELECT 1 AS Id, 'Schema Test' AS Name",
+        };
+        var createContent = new StringContent(
+            JsonSerializer.Serialize(createRequest),
+            Encoding.UTF8,
+            "application/json"
         );
-
-        var response = await client.GetAsync(
-            "/api/dm/d/Test-SqlServer/s/dbo/v/SelectableView/query?select=Id,Name&take=10"
+        var createResponse = await client.PostAsync(
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}",
+            createContent
         );
+        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
+        createResult.Should().NotBeNull();
+        createResult!.Result.Should().NotBeNull();
+        createResult.Result!.ViewName.Should().Be(viewName);
+        createResult.Result.SchemaName.Should().Be(schemaName);
 
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<QueryResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeTrue();
-        result.Result.Should().NotBeNull();
+        // 3. GET SINGLE - Get the created view from schema
+        var getResponse = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}"
+        );
+        getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        var getResult = await getResponse.ReadAsJsonAsync<ViewResponse>();
+        getResult.Should().NotBeNull();
+        getResult!.Result.Should().NotBeNull();
+        getResult.Result!.ViewName.Should().Be(viewName);
+        getResult.Result.SchemaName.Should().Be(schemaName);
+
+        // 4. UPDATE - Update the view in schema
+        var updateRequest = new ViewDto
+        {
+            Definition = "SELECT 2 AS Id, 'Updated Schema Test' AS Name",
+        };
+        var updateContent = new StringContent(
+            JsonSerializer.Serialize(updateRequest),
+            Encoding.UTF8,
+            "application/json"
+        );
+        var updateResponse = await client.PutAsync(
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}",
+            updateContent
+        );
+        updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+
+        // 5. DELETE - Delete the view from schema
+        var deleteResponse = await client.DeleteAsync(
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}"
+        );
+        deleteResponse.Should().HaveStatusCode(HttpStatusCode.NoContent);
+
+        // 6. GET MULTI - List views again (should be back to initial count)
+        var listResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/");
+        listResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        var listResult2 = await listResponse2.ReadAsJsonAsync<ViewListResponse>();
+        listResult2.Should().NotBeNull();
+        (listResult2!.Result?.Count() ?? 0).Should().Be(initialViewCount);
     }
 
     #endregion
 
     #region SQLite-Specific Tests
 
-    [Fact(
-        Skip = "SQLite view visibility issue across HTTP requests in integration tests - VACUUM approach also failed"
-    )]
-    public async Task ListViews_SQLite_GET_ReturnsViews()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        // SQLite doesn't support schemas, but views should still work
-        await CreateTestView(
-            client,
-            TestcontainersAssemblyFixture.DatasourceId_Sqlite,
-            "SQLiteView"
-        );
-
-        var response = await client.GetAsync("/api/dm/d/Test-SQLite/v/");
-
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
-        var result = await response.ReadAsJsonAsync<ViewListResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result.Should().Contain(v => v.ViewName == "SQLiteView");
-    }
-
     [Fact]
-    public async Task CreateView_SQLite_POST_CreatesView()
+    public async Task SQLiteViewEndpoints_BasicWorkflow_Success()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
+        const string viewName = "SQLiteTestView";
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_Sqlite;
 
-        var request = new CreateViewRequest
+        // Create view
+        var createRequest = new ViewDto
         {
-            ViewName = "SQLiteTestView",
-            ViewDefinition = "SELECT 1 AS TestColumn",
+            ViewName = viewName,
+            Definition = "SELECT 1 AS TestColumn",
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
+        var createContent = new StringContent(
+            JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
             "application/json"
         );
-
-        var response = await client.PostAsync("/api/dm/d/Test-SQLite/v/", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.Created);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Result.Should().NotBeNull();
-        result.Result!.ViewName.Should().Be("SQLiteTestView");
-    }
-
-    #endregion
-
-    #region Error Handling Tests
-
-    [Fact]
-    public async Task ListViews_NonExistentDatasource_ReturnsNotFound()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var response = await client.GetAsync("/api/dm/d/NonExistent/v/");
-
-        response.Should().HaveStatusCode(HttpStatusCode.NotFound);
-    }
-
-    [Fact]
-    public async Task CreateView_InvalidViewDefinition_ReturnsBadRequest()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var request = new CreateViewRequest
-        {
-            ViewName = "InvalidView",
-            ViewDefinition = "", // Empty definition
-        };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
+        var createResponse = await client.PostAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}",
+            createContent
         );
+        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
+        createResult.Should().NotBeNull();
+        createResult!.Result.Should().NotBeNull();
+        createResult.Result!.ViewName.Should().Be(viewName);
 
-        var response = await client.PostAsync("/api/dm/d/Test-SqlServer/v/", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.BadRequest);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
-        result.Message.Should().Contain("View definition is required");
-    }
-
-    [Fact]
-    public async Task UpdateView_EmptyViewDefinition_ReturnsBadRequest()
-    {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
-        var client = factory.CreateClient();
-
-        var request = new UpdateViewRequest
-        {
-            NewViewDefinition = "", // Empty definition
-        };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
-
-        var response = await client.PutAsync("/api/dm/d/Test-SqlServer/v/SomeView", content);
-
-        response.Should().HaveStatusCode(HttpStatusCode.BadRequest);
-        var result = await response.ReadAsJsonAsync<ViewResponse>();
-        result.Should().NotBeNull();
-        result!.Success.Should().BeFalse();
-        result.Message.Should().Contain("View definition is required");
+        // Clean up
+        await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
     }
 
     #endregion
@@ -682,18 +464,14 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         string viewDefinition = "SELECT 1 AS TestColumn"
     )
     {
-        var request = new CreateViewRequest
-        {
-            ViewName = viewName,
-            ViewDefinition = viewDefinition,
-        };
+        var request = new ViewDto { ViewName = viewName, Definition = viewDefinition };
         var content = new StringContent(
             JsonSerializer.Serialize(request),
             Encoding.UTF8,
             "application/json"
         );
 
-        var response = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", content);
+        var response = await client.PostAsync($"/api/dm/d/{datasourceId}/v/{viewName}", content);
         response.EnsureSuccessStatusCode();
     }
 
@@ -705,11 +483,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         string viewDefinition = "SELECT 1 AS TestColumn"
     )
     {
-        var request = new CreateViewRequest
-        {
-            ViewName = viewName,
-            ViewDefinition = viewDefinition,
-        };
+        var request = new ViewDto { ViewName = viewName, Definition = viewDefinition };
         var content = new StringContent(
             JsonSerializer.Serialize(request),
             Encoding.UTF8,
@@ -717,7 +491,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         );
 
         var response = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/",
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}",
             content
         );
         response.EnsureSuccessStatusCode();

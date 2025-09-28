@@ -65,7 +65,7 @@ public static class CheckConstraintEndpoints
 
         // Check constraint endpoints
         group
-            .MapGet("/", ListCheckConstraintsAsync)
+            .MapGet("/", isSchemaSpecific ? ListSchemaCheckConstraintsAsync : ListCheckConstraintsAsync)
             .WithName($"List{namePrefix}CheckConstraints")
             .WithSummary($"Gets all check constraints for a table {schemaInText}")
             .Produces<CheckConstraintListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +73,7 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{constraintName}", GetCheckConstraintAsync)
+            .MapGet("/{constraintName}", isSchemaSpecific ? GetSchemaCheckConstraintAsync : GetCheckConstraintAsync)
             .WithName($"Get{namePrefix}CheckConstraint")
             .WithSummary($"Gets a specific check constraint from a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.OK)
@@ -81,7 +81,7 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", CreateCheckConstraintAsync)
+            .MapPost("/", isSchemaSpecific ? CreateSchemaCheckConstraintAsync : CreateCheckConstraintAsync)
             .WithName($"Create{namePrefix}CheckConstraint")
             .WithSummary($"Creates a check constraint on a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.Created)
@@ -90,7 +90,7 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", DropCheckConstraintAsync)
+            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaCheckConstraintAsync : DropCheckConstraintAsync)
             .WithName($"Drop{namePrefix}CheckConstraint")
             .WithSummary($"Drops a check constraint from a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.OK)
@@ -99,7 +99,15 @@ public static class CheckConstraintEndpoints
     }
 
     // Check constraint endpoint implementations
-    private static async Task<IResult> ListCheckConstraintsAsync(
+    private static Task<IResult> ListCheckConstraintsAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        CancellationToken cancellationToken = default
+    ) => ListSchemaCheckConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+
+    private static async Task<IResult> ListSchemaCheckConstraintsAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -121,7 +129,16 @@ public static class CheckConstraintEndpoints
         return Results.Ok(new CheckConstraintListResponse(checkConstraints));
     }
 
-    private static async Task<IResult> GetCheckConstraintAsync(
+    private static Task<IResult> GetCheckConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string constraintName,
+        CancellationToken cancellationToken = default
+    ) => GetSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+
+    private static async Task<IResult> GetSchemaCheckConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -145,7 +162,16 @@ public static class CheckConstraintEndpoints
         return Results.Ok(new CheckConstraintResponse(checkConstraint));
     }
 
-    private static async Task<IResult> CreateCheckConstraintAsync(
+    private static Task<IResult> CreateCheckConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] CheckConstraintDto checkConstraint,
+        CancellationToken cancellationToken = default
+    ) => CreateSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, checkConstraint, cancellationToken);
+
+    private static async Task<IResult> CreateSchemaCheckConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
@@ -181,7 +207,16 @@ public static class CheckConstraintEndpoints
         );
     }
 
-    private static async Task<IResult> DropCheckConstraintAsync(
+    private static Task<IResult> DropCheckConstraintAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string constraintName,
+        CancellationToken cancellationToken = default
+    ) => DropSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+
+    private static async Task<IResult> DropSchemaCheckConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,

@@ -55,10 +55,12 @@ public class DefaultDapperMaticPermissions : IDapperMaticPermissions
                 return Task.FromResult(false);
             }
 
-            var isGetRequest = (context.HttpMethod ?? string.Empty).Equals(
-                "GET",
-                StringComparison.OrdinalIgnoreCase
-            );
+            var isGetRequest =
+                (context.HttpMethod ?? string.Empty).Equals(
+                    "GET",
+                    StringComparison.OrdinalIgnoreCase
+                )
+                || context.Operation?.EndsWith("/get", StringComparison.OrdinalIgnoreCase) == true;
 
             if (
                 isGetRequest
