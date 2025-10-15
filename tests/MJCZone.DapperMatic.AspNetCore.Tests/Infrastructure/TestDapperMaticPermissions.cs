@@ -15,11 +15,12 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
 public class TestDapperMaticPermissions : IDapperMaticPermissions
 {
     private readonly Dictionary<string, Func<OperationContext, bool>> _rules = [];
+    private readonly List<(string operation, string pattern, bool allowed)> _datasourceRules = [];
 
     /// <summary>
     /// Sets a permission rule for a specific operation.
     /// </summary>
-    /// <param name="operation">The operation name (e.g., "datasources/list", "datasources/add").</param>
+    /// <param name="operation">The operation name (e.g., "datasources/list", "datasources/post").</param>
     /// <param name="rule">The permission rule function.</param>
     public void SetRule(string operation, Func<OperationContext, bool> rule)
     {
@@ -99,23 +100,7 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     /// <param name="allowed">Whether to allow or deny access.</param>
     public void SetDatasourceRule(string operation, string datasourcePattern, bool allowed)
     {
-        SetRule(
-            operation,
-            (context) =>
-            {
-                if (string.IsNullOrEmpty(context.DatasourceId))
-                    return allowed;
-
-                var pattern = datasourcePattern.Replace("*", ".*");
-                var regex = new System.Text.RegularExpressions.Regex(
-                    $"^{pattern}$",
-                    System.Text.RegularExpressions.RegexOptions.IgnoreCase
-                );
-                var matches = regex.IsMatch(context.DatasourceId);
-
-                return matches ? allowed : !allowed;
-            }
-        );
+        _datasourceRules.Add((operation, datasourcePattern, allowed));
     }
 
     /// <summary>
@@ -129,11 +114,44 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     /// <inheritdoc />
     public Task<bool> IsAuthorizedAsync(IOperationContext context)
     {
-        if (
-            context is OperationContext opContext
-            && opContext.Operation is not null
-            && _rules.TryGetValue(opContext.Operation!, out var rule)
-        )
+        if (context is not OperationContext opContext || opContext.Operation is null)
+        {
+            // Default to allow if no operation context
+            return Task.FromResult(true);
+        }
+
+        // Check datasource rules first if datasource ID is present
+        if (!string.IsNullOrEmpty(opContext.DatasourceId))
+        {
+            var applicableRules = _datasourceRules
+                .Where(r => r.operation == opContext.Operation)
+                .ToList();
+
+            if (applicableRules.Count > 0)
+            {
+                // Check each pattern - if ANY pattern matches and is allowed, return true
+                foreach (var (_, pattern, allowed) in applicableRules)
+                {
+                    var regexPattern = pattern.Replace("*", ".*");
+                    var regex = new System.Text.RegularExpressions.Regex(
+                        $"^{regexPattern}$",
+                        System.Text.RegularExpressions.RegexOptions.IgnoreCase
+                    );
+
+                    if (regex.IsMatch(opContext.DatasourceId))
+                    {
+                        // Pattern matched - return the allowed value for this pattern
+                        return Task.FromResult(allowed);
+                    }
+                }
+
+                // No patterns matched - deny by default when datasource rules exist
+                return Task.FromResult(false);
+            }
+        }
+
+        // Check operation-level rules
+        if (_rules.TryGetValue(opContext.Operation, out var rule))
         {
             return Task.FromResult(rule(opContext));
         }

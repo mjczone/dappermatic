@@ -410,6 +410,10 @@ public static class ViewEndpoints
         // Handle rename separately if needed
         if (isRename)
         {
+            operationContext.Properties ??= new Dictionary<string, object>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            operationContext.Properties["NewViewName"] = updates.ViewName!;
             var renamed = await service
                 .RenameViewAsync(
                     operationContext,

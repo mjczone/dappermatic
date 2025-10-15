@@ -41,7 +41,7 @@ public partial class DapperMaticService
 
         if (datasource == null)
         {
-            throw new ArgumentException($"Datasource '{datasourceId}' not found");
+            throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
         }
 
         var providerName = datasource.Provider ?? "Unknown";

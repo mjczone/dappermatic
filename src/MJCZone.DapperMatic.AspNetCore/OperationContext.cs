@@ -21,7 +21,7 @@ public class OperationContext : IOperationContext
     public ClaimsPrincipal? User { get; set; }
 
     /// <summary>
-    /// Gets or sets the operation being performed (e.g., "datasources/create", "tables/update").
+    /// Gets or sets the operation being performed (e.g., "datasources/post", "tables/put").
     /// </summary>
     public string? Operation { get; set; }
 

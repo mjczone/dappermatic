@@ -20,7 +20,7 @@ public interface IOperationContext
     ClaimsPrincipal? User { get; set; }
 
     /// <summary>
-    /// Gets or sets the operation being performed (e.g., "datasources/get", "datasources/add").
+    /// Gets or sets the operation being performed (e.g., "datasources/get", "datasources/post").
     /// </summary>
     string? Operation { get; set; }
 

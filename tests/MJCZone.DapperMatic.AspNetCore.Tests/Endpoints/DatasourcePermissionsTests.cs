@@ -39,9 +39,9 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         // Set up permissions for complete workflow
         testPermissions.AllowOperation("datasources/list");
         testPermissions.AllowOperation("datasources/get");
-        testPermissions.AllowOperation("datasources/add");
-        testPermissions.AllowOperation("datasources/update");
-        testPermissions.AllowOperation("datasources/remove");
+        testPermissions.AllowOperation("datasources/post");
+        testPermissions.AllowOperation("datasources/put");
+        testPermissions.AllowOperation("datasources/delete");
         testPermissions.AllowOperation("datasources/exists");
 
         using var client = CreateClientWithPermissions(testPermissions);
@@ -77,9 +77,9 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         // 4. EXISTS - Check if datasource exists (should return true)
         var existsResponse1 = await client.GetAsync($"/api/dm/d/{testDatasourceId}/exists");
         existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
-        var existsResult1 = await existsResponse1.ReadAsJsonAsync<DatasourceTestResponse>();
+        var existsResult1 = await existsResponse1.ReadAsJsonAsync<DatasourceExistsResponse>();
         existsResult1.Should().NotBeNull();
-        // Note: Using test response as there's no dedicated exists response
+        existsResult1!.Result.Should().BeTrue();
 
         // 5. LIST - List datasources again (should contain new datasource)
         var listResponse2 = await client.GetAsync("/api/dm/d/");
@@ -100,11 +100,11 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         getResult2.Result.DisplayName.Should().Be("Permission Workflow Test");
 
         // 7. UPDATE - Update the datasource
-        var updateRequest = new DatasourceDto
-        {
-            DisplayName = "Updated Permission Test",
-        };
-        var updateResponse = await client.PutAsJsonAsync($"/api/dm/d/{testDatasourceId}", updateRequest);
+        var updateRequest = new DatasourceDto { DisplayName = "Updated Permission Test" };
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/api/dm/d/{testDatasourceId}",
+            updateRequest
+        );
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updateResult = await updateResponse.ReadAsJsonAsync<DatasourceResponse>();
         updateResult.Should().NotBeNull();
@@ -124,8 +124,10 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 10. EXISTS - Check if datasource exists (should return false)
         var existsResponse2 = await client.GetAsync($"/api/dm/d/{testDatasourceId}/exists");
-        existsResponse2.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        // Note: Non-existent datasource returns 404
+        existsResponse2.Should().NotBeNull();
+        var existsResult2 = await existsResponse2.ReadAsJsonAsync<DatasourceExistsResponse>();
+        existsResult2.Should().NotBeNull();
+        existsResult2!.Result.Should().BeFalse();
 
         // 11. LIST - List datasources (should be back to initial count)
         var listResponse3 = await client.GetAsync("/api/dm/d/");
@@ -145,9 +147,9 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         // Set up role-based permissions
         testPermissions.RequireRoleForOperation("datasources/list", "DataReader");
         testPermissions.RequireRoleForOperation("datasources/get", "DataReader");
-        testPermissions.RequireRoleForOperation("datasources/add", "DataAdmin");
-        testPermissions.RequireRoleForOperation("datasources/update", "DataAdmin");
-        testPermissions.RequireRoleForOperation("datasources/remove", "DataAdmin");
+        testPermissions.RequireRoleForOperation("datasources/post", "DataAdmin");
+        testPermissions.RequireRoleForOperation("datasources/put", "DataAdmin");
+        testPermissions.RequireRoleForOperation("datasources/delete", "DataAdmin");
 
         // Test with DataReader role (read operations only)
         var readerClaims = new[]
@@ -180,7 +182,9 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         var adminClaims = new[]
         {
             new Claim(ClaimTypes.Name, "admin"),
+            // Needs BOTH roles
             new Claim(ClaimTypes.Role, "DataAdmin"),
+            new Claim(ClaimTypes.Role, "DataReader"),
         };
 
         using var adminClient = CreateClientWithPermissionsAndAuth(testPermissions, adminClaims);
@@ -204,8 +208,8 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         // Set up datasource-specific rules
         testPermissions.SetDatasourceRule("datasources/get", "Test-*", true);
         testPermissions.SetDatasourceRule("datasources/get", "Private-*", false);
-        testPermissions.AllowOperation("datasources/add");
-        testPermissions.AllowOperation("datasources/remove");
+        testPermissions.AllowOperation("datasources/post");
+        testPermissions.AllowOperation("datasources/delete");
 
         using var client = CreateClientWithPermissions(testPermissions);
 
@@ -221,7 +225,10 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             ConnectionString = "Data Source=:memory:",
             DisplayName = "Private Database",
         };
-        var createPrivateResponse = await client.PostAsJsonAsync("/api/dm/d/", createPrivateRequest);
+        var createPrivateResponse = await client.PostAsJsonAsync(
+            "/api/dm/d/",
+            createPrivateRequest
+        );
         createPrivateResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         try
@@ -249,9 +256,9 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         // Explicitly deny all operations
         testPermissions.DenyOperation("datasources/list");
         testPermissions.DenyOperation("datasources/get");
-        testPermissions.DenyOperation("datasources/add");
-        testPermissions.DenyOperation("datasources/update");
-        testPermissions.DenyOperation("datasources/remove");
+        testPermissions.DenyOperation("datasources/post");
+        testPermissions.DenyOperation("datasources/put");
+        testPermissions.DenyOperation("datasources/delete");
         testPermissions.DenyOperation("datasources/exists");
 
         using var client = CreateClientWithPermissions(testPermissions);
@@ -291,7 +298,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Require high-privilege roles for operations
         testPermissions.RequireRoleForOperation("datasources/list", "SuperAdmin");
-        testPermissions.RequireRoleForOperation("datasources/add", "DataAdmin");
+        testPermissions.RequireRoleForOperation("datasources/post", "DataAdmin");
 
         // Create user with insufficient roles
         var userClaims = new[]
@@ -324,10 +331,10 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Set up complex pattern-based rules
         testPermissions.SetDatasourceRule("datasources/get", "Prod-*", false); // Deny production
-        testPermissions.SetDatasourceRule("datasources/get", "Test-*", true);  // Allow test
-        testPermissions.SetDatasourceRule("datasources/get", "Dev-*", true);   // Allow dev
-        testPermissions.AllowOperation("datasources/add");
-        testPermissions.AllowOperation("datasources/remove");
+        testPermissions.SetDatasourceRule("datasources/get", "Test-*", true); // Allow test
+        testPermissions.SetDatasourceRule("datasources/get", "Dev-*", true); // Allow dev
+        testPermissions.AllowOperation("datasources/post");
+        testPermissions.AllowOperation("datasources/delete");
 
         using var client = CreateClientWithPermissions(testPermissions);
 

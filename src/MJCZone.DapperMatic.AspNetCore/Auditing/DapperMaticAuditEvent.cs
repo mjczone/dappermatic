@@ -16,7 +16,7 @@ public class DapperMaticAuditEvent
     public string UserIdentifier { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the operation that was performed (e.g., "datasources/create", "tables/update").
+    /// Gets or sets the operation that was performed (e.g., "datasources/post", "tables/put").
     /// </summary>
     public string Operation { get; set; } = string.Empty;
 

@@ -4,7 +4,6 @@
 // See LICENSE in the project root for license information.
 
 using System.Collections.Concurrent;
-
 using MJCZone.DapperMatic.AspNetCore.Auditing;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;

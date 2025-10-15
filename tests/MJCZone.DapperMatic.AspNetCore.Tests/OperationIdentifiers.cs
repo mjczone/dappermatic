@@ -33,7 +33,9 @@ public static class OperationIdentifiers
             EndpointPath = "/api/dappermatic",
             IpAddress = "127.0.0.1",
             Properties = [],
-            QueryParameters = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
+            QueryParameters = new Dictionary<string, StringValues>(
+                StringComparer.OrdinalIgnoreCase
+            ),
             RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             HeaderValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         };
@@ -95,7 +97,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceGet(string datasourceId, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceGet(
+        string datasourceId,
+        ClaimsPrincipal? user = null
+    )
     {
         var context = CreateContext("datasources/get", user);
         context.DatasourceId = datasourceId;
@@ -108,9 +113,12 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource to add.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceAdd(object requestBody, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceAdd(
+        object requestBody,
+        ClaimsPrincipal? user = null
+    )
     {
-        var context = CreateContext("datasources/add", user);
+        var context = CreateContext("datasources/post", user);
         context.RequestBody = requestBody;
         context.HttpMethod = "POST";
         return context;
@@ -121,9 +129,12 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource update data.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceUpdate(object requestBody, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceUpdate(
+        object requestBody,
+        ClaimsPrincipal? user = null
+    )
     {
-        var context = CreateContext("datasources/update", user);
+        var context = CreateContext("datasources/put", user);
         context.RequestBody = requestBody;
         context.HttpMethod = "PUT";
         return context;
@@ -134,9 +145,12 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceRemove(string datasourceId, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceRemove(
+        string datasourceId,
+        ClaimsPrincipal? user = null
+    )
     {
-        var context = CreateContext("datasources/remove", user);
+        var context = CreateContext("datasources/delete", user);
         context.DatasourceId = datasourceId;
         context.HttpMethod = "DELETE";
         return context;
@@ -147,7 +161,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceExists(string datasourceId, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceExists(
+        string datasourceId,
+        ClaimsPrincipal? user = null
+    )
     {
         var context = CreateContext("datasources/exists", user);
         context.DatasourceId = datasourceId;
@@ -160,7 +177,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceTest(string datasourceId, ClaimsPrincipal? user = null)
+    public static IOperationContext ForDatasourceTest(
+        string datasourceId,
+        ClaimsPrincipal? user = null
+    )
     {
         var context = CreateContext("datasources/test", user);
         context.DatasourceId = datasourceId;
@@ -216,7 +236,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("schemas/create", user);
+        var context = CreateContext("schemas/post", user);
         context.DatasourceId = datasourceId;
         context.RequestBody = requestBody;
         context.HttpMethod = "POST";
@@ -235,7 +255,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("schemas/drop", user);
+        var context = CreateContext("schemas/delete", user);
         context.DatasourceId = datasourceId;
         context.SchemaName = schemaName;
         context.HttpMethod = "DELETE";
@@ -318,7 +338,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("tables/create", user);
+        var context = CreateContext("tables/post", user);
         context.DatasourceId = datasourceId;
         context.RequestBody = requestBody;
         context.HttpMethod = "POST";
@@ -339,7 +359,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("tables/drop", user);
+        var context = CreateContext("tables/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -408,7 +428,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("tables/update", user);
+        var context = CreateContext("tables/put", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.RequestBody = requestBody;
@@ -432,7 +452,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("tables/rename", user);
+        var context = CreateContext("tables/put", user);
         context.DatasourceId = datasourceId;
         context.TableName = currentTableName;
         context.SchemaName = schemaName;
@@ -499,7 +519,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("views/create", user);
+        var context = CreateContext("views/post", user);
         context.DatasourceId = datasourceId;
         context.RequestBody = requestBody;
         context.HttpMethod = "POST";
@@ -520,7 +540,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("views/update", user);
+        var context = CreateContext("views/put", user);
         context.DatasourceId = datasourceId;
         context.ViewName = viewName;
         context.RequestBody = requestBody;
@@ -544,7 +564,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("views/rename", user);
+        var context = CreateContext("views/put", user);
         context.DatasourceId = datasourceId;
         context.ViewName = currentViewName;
         context.SchemaName = schemaName;
@@ -568,7 +588,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("views/drop", user);
+        var context = CreateContext("views/delete", user);
         context.DatasourceId = datasourceId;
         context.ViewName = viewName;
         context.SchemaName = schemaName;
@@ -690,7 +710,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("columns/add", user);
+        var context = CreateContext("columns/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -717,7 +737,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("columns/rename", user);
+        var context = CreateContext("columns/put", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ColumnNames = [columnName];
@@ -744,7 +764,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("columns/drop", user);
+        var context = CreateContext("columns/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ColumnNames = [columnName];
@@ -820,7 +840,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("indexes/create", user);
+        var context = CreateContext("indexes/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -845,7 +865,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("indexes/drop", user);
+        var context = CreateContext("indexes/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.IndexName = indexName;
@@ -896,7 +916,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("primary-key-constraints/create", user);
+        var context = CreateContext("primary-key-constraints/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -919,7 +939,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("primary-key-constraints/drop", user);
+        var context = CreateContext("primary-key-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -990,7 +1010,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreign-key-constraints/create", user);
+        var context = CreateContext("foreign-key-constraints/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1015,7 +1035,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreign-key-constraints/drop", user);
+        var context = CreateContext("foreign-key-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1087,7 +1107,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("check-constraints/create", user);
+        var context = CreateContext("check-constraints/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1112,7 +1132,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("check-constraints/drop", user);
+        var context = CreateContext("check-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1135,7 +1155,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("uniqueconstraints/list", user);
+        var context = CreateContext("unique-constraints/list", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1159,7 +1179,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("uniqueconstraints/get", user);
+        var context = CreateContext("unique-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1184,7 +1204,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("uniqueconstraints/create", user);
+        var context = CreateContext("unique-constraints/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1209,7 +1229,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("uniqueconstraints/drop", user);
+        var context = CreateContext("unique-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1306,7 +1326,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("default-constraints/create", user);
+        var context = CreateContext("default-constraints/post", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1331,7 +1351,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("default-constraints/drop", user);
+        var context = CreateContext("default-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1356,7 +1376,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("default-constraints/drop", user);
+        var context = CreateContext("default-constraints/delete", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ColumnNames = [columnName];
@@ -1442,7 +1462,9 @@ public static class OperationIdentifiers
 
         if (queryParams != null)
         {
-            context.QueryParameters ??= new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
+            context.QueryParameters ??= new Dictionary<string, StringValues>(
+                StringComparer.OrdinalIgnoreCase
+            );
             foreach (var (key, value) in queryParams)
             {
                 context.QueryParameters[key] = value;
@@ -1451,7 +1473,9 @@ public static class OperationIdentifiers
 
         if (headers != null)
         {
-            context.HeaderValues ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            context.HeaderValues ??= new Dictionary<string, string>(
+                StringComparer.OrdinalIgnoreCase
+            );
             foreach (var (key, value) in headers)
             {
                 context.HeaderValues[key] = value;

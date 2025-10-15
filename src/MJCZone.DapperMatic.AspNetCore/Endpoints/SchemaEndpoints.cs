@@ -82,7 +82,7 @@ public static class SchemaEndpoints
             .WithName("SchemaExists")
             .WithSummary("Checks if a schema exists")
             .Produces<SchemaExistsResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.NotFound) // if the datasource is not found (NOT to be confused, as schema not found returns 200 with result: false)
             .Produces((int)HttpStatusCode.Forbidden);
 
         return app;
@@ -123,11 +123,7 @@ public static class SchemaEndpoints
             .GetSchemaAsync(operationContext, datasourceId, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
-        return schema != null
-            ? Results.Ok(new SchemaResponse(schema))
-            : throw new KeyNotFoundException(
-                $"Schema '{schemaName}' not found in datasource '{datasourceId}'"
-            );
+        return Results.Ok(new SchemaResponse(schema));
     }
 
     private static async Task<IResult> CreateSchemaAsync(

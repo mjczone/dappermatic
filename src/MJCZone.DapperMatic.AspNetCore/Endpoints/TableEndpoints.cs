@@ -445,6 +445,10 @@ public static class TableEndpoints
         // Handle rename separately if needed
         if (isRename)
         {
+            operationContext.Properties ??= new Dictionary<string, object>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            operationContext.Properties["NewTableName"] = updates.TableName!;
             var renamed = await service
                 .RenameTableAsync(
                     operationContext,

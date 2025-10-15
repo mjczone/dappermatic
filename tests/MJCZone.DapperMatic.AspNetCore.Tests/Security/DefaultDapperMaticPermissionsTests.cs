@@ -151,7 +151,7 @@ public class DefaultDapperMaticPermissionsTests
         );
         var permissions = new DefaultDapperMaticPermissions(options);
         var context = CreateOperationContext(
-            "datasources/add",
+            "datasources/post",
             authenticated: true,
             roles: ["DataReader"]
         );
@@ -169,7 +169,7 @@ public class DefaultDapperMaticPermissionsTests
         );
         var permissions = new DefaultDapperMaticPermissions(options);
         var context = CreateOperationContext(
-            "datasources/add",
+            "datasources/post",
             authenticated: true,
             roles: ["DataAdmin"]
         );

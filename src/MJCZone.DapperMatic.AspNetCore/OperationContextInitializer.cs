@@ -10,7 +10,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
-
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 
 namespace MJCZone.DapperMatic.AspNetCore;
@@ -137,14 +136,6 @@ public partial class OperationContextInitializer : IOperationContextInitializer
             }
         }
 
-        // Build a human-readable operation name from the route path and HTTP method
-        // This must be done AFTER populating route values since it depends on them
-        context.Operation ??= BuildOperationName(
-            routePath,
-            httpContext.Request.Method,
-            context.RouteValues
-        );
-
         // Now populate header values
         if (httpContext.Request.Headers.Count > 0)
         {
@@ -243,7 +234,139 @@ public partial class OperationContextInitializer : IOperationContextInitializer
             }
         }
 
+        if (string.IsNullOrWhiteSpace(context.Operation))
+        {
+            var resourceType = GetContextResourceType(context);
+            var operationVerb = GetContextOperationVerb(
+                context,
+                endpoint,
+                resourceType,
+                httpContext.Request.Method
+            );
+            context.Operation ??= $"{resourceType}/{operationVerb}";
+        }
+
         return Task.CompletedTask;
+    }
+
+    private static string GetContextResourceType(IOperationContext context)
+    {
+        if (string.IsNullOrWhiteSpace(context.EndpointPath))
+        {
+            return "unknown";
+        }
+
+        // Split path into segments
+        var segments = context.EndpointPath.Split(
+            '/',
+            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+        );
+
+        var normalizedSegments = new List<string>();
+        foreach (var segment in segments)
+        {
+            // Skip base path segments
+            var segmentLowerCase = segment.ToLowerInvariant();
+            switch (segmentLowerCase)
+            {
+                case "d":
+                    normalizedSegments.Add("datasources");
+                    break;
+                case "s":
+                    normalizedSegments.Add("schemas");
+                    break;
+                case "t":
+                    normalizedSegments.Add("tables");
+                    break;
+                case "v":
+                    normalizedSegments.Add("views");
+                    break;
+                case "datatypes":
+                case "columns":
+                case "indexes":
+                case "check-constraints":
+                case "default-constraints":
+                case "foreign-key-constraints":
+                case "primary-key-constraint":
+                case "unique-constraints":
+                    normalizedSegments.Add(segmentLowerCase);
+                    break;
+            }
+        }
+
+        return normalizedSegments.LastOrDefault() ?? "unknown";
+    }
+
+    private string GetContextOperationVerb(
+        IOperationContext context,
+        RouteEndpoint? endpoint,
+        string resourceType,
+        string method
+    )
+    {
+        var routePattern = endpoint?.RoutePattern.RawText ?? string.Empty;
+
+        var methodLowerCase = method.ToLowerInvariant();
+        if (methodLowerCase == "post")
+        {
+            if (
+                routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase)
+                && resourceType == "datasources"
+            )
+            {
+                return "test";
+            }
+            if (
+                routePattern.EndsWith("/query", StringComparison.OrdinalIgnoreCase)
+                && (resourceType == "tables" || resourceType == "views")
+            )
+            {
+                return "query";
+            }
+            return "post";
+        }
+
+        if (methodLowerCase == "put")
+        {
+            return "put";
+        }
+
+        if (methodLowerCase == "delete")
+        {
+            return "delete";
+        }
+
+        if (methodLowerCase == "patch")
+        {
+            return "patch";
+        }
+
+        if (methodLowerCase == "get")
+        {
+            if (
+                routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase)
+                && resourceType == "datasources"
+            )
+            {
+                return "test";
+            }
+            if (
+                routePattern.EndsWith("/query", StringComparison.OrdinalIgnoreCase)
+                && (resourceType == "tables" || resourceType == "views")
+            )
+            {
+                return "query";
+            }
+
+            // If the route pattern ends with a parameter, it's a "get" operation
+            return
+                routePattern.EndsWith('}')
+                || routePattern.EndsWith("/exists", StringComparison.OrdinalIgnoreCase)
+                ? "get"
+                : "list";
+        }
+
+        return "unknown";
     }
 
     private bool TryGetRouteValue(
@@ -303,243 +426,6 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
         // Fall back to direct connection IP
         return httpContext.Connection.RemoteIpAddress?.ToString();
-    }
-
-    /// <summary>
-    /// Builds a human-readable operation name from the route path and HTTP method.
-    /// </summary>
-    /// <param name="routePath">The route path with parameters stripped (e.g., "d", "d/t/columns").</param>
-    /// <param name="httpMethod">The HTTP method (GET, POST, PUT, PATCH, DELETE).</param>
-    /// <param name="routeValues">The route values containing parameter names and values.</param>
-    /// <returns>A human-readable operation name (e.g., "datasources/add", "tables/list").</returns>
-    private string BuildOperationName(
-        string routePath,
-        string httpMethod,
-        IDictionary<string, string>? routeValues
-    )
-    {
-        if (string.IsNullOrWhiteSpace(routePath))
-        {
-            return $"unknown/{httpMethod.ToLowerInvariant()}";
-        }
-
-        // Normalize the route path by removing schema-specific segments
-        // e.g., "d/s/t" becomes "d/t", "d/s/t/columns" becomes "d/t/columns"
-        var normalizedPath = routePath.Replace("/s/", "/", StringComparison.Ordinal);
-
-        // Split path into segments
-        var segments = normalizedPath.Split('/', StringSplitOptions.RemoveEmptyEntries);
-
-        // Determine resource name and operation verb
-        string resourceName;
-        string operationVerb;
-
-        // Check for special sub-paths first (test, exists, query, columns/{columnName})
-        if (routeValues != null)
-        {
-            // Check for special datasource operations
-            if (normalizedPath == "d/test")
-            {
-                return "datasources/test";
-            }
-
-            // Check for table/view operations with special paths
-            if (
-                normalizedPath.StartsWith("d/t/", StringComparison.Ordinal)
-                || normalizedPath.StartsWith("d/v/", StringComparison.Ordinal)
-            )
-            {
-                var isTable = normalizedPath.StartsWith("d/t/", StringComparison.Ordinal);
-                var resourceType = isTable ? "tables" : "views";
-
-                if (normalizedPath.EndsWith("/exists", StringComparison.Ordinal))
-                {
-                    return $"{resourceType}/exists";
-                }
-                if (normalizedPath.EndsWith("/query", StringComparison.Ordinal))
-                {
-                    return $"{resourceType}/query";
-                }
-            }
-
-            // Check for default constraint column-specific operations
-            if (normalizedPath.Contains("/default-constraints/columns/", StringComparison.Ordinal))
-            {
-                if (httpMethod.Equals("GET", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "default-constraints/get-on-column";
-                }
-                if (httpMethod.Equals("DELETE", StringComparison.OrdinalIgnoreCase))
-                {
-                    return "default-constraints/drop-on-column";
-                }
-            }
-        }
-
-        // Map route path segments to resource names
-        switch (normalizedPath)
-        {
-            case "d":
-                resourceName = "datasources";
-                break;
-            case "d/datatypes":
-                resourceName = "datatypes";
-                break;
-            case "d/s":
-                resourceName = "schemas";
-                break;
-            case "d/t":
-                resourceName = "tables";
-                break;
-            case "d/v":
-                resourceName = "views";
-                break;
-            case "d/t/columns":
-                resourceName = "columns";
-                break;
-            case "d/t/indexes":
-                resourceName = "indexes";
-                break;
-            case "d/t/check-constraints":
-                resourceName = "check-constraints";
-                break;
-            case "d/t/default-constraints":
-                resourceName = "default-constraints";
-                break;
-            case "d/t/foreign-key-constraints":
-                resourceName = "foreign-key-constraints";
-                break;
-            case "d/t/primary-key-constraint":
-                resourceName = "primary-key-constraint";
-                break;
-            case "d/t/unique-constraints":
-                resourceName = "unique-constraints";
-                break;
-            default:
-                // Fallback: use the last segment as resource name
-                resourceName = segments.Length > 0 ? segments[^1] : "unknown";
-                break;
-        }
-
-        // Determine if the operation targets a specific resource (singular) or a collection (plural)
-        bool isSingularOperation = routeValues != null && DetermineIsSingularOperation(normalizedPath, routeValues);
-
-        // Map HTTP method to operation verb
-        operationVerb = MapHttpMethodToVerb(httpMethod, resourceName, isSingularOperation);
-
-        return $"{resourceName}/{operationVerb}";
-    }
-
-    /// <summary>
-    /// Determines if the operation targets a specific resource instance (singular) or a collection (plural).
-    /// </summary>
-    private bool DetermineIsSingularOperation(string normalizedPath, IDictionary<string, string> routeValues)
-    {
-        // Check for resource-specific route parameters
-        if (normalizedPath.StartsWith("d/", StringComparison.Ordinal))
-        {
-            // Datasources
-            if (normalizedPath == "d" && routeValues.ContainsKey("datasourceId"))
-            {
-                return true;
-            }
-
-            // Schemas
-            if (normalizedPath == "d/s" && routeValues.ContainsKey("schemaName"))
-            {
-                return true;
-            }
-
-            // Tables
-            if (normalizedPath == "d/t" && routeValues.ContainsKey("tableName"))
-            {
-                return true;
-            }
-
-            // Views
-            if (normalizedPath == "d/v" && routeValues.ContainsKey("viewName"))
-            {
-                return true;
-            }
-
-            // Columns
-            if (normalizedPath == "d/t/columns" && routeValues.ContainsKey("columnName"))
-            {
-                return true;
-            }
-
-            // Indexes
-            if (normalizedPath == "d/t/indexes" && routeValues.ContainsKey("indexName"))
-            {
-                return true;
-            }
-
-            // Constraints (check, default, foreign-key, unique)
-            if (
-                (
-                    normalizedPath == "d/t/check-constraints"
-                    || normalizedPath == "d/t/default-constraints"
-                    || normalizedPath == "d/t/foreign-key-constraints"
-                    || normalizedPath == "d/t/unique-constraints"
-                ) && routeValues.ContainsKey("constraintName")
-            )
-            {
-                return true;
-            }
-
-            // Primary key constraint doesn't use constraintName in route, but has special handling
-            if (normalizedPath == "d/t/primary-key-constraint")
-            {
-                // Primary key operations are always singular (get/create/drop the PK for a table)
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /// <summary>
-    /// Maps HTTP method and singularity to an operation verb.
-    /// </summary>
-    private string MapHttpMethodToVerb(string httpMethod, string resourceName, bool isSingular)
-    {
-        return httpMethod.ToUpperInvariant() switch
-        {
-            "GET" => isSingular ? "get" : "list",
-            "POST"
-                => resourceName switch
-                {
-                    "datasources" => "add",
-                    "columns" => "add",
-                    "schemas" or "tables" or "views" or "indexes" => "create",
-                    _
-                        when resourceName.EndsWith("-constraints", StringComparison.Ordinal)
-                            || resourceName.EndsWith("-constraint", StringComparison.Ordinal)
-                        => "create",
-                    _ => "create",
-                },
-            "PUT" or "PATCH"
-                => resourceName switch
-                {
-                    "datasources" => "update",
-                    "tables" or "views" => "rename",
-                    "columns" => "rename",
-                    _ => "update",
-                },
-            "DELETE"
-                => resourceName switch
-                {
-                    "datasources" => "remove",
-                    "schemas" or "tables" or "views" or "indexes" => "drop",
-                    "columns" => "drop",
-                    _
-                        when resourceName.EndsWith("-constraints", StringComparison.Ordinal)
-                            || resourceName.EndsWith("-constraint", StringComparison.Ordinal)
-                        => "drop",
-                    _ => "delete",
-                },
-            _ => httpMethod.ToLowerInvariant(),
-        };
     }
 
     [GeneratedRegex(@"/+")]

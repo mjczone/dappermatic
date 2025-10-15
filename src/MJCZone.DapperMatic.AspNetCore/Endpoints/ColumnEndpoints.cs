@@ -283,6 +283,10 @@ public static class ColumnEndpoints
 
         if (!columnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
         {
+            operationContext.Properties ??= new Dictionary<string, object>(
+                StringComparer.OrdinalIgnoreCase
+            );
+            operationContext.Properties["NewColumnName"] = column.ColumnName!;
             var renamedColumn = await service
                 .RenameColumnAsync(
                     operationContext,

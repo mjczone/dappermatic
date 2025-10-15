@@ -90,6 +90,14 @@ public static class DatasourceEndpoints
 
         // Test datasource connection - GET
         group
+            .MapGet("/{datasourceId}/exists", DatasourceExistsAsync)
+            .WithName("DatasourceExists")
+            .WithSummary("Checks if a datasource exists")
+            .Produces<DatasourceTestResponse>((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.Forbidden);
+
+        // Test datasource connection - GET
+        group
             .MapGet("/{datasourceId}/test", TestDatasourceAsync)
             .WithName("TestDatasource")
             .WithSummary("Tests datasource connectivity")
@@ -146,9 +154,7 @@ public static class DatasourceEndpoints
             .GetDatasourceAsync(operationContext, datasourceId, cancellationToken)
             .ConfigureAwait(false);
 
-        return datasource != null
-            ? Results.Ok(new DatasourceResponse(datasource))
-            : throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
+        return Results.Ok(new DatasourceResponse(datasource));
     }
 
     private static async Task<IResult> CreateDatasourceAsync(
@@ -184,12 +190,10 @@ public static class DatasourceEndpoints
             .AddDatasourceAsync(operationContext, datasource, cancellationToken)
             .ConfigureAwait(false);
 
-        return created != null
-            ? Results.Created(
-                $"{operationContext.EndpointPath?.TrimEnd('/')}/{created.Id}",
-                new DatasourceResponse(created)
-            )
-            : throw new DuplicateKeyException($"Datasource '{datasource.Id}' already exists");
+        return Results.Created(
+            $"{operationContext.EndpointPath?.TrimEnd('/')}/{created.Id}",
+            new DatasourceResponse(created)
+        );
     }
 
     private static async Task<IResult> UpdateDatasourceAsync(
@@ -223,9 +227,7 @@ public static class DatasourceEndpoints
             .UpdateDatasourceAsync(operationContext, datasource, cancellationToken)
             .ConfigureAwait(false);
 
-        return updated != null
-            ? Results.Ok(new DatasourceResponse(updated))
-            : throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
+        return Results.Ok(new DatasourceResponse(updated));
     }
 
     private static async Task<IResult> DeleteDatasourceAsync(
@@ -240,6 +242,20 @@ public static class DatasourceEndpoints
             .ConfigureAwait(false);
 
         return Results.NoContent();
+    }
+
+    private static async Task<IResult> DatasourceExistsAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var exists = await service
+            .DatasourceExistsAsync(operationContext, datasourceId, cancellationToken)
+            .ConfigureAwait(false);
+
+        return Results.Ok(new DatasourceExistsResponse(exists));
     }
 
     private static async Task<IResult> TestDatasourceAsync(

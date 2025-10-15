@@ -827,7 +827,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     {
         // 1. List initial unique constraints
         var initialUniquesResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/uniqueconstraints"
+            $"{baseUrl}/{tableName}/unique-constraints"
         );
         initialUniquesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var initialUniques =
@@ -846,14 +846,14 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
         var createUniqueResponse = await client.PostAsync(
-            $"{baseUrl}/{tableName}/uniqueconstraints",
+            $"{baseUrl}/{tableName}/unique-constraints",
             createUniqueContent
         );
         createUniqueResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. List unique constraints after creation
         var uniquesAfterCreateResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/uniqueconstraints"
+            $"{baseUrl}/{tableName}/unique-constraints"
         );
         uniquesAfterCreateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var uniquesAfterCreate =
@@ -864,7 +864,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // 4. Drop the unique constraint
         var dropUniqueResponse = await client.DeleteAsync(
-            $"{baseUrl}/{tableName}/uniqueconstraints/UQ_{tableName}_Email"
+            $"{baseUrl}/{tableName}/unique-constraints/UQ_{tableName}_Email"
         );
         dropUniqueResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }

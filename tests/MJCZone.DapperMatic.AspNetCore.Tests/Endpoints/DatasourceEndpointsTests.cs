@@ -374,7 +374,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             result!.Result.Should().NotBeNull();
             result.Result!.Id.Should().Be(datasourceId);
             result.Result.Provider.Should().NotBeNullOrEmpty();
-            result.Result.ConnectionString.Should().NotBeNullOrEmpty();
+            result.Result.ConnectionString.Should().BeNull(); // Connection string should be hidden
             result.Result.DisplayName.Should().NotBeNullOrEmpty();
             result.Result.IsEnabled.Should().BeTrue();
         }
