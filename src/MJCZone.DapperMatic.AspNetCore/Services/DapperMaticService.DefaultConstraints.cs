@@ -72,7 +72,12 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(context, true, $"Retrieved default constraints for table '{tableName}'").ConfigureAwait(false);
+        await LogAuditEventAsync(
+                context,
+                true,
+                $"Retrieved default constraints for table '{tableName}'"
+            )
+            .ConfigureAwait(false);
         return defaultConstraints.ToDefaultConstraintDtos();
     }
 
@@ -157,6 +162,88 @@ public partial class DapperMaticService
     }
 
     /// <summary>
+    /// Gets a specific default constraint from a table for a column.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The default constraint if found, otherwise null.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    public async Task<DefaultConstraintDto> GetDefaultConstraintOnColumnAsync(
+        IOperationContext context,
+        string datasourceId,
+        string tableName,
+        string columnName,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .NotNullOrWhiteSpace(columnName, nameof(columnName))
+            .Assert();
+
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
+        {
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
+                    tableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            var defaultConstraint = await connection
+                .GetDefaultConstraintOnColumnAsync(
+                    schemaName,
+                    tableName,
+                    columnName,
+                    null,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (defaultConstraint == null)
+            {
+                throw new KeyNotFoundException(
+                    $"Default constraint not found on column '{columnName}' in table '{tableName}'"
+                );
+            }
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Retrieved default constraint on column '{columnName}' from table '{tableName}'"
+                )
+                .ConfigureAwait(false);
+            return defaultConstraint.ToDefaultConstraintDto();
+        }
+    }
+
+    /// <summary>
     /// Creates a new default constraint on a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
@@ -179,6 +266,15 @@ public partial class DapperMaticService
 
         // Convert DTO to domain model for validation
         schemaName = NormalizeSchemaName(schemaName);
+
+        if (
+            defaultConstraint != null
+            && string.IsNullOrWhiteSpace(defaultConstraint.ConstraintName)
+            && !string.IsNullOrWhiteSpace(defaultConstraint.ColumnName)
+        )
+        {
+            defaultConstraint.ConstraintName = $"df_{tableName}_{defaultConstraint.ColumnName}";
+        }
 
         Validate
             .Arguments()
@@ -224,6 +320,43 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            // Check constraint doesn't already exist
+            if (
+                !string.IsNullOrWhiteSpace(defaultConstraint.ConstraintName)
+                && await connection
+                    .DoesDefaultConstraintExistAsync(
+                        schemaName,
+                        tableName,
+                        defaultConstraint.ConstraintName,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    $"A default constraint with the name '{defaultConstraint.ConstraintName}' already exists on table '{tableName}'."
+                );
+            }
+
+            // Check constraint doesn't already exist on column
+            if (
+                await connection
+                    .DoesDefaultConstraintExistOnColumnAsync(
+                        schemaName,
+                        tableName,
+                        defaultConstraint.ColumnName!,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    $"A default constraint already exists on column '{defaultConstraint.ColumnName}' in table '{tableName}'."
+                );
+            }
 
             var dmDefaultConstraint = defaultConstraint.ToDmDefaultConstraint(
                 schemaName,
@@ -385,6 +518,105 @@ public partial class DapperMaticService
                     context,
                     dropped,
                     $"Default constraint '{constraintName}' dropped successfully."
+                )
+                .ConfigureAwait(false);
+        }
+    }
+
+    /// <summary>
+    /// Drops a column default constraint from a table.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name to drop the constraint from.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    public async Task DropDefaultConstraintOnColumnAsync(
+        IOperationContext context,
+        string datasourceId,
+        string tableName,
+        string columnName,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        Validate
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(tableName, nameof(tableName))
+            .NotNullOrWhiteSpace(columnName, nameof(columnName))
+            .Assert();
+
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
+        {
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check table exists
+            await AssertTableExistsAsync(
+                    datasourceId,
+                    tableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            // Check default constraint exists
+            var existingConstraint = await connection
+                .DoesDefaultConstraintExistOnColumnAsync(
+                    schemaName,
+                    tableName,
+                    columnName,
+                    null,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (!existingConstraint)
+            {
+                throw new KeyNotFoundException(
+                    $"Default constraint not found on column '{columnName}' in table '{tableName}'"
+                );
+            }
+
+            var dropped = await connection
+                .DropDefaultConstraintOnColumnIfExistsAsync(
+                    schemaName,
+                    tableName,
+                    columnName,
+                    null,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (!dropped)
+            {
+                throw new InvalidOperationException(
+                    $"Failed to drop default constraint on column '{columnName}' in table '{tableName}' for an unknown reason."
+                );
+            }
+
+            await LogAuditEventAsync(
+                    context,
+                    dropped,
+                    $"Default constraint on column '{columnName}' dropped successfully."
                 )
                 .ConfigureAwait(false);
         }

@@ -10,7 +10,13 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 
 public partial class DapperMaticService
 {
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets all registered datasources.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>List of datasource information.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<IEnumerable<DatasourceDto>> GetDatasourcesAsync(
         IOperationContext context,
         CancellationToken cancellationToken = default
@@ -25,7 +31,15 @@ public partial class DapperMaticService
         return result;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Gets datasource information by name.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The id of the datasource.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The datasource information.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> GetDatasourceAsync(
         IOperationContext context,
         string datasourceId,
@@ -54,7 +68,14 @@ public partial class DapperMaticService
         return datasource;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Adds a new datasource.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasource">The datasource to add.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The added datasource if successful.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> AddDatasourceAsync(
         IOperationContext context,
         DatasourceDto datasource,
@@ -68,6 +89,16 @@ public partial class DapperMaticService
             .NotNull(context, nameof(context))
             .NotNull(datasource, nameof(datasource))
             .Assert();
+
+        if (
+            !string.IsNullOrWhiteSpace(datasource.Id)
+            && await _datasourceRepository
+                .DatasourceExistsAsync(datasource.Id!)
+                .ConfigureAwait(false)
+        )
+        {
+            throw new DuplicateKeyException($"Datasource '{datasource.Id}' already exists");
+        }
 
         var created = await _datasourceRepository
             .AddDatasourceAsync(datasource)
@@ -92,7 +123,15 @@ public partial class DapperMaticService
         return newDatasource;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Updates an existing datasource.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasource">The updated datasource information.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>The updated datasource.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> UpdateDatasourceAsync(
         IOperationContext context,
         DatasourceDto datasource,
@@ -145,12 +184,14 @@ public partial class DapperMaticService
     }
 
     /// <summary>
-    /// Retrieves a datasource by its ID.
+    /// Removes a datasource.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource to remove.</param>
-    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
-    /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+    /// <param name="datasourceId">The id of the datasource to remove.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task RemoveDatasourceAsync(
         IOperationContext context,
         string datasourceId,
@@ -187,7 +228,14 @@ public partial class DapperMaticService
             .ConfigureAwait(false);
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Checks if a datasource exists.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The id of the datasource to check.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>True if the datasource exists, false otherwise.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<bool> DatasourceExistsAsync(
         IOperationContext context,
         string datasourceId,
@@ -211,7 +259,15 @@ public partial class DapperMaticService
         return exists;
     }
 
-    /// <inheritdoc />
+    /// <summary>
+    /// Tests the connection to a datasource.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The id of the datasource to test.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    /// <returns>Test result containing connection status and details.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceConnectivityTestDto> TestDatasourceAsync(
         IOperationContext context,
         string datasourceId,

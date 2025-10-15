@@ -35,7 +35,12 @@ public partial class DapperMaticService
             // Check if provider supports schemas
             if (!connection.SupportsSchemas())
             {
-                await LogAuditEventAsync(context, true, $"Attempted to retrieve schemas for datasource '{datasourceId}', but the provider does not support schemas.").ConfigureAwait(false);
+                await LogAuditEventAsync(
+                        context,
+                        true,
+                        $"Attempted to retrieve schemas for datasource '{datasourceId}', but the provider does not support schemas."
+                    )
+                    .ConfigureAwait(false);
                 return [];
             }
 
@@ -47,7 +52,12 @@ public partial class DapperMaticService
             // Convert to SchemaDto objects
             var schemas = schemaNames.Select(name => new SchemaDto { SchemaName = name });
 
-            await LogAuditEventAsync(context, true, $"Retrieved schemas for datasource '{datasourceId}'").ConfigureAwait(false);
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Retrieved schemas for datasource '{datasourceId}'"
+                )
+                .ConfigureAwait(false);
             return schemas;
         }
     }
@@ -94,7 +104,12 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(context, true, $"Retrieved schema '{normalizedSchemaName}' for datasource '{datasourceId}'").ConfigureAwait(false);
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"Retrieved schema '{normalizedSchemaName}' for datasource '{datasourceId}'"
+                )
+                .ConfigureAwait(false);
             return new SchemaDto { SchemaName = normalizedSchemaName };
         }
     }
@@ -129,8 +144,9 @@ public partial class DapperMaticService
                     $"The provider does not support schema operations."
                 );
             }
-            // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
+
+            // Check schema does not already exist
+            await AssertSchemaDoesNotExistAsync(
                     datasourceId,
                     normalizedSchemaName,
                     connection,
@@ -188,6 +204,15 @@ public partial class DapperMaticService
                     $"The provider does not support schema operations."
                 );
             }
+
+            // Check schema exists
+            await AssertSchemaExistsIfSpecifiedAsync(
+                    datasourceId,
+                    normalizedSchemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
 
             // Drop schema using extension method
             var dropped = await connection

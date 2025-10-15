@@ -101,7 +101,15 @@ public static class PrimaryKeyConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        GetSchemaPrimaryKeyAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
@@ -113,7 +121,7 @@ public static class PrimaryKeyConstraintEndpoints
     )
     {
         var result = await service
-            .GetPrimaryKeyAsync(
+            .GetPrimaryKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,
@@ -132,7 +140,16 @@ public static class PrimaryKeyConstraintEndpoints
         [FromRoute] string tableName,
         [FromBody] PrimaryKeyConstraintDto primaryKey,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, primaryKey, cancellationToken);
+    ) =>
+        CreateSchemaPrimaryKeyAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            primaryKey,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
@@ -158,7 +175,7 @@ public static class PrimaryKeyConstraintEndpoints
         operationContext.RequestBody = primaryKey;
 
         var result = await service
-            .CreatePrimaryKeyAsync(
+            .CreatePrimaryKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,
@@ -180,7 +197,15 @@ public static class PrimaryKeyConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        DropSchemaPrimaryKeyAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
@@ -192,7 +217,7 @@ public static class PrimaryKeyConstraintEndpoints
     )
     {
         await service
-            .DropPrimaryKeyAsync(
+            .DropPrimaryKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,

@@ -387,6 +387,16 @@ public partial class DapperMaticService
                 )
                 .ConfigureAwait(false);
 
+            // Check view does not already exist
+            await AssertViewDoesNotExistAsync(
+                    datasourceId,
+                    newViewName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
             // Rename the view
             var updated = await connection
                 .RenameViewIfExistsAsync(

@@ -872,7 +872,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("primarykeys/get", user);
+        var context = CreateContext("primary-key-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -896,7 +896,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("primarykeys/create", user);
+        var context = CreateContext("primary-key-constraints/create", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -919,7 +919,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("primarykeys/drop", user);
+        var context = CreateContext("primary-key-constraints/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -941,7 +941,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreignkeys/list", user);
+        var context = CreateContext("foreign-key-constraints/list", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -965,7 +965,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreignkeys/get", user);
+        var context = CreateContext("foreign-key-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -990,7 +990,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreignkeys/create", user);
+        var context = CreateContext("foreign-key-constraints/create", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1015,7 +1015,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("foreignkeys/drop", user);
+        var context = CreateContext("foreign-key-constraints/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1038,7 +1038,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("checkconstraints/list", user);
+        var context = CreateContext("check-constraints/list", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1062,7 +1062,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("checkconstraints/get", user);
+        var context = CreateContext("check-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1087,7 +1087,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("checkconstraints/create", user);
+        var context = CreateContext("check-constraints/create", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1112,7 +1112,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("checkconstraints/drop", user);
+        var context = CreateContext("check-constraints/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
@@ -1232,7 +1232,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("defaultconstraints/list", user);
+        var context = CreateContext("default-constraints/list", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1256,10 +1256,35 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("defaultconstraints/get", user);
+        var context = CreateContext("default-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
+        context.SchemaName = schemaName;
+        context.HttpMethod = "GET";
+        return context;
+    }
+
+    /// <summary>
+    /// Creates context for default constraint get operations.
+    /// </summary>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="user">Optional user context.</param>
+    public static IOperationContext ForDefaultConstraintOnColumnGet(
+        string datasourceId,
+        string tableName,
+        string columnName,
+        string? schemaName = null,
+        ClaimsPrincipal? user = null
+    )
+    {
+        var context = CreateContext("default-constraints/get", user);
+        context.DatasourceId = datasourceId;
+        context.TableName = tableName;
+        context.ColumnName = columnName;
         context.SchemaName = schemaName;
         context.HttpMethod = "GET";
         return context;
@@ -1281,7 +1306,7 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("defaultconstraints/create", user);
+        var context = CreateContext("default-constraints/create", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.SchemaName = schemaName;
@@ -1306,10 +1331,35 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext("defaultconstraints/drop", user);
+        var context = CreateContext("default-constraints/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
         context.ConstraintName = constraintName;
+        context.SchemaName = schemaName;
+        context.HttpMethod = "DELETE";
+        return context;
+    }
+
+    /// <summary>
+    /// Creates context for default constraint drop operations.
+    /// </summary>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="user">Optional user context.</param>
+    public static IOperationContext ForDefaultConstraintOnColumnDrop(
+        string datasourceId,
+        string tableName,
+        string columnName,
+        string? schemaName = null,
+        ClaimsPrincipal? user = null
+    )
+    {
+        var context = CreateContext("default-constraints/drop", user);
+        context.DatasourceId = datasourceId;
+        context.TableName = tableName;
+        context.ColumnName = columnName;
         context.SchemaName = schemaName;
         context.HttpMethod = "DELETE";
         return context;

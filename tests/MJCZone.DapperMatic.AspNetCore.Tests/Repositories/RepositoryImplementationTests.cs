@@ -16,20 +16,20 @@ using MJCZone.DapperMatic.AspNetCore.Repositories;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 using MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
 using Testcontainers.MsSql;
+using Xunit.Abstractions;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Repositories;
 
 /// <summary>
 /// Integration tests for different repository implementations.
 /// </summary>
-public class RepositoryImplementationTests : IClassFixture<TestcontainersAssemblyFixture>
+public class RepositoryImplementationTests(
+    TestcontainersAssemblyFixture fixture,
+    ITestOutputHelper outputHelper
+) : IClassFixture<TestcontainersAssemblyFixture>
 {
-    public RepositoryImplementationTests(TestcontainersAssemblyFixture fixture)
-    {
-        _fixture = fixture;
-    }
-
-    private readonly TestcontainersAssemblyFixture _fixture;
+    private readonly TestcontainersAssemblyFixture _fixture = fixture;
+    private readonly ITestOutputHelper _outputHelper = outputHelper;
 
     [Fact]
     public async Task InMemoryRepository_DataPersistsWithinApplication_ButNotBetweenRestarts()
@@ -53,11 +53,11 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
                 throw new Exception($"Add failed with {addResponse.StatusCode}: {errorContent}");
             }
-            addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+            addResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // Verify datasource exists in same application instance
             var getResponse1 = await client.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
 
             await waFactory.DisposeAsync();
         }
@@ -69,7 +69,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
 
             // Verify datasource does NOT exist in new application instance
             var getResponse2 = await client.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse2.Should().HaveStatusCode(HttpStatusCode.NotFound);
+            getResponse2.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
             await waFactory.DisposeAsync();
         }
@@ -100,11 +100,11 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
                 throw new Exception($"Add failed with {addResponse.StatusCode}: {errorContent}");
             }
-            addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+            addResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // Verify datasource exists
             var getResponse1 = await client1.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
             var result1 = await getResponse1.ReadAsJsonAsync<DatasourceResponse>();
             result1.Should().NotBeNull();
             result1!.Result.Should().NotBeNull();
@@ -120,7 +120,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
 
             // Verify datasource DOES exist in new application instance
             var getResponse2 = await client2.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
             var result2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
             result2.Should().NotBeNull();
             result2!.Result.Should().NotBeNull();
@@ -160,11 +160,11 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 var errorContent = await addResponse.Content.ReadAsStringAsync();
                 throw new Exception($"Add failed with {addResponse.StatusCode}: {errorContent}");
             }
-            addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+            addResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // Verify datasource exists
             var getResponse1 = await client1.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
             var result1 = await getResponse1.ReadAsJsonAsync<DatasourceResponse>();
             result1.Should().NotBeNull();
             result1!.Result.Should().NotBeNull();
@@ -180,7 +180,7 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
 
             // Verify datasource DOES exist in new application instance
             var getResponse2 = await client2.GetAsync($"/api/dm/d/{addRequest.Id}");
-            getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
             var result2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
             result2.Should().NotBeNull();
             result2!.Result.Should().NotBeNull();
@@ -238,11 +238,11 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                     $"Add failed for {factory.GetType().Name} with {addResponse.StatusCode}: {errorContent}"
                 );
             }
-            addResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+            addResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // READ
             var getResponse = await client.GetAsync($"/api/dm/d/{testDatasource.Id}");
-            getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var getResult = await getResponse.ReadAsJsonAsync<DatasourceResponse>();
             getResult.Should().NotBeNull();
             getResult!.Result.Should().NotBeNull();
@@ -262,27 +262,29 @@ public class RepositoryImplementationTests : IClassFixture<TestcontainersAssembl
                 $"/api/dm/d/{testDatasource.Id}",
                 updateRequest
             );
-            updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            // If not OK, read the error content for debugging
+            if (updateResponse.StatusCode != HttpStatusCode.OK)
+            {
+                var errorContent = await updateResponse.Content.ReadAsStringAsync();
+                _outputHelper.WriteLine(
+                    $"Update failed for {factory.GetType().Name} with {updateResponse.StatusCode}: {errorContent}"
+                );
+            }
+            updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
             // Verify update
-            var getUpdatedResponse = await client.GetAsync(
-                $"/api/dm/d/{testDatasource.Id}"
-            );
+            var getUpdatedResponse = await client.GetAsync($"/api/dm/d/{testDatasource.Id}");
             var getUpdatedResult = await getUpdatedResponse.ReadAsJsonAsync<DatasourceResponse>();
             getUpdatedResult!.Result!.DisplayName.Should().Be("Updated CRUD Test");
             getUpdatedResult.Result.IsEnabled.Should().BeFalse();
 
             // DELETE
-            var deleteResponse = await client.DeleteAsync(
-                $"/api/dm/d/{testDatasource.Id}"
-            );
-            deleteResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            var deleteResponse = await client.DeleteAsync($"/api/dm/d/{testDatasource.Id}");
+            deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // Verify deletion
-            var getDeletedResponse = await client.GetAsync(
-                $"/api/dm/d/{testDatasource.Id}"
-            );
-            getDeletedResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+            var getDeletedResponse = await client.GetAsync($"/api/dm/d/{testDatasource.Id}");
+            getDeletedResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
             // Ensure proper disposal and cleanup after each factory iteration
             client.Dispose();

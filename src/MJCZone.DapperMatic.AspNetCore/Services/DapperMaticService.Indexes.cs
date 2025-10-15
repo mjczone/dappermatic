@@ -175,6 +175,19 @@ public partial class DapperMaticService
         // Convert DTO to domain model for validation
         schemaName = NormalizeSchemaName(schemaName);
 
+        // auto-generate index name if not provided
+        if (
+            index != null
+            && string.IsNullOrWhiteSpace(index.IndexName)
+            && index.ColumnNames != null
+            && index.ColumnNames.Count > 0
+        )
+        {
+            index.IndexName = string.IsNullOrWhiteSpace(schemaName)
+                ? $"ix_{tableName}_{string.Join('_', index.ColumnNames)}"
+                : $"ix_{schemaName}_{tableName}_{string.Join('_', index.ColumnNames)}";
+        }
+
         Validate
             .Arguments()
             .NotNull(context, nameof(context))
@@ -215,6 +228,25 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            // Check if index with the same name already exists
+            if (
+                !string.IsNullOrWhiteSpace(index.IndexName)
+                && await connection
+                    .DoesIndexExistAsync(
+                        schemaName,
+                        tableName,
+                        index.IndexName,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    $"An index with the name '{index.IndexName}' already exists on table '{tableName}'."
+                );
+            }
 
             var dmIndex = index.ToDmIndex(schemaName, tableName);
             var dmColumnNames = dmIndex.Columns.Select(c => c.ColumnName).ToList();

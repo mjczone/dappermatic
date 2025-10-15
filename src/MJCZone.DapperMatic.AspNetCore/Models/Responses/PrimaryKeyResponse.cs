@@ -21,7 +21,7 @@ public class PrimaryKeyResponse
     /// Initializes a new instance of the <see cref="PrimaryKeyResponse"/> class.
     /// </summary>
     /// <param name="result">The primary key constraint information.</param>
-    public PrimaryKeyResponse(PrimaryKeyConstraintDto result)
+    public PrimaryKeyResponse(PrimaryKeyConstraintDto? result)
     {
         Result = result;
     }

@@ -5,6 +5,8 @@
 
 using System.Net;
 using FluentAssertions;
+
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Auditing;
@@ -42,7 +44,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         };
 
         var response = await client.PostAsJsonAsync("/api/dm/d/", request);
-        response.Should().HaveStatusCode(HttpStatusCode.Created);
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
@@ -68,7 +70,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
             DisplayName = "Overwritten Test",
         };
         var response = await client.PostAsJsonAsync("/api/dm/d/", request);
-        response.Should().HaveStatusCode(HttpStatusCode.Conflict);
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         // Now overwrite it
         response = await client.PutAsJsonAsync(
@@ -80,7 +82,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
                 DisplayName = "Overwritten Test",
             }
         );
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify success audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(2);
@@ -104,7 +106,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         using var client = CreateClientWithAuditLogger(auditLogger);
 
         var response = await client.GetAsync("/api/dm/d/Test-SqlServer");
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
@@ -123,7 +125,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         var request = new DatasourceDto { DisplayName = "Updated Test Name" };
 
         var response = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", request);
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
@@ -140,7 +142,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         using var client = CreateClientWithAuditLogger(auditLogger);
 
         var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer");
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
@@ -157,7 +159,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         using var client = CreateClientWithAuditLogger(auditLogger);
 
         var response = await client.GetAsync("/api/dm/d/");
-        response.Should().HaveStatusCode(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify audit event was logged
         auditLogger.AuditEvents.Should().HaveCount(1);
@@ -169,18 +171,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
 
     private HttpClient CreateClientWithAuditLogger(TestDapperMaticAuditLogger auditLogger)
     {
-        var factory = new WafWithInMemoryDatasourceRepository(
-            _fixture.GetTestDatasources()
-        ).WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Replace the default audit logger with our test logger
-                services.RemoveAll<IDapperMaticAuditLogger>();
-                services.AddSingleton<IDapperMaticAuditLogger>(auditLogger);
-            });
-        });
-
+        var factory = new WafWithTestAuditLogger(_fixture.GetTestDatasources(), auditLogger);
         return factory.CreateClient();
     }
 }

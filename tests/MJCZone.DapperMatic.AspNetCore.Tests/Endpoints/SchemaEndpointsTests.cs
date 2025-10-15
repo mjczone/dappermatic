@@ -25,7 +25,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         _fixture = fixture;
     }
 
-    #region Comprehensive Workflow Tests
+    #region Schema Endpoint Tests
 
     [Theory]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_SqlServer, "dbo", true)]
@@ -44,7 +44,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // 1. GET MULTI - List all schemas
         var listResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-        listResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult1 = await listResponse1.ReadAsJsonAsync<SchemaListResponse>();
         listResult1.Should().NotBeNull();
         listResult1!.Result.Should().NotBeNull();
@@ -58,7 +58,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var getResponse1 = await client.GetAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
             );
-            getResponse1.Should().HaveStatusCode(HttpStatusCode.NotFound);
+            getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
             // 3. CREATE - Create a new schema
             var createRequest = new SchemaDto { SchemaName = testSchemaName };
@@ -71,7 +71,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}",
                 createContent
             );
-            createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
             var createResult = await createResponse.ReadAsJsonAsync<SchemaResponse>();
             createResult.Should().NotBeNull();
             createResult!.Result.Should().NotBeNull();
@@ -81,14 +81,14 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var existsResponse1 = await client.GetAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
             );
-            existsResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+            existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
             var existsResult1 = await existsResponse1.ReadAsJsonAsync<SchemaExistsResponse>();
             existsResult1.Should().NotBeNull();
             existsResult1!.Result.Should().BeTrue();
 
             // 5. GET MULTI - List schemas again (should contain new schema)
             var listResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-            listResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+            listResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
             var listResult2 = await listResponse2.ReadAsJsonAsync<SchemaListResponse>();
             listResult2.Should().NotBeNull();
             listResult2!.Result.Should().NotBeNull();
@@ -99,7 +99,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var getResponse2 = await client.GetAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
             );
-            getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+            getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
             var getResult2 = await getResponse2.ReadAsJsonAsync<SchemaResponse>();
             getResult2.Should().NotBeNull();
             getResult2!.Result.Should().NotBeNull();
@@ -109,20 +109,20 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var deleteResponse = await client.DeleteAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
             );
-            deleteResponse.Should().HaveStatusCode(HttpStatusCode.NoContent);
+            deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // 8. EXISTS - Check if schema exists (should return false)
             var existsResponse2 = await client.GetAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
             );
-            existsResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+            existsResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
             var existsResult2 = await existsResponse2.ReadAsJsonAsync<SchemaExistsResponse>();
             existsResult2.Should().NotBeNull();
             existsResult2!.Result.Should().BeFalse();
 
             // 9. GET MULTI - List schemas (should be back to initial count)
             var listResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-            listResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+            listResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
             var listResult3 = await listResponse3.ReadAsJsonAsync<SchemaListResponse>();
             listResult3.Should().NotBeNull();
             listResult3!.Result.Should().NotBeNull();
@@ -133,7 +133,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var getResponse3 = await client.GetAsync(
                 $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
             );
-            getResponse3.Should().HaveStatusCode(HttpStatusCode.NotFound);
+            getResponse3.StatusCode.Should().Be(HttpStatusCode.NotFound);
         }
         else
         {
@@ -145,14 +145,14 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
                 // SQLite uses "_" as a placeholder schema
                 var getResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/_");
-                getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+                getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
                 var getResult = await getResponse.ReadAsJsonAsync<SchemaResponse>();
                 getResult.Should().NotBeNull();
                 getResult!.Result.Should().BeNull();
 
                 // Test that EXISTS works with "_" placeholder
                 var existsResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/_/exists");
-                existsResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+                existsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
                 var existsResult = await existsResponse.ReadAsJsonAsync<SchemaExistsResponse>();
                 existsResult.Should().NotBeNull();
                 existsResult!.Result.Should().BeTrue();
@@ -169,7 +169,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Test filtering schemas
         var filteredResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/?filter=dbo");
-        filteredResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        filteredResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var filteredResult = await filteredResponse.ReadAsJsonAsync<SchemaListResponse>();
         filteredResult.Should().NotBeNull();
         filteredResult!.Result.Should().NotBeNull();
@@ -182,7 +182,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         }
     }
 
-    #endregion
+    #endregion // Schema Endpoint Tests
 
     #region Error Scenarios Tests
 
@@ -195,7 +195,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Test non-existent datasource
         var nonExistentDatasourceResponse = await client.GetAsync("/api/dm/d/NonExistent/s/");
-        nonExistentDatasourceResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        nonExistentDatasourceResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Test invalid schema name (empty)
         var invalidCreateRequest = new SchemaDto
@@ -211,7 +211,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             $"/api/dm/d/{datasourceId}/s/",
             invalidCreateContent
         );
-        invalidCreateResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        invalidCreateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test duplicate schema creation (try to create dbo)
         var duplicateCreateRequest = new SchemaDto { SchemaName = "dbo" };
@@ -224,7 +224,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             $"/api/dm/d/{datasourceId}/s/dbo",
             duplicateCreateContent
         );
-        duplicateCreateResponse.Should().HaveStatusCode(HttpStatusCode.Conflict);
+        duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         // Test operations on non-existent schema
         const string nonExistentSchema = "NonExistentSchema";
@@ -233,19 +233,19 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var getNonExistentResponse = await client.GetAsync(
             $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}"
         );
-        getNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Delete non-existent schema
         var deleteNonExistentResponse = await client.DeleteAsync(
             $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}"
         );
-        deleteNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        deleteNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Check existence of non-existent schema
         var existsNonExistentResponse = await client.GetAsync(
             $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}/exists"
         );
-        existsNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsNonExistentResult =
             await existsNonExistentResponse.ReadAsJsonAsync<SchemaExistsResponse>();
         existsNonExistentResult.Should().NotBeNull();
@@ -270,21 +270,21 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             $"/api/dm/d/{datasourceId}/s/TestSchema",
             createContent
         );
-        createResponse.Should().HaveStatusCode(HttpStatusCode.InternalServerError);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
 
         // Test that DROP schema is not supported in SQLite
         var deleteResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/s/someschema");
-        deleteResponse.Should().HaveStatusCode(HttpStatusCode.InternalServerError);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
 
         // Test that invalid schema returns not found
         var getInvalidResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/invalidschema");
-        getInvalidResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getInvalidResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Test that invalid schema exists returns false
         var existsInvalidResponse = await client.GetAsync(
             $"/api/dm/d/{datasourceId}/s/invalidschema/exists"
         );
-        existsInvalidResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsInvalidResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsInvalidResult =
             await existsInvalidResponse.ReadAsJsonAsync<SchemaExistsResponse>();
         existsInvalidResult.Should().NotBeNull();
@@ -304,7 +304,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Verify PostgreSQL has public schema
         var listResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult = await listResponse.ReadAsJsonAsync<SchemaListResponse>();
         listResult.Should().NotBeNull();
         listResult!.Result.Should().NotBeNull();
@@ -312,7 +312,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Get the public schema
         var getResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/public");
-        getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult = await getResponse.ReadAsJsonAsync<SchemaResponse>();
         getResult.Should().NotBeNull();
         getResult!.Result.Should().NotBeNull();
@@ -320,7 +320,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Check public schema exists
         var existsResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/public/exists");
-        existsResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult = await existsResponse.ReadAsJsonAsync<SchemaExistsResponse>();
         existsResult.Should().NotBeNull();
         existsResult!.Result.Should().BeTrue();
@@ -335,7 +335,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Verify SQL Server has dbo schema
         var listResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult = await listResponse.ReadAsJsonAsync<SchemaListResponse>();
         listResult.Should().NotBeNull();
         listResult!.Result.Should().NotBeNull();
@@ -343,7 +343,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Get the dbo schema
         var getResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/dbo");
-        getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult = await getResponse.ReadAsJsonAsync<SchemaResponse>();
         getResult.Should().NotBeNull();
         getResult!.Result.Should().NotBeNull();
@@ -351,7 +351,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
         // Check dbo schema exists
         var existsResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/dbo/exists");
-        existsResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult = await existsResponse.ReadAsJsonAsync<SchemaExistsResponse>();
         existsResult.Should().NotBeNull();
         existsResult!.Result.Should().BeTrue();

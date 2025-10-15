@@ -185,6 +185,19 @@ public partial class DapperMaticService
         // Convert DTO to domain model for validation
         schemaName = NormalizeSchemaName(schemaName);
 
+        // auto-generate constraint name if not provided
+        if (
+            uniqueConstraint != null
+            && string.IsNullOrWhiteSpace(uniqueConstraint.ConstraintName)
+            && uniqueConstraint.ColumnNames != null
+            && uniqueConstraint.ColumnNames.Count > 0
+        )
+        {
+            uniqueConstraint.ConstraintName = string.IsNullOrWhiteSpace(schemaName)
+                ? $"uq_{tableName}_{string.Join('_', uniqueConstraint.ColumnNames)}"
+                : $"uq_{schemaName}_{tableName}_{string.Join('_', uniqueConstraint.ColumnNames)}";
+        }
+
         Validate
             .Arguments()
             .NotNull(context, nameof(context))
@@ -225,6 +238,24 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            if (
+                !string.IsNullOrWhiteSpace(uniqueConstraint.ConstraintName)
+                && await connection
+                    .DoesUniqueConstraintExistAsync(
+                        schemaName,
+                        tableName,
+                        uniqueConstraint.ConstraintName,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    $"A unique constraint with the name '{uniqueConstraint.ConstraintName}' already exists on table '{tableName}'."
+                );
+            }
 
             var dmUniqueConstraint = uniqueConstraint.ToDmUniqueConstraint(schemaName, tableName);
             var dmColumnNames = dmUniqueConstraint.Columns.Select(c => c.ColumnName).ToList();

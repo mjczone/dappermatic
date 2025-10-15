@@ -16,15 +16,17 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 public partial class DapperMaticService
 {
     /// <summary>
-    /// Gets the primary key constraint from the specified table.
+    /// Gets the primary key constraint for a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource.</param>
-    /// <param name="tableName">The name of the table.</param>
-    /// <param name="schemaName">The schema name (optional).</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The primary key constraint or null if not found.</returns>
-    public async Task<PrimaryKeyConstraintDto> GetPrimaryKeyAsync(
+    /// <returns>The primary key constraint or null if the table does not have a primary key.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the datasource or table are not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    public async Task<PrimaryKeyConstraintDto?> GetPrimaryKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,
@@ -71,9 +73,7 @@ public partial class DapperMaticService
 
             if (primaryKey == null)
             {
-                throw new KeyNotFoundException(
-                    $"Primary key constraint not found on table '{tableName}'"
-                );
+                return null;
             }
 
             await LogAuditEventAsync(
@@ -96,7 +96,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created primary key constraint.</returns>
-    public async Task<PrimaryKeyConstraintDto> CreatePrimaryKeyAsync(
+    public async Task<PrimaryKeyConstraintDto> CreatePrimaryKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,
@@ -108,6 +108,17 @@ public partial class DapperMaticService
         await AssertPermissionsAsync(context).ConfigureAwait(false);
 
         schemaName = NormalizeSchemaName(schemaName);
+
+        // auto-generate constraint name if not provided
+        if (
+            primaryKeyConstraint != null
+            && string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName)
+        )
+        {
+            primaryKeyConstraint.ConstraintName = string.IsNullOrWhiteSpace(schemaName)
+                ? $"pk_{tableName}"
+                : $"pk_{schemaName}_{tableName}";
+        }
 
         Validate
             .Arguments()
@@ -149,6 +160,17 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            var exists = await connection
+                .DoesPrimaryKeyConstraintExistAsync(schemaName, tableName, null, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (exists)
+            {
+                throw new DuplicateKeyException(
+                    $"Table '{tableName}' already has a primary key constraint."
+                );
+            }
 
             var dmPrimaryKey = primaryKeyConstraint.ToDmPrimaryKeyConstraint(schemaName, tableName);
             var dmColumnNames = dmPrimaryKey.Columns.Select(c => c.ColumnName).ToList();
@@ -198,7 +220,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task DropPrimaryKeyAsync(
+    public async Task DropPrimaryKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,

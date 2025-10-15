@@ -65,7 +65,10 @@ public static class DefaultConstraintEndpoints
 
         // Default constraint endpoints
         group
-            .MapGet("/", isSchemaSpecific ? ListSchemaDefaultConstraintsAsync : ListDefaultConstraintsAsync)
+            .MapGet(
+                "/",
+                isSchemaSpecific ? ListSchemaDefaultConstraintsAsync : ListDefaultConstraintsAsync
+            )
             .WithName($"List{namePrefix}DefaultConstraints")
             .WithSummary($"Gets all default constraints for a table {schemaInText}")
             .Produces<DefaultConstraintListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +76,10 @@ public static class DefaultConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{constraintName}", isSchemaSpecific ? GetSchemaDefaultConstraintAsync : GetDefaultConstraintAsync)
+            .MapGet(
+                "/{constraintName}",
+                isSchemaSpecific ? GetSchemaDefaultConstraintAsync : GetDefaultConstraintAsync
+            )
             .WithName($"Get{namePrefix}DefaultConstraint")
             .WithSummary($"Gets a specific default constraint from a table {schemaInText}")
             .Produces<DefaultConstraintResponse>((int)HttpStatusCode.OK)
@@ -81,7 +87,25 @@ public static class DefaultConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", isSchemaSpecific ? CreateSchemaDefaultConstraintAsync : CreateDefaultConstraintAsync)
+            .MapGet(
+                "/columns/{columnName}",
+                isSchemaSpecific
+                    ? GetSchemaDefaultConstraintOnColumnAsync
+                    : GetDefaultConstraintOnColumnAsync
+            )
+            .WithName($"Get{namePrefix}DefaultConstraintOnColumn")
+            .WithSummary(
+                $"Gets a specific default constraint from a table {schemaInText} for a specific column"
+            )
+            .Produces<DefaultConstraintResponse>((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.Forbidden);
+
+        group
+            .MapPost(
+                "/",
+                isSchemaSpecific ? CreateSchemaDefaultConstraintAsync : CreateDefaultConstraintAsync
+            )
             .WithName($"Create{namePrefix}DefaultConstraint")
             .WithSummary($"Creates a default constraint on a table {schemaInText}")
             .Produces<DefaultConstraintResponse>((int)HttpStatusCode.Created)
@@ -90,9 +114,27 @@ public static class DefaultConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaDefaultConstraintAsync : DropDefaultConstraintAsync)
+            .MapDelete(
+                "/{constraintName}",
+                isSchemaSpecific ? DropSchemaDefaultConstraintAsync : DropDefaultConstraintAsync
+            )
             .WithName($"Drop{namePrefix}DefaultConstraint")
             .WithSummary($"Drops a default constraint from a table {schemaInText}")
+            .Produces<DefaultConstraintResponse>((int)HttpStatusCode.OK)
+            .Produces((int)HttpStatusCode.NotFound)
+            .Produces((int)HttpStatusCode.Forbidden);
+
+        group
+            .MapDelete(
+                "/columns/{columnName}",
+                isSchemaSpecific
+                    ? DropSchemaDefaultConstraintOnColumnAsync
+                    : DropDefaultConstraintOnColumnAsync
+            )
+            .WithName($"Drop{namePrefix}DefaultConstraintOnColumn")
+            .WithSummary(
+                $"Drops a default constraint from a table {schemaInText} for a specific column"
+            )
             .Produces<DefaultConstraintResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
@@ -105,7 +147,15 @@ public static class DefaultConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => ListSchemaDefaultConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        ListSchemaDefaultConstraintsAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> ListSchemaDefaultConstraintsAsync(
         IOperationContext operationContext,
@@ -129,6 +179,48 @@ public static class DefaultConstraintEndpoints
         return Results.Ok(new DefaultConstraintListResponse(defaultConstraints));
     }
 
+    private static Task<IResult> GetDefaultConstraintOnColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    ) =>
+        GetSchemaDefaultConstraintOnColumnAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            columnName,
+            cancellationToken
+        );
+
+    private static async Task<IResult> GetSchemaDefaultConstraintOnColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var defaultConstraint = await service
+            .GetDefaultConstraintOnColumnAsync(
+                operationContext,
+                datasourceId,
+                tableName,
+                columnName,
+                schemaName,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+
+        return Results.Ok(new DefaultConstraintResponse(defaultConstraint));
+    }
+
     private static Task<IResult> GetDefaultConstraintAsync(
         IOperationContext operationContext,
         IDapperMaticService service,
@@ -136,7 +228,16 @@ public static class DefaultConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaDefaultConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        GetSchemaDefaultConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaDefaultConstraintAsync(
         IOperationContext operationContext,
@@ -169,7 +270,16 @@ public static class DefaultConstraintEndpoints
         [FromRoute] string tableName,
         [FromBody] DefaultConstraintDto defaultConstraint,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaDefaultConstraintAsync(operationContext, service, datasourceId, null, tableName, defaultConstraint, cancellationToken);
+    ) =>
+        CreateSchemaDefaultConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            defaultConstraint,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaDefaultConstraintAsync(
         IOperationContext operationContext,
@@ -213,7 +323,16 @@ public static class DefaultConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaDefaultConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        DropSchemaDefaultConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaDefaultConstraintAsync(
         IOperationContext operationContext,
@@ -231,6 +350,48 @@ public static class DefaultConstraintEndpoints
                 datasourceId,
                 tableName,
                 constraintName,
+                schemaName,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+
+        return Results.NoContent();
+    }
+
+    private static Task<IResult> DropDefaultConstraintOnColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    ) =>
+        DropSchemaDefaultConstraintOnColumnAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            columnName,
+            cancellationToken
+        );
+
+    private static async Task<IResult> DropSchemaDefaultConstraintOnColumnAsync(
+        IOperationContext operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromRoute] string columnName,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await service
+            .DropDefaultConstraintOnColumnAsync(
+                operationContext,
+                datasourceId,
+                tableName,
+                columnName,
                 schemaName,
                 cancellationToken
             )

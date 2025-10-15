@@ -150,7 +150,7 @@ public abstract partial class DatabaseMethodsTests
 
         // test key ordering
         tableName = "testWithUc2";
-        uniqueConstraintName = "uc_testWithUc2";
+        uniqueConstraintName = "uq_testWithUc2";
         await db.CreateTableIfNotExistsAsync(
             schemaName,
             tableName,

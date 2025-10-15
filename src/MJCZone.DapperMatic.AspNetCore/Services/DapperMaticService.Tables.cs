@@ -597,6 +597,16 @@ public partial class DapperMaticService
                 )
                 .ConfigureAwait(false);
 
+            // Check new table name does not already exist
+            await AssertTableDoesNotExistAsync(
+                    datasourceId,
+                    newTableName,
+                    schemaName,
+                    connection,
+                    cancellationToken
+                )
+                .ConfigureAwait(false);
+
             // Rename the table
             var renamed = await connection
                 .RenameTableIfExistsAsync(

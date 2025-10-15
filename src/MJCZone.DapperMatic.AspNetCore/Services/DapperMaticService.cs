@@ -53,7 +53,7 @@ public partial class DapperMaticService : IDapperMaticService
     /// </summary>
     /// <param name="context">The operation context.</param>
     /// <param name="methodName">The calling method name (automatically provided).</param>
-    /// /// <returns>A task representing the asynchronous operation.</returns>
+    /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     protected virtual async Task AssertPermissionsAsync(
         IOperationContext context,
@@ -130,10 +130,7 @@ public partial class DapperMaticService : IDapperMaticService
     {
         var datasource =
             await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false)
-            ?? throw new ArgumentException(
-                $"Datasource '{datasourceId}' not found.",
-                nameof(datasourceId)
-            );
+            ?? throw new KeyNotFoundException($"Datasource '{datasourceId}' not found.");
 
         if (string.IsNullOrWhiteSpace(datasource.Provider))
         {

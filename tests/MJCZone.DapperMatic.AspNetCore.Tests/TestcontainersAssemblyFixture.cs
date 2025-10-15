@@ -42,7 +42,8 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
     private readonly string _tempFilePath;
     private readonly string _sqliteFilePath;
 
-    public TestcontainersAssemblyFixture() : this(ContainerTypes.All) { }
+    public TestcontainersAssemblyFixture()
+        : this(ContainerTypes.All) { }
 
     private TestcontainersAssemblyFixture(ContainerTypes containerTypes)
     {

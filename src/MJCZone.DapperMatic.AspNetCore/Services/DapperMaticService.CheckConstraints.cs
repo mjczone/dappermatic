@@ -16,14 +16,16 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 public partial class DapperMaticService
 {
     /// <summary>
-    /// Gets all check constraints from the specified table.
+    /// Gets all check constraints for a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource.</param>
-    /// <param name="tableName">The name of the table.</param>
-    /// <param name="schemaName">The schema name (optional).</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A collection of check constraints.</returns>
+    /// <returns>List of check constraints for the table.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<IEnumerable<CheckConstraintDto>> GetCheckConstraintsAsync(
         IOperationContext context,
         string datasourceId,
@@ -82,15 +84,17 @@ public partial class DapperMaticService
     }
 
     /// <summary>
-    /// Gets a specific check constraint from the table.
+    /// Gets a specific check constraint from a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource.</param>
-    /// <param name="tableName">The name of the table.</param>
-    /// <param name="constraintName">The name of the constraint.</param>
-    /// <param name="schemaName">The schema name (optional).</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="schemaName">Optional schema name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The check constraint or null if not found.</returns>
+    /// <returns>The check constraint if found.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<CheckConstraintDto> GetCheckConstraintAsync(
         IOperationContext context,
         string datasourceId,
@@ -162,15 +166,18 @@ public partial class DapperMaticService
     }
 
     /// <summary>
-    /// Creates a new check constraint on a table.
+    /// Creates a check constraint on a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource.</param>
-    /// <param name="tableName">The name of the table.</param>
-    /// <param name="checkConstraint">The check constraint details.</param>
-    /// <param name="schemaName">The schema name (optional).</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="checkConstraint">The create check constraint request.</param>
+    /// <param name="schemaName">Optional schema name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created check constraint.</returns>
+    /// <exception cref="DuplicateKeyException">Thrown when the check constraint already exists.</exception>
+    /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<CheckConstraintDto> CreateCheckConstraintAsync(
         IOperationContext context,
         string datasourceId,
@@ -184,6 +191,15 @@ public partial class DapperMaticService
 
         // Convert DTO to domain model for validation
         schemaName = NormalizeSchemaName(schemaName);
+
+        if (
+            checkConstraint != null
+            && string.IsNullOrWhiteSpace(checkConstraint.ConstraintName)
+            && !string.IsNullOrWhiteSpace(checkConstraint.ColumnName)
+        )
+        {
+            checkConstraint.ConstraintName = $"chk_{tableName}_{checkConstraint.ColumnName}";
+        }
 
         Validate
             .Arguments()
@@ -224,6 +240,27 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            // Check constraint doesn't already exist
+            if (
+                !string.IsNullOrWhiteSpace(checkConstraint.ConstraintName) &&
+                await connection
+                    .DoesCheckConstraintExistAsync(
+                        schemaName,
+                        tableName,
+                        checkConstraint.ConstraintName,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    !string.IsNullOrWhiteSpace(checkConstraint.ConstraintName)
+                        ? $"Check constraint '{checkConstraint.ConstraintName}' already exists on table '{tableName}'."
+                        : $"A check constraint already exists on table '{tableName}'."
+                );
+            }
 
             var dmCheckConstraint = checkConstraint.ToDmCheckConstraint(schemaName, tableName);
             var dmColumnName = dmCheckConstraint.ColumnName;
@@ -309,12 +346,14 @@ public partial class DapperMaticService
     /// Drops a check constraint from a table.
     /// </summary>
     /// <param name="context">The operation context.</param>
-    /// <param name="datasourceId">The ID of the datasource.</param>
-    /// <param name="tableName">The name of the table.</param>
-    /// <param name="constraintName">The name of the constraint.</param>
-    /// <param name="schemaName">The schema name (optional).</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The constraint name to drop.</param>
+    /// <param name="schemaName">Optional schema name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <returns>Task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task DropCheckConstraintAsync(
         IOperationContext context,
         string datasourceId,

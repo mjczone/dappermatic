@@ -24,7 +24,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of foreign key constraints.</returns>
-    public async Task<IEnumerable<ForeignKeyConstraintDto>> GetForeignKeysAsync(
+    public async Task<IEnumerable<ForeignKeyConstraintDto>> GetForeignKeyConstraintsAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,
@@ -72,7 +72,8 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(context, true, $"Retrieved foreign keys for table '{tableName}'").ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Retrieved foreign keys for table '{tableName}'")
+            .ConfigureAwait(false);
         return foreignKeys.ToForeignKeyConstraintDtos();
     }
 
@@ -86,7 +87,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The foreign key constraint or null if not found.</returns>
-    public async Task<ForeignKeyConstraintDto> GetForeignKeyAsync(
+    public async Task<ForeignKeyConstraintDto> GetForeignKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,
@@ -166,7 +167,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created foreign key constraint.</returns>
-    public async Task<ForeignKeyConstraintDto> CreateForeignKeyAsync(
+    public async Task<ForeignKeyConstraintDto> CreateForeignKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,
@@ -179,6 +180,19 @@ public partial class DapperMaticService
 
         // Convert DTO to domain model for validation
         schemaName = NormalizeSchemaName(schemaName);
+
+        // auto-generate constraint name if not provided
+        if (
+            foreignKeyConstraint != null
+            && string.IsNullOrWhiteSpace(foreignKeyConstraint.ConstraintName)
+            && foreignKeyConstraint.ColumnNames != null
+            && foreignKeyConstraint.ColumnNames.Count > 0
+        )
+        {
+            foreignKeyConstraint.ConstraintName = string.IsNullOrWhiteSpace(schemaName)
+                ? $"fk_{tableName}_{string.Join('_', foreignKeyConstraint.ColumnNames)}"
+                : $"fk_{schemaName}_{tableName}_{string.Join('_', foreignKeyConstraint.ColumnNames)}";
+        }
 
         Validate
             .Arguments()
@@ -242,6 +256,25 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            // Check foreign key does not already exist
+            if (
+                !string.IsNullOrWhiteSpace(foreignKeyConstraint.ConstraintName)
+                && await connection
+                    .DoesForeignKeyConstraintExistAsync(
+                        schemaName,
+                        tableName,
+                        foreignKeyConstraint.ConstraintName,
+                        null,
+                        cancellationToken
+                    )
+                    .ConfigureAwait(false)
+            )
+            {
+                throw new DuplicateKeyException(
+                    $"Foreign key constraint '{foreignKeyConstraint.ConstraintName}' already exists on table '{tableName}'"
+                );
+            }
 
             var dmForeignKey = foreignKeyConstraint.ToDmForeignKeyConstraint(schemaName, tableName);
             var dmColumnNames = dmForeignKey.SourceColumns.Select(c => c.ColumnName).ToList();
@@ -320,7 +353,7 @@ public partial class DapperMaticService
     /// <param name="schemaName">The schema name (optional).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async Task DropForeignKeyAsync(
+    public async Task DropForeignKeyConstraintAsync(
         IOperationContext context,
         string datasourceId,
         string tableName,

@@ -199,6 +199,8 @@ public static class DatasourceEndpoints
         CancellationToken cancellationToken = default
     )
     {
+        datasource.Id = datasourceId;
+
         // API layer validation
         Validate
             .Object(datasource)

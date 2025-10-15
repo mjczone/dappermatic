@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Product>DapperMatic ASP.NET Core</Product>
     <PackageId>MJCZone.DapperMatic.AspNetCore</PackageId>
@@ -8,44 +7,39 @@
     <PackageProjectUrl>https://github.com/mjczone/dappermatic/</PackageProjectUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <RepositoryUrl>https://github.com/mjczone/dappermatic/</RepositoryUrl>
-
     <Version>0.0.1</Version>
     <Summary>ASP.NET Core integration for DapperMatic - Web API endpoints for database schema management.</Summary>
     <Description>Provides ASP.NET Core Web API endpoints and middleware for database schema management using DapperMatic. Includes endpoints for tables, columns, indexes, constraints, and views across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.</Description>
-
     <RootNamespace>MJCZone.DapperMatic.AspNetCore</RootNamespace>
     <AssemblyName>MJCZone.DapperMatic.AspNetCore</AssemblyName>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-
+    <DisableImplicitAspNetCoreAnalyzers>true</DisableImplicitAspNetCoreAnalyzers>
+    <NoWarn>AD0001</NoWarn>
     <!-- License Information -->
     <PackageLicenseExpression>LGPL-3.0-or-later</PackageLicenseExpression>
     <Copyright>Copyright 2025 MJCZone Inc.</Copyright>
     <Authors>MJCZone Inc.</Authors>
     <Company>MJCZone Inc.</Company>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="JsonFlatFileDataStore" Version="2.4.2" />
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.20" />
     <PackageReference Include="MySQL.Data" Version="9.4.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="MySqlConnector" Version="2.3.0" />
-    <PackageReference Include="Npgsql" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.7" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="Npgsql" Version="9.0.4" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.9" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="../MJCZone.DapperMatic/MJCZone.DapperMatic.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>MJCZone.DapperMatic.AspNetCore.Tests</_Parameter1>
     </AssemblyAttribute>
   </ItemGroup>
-
 </Project>

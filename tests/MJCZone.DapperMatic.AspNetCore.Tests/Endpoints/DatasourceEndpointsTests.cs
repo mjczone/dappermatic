@@ -34,7 +34,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // 1. GET MULTI - List all datasources (should be empty initially)
         var listResponse1 = await client.GetAsync("/api/dm/d/");
-        listResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult1 = await listResponse1.ReadAsJsonAsync<DatasourceListResponse>();
         listResult1.Should().NotBeNull();
         listResult1!.Result.Should().NotBeNull();
@@ -42,7 +42,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // 2. GET SINGLE - Try to get non-existent datasource (should return 404)
         var getResponse1 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse1.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // 3. CREATE - Create a new datasource
         var createRequest = new DatasourceDto
@@ -56,7 +56,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             IsEnabled = true,
         };
         var createResponse = await client.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<DatasourceResponse>();
         createResult.Should().NotBeNull();
         createResult!.Result.Should().NotBeNull();
@@ -65,11 +65,11 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // 4. EXISTS - Check if datasource exists (should return 200 - found)
         var existsResponse1 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        existsResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // 5. GET MULTI - List datasources again (should contain new datasource)
         var listResponse2 = await client.GetAsync("/api/dm/d/");
-        listResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult2 = await listResponse2.ReadAsJsonAsync<DatasourceListResponse>();
         listResult2.Should().NotBeNull();
         listResult2!.Result.Should().NotBeNull();
@@ -78,7 +78,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // 6. GET SINGLE - Get the created datasource (should return datasource details)
         var getResponse2 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
         getResult2.Should().NotBeNull();
         getResult2!.Result.Should().NotBeNull();
@@ -99,15 +99,18 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             Tags = ["updated", "test"],
             IsEnabled = false,
         };
-        var updateResponse = await client.PutAsJsonAsync($"/api/dm/d/{testDatasourceId}", updateRequest);
-        updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        var updateResponse = await client.PutAsJsonAsync(
+            $"/api/dm/d/{testDatasourceId}",
+            updateRequest
+        );
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updateResult = await updateResponse.ReadAsJsonAsync<DatasourceResponse>();
         updateResult.Should().NotBeNull();
         updateResult!.Result.Should().NotBeNull();
 
         // 8. GET SINGLE - Get updated datasource (should show changes)
         var getResponse3 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult3 = await getResponse3.ReadAsJsonAsync<DatasourceResponse>();
         getResult3.Should().NotBeNull();
         getResult3!.Result.Should().NotBeNull();
@@ -123,12 +126,15 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             DisplayName = "Partially Updated Test",
             IsEnabled = true, // Only update these fields
         };
-        var patchResponse = await client.PatchAsJsonAsync($"/api/dm/d/{testDatasourceId}", patchRequest);
-        patchResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        var patchResponse = await client.PatchAsJsonAsync(
+            $"/api/dm/d/{testDatasourceId}",
+            patchRequest
+        );
+        patchResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // 10. GET SINGLE - Verify patch changes
         var getResponse4 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse4.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse4.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult4 = await getResponse4.ReadAsJsonAsync<DatasourceResponse>();
         getResult4.Should().NotBeNull();
         getResult4!.Result.Should().NotBeNull();
@@ -138,15 +144,15 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // 11. DELETE - Delete the datasource
         var deleteResponse = await client.DeleteAsync($"/api/dm/d/{testDatasourceId}");
-        deleteResponse.Should().HaveStatusCode(HttpStatusCode.NoContent);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 12. GET SINGLE - Try to get deleted datasource (should return 404)
         var getResponse5 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse5.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getResponse5.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // 13. GET MULTI - List datasources (should be empty again)
         var listResponse3 = await client.GetAsync("/api/dm/d/");
-        listResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult3 = await listResponse3.ReadAsJsonAsync<DatasourceListResponse>();
         listResult3.Should().NotBeNull();
         listResult3!.Result.Should().NotBeNull();
@@ -161,27 +167,39 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // Test basic listing with configured datasources
         var listResponse = await client.GetAsync("/api/dm/d/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult = await listResponse.ReadAsJsonAsync<DatasourceListResponse>();
         listResult.Should().NotBeNull();
         listResult!.Result.Should().NotBeNull();
-        listResult.Result.Should().HaveCountGreaterOrEqualTo(4); // SQL Server, MySQL, PostgreSQL, SQLite
-        listResult.Result.Should().Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        listResult.Result.Should().Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_MySql);
-        listResult.Result.Should().Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_PostgreSql);
-        listResult.Result.Should().Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        listResult.Result.Should().HaveCountGreaterThanOrEqualTo(4); // SQL Server, MySQL, PostgreSQL, SQLite
+        listResult
+            .Result.Should()
+            .Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer);
+        listResult
+            .Result.Should()
+            .Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_MySql);
+        listResult
+            .Result.Should()
+            .Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_PostgreSql);
+        listResult
+            .Result.Should()
+            .Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
 
         // Test filtering by name pattern
         var filterResponse = await client.GetAsync("/api/dm/d/?filter=Server");
-        filterResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        filterResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var filterResult = await filterResponse.ReadAsJsonAsync<DatasourceListResponse>();
         filterResult.Should().NotBeNull();
         filterResult!.Result.Should().NotBeNull();
-        filterResult.Result.Should().Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer);
+        filterResult
+            .Result.Should()
+            .Contain(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer);
 
         // Test specific datasource retrieval
-        var getResponse = await client.GetAsync($"/api/dm/d/{TestcontainersAssemblyFixture.DatasourceId_SqlServer}");
-        getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        var getResponse = await client.GetAsync(
+            $"/api/dm/d/{TestcontainersAssemblyFixture.DatasourceId_SqlServer}"
+        );
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult = await getResponse.ReadAsJsonAsync<DatasourceResponse>();
         getResult.Should().NotBeNull();
         getResult!.Result.Should().NotBeNull();
@@ -207,7 +225,7 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         };
 
         var createResponse = await client.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<DatasourceResponse>();
         createResult.Should().NotBeNull();
         createResult!.Result.Should().NotBeNull();
@@ -233,23 +251,26 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // GET non-existent datasource
         var getNonExistentResponse = await client.GetAsync($"/api/dm/d/{nonExistentId}");
-        getNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // UPDATE non-existent datasource
-        var updateRequest = new DatasourceDto
-        {
-            DisplayName = "Updated Non-Existent",
-        };
-        var updateNonExistentResponse = await client.PutAsJsonAsync($"/api/dm/d/{nonExistentId}", updateRequest);
-        updateNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        var updateRequest = new DatasourceDto { DisplayName = "Updated Non-Existent" };
+        var updateNonExistentResponse = await client.PutAsJsonAsync(
+            $"/api/dm/d/{nonExistentId}",
+            updateRequest
+        );
+        updateNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // PATCH non-existent datasource
-        var patchNonExistentResponse = await client.PatchAsJsonAsync($"/api/dm/d/{nonExistentId}", updateRequest);
-        patchNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        var patchNonExistentResponse = await client.PatchAsJsonAsync(
+            $"/api/dm/d/{nonExistentId}",
+            updateRequest
+        );
+        patchNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // DELETE non-existent datasource
         var deleteNonExistentResponse = await client.DeleteAsync($"/api/dm/d/{nonExistentId}");
-        deleteNonExistentResponse.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        deleteNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Test duplicate datasource creation
         const string duplicateId = "DuplicateTest";
@@ -263,11 +284,11 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
 
         // First creation should succeed
         var createResponse1 = await client.PostAsJsonAsync("/api/dm/d/", duplicateRequest);
-        createResponse1.Should().HaveStatusCode(HttpStatusCode.Created);
+        createResponse1.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Second creation with same ID should conflict
         var createResponse2 = await client.PostAsJsonAsync("/api/dm/d/", duplicateRequest);
-        createResponse2.Should().HaveStatusCode(HttpStatusCode.Conflict);
+        createResponse2.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         // Clean up
         await client.DeleteAsync($"/api/dm/d/{duplicateId}");
@@ -287,8 +308,11 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             ConnectionString = "Data Source=:memory:",
             DisplayName = "Invalid Provider Test",
         };
-        var invalidProviderResponse = await client.PostAsJsonAsync("/api/dm/d/", invalidProviderRequest);
-        invalidProviderResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        var invalidProviderResponse = await client.PostAsJsonAsync(
+            "/api/dm/d/",
+            invalidProviderRequest
+        );
+        invalidProviderResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test missing required fields
         var missingFieldsRequest = new DatasourceDto
@@ -298,8 +322,11 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             // ConnectionString missing
             DisplayName = "Missing Fields Test",
         };
-        var missingFieldsResponse = await client.PostAsJsonAsync("/api/dm/d/", missingFieldsRequest);
-        missingFieldsResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        var missingFieldsResponse = await client.PostAsJsonAsync(
+            "/api/dm/d/",
+            missingFieldsRequest
+        );
+        missingFieldsResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test empty connection string
         var emptyConnectionRequest = new DatasourceDto
@@ -309,8 +336,11 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
             ConnectionString = "", // Empty connection string
             DisplayName = "Empty Connection Test",
         };
-        var emptyConnectionResponse = await client.PostAsJsonAsync("/api/dm/d/", emptyConnectionRequest);
-        emptyConnectionResponse.Should().HaveStatusCode(HttpStatusCode.BadRequest);
+        var emptyConnectionResponse = await client.PostAsJsonAsync(
+            "/api/dm/d/",
+            emptyConnectionRequest
+        );
+        emptyConnectionResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     #endregion
@@ -335,7 +365,9 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         foreach (var datasourceId in testDatasources)
         {
             var response = await client.GetAsync($"/api/dm/d/{datasourceId}");
-            response.Should().HaveStatusCode(HttpStatusCode.OK, $"Datasource {datasourceId} should be accessible");
+            response
+                .StatusCode.Should()
+                .Be(HttpStatusCode.OK, $"Datasource {datasourceId} should be accessible");
 
             var result = await response.ReadAsJsonAsync<DatasourceResponse>();
             result.Should().NotBeNull();
@@ -358,9 +390,21 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
         var providerTests = new[]
         {
             new { Provider = "Sqlite", ConnectionString = "Data Source=:memory:" },
-            new { Provider = "SqlServer", ConnectionString = "Server=localhost;Database=test;Trusted_Connection=true;" },
-            new { Provider = "MySql", ConnectionString = "Server=localhost;Database=test;Uid=root;Pwd=password;" },
-            new { Provider = "PostgreSql", ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=password;" },
+            new
+            {
+                Provider = "SqlServer",
+                ConnectionString = "Server=localhost;Database=test;Trusted_Connection=true;",
+            },
+            new
+            {
+                Provider = "MySql",
+                ConnectionString = "Server=localhost;Database=test;Uid=root;Pwd=password;",
+            },
+            new
+            {
+                Provider = "PostgreSql",
+                ConnectionString = "Host=localhost;Database=test;Username=postgres;Password=password;",
+            },
         };
 
         var createdIds = new List<string>();
@@ -379,7 +423,9 @@ public class DatasourceEndpointsTests : IClassFixture<TestcontainersAssemblyFixt
                 };
 
                 var response = await client.PostAsJsonAsync("/api/dm/d/", request);
-                response.Should().HaveStatusCode(HttpStatusCode.Created, $"Provider {test.Provider} should be supported");
+                response
+                    .StatusCode.Should()
+                    .Be(HttpStatusCode.Created, $"Provider {test.Provider} should be supported");
 
                 var result = await response.ReadAsJsonAsync<DatasourceResponse>();
                 result.Should().NotBeNull();

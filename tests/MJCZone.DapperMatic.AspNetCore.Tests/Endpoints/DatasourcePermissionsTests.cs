@@ -49,7 +49,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 1. LIST - Get initial datasource count
         var listResponse1 = await client.GetAsync("/api/dm/d/");
-        listResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult1 = await listResponse1.ReadAsJsonAsync<DatasourceListResponse>();
         listResult1.Should().NotBeNull();
         listResult1!.Result.Should().NotBeNull();
@@ -57,7 +57,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 2. GET SINGLE - Try to get non-existent datasource (should return 404)
         var getResponse1 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse1.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // 3. CREATE - Create a new datasource
         var createRequest = new DatasourceDto
@@ -68,7 +68,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Permission Workflow Test",
         };
         var createResponse = await client.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<DatasourceResponse>();
         createResult.Should().NotBeNull();
         createResult!.Result.Should().NotBeNull();
@@ -76,14 +76,14 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 4. EXISTS - Check if datasource exists (should return true)
         var existsResponse1 = await client.GetAsync($"/api/dm/d/{testDatasourceId}/exists");
-        existsResponse1.Should().HaveStatusCode(HttpStatusCode.OK);
+        existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult1 = await existsResponse1.ReadAsJsonAsync<DatasourceTestResponse>();
         existsResult1.Should().NotBeNull();
         // Note: Using test response as there's no dedicated exists response
 
         // 5. LIST - List datasources again (should contain new datasource)
         var listResponse2 = await client.GetAsync("/api/dm/d/");
-        listResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult2 = await listResponse2.ReadAsJsonAsync<DatasourceListResponse>();
         listResult2.Should().NotBeNull();
         listResult2!.Result.Should().NotBeNull();
@@ -92,7 +92,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 6. GET SINGLE - Get the created datasource (should return datasource details)
         var getResponse2 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse2.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult2 = await getResponse2.ReadAsJsonAsync<DatasourceResponse>();
         getResult2.Should().NotBeNull();
         getResult2!.Result.Should().NotBeNull();
@@ -105,14 +105,14 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Updated Permission Test",
         };
         var updateResponse = await client.PutAsJsonAsync($"/api/dm/d/{testDatasourceId}", updateRequest);
-        updateResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updateResult = await updateResponse.ReadAsJsonAsync<DatasourceResponse>();
         updateResult.Should().NotBeNull();
         updateResult!.Result.Should().NotBeNull();
 
         // 8. GET SINGLE - Get updated datasource (should show changes)
         var getResponse3 = await client.GetAsync($"/api/dm/d/{testDatasourceId}");
-        getResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult3 = await getResponse3.ReadAsJsonAsync<DatasourceResponse>();
         getResult3.Should().NotBeNull();
         getResult3!.Result.Should().NotBeNull();
@@ -120,16 +120,16 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 9. DELETE - Delete the datasource
         var deleteResponse = await client.DeleteAsync($"/api/dm/d/{testDatasourceId}");
-        deleteResponse.Should().HaveStatusCode(HttpStatusCode.NoContent);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 10. EXISTS - Check if datasource exists (should return false)
         var existsResponse2 = await client.GetAsync($"/api/dm/d/{testDatasourceId}/exists");
-        existsResponse2.Should().HaveStatusCode(HttpStatusCode.NotFound);
+        existsResponse2.StatusCode.Should().Be(HttpStatusCode.NotFound);
         // Note: Non-existent datasource returns 404
 
         // 11. LIST - List datasources (should be back to initial count)
         var listResponse3 = await client.GetAsync("/api/dm/d/");
-        listResponse3.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var listResult3 = await listResponse3.ReadAsJsonAsync<DatasourceListResponse>();
         listResult3.Should().NotBeNull();
         listResult3!.Result.Should().NotBeNull();
@@ -160,10 +160,10 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Should allow read operations
         var listResponse = await readerClient.GetAsync("/api/dm/d/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var getResponse = await readerClient.GetAsync("/api/dm/d/Test-SqlServer");
-        getResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Should deny write operations
         var createRequest = new DatasourceDto
@@ -174,7 +174,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Reader Test",
         };
         var createResponse = await readerClient.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         // Test with DataAdmin role (full access)
         var adminClaims = new[]
@@ -187,10 +187,10 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Should allow all operations
         var adminListResponse = await adminClient.GetAsync("/api/dm/d/");
-        adminListResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        adminListResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         var adminCreateResponse = await adminClient.PostAsJsonAsync("/api/dm/d/", createRequest);
-        adminCreateResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        adminCreateResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // Clean up
         await adminClient.DeleteAsync($"/api/dm/d/{createRequest.Id}");
@@ -211,7 +211,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Should allow access to Test-* datasources
         var allowedResponse = await client.GetAsync("/api/dm/d/Test-SqlServer");
-        allowedResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        allowedResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Create a private datasource for testing
         var createPrivateRequest = new DatasourceDto
@@ -222,13 +222,13 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Private Database",
         };
         var createPrivateResponse = await client.PostAsJsonAsync("/api/dm/d/", createPrivateRequest);
-        createPrivateResponse.Should().HaveStatusCode(HttpStatusCode.Created);
+        createPrivateResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         try
         {
             // Should deny access to Private-* datasources
             var deniedResponse = await client.GetAsync("/api/dm/d/Private-TestDB");
-            deniedResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+            deniedResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
         finally
         {
@@ -258,13 +258,13 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // All operations should return Forbidden
         var listResponse = await client.GetAsync("/api/dm/d/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var getResponse = await client.GetAsync("/api/dm/d/Test-SqlServer");
-        getResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var existsResponse = await client.GetAsync("/api/dm/d/Test-SqlServer/exists");
-        existsResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        existsResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var createRequest = new DatasourceDto
         {
@@ -274,14 +274,14 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Denied Test",
         };
         var createResponse = await client.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var updateRequest = new DatasourceDto { DisplayName = "Updated" };
         var updateResponse = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", updateRequest);
-        updateResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var deleteResponse = await client.DeleteAsync("/api/dm/d/Test-SqlServer");
-        deleteResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -304,7 +304,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Operations should be forbidden due to insufficient roles
         var listResponse = await client.GetAsync("/api/dm/d/");
-        listResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        listResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
 
         var createRequest = new DatasourceDto
         {
@@ -314,7 +314,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             DisplayName = "Role Test",
         };
         var createResponse = await client.PostAsJsonAsync("/api/dm/d/", createRequest);
-        createResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
     [Fact]
@@ -333,7 +333,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // Test allowed patterns
         var testResponse = await client.GetAsync("/api/dm/d/Test-SqlServer");
-        testResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+        testResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Create datasources for testing patterns
         var devDatasource = new DatasourceDto
@@ -360,11 +360,11 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         {
             // Dev should be allowed
             var devResponse = await client.GetAsync("/api/dm/d/Dev-Database");
-            devResponse.Should().HaveStatusCode(HttpStatusCode.OK);
+            devResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
             // Prod should be denied
             var prodResponse = await client.GetAsync("/api/dm/d/Prod-Database");
-            prodResponse.Should().HaveStatusCode(HttpStatusCode.Forbidden);
+            prodResponse.StatusCode.Should().Be(HttpStatusCode.Forbidden);
         }
         finally
         {

@@ -224,6 +224,22 @@ public partial class DapperMaticService
                 )
                 .ConfigureAwait(false);
 
+            // Check column doesn't already exist
+            var exists = await connection
+                .DoesColumnExistAsync(
+                    schemaName,
+                    tableName,
+                    column.ColumnName,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+            if (exists)
+            {
+                throw new DuplicateKeyException(
+                    $"Column '{column.ColumnName}' already exists on table '{tableName}'."
+                );
+            }
+
             var dmColumn = new DmColumn(
                 schemaName,
                 tableName,
@@ -242,6 +258,7 @@ public partial class DapperMaticService
                 defaultExpression: column.DefaultExpression,
                 checkExpression: column.CheckExpression
             );
+
             var created = await connection
                 .CreateColumnIfNotExistsAsync(dmColumn, null, cancellationToken)
                 .ConfigureAwait(false);
@@ -339,6 +356,22 @@ public partial class DapperMaticService
                     cancellationToken
                 )
                 .ConfigureAwait(false);
+
+            // Check column doesn't already exist
+            var exists = await connection
+                .DoesColumnExistAsync(
+                    schemaName,
+                    tableName,
+                    newColumnName,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+            if (exists)
+            {
+                throw new DuplicateKeyException(
+                    $"Column '{newColumnName}' already exists on table '{tableName}'."
+                );
+            }
 
             var renamed = await connection
                 .RenameColumnIfExistsAsync(

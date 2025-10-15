@@ -121,7 +121,7 @@ public static class ForeignKeyConstraintEndpoints
     )
     {
         var foreignKeys = await service
-            .GetForeignKeysAsync(
+            .GetForeignKeyConstraintsAsync(
                 operationContext,
                 datasourceId,
                 tableName,
@@ -153,7 +153,7 @@ public static class ForeignKeyConstraintEndpoints
     )
     {
         var foreignKey = await service
-            .GetForeignKeyAsync(
+            .GetForeignKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,
@@ -198,7 +198,7 @@ public static class ForeignKeyConstraintEndpoints
         operationContext.RequestBody = foreignKeyConstraint;
 
         var result = await service
-            .CreateForeignKeyAsync(
+            .CreateForeignKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,
@@ -234,7 +234,7 @@ public static class ForeignKeyConstraintEndpoints
     )
     {
         await service
-            .DropForeignKeyAsync(
+            .DropForeignKeyConstraintAsync(
                 operationContext,
                 datasourceId,
                 tableName,

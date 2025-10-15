@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Data;
+
 using Microsoft.AspNetCore.Http;
 
 namespace MJCZone.DapperMatic.AspNetCore.Validation;
@@ -90,6 +92,11 @@ internal static class ErrorHandler
             DuplicateKeyException dke => Results.Problem(
                 title: "Duplicate key",
                 detail: dke.Message,
+                statusCode: StatusCodes.Status409Conflict
+            ),
+            DuplicateNameException dne => Results.Problem(
+                title: "Duplicate name",
+                detail: dne.Message,
                 statusCode: StatusCodes.Status409Conflict
             ),
             // 403
