@@ -327,6 +327,7 @@ public static class ViewEndpoints
         view.SchemaName = schemaName;
 
         operationContext.RequestBody = view;
+        operationContext.ViewName = view.ViewName;
 
         var created = await service
             .CreateViewAsync(operationContext, datasourceId, view, cancellationToken)

@@ -200,6 +200,13 @@ public partial class DapperMaticService
         {
             checkConstraint.ConstraintName = $"chk_{tableName}_{checkConstraint.ColumnName}";
         }
+        else if (
+            checkConstraint != null
+            && string.IsNullOrWhiteSpace(checkConstraint.ConstraintName)
+        )
+        {
+            checkConstraint.ConstraintName = $"CK_{tableName}_{Guid.NewGuid().ToString("N")[..8]}";
+        }
 
         Validate
             .Arguments()
@@ -243,8 +250,8 @@ public partial class DapperMaticService
 
             // Check constraint doesn't already exist
             if (
-                !string.IsNullOrWhiteSpace(checkConstraint.ConstraintName) &&
-                await connection
+                !string.IsNullOrWhiteSpace(checkConstraint.ConstraintName)
+                && await connection
                     .DoesCheckConstraintExistAsync(
                         schemaName,
                         tableName,

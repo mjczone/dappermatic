@@ -34,7 +34,7 @@ public static class WebApplicationExtensions
         configureMiddleware?.Invoke(app);
 
         // Map endpoints
-        app.UseEndpoints(endpoints => endpoints.UseDapperMatic());
+        app.UseEndpoints(endpoints => endpoints.MapDapperMaticEndpoints());
 
         return app;
     }
@@ -44,7 +44,7 @@ public static class WebApplicationExtensions
     /// </summary>
     /// <param name="app">The route builder.</param>
     /// <returns>The route builder for method chaining.</returns>
-    public static IEndpointRouteBuilder UseDapperMatic(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapDapperMaticEndpoints(this IEndpointRouteBuilder app)
     {
         var options =
             app.ServiceProvider.GetService<IOptions<DapperMaticOptions>>()?.Value

@@ -69,7 +69,12 @@ public static class ForeignKeyConstraintEndpoints
 
         // Foreign key constraint endpoints
         group
-            .MapGet("/", isSchemaSpecific ? ListSchemaForeignKeyConstraintsAsync : ListForeignKeyConstraintsAsync)
+            .MapGet(
+                "/",
+                isSchemaSpecific
+                    ? ListSchemaForeignKeyConstraintsAsync
+                    : ListForeignKeyConstraintsAsync
+            )
             .WithName($"List{namePrefix}ForeignKeyConstraints")
             .WithSummary($"Gets all foreign key constraints for a table {schemaInText}")
             .Produces<ForeignKeyListResponse>((int)HttpStatusCode.OK)
@@ -77,7 +82,10 @@ public static class ForeignKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{constraintName}", isSchemaSpecific ? GetSchemaForeignKeyConstraintAsync : GetForeignKeyConstraintAsync)
+            .MapGet(
+                "/{constraintName}",
+                isSchemaSpecific ? GetSchemaForeignKeyConstraintAsync : GetForeignKeyConstraintAsync
+            )
             .WithName($"Get{namePrefix}ForeignKeyConstraint")
             .WithSummary($"Gets a specific foreign key constraint from a table {schemaInText}")
             .Produces<ForeignKeyResponse>((int)HttpStatusCode.OK)
@@ -85,7 +93,12 @@ public static class ForeignKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", isSchemaSpecific ? CreateSchemaForeignKeyConstraintAsync : CreateForeignKeyConstraintAsync)
+            .MapPost(
+                "/",
+                isSchemaSpecific
+                    ? CreateSchemaForeignKeyConstraintAsync
+                    : CreateForeignKeyConstraintAsync
+            )
             .WithName($"Create{namePrefix}ForeignKeyConstraint")
             .WithSummary($"Creates a foreign key constraint on a table {schemaInText}")
             .Produces<ForeignKeyResponse>((int)HttpStatusCode.Created)
@@ -94,7 +107,12 @@ public static class ForeignKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaForeignKeyConstraintAsync : DropForeignKeyConstraintAsync)
+            .MapDelete(
+                "/{constraintName}",
+                isSchemaSpecific
+                    ? DropSchemaForeignKeyConstraintAsync
+                    : DropForeignKeyConstraintAsync
+            )
             .WithName($"Drop{namePrefix}ForeignKeyConstraint")
             .WithSummary($"Drops a foreign key constraint from a table {schemaInText}")
             .Produces<ForeignKeyResponse>((int)HttpStatusCode.OK)
@@ -109,7 +127,15 @@ public static class ForeignKeyConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => ListSchemaForeignKeyConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        ListSchemaForeignKeyConstraintsAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> ListSchemaForeignKeyConstraintsAsync(
         IOperationContext operationContext,
@@ -140,7 +166,16 @@ public static class ForeignKeyConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaForeignKeyConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        GetSchemaForeignKeyConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaForeignKeyConstraintAsync(
         IOperationContext operationContext,
@@ -173,7 +208,16 @@ public static class ForeignKeyConstraintEndpoints
         [FromRoute] string tableName,
         [FromBody] ForeignKeyConstraintDto foreignKeyConstraint,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaForeignKeyConstraintAsync(operationContext, service, datasourceId, null, tableName, foreignKeyConstraint, cancellationToken);
+    ) =>
+        CreateSchemaForeignKeyConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            foreignKeyConstraint,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaForeignKeyConstraintAsync(
         IOperationContext operationContext,
@@ -196,6 +240,14 @@ public static class ForeignKeyConstraintEndpoints
             );
 
         operationContext.RequestBody = foreignKeyConstraint;
+        operationContext.ColumnNames =
+            foreignKeyConstraint.ColumnNames != null && foreignKeyConstraint.ColumnNames.Count >= 1
+                ? foreignKeyConstraint.ColumnNames
+                : null;
+        if (!string.IsNullOrWhiteSpace(foreignKeyConstraint.ConstraintName))
+        {
+            operationContext.ConstraintName = foreignKeyConstraint.ConstraintName;
+        }
 
         var result = await service
             .CreateForeignKeyConstraintAsync(
@@ -221,7 +273,16 @@ public static class ForeignKeyConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaForeignKeyConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        DropSchemaForeignKeyConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaForeignKeyConstraintAsync(
         IOperationContext operationContext,

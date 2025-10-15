@@ -147,6 +147,7 @@ public static class SchemaEndpoints
             .Assert();
 
         operationContext.RequestBody = schema;
+        operationContext.SchemaName = schema.SchemaName!.Trim();
 
         var created = await service
             .CreateSchemaAsync(operationContext, datasourceId, schema, cancellationToken)

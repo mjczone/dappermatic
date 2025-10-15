@@ -6,7 +6,6 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
-
 using MJCZone.DapperMatic.AspNetCore.Auditing;
 
 namespace MJCZone.DapperMatic.AspNetCore;
@@ -47,9 +46,9 @@ public class OperationContext : IOperationContext
     public string? ViewName { get; set; }
 
     /// <summary>
-    /// Gets or sets the name of the column being accessed, if applicable.
+    /// Gets or sets the name of the columns being accessed, if applicable.
     /// </summary>
-    public string? ColumnName { get; set; }
+    public List<string>? ColumnNames { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the index being accessed, if applicable.
@@ -138,12 +137,12 @@ public static class OperationContextExtensions
     /// </summary>
     /// <param name="context">The operation context.</param>
     /// <param name="success">Indicates if the operation was successful.</param>
-    /// <param name="errorMessage">Optional error message if the operation failed.</param>
+    /// <param name="message">Optional message describing the operation outcome.</param>
     /// <returns>The corresponding audit event.</returns>
     public static DapperMaticAuditEvent ToAuditEvent(
         this IOperationContext context,
         bool success,
-        string? errorMessage = null
+        string? message = null
     )
     {
         return new DapperMaticAuditEvent
@@ -158,11 +157,11 @@ public static class OperationContextExtensions
             SchemaName = context.SchemaName,
             TableName = context.TableName,
             ViewName = context.ViewName,
-            ColumnName = context.ColumnName,
+            ColumnNames = context.ColumnNames,
             IndexName = context.IndexName,
             ConstraintName = context.ConstraintName,
             Success = success,
-            ErrorMessage = errorMessage,
+            Message = message,
             IpAddress = context.IpAddress,
             RequestId = context.RequestId,
             Timestamp = DateTimeOffset.UtcNow,

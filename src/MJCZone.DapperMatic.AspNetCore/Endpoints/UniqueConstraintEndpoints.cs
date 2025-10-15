@@ -193,6 +193,10 @@ public static class UniqueConstraintEndpoints
             .Assert();
 
         operationContext.RequestBody = uniqueConstraint;
+        operationContext.ColumnNames =
+            uniqueConstraint.ColumnNames != null && uniqueConstraint.ColumnNames.Count >= 1
+                ? uniqueConstraint.ColumnNames
+                : null;
 
         var created = await service
             .CreateUniqueConstraintAsync(

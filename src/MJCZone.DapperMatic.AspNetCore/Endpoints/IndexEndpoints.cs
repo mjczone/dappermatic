@@ -105,7 +105,15 @@ public static class IndexEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => ListSchemaIndexesAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        ListSchemaIndexesAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> ListSchemaIndexesAsync(
         IOperationContext operationContext,
@@ -136,7 +144,16 @@ public static class IndexEndpoints
         [FromRoute] string tableName,
         [FromRoute] string indexName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
+    ) =>
+        GetSchemaIndexAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            indexName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaIndexAsync(
         IOperationContext operationContext,
@@ -169,7 +186,16 @@ public static class IndexEndpoints
         [FromRoute] string tableName,
         [FromBody] IndexDto index,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, index, cancellationToken);
+    ) =>
+        CreateSchemaIndexAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            index,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaIndexAsync(
         IOperationContext operationContext,
@@ -193,6 +219,12 @@ public static class IndexEndpoints
             .Assert();
 
         operationContext.RequestBody = index;
+        operationContext.ColumnNames =
+            index.ColumnNames != null && index.ColumnNames.Count >= 1 ? index.ColumnNames : null;
+        if (!string.IsNullOrWhiteSpace(index.IndexName))
+        {
+            operationContext.IndexName = index.IndexName;
+        }
 
         var created = await service
             .CreateIndexAsync(
@@ -218,7 +250,16 @@ public static class IndexEndpoints
         [FromRoute] string tableName,
         [FromRoute] string indexName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
+    ) =>
+        DropSchemaIndexAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            indexName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaIndexAsync(
         IOperationContext operationContext,

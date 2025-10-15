@@ -298,6 +298,11 @@ public static class DefaultConstraintEndpoints
             .Assert();
 
         operationContext.RequestBody = defaultConstraint;
+        operationContext.ColumnNames = [defaultConstraint.ColumnName!];
+        if (!string.IsNullOrWhiteSpace(defaultConstraint.ConstraintName))
+        {
+            operationContext.ConstraintName = defaultConstraint.ConstraintName;
+        }
 
         var created = await service
             .CreateDefaultConstraintAsync(

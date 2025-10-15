@@ -45,9 +45,9 @@ public interface IOperationContext
     string? ViewName { get; set; }
 
     /// <summary>
-    /// Gets or sets the name of the column being accessed, if applicable.
+    /// Gets or sets the name of the columns being accessed, if applicable.
     /// </summary>
-    string? ColumnName { get; set; }
+    List<string>? ColumnNames { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the index being accessed, if applicable.

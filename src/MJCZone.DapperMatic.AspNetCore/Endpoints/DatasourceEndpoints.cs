@@ -178,6 +178,7 @@ public static class DatasourceEndpoints
             .Assert();
 
         operationContext.RequestBody = datasource;
+        operationContext.DatasourceId = datasource.Id;
 
         var created = await service
             .AddDatasourceAsync(operationContext, datasource, cancellationToken)

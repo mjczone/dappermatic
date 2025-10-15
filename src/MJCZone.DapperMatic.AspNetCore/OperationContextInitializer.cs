@@ -11,6 +11,8 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Primitives;
 using Microsoft.Net.Http.Headers;
 
+using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
+
 namespace MJCZone.DapperMatic.AspNetCore;
 
 /// <summary>
@@ -205,15 +207,15 @@ public partial class OperationContextInitializer : IOperationContextInitializer
             }
 
             if (
-                string.IsNullOrWhiteSpace(context.ColumnName)
+                (context.ColumnNames == null || context.ColumnNames.Count == 0)
                 && TryGetRouteValue(
                     context.RouteValues,
-                    nameof(context.ColumnName),
+                    nameof(ColumnDto.ColumnName),
                     out var columnStr
                 )
             )
             {
-                context.ColumnName = columnStr;
+                context.ColumnNames = [columnStr];
             }
 
             if (

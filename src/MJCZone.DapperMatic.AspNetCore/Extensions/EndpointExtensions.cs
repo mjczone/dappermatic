@@ -77,7 +77,7 @@ internal static class EndpointExtensions
                 {
                     await auditLogger
                         .LogOperationAsync(
-                            operationContext.ToAuditEvent(success: false, errorMessage: ex.Message)
+                            operationContext.ToAuditEvent(success: false, message: ex.Message)
                         )
                         .ConfigureAwait(false);
                 }

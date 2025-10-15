@@ -65,7 +65,10 @@ public static class CheckConstraintEndpoints
 
         // Check constraint endpoints
         group
-            .MapGet("/", isSchemaSpecific ? ListSchemaCheckConstraintsAsync : ListCheckConstraintsAsync)
+            .MapGet(
+                "/",
+                isSchemaSpecific ? ListSchemaCheckConstraintsAsync : ListCheckConstraintsAsync
+            )
             .WithName($"List{namePrefix}CheckConstraints")
             .WithSummary($"Gets all check constraints for a table {schemaInText}")
             .Produces<CheckConstraintListResponse>((int)HttpStatusCode.OK)
@@ -73,7 +76,10 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapGet("/{constraintName}", isSchemaSpecific ? GetSchemaCheckConstraintAsync : GetCheckConstraintAsync)
+            .MapGet(
+                "/{constraintName}",
+                isSchemaSpecific ? GetSchemaCheckConstraintAsync : GetCheckConstraintAsync
+            )
             .WithName($"Get{namePrefix}CheckConstraint")
             .WithSummary($"Gets a specific check constraint from a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.OK)
@@ -81,7 +87,10 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost("/", isSchemaSpecific ? CreateSchemaCheckConstraintAsync : CreateCheckConstraintAsync)
+            .MapPost(
+                "/",
+                isSchemaSpecific ? CreateSchemaCheckConstraintAsync : CreateCheckConstraintAsync
+            )
             .WithName($"Create{namePrefix}CheckConstraint")
             .WithSummary($"Creates a check constraint on a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.Created)
@@ -90,7 +99,10 @@ public static class CheckConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaCheckConstraintAsync : DropCheckConstraintAsync)
+            .MapDelete(
+                "/{constraintName}",
+                isSchemaSpecific ? DropSchemaCheckConstraintAsync : DropCheckConstraintAsync
+            )
             .WithName($"Drop{namePrefix}CheckConstraint")
             .WithSummary($"Drops a check constraint from a table {schemaInText}")
             .Produces<CheckConstraintResponse>((int)HttpStatusCode.OK)
@@ -105,7 +117,15 @@ public static class CheckConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => ListSchemaCheckConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        ListSchemaCheckConstraintsAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> ListSchemaCheckConstraintsAsync(
         IOperationContext operationContext,
@@ -136,7 +156,16 @@ public static class CheckConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        GetSchemaCheckConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaCheckConstraintAsync(
         IOperationContext operationContext,
@@ -169,7 +198,16 @@ public static class CheckConstraintEndpoints
         [FromRoute] string tableName,
         [FromBody] CheckConstraintDto checkConstraint,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, checkConstraint, cancellationToken);
+    ) =>
+        CreateSchemaCheckConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            checkConstraint,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaCheckConstraintAsync(
         IOperationContext operationContext,
@@ -184,11 +222,18 @@ public static class CheckConstraintEndpoints
         // API layer validation
         Validate
             .Object(checkConstraint)
-            .NotNullOrWhiteSpace(v => v.ColumnName, nameof(CheckConstraintDto.ColumnName))
             .NotNullOrWhiteSpace(v => v.CheckExpression, nameof(CheckConstraintDto.CheckExpression))
             .Assert();
 
         operationContext.RequestBody = checkConstraint;
+        if (!string.IsNullOrWhiteSpace(checkConstraint.ConstraintName))
+        {
+            operationContext.ConstraintName = checkConstraint.ConstraintName;
+        }
+        if (!string.IsNullOrWhiteSpace(checkConstraint.ColumnName))
+        {
+            operationContext.ColumnNames = [checkConstraint.ColumnName];
+        }
 
         var created = await service
             .CreateCheckConstraintAsync(
@@ -214,7 +259,16 @@ public static class CheckConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaCheckConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        DropSchemaCheckConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaCheckConstraintAsync(
         IOperationContext operationContext,

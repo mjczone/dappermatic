@@ -101,9 +101,9 @@ public partial class DapperMaticService : IDapperMaticService
                 {
                     msg.Append($", view '{context.ViewName}'");
                 }
-                if (!string.IsNullOrWhiteSpace(context.ColumnName))
+                if (context.ColumnNames != null && context.ColumnNames.Count > 0)
                 {
-                    msg.Append($", column '{context.ColumnName}'");
+                    msg.Append($", columns ('{string.Join("', '", context.ColumnNames)}')");
                 }
             }
             msg.Append('.');

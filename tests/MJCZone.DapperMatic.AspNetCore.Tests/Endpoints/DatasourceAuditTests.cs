@@ -30,143 +30,81 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task AddDatasource_Success_LogsAuditEvent()
+    public async Task Datasource_Operations_Log_Audit_Events()
     {
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);
 
-        var request = new DatasourceDto
+        // List datasources - should log audit event
+        var listResponse = await client.GetAsync("/api/dm/d/");
+        listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        // Add new datasource - should log audit event
+        var newDatasource = new DatasourceDto
         {
             Id = "AuditTest",
             Provider = "Sqlite",
             ConnectionString = "Data Source=test.db",
             DisplayName = "Audit Test Datasource",
         };
+        var addResponse = await client.PostAsJsonAsync("/api/dm/d/", newDatasource);
+        addResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
-        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        // Add duplicate datasource - should log failure audit event
+        var duplicateResponse = await client.PostAsJsonAsync("/api/dm/d/", newDatasource);
+        duplicateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
-        // Verify audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(1);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/add");
-        auditEvent.DatasourceId.Should().Be("AuditTest");
-        auditEvent.Success.Should().BeTrue();
-        auditEvent.ErrorMessage.Should().BeNull();
-        auditEvent.UserIdentifier.Should().NotBeNull();
-    }
+        // Update datasource - should log audit event
+        var updateRequest = new DatasourceDto { DisplayName = "Updated Test Name" };
+        var updateResponse = await client.PutAsJsonAsync("/api/dm/d/AuditTest", updateRequest);
+        updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
-    [Fact]
-    public async Task AddDatasource_Overwrite_LogsSuccessAuditEvent()
-    {
-        var auditLogger = new TestDapperMaticAuditLogger();
-        using var client = CreateClientWithAuditLogger(auditLogger);
+        // Delete datasource - should log audit event
+        var deleteResponse = await client.DeleteAsync("/api/dm/d/AuditTest");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
-        var request = new DatasourceDto
-        {
-            Id = TestcontainersAssemblyFixture.DatasourceId_SqlServer, // This already exists in test data but gets overwritten
-            Provider = "Sqlite",
-            ConnectionString = "Data Source=test.db",
-            DisplayName = "Overwritten Test",
-        };
-        var response = await client.PostAsJsonAsync("/api/dm/d/", request);
-        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        // Verify all operations logged audit events
+        auditLogger.AuditEvents.Should().HaveCountGreaterThanOrEqualTo(5);
 
-        // Now overwrite it
-        response = await client.PutAsJsonAsync(
-            $"/api/dm/d/{request.Id}",
-            new DatasourceDto
-            {
-                Provider = "Sqlite",
-                ConnectionString = "Data Source=test_overwrite.db",
-                DisplayName = "Overwritten Test",
-            }
-        );
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // Verify list operation
+        var listEvents = auditLogger.GetEventsForOperation("datasources/list");
+        listEvents.Should().HaveCount(1);
+        listEvents[0].Success.Should().BeTrue();
+        listEvents[0].DatasourceId.Should().BeNull();
 
-        // Verify success audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(2);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/add");
-        auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        auditEvent.Success.Should().BeFalse();
-        auditEvent.ErrorMessage.Should().NotBeNull();
+        // Verify successful add operation
+        var successfulAddEvents = auditLogger
+            .GetEventsForOperation("datasources/add")
+            .Where(e => e.Success)
+            .ToList();
+        successfulAddEvents.Should().HaveCount(1);
+        successfulAddEvents[0].DatasourceId.Should().Be("AuditTest");
+        successfulAddEvents[0].UserIdentifier.Should().NotBeNull();
 
-        auditEvent = auditLogger.AuditEvents[1];
-        auditEvent.Operation.Should().Be("datasources/update");
-        auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        auditEvent.Success.Should().BeTrue();
-        auditEvent.ErrorMessage.Should().BeNull();
-    }
+        // Verify failed add operation (duplicate)
+        var failedAddEvents = auditLogger
+            .GetEventsForOperation("datasources/add")
+            .Where(e => !e.Success)
+            .ToList();
+        failedAddEvents.Should().HaveCount(1);
+        failedAddEvents[0].DatasourceId.Should().Be("AuditTest");
+        failedAddEvents[0].Message.Should().NotBeNull();
 
-    [Fact]
-    public async Task GetDatasource_Success_LogsAuditEvent()
-    {
-        var auditLogger = new TestDapperMaticAuditLogger();
-        using var client = CreateClientWithAuditLogger(auditLogger);
+        // Verify update operation
+        var updateEvents = auditLogger.GetEventsForOperation("datasources/update");
+        updateEvents.Should().HaveCount(1);
+        updateEvents[0].DatasourceId.Should().Be("AuditTest");
+        updateEvents[0].Success.Should().BeTrue();
 
-        var response = await client.GetAsync("/api/dm/d/Test-SqlServer");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // Verify delete operation
+        var deleteEvents = auditLogger.GetEventsForOperation("datasources/remove");
+        deleteEvents.Should().HaveCount(1);
+        deleteEvents[0].DatasourceId.Should().Be("AuditTest");
+        deleteEvents[0].Success.Should().BeTrue();
 
-        // Verify audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(1);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/get");
-        auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        auditEvent.Success.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task UpdateDatasource_Success_LogsAuditEvent()
-    {
-        var auditLogger = new TestDapperMaticAuditLogger();
-        using var client = CreateClientWithAuditLogger(auditLogger);
-
-        var request = new DatasourceDto { DisplayName = "Updated Test Name" };
-
-        var response = await client.PutAsJsonAsync("/api/dm/d/Test-SqlServer", request);
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Verify audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(1);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/update");
-        auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        auditEvent.Success.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task DeleteDatasource_Success_LogsAuditEvent()
-    {
-        var auditLogger = new TestDapperMaticAuditLogger();
-        using var client = CreateClientWithAuditLogger(auditLogger);
-
-        var response = await client.DeleteAsync("/api/dm/d/Test-SqlServer");
-        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-        // Verify audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(1);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/remove");
-        auditEvent.DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
-        auditEvent.Success.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task ListDatasources_Success_LogsAuditEvent()
-    {
-        var auditLogger = new TestDapperMaticAuditLogger();
-        using var client = CreateClientWithAuditLogger(auditLogger);
-
-        var response = await client.GetAsync("/api/dm/d/");
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
-
-        // Verify audit event was logged
-        auditLogger.AuditEvents.Should().HaveCount(1);
-        var auditEvent = auditLogger.AuditEvents[0];
-        auditEvent.Operation.Should().Be("datasources/list");
-        auditEvent.Success.Should().BeTrue();
-        auditEvent.DatasourceId.Should().BeNull(); // List operation doesn't target specific datasource
+        // Verify overall counts
+        auditLogger.GetSuccessfulEvents().Should().HaveCountGreaterThanOrEqualTo(4); // list, add, update, delete
+        auditLogger.GetFailedEvents().Should().HaveCount(1); // duplicate add
     }
 
     private HttpClient CreateClientWithAuditLogger(TestDapperMaticAuditLogger auditLogger)

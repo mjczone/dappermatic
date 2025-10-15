@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.OpenApi.Any;
-
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
@@ -144,7 +143,10 @@ public static class TableEndpoints
 
         // Check if table exists
         group
-            .MapGet("/{tableName}/exists", isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync)
+            .MapGet(
+                "/{tableName}/exists",
+                isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync
+            )
             .WithName($"{namePrefix}TableExists")
             .WithSummary($"Checks if a table exists {schemaInText}")
             .Produces<TableExistsResponse>((int)HttpStatusCode.OK)
@@ -153,7 +155,10 @@ public static class TableEndpoints
 
         // Query table via GET with URL parameters
         group
-            .MapGet("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync)
+            .MapGet(
+                "/{tableName}/query",
+                isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync
+            )
             .WithName($"Query{namePrefix}TableViaGet")
             .WithSummary($"Queries a table {schemaInText} using URL parameters")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -162,7 +167,10 @@ public static class TableEndpoints
 
         // Query table with filtering, sorting, and pagination
         group
-            .MapPost("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync)
+            .MapPost(
+                "/{tableName}/query",
+                isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync
+            )
             .WithName($"Query{namePrefix}Table")
             .WithSummary($"Queries a table {schemaInText} with filtering, sorting, and pagination")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -177,7 +185,16 @@ public static class TableEndpoints
         [FromQuery] string? include,
         [FromQuery] string? filter,
         CancellationToken cancellationToken = default
-    ) => ListSchemaTablesAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
+    ) =>
+        ListSchemaTablesAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            include,
+            filter,
+            cancellationToken
+        );
 
     private static async Task<IResult> ListSchemaTablesAsync(
         IOperationContext operationContext,
@@ -240,7 +257,16 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromQuery] string? include,
         CancellationToken cancellationToken = default
-    ) => GetSchemaTableAsync(operationContext, service, datasourceId, null, tableName, include, cancellationToken);
+    ) =>
+        GetSchemaTableAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            include,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaTableAsync(
         IOperationContext operationContext,
@@ -288,7 +314,15 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromBody] TableDto table,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaTableAsync(operationContext, service, datasourceId, null, table, cancellationToken);
+    ) =>
+        CreateSchemaTableAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            table,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaTableAsync(
         IOperationContext operationContext,
@@ -317,6 +351,11 @@ public static class TableEndpoints
         table.SchemaName = schemaName;
 
         operationContext.RequestBody = table;
+        operationContext.TableName = table.TableName!.Trim();
+        operationContext.ColumnNames =
+            table.Columns != null && table.Columns.Count >= 1
+                ? table.Columns.Select(c => c.ColumnName).ToList()
+                : null;
 
         var created = await service
             .CreateTableAsync(operationContext, datasourceId, table, cancellationToken)
@@ -335,7 +374,16 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromBody] TableDto updates,
         CancellationToken cancellationToken = default
-    ) => UpdateSchemaTableAsync(operationContext, service, datasourceId, null, tableName, updates, cancellationToken);
+    ) =>
+        UpdateSchemaTableAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            updates,
+            cancellationToken
+        );
 
     private static async Task<IResult> UpdateSchemaTableAsync(
         IOperationContext operationContext,
@@ -434,7 +482,15 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaTableAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        DropSchemaTableAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaTableAsync(
         IOperationContext operationContext,
@@ -464,7 +520,15 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => SchemaTableExistsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        SchemaTableExistsAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> SchemaTableExistsAsync(
         IOperationContext operationContext,
@@ -495,7 +559,16 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromBody] QueryDto request,
         CancellationToken cancellationToken = default
-    ) => QuerySchemaTableAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+    ) =>
+        QuerySchemaTableAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            request,
+            cancellationToken
+        );
 
     private static async Task<IResult> QuerySchemaTableAsync(
         IOperationContext operationContext,
@@ -535,7 +608,15 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) => QuerySchemaTableViaGetAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
+    ) =>
+        QuerySchemaTableViaGetAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            cancellationToken
+        );
 
     private static async Task<IResult> QuerySchemaTableViaGetAsync(
         IOperationContext operationContext,

@@ -173,6 +173,14 @@ public static class PrimaryKeyConstraintEndpoints
             .Assert();
 
         operationContext.RequestBody = primaryKey;
+        operationContext.ColumnNames =
+            primaryKey.ColumnNames != null && primaryKey.ColumnNames.Count >= 1
+                ? primaryKey.ColumnNames
+                : null;
+        if (!string.IsNullOrWhiteSpace(primaryKey.ConstraintName))
+        {
+            operationContext.ConstraintName = primaryKey.ConstraintName;
+        }
 
         var result = await service
             .CreatePrimaryKeyConstraintAsync(

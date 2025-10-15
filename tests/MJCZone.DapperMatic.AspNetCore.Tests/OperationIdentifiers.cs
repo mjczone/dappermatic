@@ -668,7 +668,7 @@ public static class OperationIdentifiers
         var context = CreateContext("columns/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
-        context.ColumnName = columnName;
+        context.ColumnNames = [columnName];
         context.SchemaName = schemaName;
         context.HttpMethod = "GET";
         return context;
@@ -720,7 +720,7 @@ public static class OperationIdentifiers
         var context = CreateContext("columns/rename", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
-        context.ColumnName = columnName;
+        context.ColumnNames = [columnName];
         context.SchemaName = schemaName;
         context.Properties ??= [];
         context.Properties["NewColumnName"] = newColumnName;
@@ -747,7 +747,7 @@ public static class OperationIdentifiers
         var context = CreateContext("columns/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
-        context.ColumnName = columnName;
+        context.ColumnNames = [columnName];
         context.SchemaName = schemaName;
         context.HttpMethod = "DELETE";
         return context;
@@ -1284,7 +1284,7 @@ public static class OperationIdentifiers
         var context = CreateContext("default-constraints/get", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
-        context.ColumnName = columnName;
+        context.ColumnNames = [columnName];
         context.SchemaName = schemaName;
         context.HttpMethod = "GET";
         return context;
@@ -1359,7 +1359,7 @@ public static class OperationIdentifiers
         var context = CreateContext("default-constraints/drop", user);
         context.DatasourceId = datasourceId;
         context.TableName = tableName;
-        context.ColumnName = columnName;
+        context.ColumnNames = [columnName];
         context.SchemaName = schemaName;
         context.HttpMethod = "DELETE";
         return context;

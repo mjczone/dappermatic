@@ -14,6 +14,8 @@ builder.Services.AddDapperMatic();
 
 var app = builder.Build();
 
+app.UseRouting();
+
 // Map DapperMatic endpoints
 app.UseDapperMatic();
 

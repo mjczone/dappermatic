@@ -223,6 +223,7 @@ public static class ColumnEndpoints
             .Assert();
 
         operationContext.RequestBody = column;
+        operationContext.ColumnNames = [column.ColumnName];
 
         var result = await service
             .AddColumnAsync(
