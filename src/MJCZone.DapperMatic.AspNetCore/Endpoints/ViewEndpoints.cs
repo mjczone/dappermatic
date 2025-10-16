@@ -367,14 +367,17 @@ public static class ViewEndpoints
         CancellationToken cancellationToken = default
     )
     {
+        updates.SchemaName = schemaName;
+        if (string.IsNullOrWhiteSpace(updates.ViewName))
+        {
+            updates.ViewName = viewName;
+        }
+
         // API layer validation
         Validate
             .Object(updates)
             .MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
             .Assert();
-
-        // Ensure schema name from DTO matches route parameter
-        updates.SchemaName = schemaName;
 
         operationContext.RequestBody = updates;
 

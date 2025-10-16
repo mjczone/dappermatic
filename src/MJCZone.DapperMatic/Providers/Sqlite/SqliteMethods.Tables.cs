@@ -33,7 +33,7 @@ public partial class SqliteMethods
             """
             SELECT name as table_name, sql as table_sql
                             FROM sqlite_master
-                            WHERE type = 'table' AND name NOT LIKE 'sqlite_%'
+                            WHERE type = 'table' AND name NOT LIKE 'sqlite\_%' ESCAPE '\'
             """
         );
         if (!string.IsNullOrWhiteSpace(where))

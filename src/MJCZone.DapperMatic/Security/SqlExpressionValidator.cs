@@ -10,7 +10,7 @@ namespace MJCZone.DapperMatic.Security;
 /// <summary>
 /// Provides SQL expression validation to prevent SQL injection attacks.
 /// </summary>
-internal static class SqlExpressionValidator
+internal static partial class SqlExpressionValidator
 {
     /// <summary>
     /// Maximum allowed length for SQL expressions.
@@ -20,17 +20,52 @@ internal static class SqlExpressionValidator
     /// <summary>
     /// Dangerous SQL keywords and patterns that are not allowed in expressions.
     /// </summary>
-    private static readonly string[] DangerousPatterns = [
-        "--", "/*", "*/", "xp_", "sp_", "EXEC", "EXECUTE", "DECLARE", "WHILE", "IF", "GOTO",
-        "WAITFOR", "SHUTDOWN", "BACKUP", "RESTORE", "KILL", "DBCC", "BULK", "OPENROWSET", "OPENQUERY",
-        "OPENDATASOURCE", "OPENXML", "ALTER", "CREATE", "DROP", "TRUNCATE", "MERGE"
+    private static readonly string[] DangerousPatterns =
+    [
+        "--",
+        "/*",
+        "*/",
+        "xp_",
+        "sp_",
+        "EXEC",
+        "EXECUTE",
+        "DECLARE",
+        "WHILE",
+        "IF",
+        "GOTO",
+        "WAITFOR",
+        "SHUTDOWN",
+        "BACKUP",
+        "RESTORE",
+        "KILL",
+        "DBCC",
+        "BULK",
+        "OPENROWSET",
+        "OPENQUERY",
+        "OPENDATASOURCE",
+        "OPENXML",
+        "ALTER",
+        "CREATE",
+        "DROP",
+        "TRUNCATE",
+        "MERGE",
     ];
 
     /// <summary>
     /// Additional dangerous patterns for DDL context (more restrictive).
     /// </summary>
-    private static readonly string[] DdlDangerousPatterns = [
-        ";", "INSERT", "UPDATE", "DELETE", "SELECT", "UNION", "JOIN", "FROM", "WHERE", "INTO"
+    private static readonly string[] DdlDangerousPatterns =
+    [
+        ";",
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "SELECT",
+        "UNION",
+        "JOIN",
+        "FROM",
+        "WHERE",
+        "INTO",
     ];
 
     /// <summary>
@@ -39,7 +74,10 @@ internal static class SqlExpressionValidator
     /// <param name="viewDefinition">The view definition SQL.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateViewDefinition(string viewDefinition, string parameterName = "viewDefinition")
+    public static void ValidateViewDefinition(
+        string viewDefinition,
+        string parameterName = "viewDefinition"
+    )
     {
         ValidateBasicExpression(viewDefinition, parameterName);
 
@@ -47,16 +85,38 @@ internal static class SqlExpressionValidator
         var trimmed = viewDefinition.Trim();
         if (!trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("View definition must start with SELECT statement", parameterName);
+            throw new ArgumentException(
+                "View definition must start with SELECT statement",
+                parameterName
+            );
         }
 
         // View definitions are less restrictive since they're legitimate SELECT statements
         // Only check for the most dangerous patterns
         var viewDangerousPatterns = new[]
         {
-            "--", "/*", "*/", "xp_", "sp_", "EXEC", "EXECUTE", "DECLARE", "WHILE", "IF", "GOTO",
-            "WAITFOR", "SHUTDOWN", "BACKUP", "RESTORE", "KILL", "DBCC", "BULK", "OPENROWSET", "OPENQUERY",
-            "OPENDATASOURCE", "OPENXML",
+            "--",
+            "/*",
+            "*/",
+            "xp_",
+            "sp_",
+            "EXEC",
+            "EXECUTE",
+            "DECLARE",
+            "WHILE",
+            "IF",
+            "GOTO",
+            "WAITFOR",
+            "SHUTDOWN",
+            "BACKUP",
+            "RESTORE",
+            "KILL",
+            "DBCC",
+            "BULK",
+            "OPENROWSET",
+            "OPENQUERY",
+            "OPENDATASOURCE",
+            "OPENXML",
         };
         ValidateAgainstPatterns(viewDefinition, viewDangerousPatterns, parameterName);
 
@@ -68,10 +128,15 @@ internal static class SqlExpressionValidator
             if (statements.Length > 1)
             {
                 // Check if there are multiple non-empty statements
-                var nonEmptyStatements = statements.Where(s => !string.IsNullOrWhiteSpace(s)).Count();
+                var nonEmptyStatements = statements
+                    .Where(s => !string.IsNullOrWhiteSpace(s))
+                    .Count();
                 if (nonEmptyStatements > 1)
                 {
-                    throw new ArgumentException("View definition cannot contain multiple SQL statements", parameterName);
+                    throw new ArgumentException(
+                        "View definition cannot contain multiple SQL statements",
+                        parameterName
+                    );
                 }
             }
         }
@@ -83,15 +148,25 @@ internal static class SqlExpressionValidator
     /// <param name="checkExpression">The check constraint expression.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateCheckExpression(string checkExpression, string parameterName = "checkExpression")
+    public static void ValidateCheckExpression(
+        string checkExpression,
+        string parameterName = "checkExpression"
+    )
     {
         ValidateBasicExpression(checkExpression, parameterName);
-        ValidateAgainstPatterns(checkExpression, DangerousPatterns.Concat(DdlDangerousPatterns).ToArray(), parameterName);
+        ValidateAgainstPatterns(
+            checkExpression,
+            DangerousPatterns.Concat(DdlDangerousPatterns).ToArray(),
+            parameterName
+        );
 
         // Check constraints should not contain semicolons (multiple statements)
         if (checkExpression.Contains(';', StringComparison.Ordinal))
         {
-            throw new ArgumentException("Check constraint expression cannot contain multiple statements", parameterName);
+            throw new ArgumentException(
+                "Check constraint expression cannot contain multiple statements",
+                parameterName
+            );
         }
     }
 
@@ -101,15 +176,25 @@ internal static class SqlExpressionValidator
     /// <param name="defaultExpression">The default constraint expression.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateDefaultExpression(string defaultExpression, string parameterName = "defaultExpression")
+    public static void ValidateDefaultExpression(
+        string defaultExpression,
+        string parameterName = "defaultExpression"
+    )
     {
         ValidateBasicExpression(defaultExpression, parameterName);
-        ValidateAgainstPatterns(defaultExpression, DangerousPatterns.Concat(DdlDangerousPatterns).ToArray(), parameterName);
+        ValidateAgainstPatterns(
+            defaultExpression,
+            DangerousPatterns.Concat(DdlDangerousPatterns).ToArray(),
+            parameterName
+        );
 
         // Default expressions should not contain semicolons (multiple statements)
         if (defaultExpression.Contains(';', StringComparison.Ordinal))
         {
-            throw new ArgumentException("Default constraint expression cannot contain multiple statements", parameterName);
+            throw new ArgumentException(
+                "Default constraint expression cannot contain multiple statements",
+                parameterName
+            );
         }
     }
 
@@ -128,13 +213,22 @@ internal static class SqlExpressionValidator
 
         if (expression.Length > MaxExpressionLength)
         {
-            throw new ArgumentException($"Expression too long (max {MaxExpressionLength} characters)", parameterName);
+            throw new ArgumentException(
+                $"Expression too long (max {MaxExpressionLength} characters)",
+                parameterName
+            );
         }
 
         // Check for SQL comments before removing them
-        if (expression.Contains("--", StringComparison.Ordinal) || expression.Contains("/*", StringComparison.Ordinal))
+        if (
+            expression.Contains("--", StringComparison.Ordinal)
+            || expression.Contains("/*", StringComparison.Ordinal)
+        )
         {
-            throw new ArgumentException("Expression contains potentially dangerous SQL pattern: comment", parameterName);
+            throw new ArgumentException(
+                "Expression contains potentially dangerous SQL pattern: comment",
+                parameterName
+            );
         }
 
         // Remove SQL comments to prevent comment-based injection
@@ -143,7 +237,10 @@ internal static class SqlExpressionValidator
         // Check for null bytes and other control characters
         if (sanitized.Any(c => c < 32 && c != '\t' && c != '\n' && c != '\r'))
         {
-            throw new ArgumentException("Expression contains invalid control characters", parameterName);
+            throw new ArgumentException(
+                "Expression contains invalid control characters",
+                parameterName
+            );
         }
     }
 
@@ -154,7 +251,11 @@ internal static class SqlExpressionValidator
     /// <param name="patterns">The dangerous patterns to check for.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when dangerous patterns are found.</exception>
-    private static void ValidateAgainstPatterns(string expression, string[] patterns, string parameterName)
+    private static void ValidateAgainstPatterns(
+        string expression,
+        string[] patterns,
+        string parameterName
+    )
     {
         var sanitized = RemoveSqlComments(expression);
 
@@ -162,7 +263,10 @@ internal static class SqlExpressionValidator
         {
             if (ContainsDangerousPattern(sanitized, pattern))
             {
-                throw new ArgumentException($"Expression contains potentially dangerous SQL pattern: {pattern}", parameterName);
+                throw new ArgumentException(
+                    $"Expression contains potentially dangerous SQL pattern: {pattern}",
+                    parameterName
+                );
             }
         }
     }
@@ -175,15 +279,20 @@ internal static class SqlExpressionValidator
     /// <returns>True if the dangerous pattern is found.</returns>
     private static bool ContainsDangerousPattern(string expression, string pattern)
     {
-        // Special characters like ;, --, /*
-        if (pattern.Length <= 2)
+        // Check if pattern is purely alphabetic (only contains letters)
+        var isAlphabeticOnly = pattern.All(char.IsLetter);
+
+        // For purely alphabetic patterns, use word boundary matching to avoid false positives
+        // (e.g., "IF" should not match "Modified")
+        if (isAlphabeticOnly)
         {
-            return expression.Contains(pattern, StringComparison.OrdinalIgnoreCase);
+            var regex = new Regex($@"\b{Regex.Escape(pattern)}\b", RegexOptions.IgnoreCase);
+            return regex.IsMatch(expression);
         }
 
-        // For keywords, use word boundary matching to avoid false positives
-        var regex = new Regex($@"\b{Regex.Escape(pattern)}\b", RegexOptions.IgnoreCase);
-        return regex.IsMatch(expression);
+        // For patterns with special characters (e.g., "xp_", "sp_", "--", "/*"),
+        // use simple contains check
+        return expression.Contains(pattern, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -194,11 +303,17 @@ internal static class SqlExpressionValidator
     private static string RemoveSqlComments(string expression)
     {
         // Remove single-line comments
-        expression = Regex.Replace(expression, @"--.*$", string.Empty, RegexOptions.Multiline);
+        expression = SingleLineCommentsRegex().Replace(expression, string.Empty);
 
         // Remove multi-line comments
-        expression = Regex.Replace(expression, @"/\*.*?\*/", string.Empty, RegexOptions.Singleline);
+        expression = MultiLineCommentsRegex().Replace(expression, string.Empty);
 
         return expression.Trim();
     }
+
+    [GeneratedRegex(@"--.*$", RegexOptions.Multiline)]
+    private static partial Regex SingleLineCommentsRegex();
+
+    [GeneratedRegex(@"/\*.*?\*/", RegexOptions.Singleline)]
+    private static partial Regex MultiLineCommentsRegex();
 }

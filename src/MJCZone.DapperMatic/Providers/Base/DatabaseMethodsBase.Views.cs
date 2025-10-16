@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
+using Dapper;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic.Providers.Base;
@@ -145,14 +146,17 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         var (sql, parameters) = SqlGetViewNames(schemaName, viewNameFilter);
-        return await QueryAsync<string>(
-                db,
-                sql,
-                parameters,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
-            .ConfigureAwait(false);
+        var viewNames = (
+            await QueryAsync<string>(
+                    db,
+                    sql,
+                    parameters,
+                    tx: tx,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false)
+        ).AsList();
+        return viewNames;
     }
 
     /// <summary>

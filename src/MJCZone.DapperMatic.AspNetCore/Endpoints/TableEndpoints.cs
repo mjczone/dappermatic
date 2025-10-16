@@ -395,6 +395,12 @@ public static class TableEndpoints
         CancellationToken cancellationToken = default
     )
     {
+        updates.SchemaName = schemaName;
+        if (string.IsNullOrWhiteSpace(updates.TableName))
+        {
+            updates.TableName = tableName;
+        }
+
         // API layer validation
         Validate
             .Object(updates)

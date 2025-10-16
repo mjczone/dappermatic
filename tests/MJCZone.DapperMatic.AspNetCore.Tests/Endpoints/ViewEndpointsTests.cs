@@ -30,7 +30,11 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task ViewEndpoints_CompleteWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(d => d.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         var client = factory.CreateClient();
         const string viewName = "WorkflowTestView";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
@@ -59,10 +63,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var createResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}",
-            createContent
-        );
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", createContent);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
         createResult.Should().NotBeNull();
@@ -88,8 +89,11 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult2.Result.Should().Contain(v => v.ViewName == viewName);
 
         // 6. GET SINGLE - Get the created view (should return view details)
-        var getResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        var getResponse2 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}?include=definition"
+        );
         getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+        // var responseText = await getResponse2.Content.ReadAsStringAsync();
         var getResult2 = await getResponse2.ReadAsJsonAsync<ViewResponse>();
         getResult2.Should().NotBeNull();
         getResult2!.Result.Should().NotBeNull();
@@ -116,7 +120,9 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         updateResult!.Result.Should().NotBeNull();
 
         // 8. GET SINGLE - Get updated view (should show changes)
-        var getResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+        var getResponse3 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/v/{viewName}?include=definition"
+        );
         getResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult3 = await getResponse3.ReadAsJsonAsync<ViewResponse>();
         getResult3.Should().NotBeNull();
@@ -249,7 +255,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
         var invalidCreateResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/v/InvalidView",
+            $"/api/dm/d/{datasourceId}/v/",
             invalidCreateContent
         );
         invalidCreateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
@@ -274,7 +280,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 "application/json"
             );
             var duplicateCreateResponse = await client.PostAsync(
-                $"/api/dm/d/{datasourceId}/v/{duplicateViewName}",
+                $"/api/dm/d/{datasourceId}/v/",
                 duplicateCreateContent
             );
             duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -365,7 +371,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
         var createResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}",
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/",
             createContent
         );
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -423,7 +429,12 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task SQLiteViewEndpoints_BasicWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(d => d.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
+
         var client = factory.CreateClient();
         const string viewName = "SQLiteTestView";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_Sqlite;
@@ -439,15 +450,66 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var createResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}",
-            createContent
-        );
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", createContent);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
         createResult.Should().NotBeNull();
         createResult!.Result.Should().NotBeNull();
         createResult.Result!.ViewName.Should().Be(viewName);
+
+        // Query the view
+        var queryResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}/query");
+        queryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var queryResult = await queryResponse.ReadAsJsonAsync<QueryResponse>();
+        queryResult.Should().NotBeNull();
+        queryResult!.Result.Should().NotBeNull();
+        queryResult.Result!.Should().NotBeEmpty();
+
+        // Clean up
+        await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
+    }
+
+    #endregion
+
+    #region SQL Server Comparison Test
+
+    [Fact]
+    public async Task SqlServerViewEndpoints_BasicWorkflow_Success()
+    {
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(d => d.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
+        var client = factory.CreateClient();
+        const string viewName = "SqlServerTestView";
+        const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
+
+        // Create view
+        var createRequest = new ViewDto
+        {
+            ViewName = viewName,
+            Definition = "SELECT 1 AS TestColumn",
+        };
+        var createContent = new StringContent(
+            JsonSerializer.Serialize(createRequest),
+            Encoding.UTF8,
+            "application/json"
+        );
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", createContent);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
+        createResult.Should().NotBeNull();
+        createResult!.Result.Should().NotBeNull();
+        createResult.Result!.ViewName.Should().Be(viewName);
+
+        // Query the view
+        var queryResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}/query");
+        queryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var queryResult = await queryResponse.ReadAsJsonAsync<QueryResponse>();
+        queryResult.Should().NotBeNull();
+        queryResult!.Result.Should().NotBeNull();
+        queryResult.Result!.Should().NotBeEmpty();
 
         // Clean up
         await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{viewName}");
@@ -471,7 +533,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
 
-        var response = await client.PostAsync($"/api/dm/d/{datasourceId}/v/{viewName}", content);
+        var response = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", content);
         response.EnsureSuccessStatusCode();
     }
 
@@ -491,7 +553,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         );
 
         var response = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}",
+            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/",
             content
         );
         response.EnsureSuccessStatusCode();

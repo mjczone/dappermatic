@@ -189,12 +189,6 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
                         : sqliteFile,
                     ForeignKeys = true,
                     BinaryGUID = false,
-                    // JournalMode = System.Data.SQLite.SQLiteJournalModeEnum.Off,
-                    // SyncMode = System.Data.SQLite.SynchronizationModes.Full,
-                    // Pooling = false,
-                    // CacheSize = 0, // 10 MB
-                    // PageSize = 4096,
-                    // DefaultTimeout = 5000, // 5 seconds
                     FailIfMissing = false,
                 }.ToString(),
                 DisplayName = "Test SQLite",

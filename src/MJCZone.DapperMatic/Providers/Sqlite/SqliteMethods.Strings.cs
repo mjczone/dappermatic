@@ -74,7 +74,7 @@ public partial class SqliteMethods
                             FROM sqlite_master
                             WHERE
                                 type = 'table'
-                                AND name NOT LIKE 'sqlite_%'
+                                AND name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? null : " AND name LIKE @where"
             )}
@@ -157,7 +157,7 @@ public partial class SqliteMethods
                             FROM sqlite_master AS m
                             WHERE
                                 m.TYPE = 'view'
-                                AND m.name NOT LIKE 'sqlite_%'
+                                AND m.name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? string.Empty : " AND m.name LIKE @where"
             )}
@@ -187,7 +187,7 @@ public partial class SqliteMethods
                             FROM sqlite_master AS m
                             WHERE
                                 m.TYPE = 'view'
-                                AND m.name NOT LIKE 'sqlite_%'
+                                AND m.name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? string.Empty : " AND m.name LIKE @where"
             )}

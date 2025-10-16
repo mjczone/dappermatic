@@ -273,6 +273,11 @@ public static class ColumnEndpoints
         CancellationToken cancellationToken = default
     )
     {
+        if (string.IsNullOrWhiteSpace(column.ColumnName))
+        {
+            column.ColumnName = columnName;
+        }
+
         // API layer validation
         Validate
             .Object(column)
