@@ -73,7 +73,9 @@ public partial class DapperMaticService
 
             if (primaryKey == null)
             {
-                return null;
+                throw new KeyNotFoundException(
+                    $"Primary key constraint not found on table '{tableName}'"
+                );
             }
 
             await LogAuditEventAsync(

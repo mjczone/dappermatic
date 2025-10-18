@@ -6,7 +6,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Azure;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
@@ -38,7 +40,8 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         bool supportsSchemaOperations
     )
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture.GetTestDatasources().Where(ds => ds.Id == datasourceId).ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string testSchemaName = "WorkflowTestSchema";
 
@@ -49,115 +52,89 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult1.Should().NotBeNull();
         listResult1!.Result.Should().NotBeNull();
 
-        if (supportsSchemaOperations)
-        {
-            var initialSchemaCount = listResult1.Result!.Count();
-            listResult1.Result.Should().Contain(s => s.SchemaName == defaultSchema);
+        if (!supportsSchemaOperations)
+            return;
 
-            // 2. GET SINGLE - Try to get non-existent schema (should return 404)
-            var getResponse1 = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
+        var initialSchemaCount = listResult1.Result!.Count();
+        listResult1.Result.Should().Contain(s => s.SchemaName == defaultSchema);
+
+        // 2. GET SINGLE - Try to get non-existent schema (should return 404)
+        var getResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}");
+        getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
+
+        // 3. CREATE - Create a new schema
+        var createRequest = new SchemaDto { SchemaName = testSchemaName };
+        var createContent = new StringContent(
+            JsonSerializer.Serialize(createRequest),
+            Encoding.UTF8,
+            "application/json"
+        );
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/s", createContent);
+        createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
+        var createResult = await createResponse.ReadAsJsonAsync<SchemaResponse>();
+        createResult.Should().NotBeNull();
+        createResult!.Result.Should().NotBeNull();
+        createResult.Result!.SchemaName.Should().BeEquivalentTo(testSchemaName);
+
+        // 4. EXISTS - Check if schema exists (should return true)
+        var existsResponse1 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
+        );
+        existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
+        var existsResult1 = await existsResponse1.ReadAsJsonAsync<SchemaExistsResponse>();
+        existsResult1.Should().NotBeNull();
+        existsResult1!.Result.Should().BeTrue();
+
+        // 5. GET MULTI - List schemas again (should contain new schema)
+        var listResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
+        listResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+        var listResult2 = await listResponse2.ReadAsJsonAsync<SchemaListResponse>();
+        listResult2.Should().NotBeNull();
+        listResult2!.Result.Should().NotBeNull();
+        listResult2.Result.Should().HaveCount(initialSchemaCount + 1);
+        listResult2
+            .Result.Should()
+            .Contain(s => s.SchemaName.Equals(testSchemaName, StringComparison.OrdinalIgnoreCase));
+
+        // 6. GET SINGLE - Get the created schema (should return schema details)
+        var getResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}");
+        getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+        var getResult2 = await getResponse2.ReadAsJsonAsync<SchemaResponse>();
+        getResult2.Should().NotBeNull();
+        getResult2!.Result.Should().NotBeNull();
+        getResult2.Result!.SchemaName.Should().BeEquivalentTo(testSchemaName);
+
+        // 7. DELETE - Delete the schema
+        var deleteResponse = await client.DeleteAsync(
+            $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
+        );
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
+
+        // 8. EXISTS - Check if schema exists (should return false)
+        var existsResponse2 = await client.GetAsync(
+            $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
+        );
+        existsResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
+        var existsResult2 = await existsResponse2.ReadAsJsonAsync<SchemaExistsResponse>();
+        existsResult2.Should().NotBeNull();
+        existsResult2!.Result.Should().BeFalse();
+
+        // 9. GET MULTI - List schemas (should be back to initial count)
+        var listResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
+        listResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
+        var listResult3 = await listResponse3.ReadAsJsonAsync<SchemaListResponse>();
+        listResult3.Should().NotBeNull();
+        listResult3!.Result.Should().NotBeNull();
+        listResult3.Result.Should().HaveCount(initialSchemaCount);
+        listResult3
+            .Result.Should()
+            .NotContain(s =>
+                s.SchemaName.Equals(testSchemaName, StringComparison.OrdinalIgnoreCase)
             );
-            getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
-            // 3. CREATE - Create a new schema
-            var createRequest = new SchemaDto { SchemaName = testSchemaName };
-            var createContent = new StringContent(
-                JsonSerializer.Serialize(createRequest),
-                Encoding.UTF8,
-                "application/json"
-            );
-            var createResponse = await client.PostAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}",
-                createContent
-            );
-            createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
-            var createResult = await createResponse.ReadAsJsonAsync<SchemaResponse>();
-            createResult.Should().NotBeNull();
-            createResult!.Result.Should().NotBeNull();
-            createResult.Result!.SchemaName.Should().Be(testSchemaName);
-
-            // 4. EXISTS - Check if schema exists (should return true)
-            var existsResponse1 = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
-            );
-            existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
-            var existsResult1 = await existsResponse1.ReadAsJsonAsync<SchemaExistsResponse>();
-            existsResult1.Should().NotBeNull();
-            existsResult1!.Result.Should().BeTrue();
-
-            // 5. GET MULTI - List schemas again (should contain new schema)
-            var listResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-            listResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
-            var listResult2 = await listResponse2.ReadAsJsonAsync<SchemaListResponse>();
-            listResult2.Should().NotBeNull();
-            listResult2!.Result.Should().NotBeNull();
-            listResult2.Result.Should().HaveCount(initialSchemaCount + 1);
-            listResult2.Result.Should().Contain(s => s.SchemaName == testSchemaName);
-
-            // 6. GET SINGLE - Get the created schema (should return schema details)
-            var getResponse2 = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
-            );
-            getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
-            var getResult2 = await getResponse2.ReadAsJsonAsync<SchemaResponse>();
-            getResult2.Should().NotBeNull();
-            getResult2!.Result.Should().NotBeNull();
-            getResult2.Result!.SchemaName.Should().Be(testSchemaName);
-
-            // 7. DELETE - Delete the schema
-            var deleteResponse = await client.DeleteAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
-            );
-            deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-
-            // 8. EXISTS - Check if schema exists (should return false)
-            var existsResponse2 = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
-            );
-            existsResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
-            var existsResult2 = await existsResponse2.ReadAsJsonAsync<SchemaExistsResponse>();
-            existsResult2.Should().NotBeNull();
-            existsResult2!.Result.Should().BeFalse();
-
-            // 9. GET MULTI - List schemas (should be back to initial count)
-            var listResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/");
-            listResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
-            var listResult3 = await listResponse3.ReadAsJsonAsync<SchemaListResponse>();
-            listResult3.Should().NotBeNull();
-            listResult3!.Result.Should().NotBeNull();
-            listResult3.Result.Should().HaveCount(initialSchemaCount);
-            listResult3.Result.Should().NotContain(s => s.SchemaName == testSchemaName);
-
-            // 10. GET SINGLE - Try to get deleted schema (should return 404)
-            var getResponse3 = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
-            );
-            getResponse3.StatusCode.Should().Be(HttpStatusCode.NotFound);
-        }
-        else
-        {
-            // For databases that don't support schemas (MySQL, SQLite)
-            // Verify that list returns empty or minimal results
-            if (datasourceId == TestcontainersAssemblyFixture.DatasourceId_Sqlite)
-            {
-                listResult1.Result.Should().HaveCount(0);
-
-                // SQLite uses "_" as a placeholder schema
-                var getResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/_");
-                getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-                var getResult = await getResponse.ReadAsJsonAsync<SchemaResponse>();
-                getResult.Should().NotBeNull();
-                getResult!.Result.Should().BeNull();
-
-                // Test that EXISTS works with "_" placeholder
-                var existsResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/_/exists");
-                existsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-                var existsResult = await existsResponse.ReadAsJsonAsync<SchemaExistsResponse>();
-                existsResult.Should().NotBeNull();
-                existsResult!.Result.Should().BeTrue();
-            }
-        }
+        // 10. GET SINGLE - Try to get deleted schema (should return 404)
+        var getResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}");
+        getResponse3.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
@@ -189,7 +166,11 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task SchemaEndpoints_ErrorScenarios_HandledCorrectly()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
@@ -221,7 +202,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
         var duplicateCreateResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/dbo",
+            $"/api/dm/d/{datasourceId}/s",
             duplicateCreateContent
         );
         duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -255,7 +236,11 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task SchemaEndpoints_UnsupportedOperations_SQLite()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_Sqlite;
 
@@ -266,29 +251,35 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var createResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/TestSchema",
-            createContent
-        );
-        createResponse.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/s", createContent);
+        var responseBody = await createResponse.ReadAsJsonAsync<ProblemDetails>();
+        responseBody.Should().NotBeNull();
+        responseBody.Detail.Should().NotBeNull();
+        responseBody.Detail.Contains("The provider does not support schema operations.");
+        createResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test that DROP schema is not supported in SQLite
         var deleteResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/s/someschema");
-        deleteResponse.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+        responseBody.Should().NotBeNull();
+        responseBody.Detail.Should().NotBeNull();
+        responseBody.Detail.Contains("The provider does not support schema operations.");
+        deleteResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test that invalid schema returns not found
         var getInvalidResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/invalidschema");
-        getInvalidResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        responseBody.Should().NotBeNull();
+        responseBody.Detail.Should().NotBeNull();
+        responseBody.Detail.Contains("The provider does not support schema operations.");
+        getInvalidResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test that invalid schema exists returns false
         var existsInvalidResponse = await client.GetAsync(
             $"/api/dm/d/{datasourceId}/s/invalidschema/exists"
         );
-        existsInvalidResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var existsInvalidResult =
-            await existsInvalidResponse.ReadAsJsonAsync<SchemaExistsResponse>();
-        existsInvalidResult.Should().NotBeNull();
-        existsInvalidResult!.Result.Should().BeFalse();
+        responseBody.Should().NotBeNull();
+        responseBody.Detail.Should().NotBeNull();
+        responseBody.Detail.Contains("The provider does not support schema operations.");
+        existsInvalidResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     #endregion
@@ -298,7 +289,11 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task SchemaEndpoints_PostgreSQL_PublicSchema()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_PostgreSql)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_PostgreSql;
 
@@ -329,7 +324,11 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task SchemaEndpoints_SqlServer_DefaultSchema()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 

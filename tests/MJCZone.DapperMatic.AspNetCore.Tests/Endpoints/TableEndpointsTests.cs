@@ -101,7 +101,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var createResponse = await client.PostAsync($"{baseUrl}/{tableName}", createContent);
+        var createResponse = await client.PostAsync($"{baseUrl}", createContent);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<TableResponse>();
         createResult.Should().NotBeNull();
@@ -201,7 +201,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task TableQueryEndpoints_CompleteWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "QueryWorkflowTable";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
@@ -270,7 +274,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task ColumnEndpoints_CompleteWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "ColumnTestTable";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
@@ -314,7 +322,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 "application/json"
             );
             var addColumnResponse = await client.PostAsync(
-                $"{baseUrl}/{tableName}/columns/PhoneNumber",
+                $"{baseUrl}/{tableName}/columns",
                 addColumnContent
             );
             addColumnResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -369,7 +377,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task IndexEndpoints_CompleteWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "IndexTestTable";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
@@ -402,7 +414,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 "application/json"
             );
             var createIndexResponse = await client.PostAsync(
-                $"{baseUrl}/{tableName}/indexes/IX_IndexTestTable_Name",
+                $"{baseUrl}/{tableName}/indexes",
                 createIndexContent
             );
             createIndexResponse.StatusCode.Should().Be(HttpStatusCode.Created);
@@ -462,7 +474,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task ConstraintEndpoints_CompleteWorkflow_Success()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "ConstraintTestTable";
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
@@ -500,7 +516,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [Fact]
     public async Task TableEndpoints_ErrorScenarios_HandledCorrectly()
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture
+            .GetTestDatasources()
+            .Where(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+            .ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
         const string schemaName = "dbo";
@@ -525,10 +545,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var invalidCreateResponse = await client.PostAsync(
-            $"{baseUrl}/InvalidTable",
-            invalidCreateContent
-        );
+        var invalidCreateResponse = await client.PostAsync($"{baseUrl}", invalidCreateContent);
         invalidCreateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test duplicate table creation
@@ -557,7 +574,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 "application/json"
             );
             var duplicateCreateResponse = await client.PostAsync(
-                $"{baseUrl}/{duplicateTableName}",
+                $"{baseUrl}",
                 duplicateCreateContent
             );
             duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
@@ -612,7 +629,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
 
-        var response = await client.PostAsync($"{baseUrl}/{tableName}", content);
+        var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
     }
 
@@ -660,7 +677,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
 
-        var response = await client.PostAsync($"{baseUrl}/{tableName}", content);
+        var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
     }
 
@@ -715,7 +732,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             "application/json"
         );
 
-        var response = await client.PostAsync($"{baseUrl}/{tableName}", content);
+        var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
     }
 
@@ -726,7 +743,9 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     )
     {
         // 1. Verify no primary key exists initially
-        var initialPkResponse = await client.GetAsync($"{baseUrl}/{tableName}/primary-key-constraint");
+        var initialPkResponse = await client.GetAsync(
+            $"{baseUrl}/{tableName}/primary-key-constraint"
+        );
         initialPkResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // 2. Create a primary key constraint
@@ -761,11 +780,15 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             .BeTrue();
 
         // 4. Drop the primary key constraint
-        var dropPkResponse = await client.DeleteAsync($"{baseUrl}/{tableName}/primary-key-constraint");
+        var dropPkResponse = await client.DeleteAsync(
+            $"{baseUrl}/{tableName}/primary-key-constraint"
+        );
         dropPkResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 5. Verify primary key was dropped
-        var finalPkResponse = await client.GetAsync($"{baseUrl}/{tableName}/primary-key-constraint");
+        var finalPkResponse = await client.GetAsync(
+            $"{baseUrl}/{tableName}/primary-key-constraint"
+        );
         finalPkResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
