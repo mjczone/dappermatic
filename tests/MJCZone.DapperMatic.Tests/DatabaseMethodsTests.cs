@@ -18,7 +18,7 @@ public abstract partial class DatabaseMethodsTests : TestBase
     public abstract Task<IDbConnection> OpenConnectionAsync();
 
     [Fact]
-    protected virtual async Task Database_Can_RunArbitraryQueriesAsync()
+    protected virtual async Task Database_can_run_arbitrary_queries_async()
     {
         using var db = await OpenConnectionAsync();
         const int expected = 1;
@@ -64,7 +64,7 @@ public abstract partial class DatabaseMethodsTests : TestBase
     }
 
     [Fact]
-    protected virtual async Task GetDatabaseVersionAsync_ReturnsVersion()
+    protected virtual async Task Get_database_version_returns_version_async()
     {
         using var db = await OpenConnectionAsync();
 

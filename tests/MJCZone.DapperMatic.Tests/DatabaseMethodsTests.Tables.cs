@@ -131,7 +131,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("test_schema")]
-    protected virtual async Task Can_CreateTable_Using_PropertyInitializers_Async(
+    protected virtual async Task Can_create_table_using_property_initializers_async(
         string? schemaName
     )
     {
