@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using MJCZone.DapperMatic.AspNetCore.Services;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Services;
 

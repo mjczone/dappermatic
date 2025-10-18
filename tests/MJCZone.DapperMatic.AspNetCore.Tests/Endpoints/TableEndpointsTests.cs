@@ -37,7 +37,8 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         string? schemaName
     )
     {
-        using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
+        var datasources = _fixture.GetTestDatasources().Where(ds => ds.Id == datasourceId).ToList();
+        using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "WorkflowTestTable";
 
@@ -746,7 +747,10 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var initialPkResponse = await client.GetAsync(
             $"{baseUrl}/{tableName}/primary-key-constraint"
         );
-        initialPkResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        initialPkResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        var retrievedPk = await initialPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
+        retrievedPk.Should().NotBeNull();
+        retrievedPk!.Result.Should().BeNull();
 
         // 2. Create a primary key constraint
         var createPkRequest = new PrimaryKeyConstraintDto
@@ -768,7 +772,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         // 3. Get the primary key constraint
         var getPkResponse = await client.GetAsync($"{baseUrl}/{tableName}/primary-key-constraint");
         getPkResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var retrievedPk = await getPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
+        retrievedPk = await getPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
         retrievedPk.Should().NotBeNull();
         retrievedPk!.Result.Should().NotBeNull();
         string.Equals(
@@ -789,7 +793,9 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var finalPkResponse = await client.GetAsync(
             $"{baseUrl}/{tableName}/primary-key-constraint"
         );
-        finalPkResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        retrievedPk = await finalPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
+        retrievedPk.Should().NotBeNull();
+        retrievedPk!.Result.Should().BeNull();
     }
 
     private static async Task TestCheckConstraintWorkflow(

@@ -50,6 +50,10 @@ public partial class DapperMaticServiceTests
         // Retrieve Views (should be empty)
         var listContext = OperationIdentifiers.ForViewList(datasourceId, schemaName);
         var views = await service.GetViewsAsync(listContext, datasourceId, schemaName: schemaName);
+        // Log the views for debugging
+        Log.WriteLine(
+            $"Initial views in datasource '{datasourceId}' schema '{schemaName}': {string.Join(", ", views.Select(v => v.ViewName))}"
+        );
         views.Should().BeEmpty();
 
         // Add test Views
@@ -459,6 +463,22 @@ public partial class DapperMaticServiceTests
         result.Should().NotBeNull();
         result.Data.Should().NotBeEmpty();
         result.Fields.Should().NotBeEmpty();
+
+        // Query the views in the database and then delete them
+        var allViews = await service.GetViewsAsync(
+            OperationIdentifiers.ForViewList(datasourceId, schemaName),
+            datasourceId,
+            schemaName: schemaName
+        );
+        foreach (var view in allViews)
+        {
+            var dropContext = OperationIdentifiers.ForViewDrop(
+                datasourceId,
+                view.ViewName!,
+                schemaName
+            );
+            await service.DropViewAsync(dropContext, datasourceId, view.ViewName!, schemaName);
+        }
     }
 
     private async Task<TableDto> CreateTestTableWithoutViews(
