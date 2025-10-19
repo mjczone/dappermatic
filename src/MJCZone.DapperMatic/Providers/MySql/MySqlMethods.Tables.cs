@@ -462,7 +462,7 @@ public partial class MySqlMethods
                     )
                     ?.i;
 
-                var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(tableColumn.data_type_complete ?? tableColumn.data_type);
+                var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(tableColumn.data_type);
 
                 var isUnicode =
                     dotnetTypeDescriptor.IsUnicode == true
@@ -480,7 +480,7 @@ public partial class MySqlMethods
                     dotnetTypeDescriptor.DotnetType,
                     new Dictionary<DbProviderType, string>
                     {
-                        { ProviderType, tableColumn.data_type_complete ?? tableColumn.data_type },
+                        { ProviderType, tableColumn.data_type },
                     },
                     tableColumn.max_length.HasValue
                         ? (
@@ -533,7 +533,7 @@ public partial class MySqlMethods
                 column.IsAutoIncrement = DetermineIsAutoIncrement(
                     column,
                     tableColumn.extra,
-                    tableColumn.data_type_complete ?? tableColumn.data_type);
+                    tableColumn.data_type);
 
                 columns.Add(column);
             }

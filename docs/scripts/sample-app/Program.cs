@@ -10,22 +10,25 @@ builder.Services.AddDapperMatic();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "DapperMatic REST API",
-        Version = "v1",
-        Description = "Database schema management REST API using DapperMatic",
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+    c.SwaggerDoc(
+        "v1",
+        new Microsoft.OpenApi.Models.OpenApiInfo
         {
-            Name = "MJCZone Inc.",
-            Url = new Uri("https://github.com/mjczone/dappermatic")
-        },
-        License = new Microsoft.OpenApi.Models.OpenApiLicense
-        {
-            Name = "LGPL v3",
-            Url = new Uri("https://www.gnu.org/licenses/lgpl-3.0.html")
+            Title = "DapperMatic REST API",
+            Version = "v1",
+            Description = "Database schema management REST API using DapperMatic",
+            Contact = new Microsoft.OpenApi.Models.OpenApiContact
+            {
+                Name = "MJCZone Inc.",
+                Url = new Uri("https://github.com/mjczone/dappermatic"),
+            },
+            License = new Microsoft.OpenApi.Models.OpenApiLicense
+            {
+                Name = "LGPL v3",
+                Url = new Uri("https://www.gnu.org/licenses/lgpl-3.0.html"),
+            },
         }
-    });
+    );
 });
 
 var app = builder.Build();
@@ -34,6 +37,8 @@ var app = builder.Build();
 // Always enable Swagger for documentation generation
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseRouting();
 
 // Map DapperMatic endpoints
 app.UseDapperMatic();

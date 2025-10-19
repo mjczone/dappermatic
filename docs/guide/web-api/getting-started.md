@@ -48,6 +48,9 @@ builder.Services.AddDapperMatic(); // Uses in-memory repository by default
 
 var app = builder.Build();
 
+// IMPORTANT: UseRouting must be called before UseDapperMatic
+app.UseRouting();
+
 // Register DapperMatic endpoints
 app.UseDapperMatic();
 

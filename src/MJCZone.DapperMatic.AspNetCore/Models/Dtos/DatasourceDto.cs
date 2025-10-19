@@ -57,12 +57,12 @@ public sealed class DatasourceDto
     public bool? IsEnabled { get; set; } = true;
 
     /// <summary>
-    /// Gets or sets the date and time when this datasource was created.
+    /// Gets the date and time when this datasource was created.
     /// </summary>
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset CreatedAt { get; internal set; } = DateTimeOffset.UtcNow;
 
     /// <summary>
-    /// Gets or sets the date and time when this datasource was last updated.
+    /// Gets the date and time when this datasource was last updated.
     /// </summary>
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public DateTimeOffset UpdatedAt { get; internal set; } = DateTimeOffset.UtcNow;
 }

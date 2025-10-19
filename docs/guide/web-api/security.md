@@ -37,6 +37,8 @@ builder.Services.AddDapperMatic();
 
 var app = builder.Build();
 
+app.UseRouting();
+
 // Order matters: Authentication must come before DapperMatic endpoints
 app.UseAuthentication();
 app.UseAuthorization();
@@ -515,6 +517,8 @@ builder.Services.AddRateLimiter(options => {
 });
 
 var app = builder.Build();
+
+app.UseRouting();
 
 // Security middleware order is critical
 app.UseAuthentication();

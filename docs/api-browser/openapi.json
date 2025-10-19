@@ -1,5 +1,5 @@
 {
-  "openapi": "3.0.1",
+  "openapi": "3.0.4",
   "info": {
     "title": "DapperMatic REST API",
     "description": "Database schema management REST API using DapperMatic",
@@ -237,6 +237,40 @@
           },
           "404": {
             "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Datasources"
+        ],
+        "summary": "Checks if a datasource exists",
+        "operationId": "DatasourceExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasourceTestResponse"
+                }
+              }
+            }
           },
           "403": {
             "description": "Forbidden"
@@ -2593,6 +2627,110 @@
         }
       }
     },
+    "/api/dm/d/{datasourceId}/t/{tableName}/default-constraints/columns/{columnName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific default constraint from a table in the default schema for a specific column",
+        "operationId": "GetDefaultSchemaDefaultConstraintOnColumn",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a default constraint from a table in the default schema for a specific column",
+        "operationId": "DropDefaultSchemaDefaultConstraintOnColumn",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
     "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/default-constraints": {
       "get": {
         "tags": [
@@ -2799,6 +2937,124 @@
           },
           {
             "name": "constraintName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/default-constraints/columns/{columnName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a specific default constraint from a table in a specific schema for a specific column",
+        "operationId": "GetSchemaDefaultConstraintOnColumn",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DefaultConstraintResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a default constraint from a table in a specific schema for a specific column",
+        "operationId": "DropSchemaDefaultConstraintOnColumn",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "columnName",
             "in": "path",
             "required": true,
             "schema": {
@@ -5600,11 +5856,13 @@
           },
           "createdAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "readOnly": true
           },
           "updatedAt": {
             "type": "string",
-            "format": "date-time"
+            "format": "date-time",
+            "readOnly": true
           }
         },
         "additionalProperties": false

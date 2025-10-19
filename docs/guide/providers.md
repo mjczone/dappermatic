@@ -10,10 +10,8 @@ DapperMatic supports multiple database providers, each with their own connection
   - [PostgreSQL](#postgresql)
   - [SQLite](#sqlite)
 - [Custom Providers](#custom-providers)
-- [Provider-Specific Considerations](#provider-specific-considerations)
-- [Provider Selection](#provider-selection)
-- [Best Practices](#best-practices)
-- [Migration Between Providers](#migration-between-providers)
+- [Connection String Examples](#connection-string-examples)
+- [Data Type Mapping](#data-type-mapping)
 
 ## Supported Providers
 
@@ -208,7 +206,7 @@ public class OrmLiteSqliteDialectMethodsFactory : SqliteMethodsFactory
 	public override bool SupportsConnectionCustom(IDbConnection db)
 	{
 		// OrmLite connections implement IDbConnection directly
-		return db is OrmLiteConnection odb && odb.DialectProvider is SqliteOrmLiteDialectProvider; // SQL Server check
+		return db is OrmLiteConnection odb && odb.DialectProvider is SqliteOrmLiteDialectProvider; // SQLite check
 	}
 }
 
@@ -474,9 +472,7 @@ public class CustomMethodsFactory : DatabaseMethodsFactoryBase
 
 Custom providers ensure DapperMatic can work with virtually any `IDbConnection` implementation while maintaining the same consistent API across all your database interactions.
 
-## Provider-Specific Considerations
-
-### Connection String Management
+## Connection String Examples
 
 ::: code-group
 
@@ -514,19 +510,82 @@ Custom providers ensure DapperMatic can work with virtually any `IDbConnection` 
 
 :::
 
-### Data Type Mapping
+## Data Type Mapping
 
-| .NET Type  | SQL Server         | MySQL      | PostgreSQL  | SQLite    |
-| ---------- | ------------------ | ---------- | ----------- | --------- |
-| `int`      | `INT`              | `INT`      | `INTEGER`   | `INTEGER` |
-| `long`     | `BIGINT`           | `BIGINT`   | `BIGINT`    | `INTEGER` |
-| `string`   | `NVARCHAR`         | `VARCHAR`  | `TEXT`      | `TEXT`    |
-| `DateTime` | `DATETIME2`        | `DATETIME` | `TIMESTAMP` | `TEXT`    |
-| `bool`     | `BIT`              | `BOOLEAN`  | `BOOLEAN`   | `INTEGER` |
-| `decimal`  | `DECIMAL`          | `DECIMAL`  | `NUMERIC`   | `TEXT`    |
-| `Guid`     | `UNIQUEIDENTIFIER` | `CHAR(36)` | `UUID`      | `TEXT`    |
+DapperMatic automatically maps .NET types to appropriate database-specific types. Below is a comprehensive mapping table showing how each .NET type is represented across all supported database providers.
 
-### Auto-Increment Patterns
+### Primitive & Common Types
+
+| .NET Type        | SQL Server         | MySQL             | PostgreSQL   | SQLite    | Notes |
+| ---------------- | ------------------ | ----------------- | ------------ | --------- | ----- |
+| `byte`           | `TINYINT`          | `TINYINT`         | `SMALLINT`   | `INTEGER` | |
+| `short`          | `SMALLINT`         | `SMALLINT`        | `SMALLINT`   | `INTEGER` | |
+| `int`            | `INT`              | `INT`             | `INTEGER`    | `INTEGER` | |
+| `long`           | `BIGINT`           | `BIGINT`          | `BIGINT`     | `INTEGER` | |
+| `float`          | `REAL`             | `FLOAT`           | `REAL`       | `REAL`    | |
+| `double`         | `FLOAT`            | `DOUBLE`          | `DOUBLE PRECISION` | `REAL` | |
+| `decimal`        | `DECIMAL(16,4)`    | `DECIMAL(16,4)`   | `NUMERIC(16,4)` | `TEXT` | Default precision/scale |
+| `bool`           | `BIT`              | `BOOLEAN`         | `BOOLEAN`    | `INTEGER` | |
+| `char`           | `NCHAR(1)`         | `CHAR(1)`         | `CHAR(1)`    | `TEXT`    | |
+| `string`         | `NVARCHAR(255)`    | `VARCHAR(255)`    | `TEXT`       | `TEXT`    | Default length 255 |
+| `Guid`           | `UNIQUEIDENTIFIER` | `CHAR(36)`        | `UUID`       | `TEXT`    | |
+
+### Date & Time Types
+
+| .NET Type        | SQL Server    | MySQL              | PostgreSQL        | SQLite | Notes |
+| ---------------- | ------------- | ------------------ | ----------------- | ------ | ----- |
+| `DateTime`       | `DATETIME2`   | `DATETIME(6)`      | `TIMESTAMP`       | `TEXT` | MySQL uses precision 6 |
+| `DateTimeOffset` | `DATETIMEOFFSET` | `DATETIME(6)`   | `TIMESTAMPTZ`     | `TEXT` | |
+| `TimeSpan`       | `TIME`        | `TIME(6)`          | `TIME`            | `TEXT` | |
+| `DateOnly`       | `DATE`        | `DATE`             | `DATE`            | `TEXT` | .NET 6+ |
+| `TimeOnly`       | `TIME`        | `TIME(6)`          | `TIME`            | `TEXT` | .NET 6+ |
+
+### Binary Types
+
+| .NET Type            | SQL Server      | MySQL       | PostgreSQL | SQLite | Notes |
+| -------------------- | --------------- | ----------- | ---------- | ------ | ----- |
+| `byte[]`             | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | Default length 255 |
+| `Memory<byte>`       | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | |
+| `ReadOnlyMemory<byte>` | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | |
+| `Stream`             | `VARBINARY(MAX)` | `LONGBLOB`  | `BYTEA`    | `BLOB` | |
+
+### JSON & Complex Types
+
+| .NET Type       | SQL Server       | MySQL   | PostgreSQL | SQLite | Notes |
+| --------------- | ---------------- | ------- | ---------- | ------ | ----- |
+| `JsonDocument`  | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | |
+| `JsonElement`   | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | |
+| `object`        | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
+| Custom classes  | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
+| Custom structs  | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
+| Interfaces      | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
+| Enums           | `VARCHAR(128)`   | `VARCHAR(128)` | `TEXT` | `TEXT` | Stored as string |
+
+### Array Types
+
+| .NET Type     | SQL Server       | MySQL            | PostgreSQL   | SQLite | Notes |
+| ------------- | ---------------- | ---------------- | ------------ | ------ | ----- |
+| `string[]`    | `NVARCHAR(MAX)`  | `TEXT`           | `text[]`     | `TEXT` | PostgreSQL: native arrays |
+| `int[]`       | `NVARCHAR(MAX)`  | `TEXT`           | `integer[]`  | `TEXT` | PostgreSQL: native arrays |
+| `long[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `bigint[]`   | `TEXT` | PostgreSQL: native arrays |
+| `Guid[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `uuid[]`     | `TEXT` | PostgreSQL: native arrays |
+| `char[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `text`       | `TEXT` | Treated as string |
+
+### Collection Types
+
+All collection types are serialized as JSON:
+
+| .NET Type                  | SQL Server       | MySQL   | PostgreSQL | SQLite | Notes |
+| -------------------------- | ---------------- | ------- | ---------- | ------ | ----- |
+| `IList<T>`                 | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
+| `List<T>`                  | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
+| `ICollection<T>`           | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
+| `Collection<T>`            | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
+| `IEnumerable<T>`           | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
+| `IDictionary<K,V>`         | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON object |
+| `Dictionary<K,V>`          | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON object |
+
+### Auto-Increment Configuration
 
 ::: code-group
 
@@ -564,53 +623,14 @@ new DmColumn("Id", typeof(int))
 
 :::
 
-## Provider Selection
+### Type Mapping Notes
 
-### When to Choose SQL Server
-
-- Enterprise applications requiring high availability
-- Windows-centric environments
-- Need for advanced features like partitioning, replication
-- Integration with Microsoft ecosystem
-
-### When to Choose MySQL/MariaDB
-
-- Web applications with high read loads
-- Open-source preference
-- Need for master-slave replication
-- Cost-sensitive projects
-
-### When to Choose PostgreSQL
-
-- Applications requiring complex queries
-- Need for advanced data types (JSON, arrays, spatial)
-- ACID compliance is critical
-- Open-source with enterprise features
-
-### When to Choose SQLite
-
-- Desktop applications
-- Mobile applications
-- Development and testing
-- Small to medium datasets
-- Zero-configuration requirements
-
-## Best Practices
-
-1. **Use connection factories** for better connection management
-2. **Always specify timeouts** for long-running DDL operations
-3. **Test DDL operations** against all target providers
-4. **Use transactions** where supported for consistency
-5. **Handle provider-specific exceptions** appropriately
-
-## Migration Between Providers
-
-DapperMatic's model-first approach makes it easier to migrate between providers, but consider:
-
-- **Data type compatibility** - some types don't have direct equivalents
-- **Schema differences** - SQL Server schemas vs MySQL databases
-- **Feature availability** - not all features are available on all providers
-- **Performance characteristics** - query patterns may need optimization
+- **PostgreSQL Arrays**: PostgreSQL has native array support. DapperMatic uses native arrays for `string[]`, `int[]`, `long[]`, and `Guid[]` types.
+- **JSON Types**: MySQL 5.7+ and PostgreSQL 9.4+ have native JSON support. SQLite stores JSON as TEXT.
+- **Binary Types**: Maximum lengths can be customized using the `DmColumn` attribute's `length` parameter.
+- **String Types**: Default length is 255 characters. Use `length: int.MaxValue` or explicit types like `NVARCHAR(MAX)` for unlimited length.
+- **Decimal Precision**: Default is `DECIMAL(16,4)`. Customize using `precision` and `scale` parameters.
+- **Custom Type Mapping**: Use the `providerDataType` parameter on `DmColumn` attribute to specify exact database types.
 
 ## Getting Help
 

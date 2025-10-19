@@ -109,6 +109,9 @@ builder.Services.Configure<DapperMaticOptions>(options =>
     options.EnableCors = true;
 });
 
+// IMPORTANT: UseRouting must be called before UseDapperMatic
+app.UseRouting();
+
 // Register endpoints
 app.UseDapperMatic();
 ```
