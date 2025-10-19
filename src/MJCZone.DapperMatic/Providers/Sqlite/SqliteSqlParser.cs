@@ -168,6 +168,16 @@ internal static partial class SqliteSqlParser
                     continue;
                 }
 
+                // Normalize SQLite TEXT/VARCHAR/NVARCHAR without length to -1
+                int? normalizedLength = length;
+                if (normalizedLength == null &&
+                    (columnDataType.Equals("text", StringComparison.OrdinalIgnoreCase) ||
+                     columnDataType.Equals("varchar", StringComparison.OrdinalIgnoreCase) ||
+                     columnDataType.Equals("nvarchar", StringComparison.OrdinalIgnoreCase)))
+                {
+                    normalizedLength = -1;
+                }
+
                 var column = new DmColumn(
                     null,
                     tableName,
@@ -177,7 +187,7 @@ internal static partial class SqliteSqlParser
                     {
                         { DbProviderType.Sqlite, columnDataType },
                     },
-                    length,
+                    normalizedLength,
                     precision,
                     scale
                 );

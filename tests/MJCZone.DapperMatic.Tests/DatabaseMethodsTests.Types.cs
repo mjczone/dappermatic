@@ -166,53 +166,72 @@ public abstract partial class DatabaseMethodsTests
 
     // NOTE, the ACTUAL provider type name returned when fetching the column DOES NOT INCLUDE
     // PARENTHESES FOR LENGTH/PRECISION/SCALE, THESE ARE RATHER PROPERTIES OF THE COLUMN METADATA,
-    // WE ADD THESE BACK IN THE TESTS BELOW TO COMPARE TO THE EXPECTED TYPE NAMES, and THIS 
+    // WE ADD THESE BACK IN THE TESTS BELOW TO COMPARE TO THE EXPECTED TYPE NAMES, and THIS
     // ALSO ALLOWS TO VALIDATE LENGTHS AND PRECISION/SCALE ARE RETURNED PROPERLY, EVEN FOR THINGS
     // LIKE INT WHICH DO NOT TYPICALLY REVEAL LENGTH/PRECISION/SCALE.
+
+    // csharpier-ignore-start
     [Theory]
     // Primitive & Common Types
-    [InlineData(typeof(byte), "TINYINT", "TINYINT UNSIGNED", "SMALLINT", "INTEGER")]
-    [InlineData(typeof(short), "SMALLINT", "SMALLINT", "SMALLINT", "INTEGER")]
-    [InlineData(typeof(int), "INT(10)", "INT(10)", "int4", "INT")] // int4 is PostgreSQL name for 4-byte integer
-    [InlineData(typeof(long), "BIGINT", "BIGINT", "BIGINT", "INTEGER")]
-    [InlineData(typeof(float), "REAL", "FLOAT", "REAL", "REAL")]
-    [InlineData(typeof(double), "FLOAT", "DOUBLE", "DOUBLE PRECISION", "REAL")]
+    [InlineData(typeof(byte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT")]
+    [InlineData(typeof(sbyte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT")]
+    [InlineData(typeof(short), "SMALLINT(5)", "SMALLINT(5)", "INT2", "SMALLINT")]
+    [InlineData(typeof(int), "INT(10)", "INT(10)", "INT4", "INT")] // int4 is PostgreSQL name for 4-byte integer
+    [InlineData(typeof(long), "BIGINT(19)", "BIGINT(19)", "INT8", "BIGINT")]
+    [InlineData(typeof(float), "REAL(24)", "DOUBLE(22)", "FLOAT4", "REAL")]
+    [InlineData(typeof(double), "FLOAT(53)", "FLOAT(12)", "FLOAT8", "DOUBLE")]
     [InlineData(typeof(decimal), "DECIMAL(16,4)", "DECIMAL(16,4)", "NUMERIC(16,4)", "NUMERIC(16,4)")]
-    [InlineData(typeof(bool), "BIT", "BOOLEAN", "BOOLEAN", "INTEGER")]
-    [InlineData(typeof(char), "NCHAR(1)", "CHAR(1)", "CHAR(1)", "TEXT")]
-    [InlineData(typeof(string), "NVARCHAR(255)", "VARCHAR(255)", "TEXT", "TEXT")]
+    [InlineData(typeof(decimal), "DECIMAL(12,8)", "DECIMAL(12,8)", "NUMERIC(12,8)", "NUMERIC(12,8)", false, null, 12, 8)]
+    [InlineData(typeof(decimal), "DECIMAL(12)", "DECIMAL(12)", "NUMERIC(12)", "NUMERIC(12)", false, null, 12, 0)]
+    [InlineData(typeof(bool), "BIT", "TINYINT(1)", "BOOL", "BOOLEAN")]
+    [InlineData(typeof(char), "CHAR(1)", "CHAR(1)", "BPCHAR(1)", "TEXT")]
+    [InlineData(typeof(char), "NCHAR(1)", "CHAR(1)", "BPCHAR(1)", "TEXT", true)]
+    [InlineData(typeof(string), "CHAR(234)", "CHAR(234)", "BPCHAR(234)", "CHAR(234)", false, 234, null, null, true)]
+    [InlineData(typeof(string), "NCHAR(234)", "CHAR(234)", "BPCHAR(234)", "NCHAR(234)", true, 234, null, null, true)]
+    [InlineData(typeof(string), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
     [InlineData(typeof(string), "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", false, 234)]
     [InlineData(typeof(string), "NVARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "NVARCHAR(234)", true, 234)]
-    [InlineData(typeof(Guid), "UNIQUEIDENTIFIER", "CHAR(36)", "UUID", "TEXT")]
+    [InlineData(typeof(string), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
+    [InlineData(typeof(string), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, int.MaxValue)]
+    [InlineData(typeof(Guid), "UNIQUEIDENTIFIER", "CHAR(36)", "UUID", "VARCHAR(36)")]
     // Date & Time Types
-    [InlineData(typeof(DateTime), "DATETIME2", "DATETIME(6)", "TIMESTAMP", "TEXT")]
-    [InlineData(typeof(DateTimeOffset), "DATETIMEOFFSET", "DATETIME(6)", "TIMESTAMPTZ", "TEXT")]
-    [InlineData(typeof(TimeSpan), "TIME", "TIME(6)", "TIME", "TEXT")]
-    [InlineData(typeof(DateOnly), "DATE", "DATE", "DATE", "TEXT")]
-    [InlineData(typeof(TimeOnly), "TIME", "TIME(6)", "TIME", "TEXT")]
+    [InlineData(typeof(DateTime), "DATETIME", "DATETIME", "TIMESTAMP", "DATETIME")]
+    [InlineData(typeof(DateTimeOffset), "DATETIMEOFFSET", "TIMESTAMP", "TIMESTAMPTZ", "DATETIME")]
+    [InlineData(typeof(TimeSpan), "TIME", "TIME", "INTERVAL", "TIME")]
+    [InlineData(typeof(DateOnly), "DATE", "DATE", "DATE", "DATE")]
+    [InlineData(typeof(TimeOnly), "TIME", "TIME", "TIME", "TIME")]
     // Binary Types
     [InlineData(typeof(byte[]), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
     [InlineData(typeof(Memory<byte>), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
     [InlineData(typeof(ReadOnlyMemory<byte>), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
     [InlineData(typeof(Stream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
+    [InlineData(typeof(MemoryStream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
     // JSON & Complex Types
-    [InlineData(typeof(System.Text.Json.JsonDocument), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(System.Text.Json.JsonElement), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(object), "NVARCHAR(MAX)", "TEXT", "TEXT", "TEXT")]
-    [InlineData(typeof(DayOfWeek), "VARCHAR(128)", "VARCHAR(128)", "TEXT", "TEXT")] // Enum example
+    [InlineData(typeof(System.Text.Json.JsonDocument), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(System.Text.Json.JsonElement), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(System.Text.Json.JsonDocument), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
+    [InlineData(typeof(System.Text.Json.JsonElement), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonArray), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonObject), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonValue), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
+    // is this correct to use sql_variant for object?
+    [InlineData(typeof(object), "sql_variant", "JSON", "JSONB", "CLOB")]
+    [InlineData(typeof(DayOfWeek), "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)")] // Enum example
     // Array Types (PostgreSQL native, others JSON/TEXT)
-    [InlineData(typeof(string[]), "NVARCHAR(MAX)", "TEXT", "text[]", "TEXT")]
-    [InlineData(typeof(int[]), "NVARCHAR(MAX)", "TEXT", "integer[]", "TEXT")]
-    [InlineData(typeof(long[]), "NVARCHAR(MAX)", "TEXT", "bigint[]", "TEXT")]
-    [InlineData(typeof(Guid[]), "NVARCHAR(MAX)", "TEXT", "uuid[]", "TEXT")]
-    [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT", "text", "TEXT")]
+    [InlineData(typeof(string[]), "VARCHAR(MAX)", "JSON", "_TEXT", "TEXT")]
+    [InlineData(typeof(int[]), "VARCHAR(MAX)", "JSON", "_INT4", "TEXT")]
+    [InlineData(typeof(long[]), "VARCHAR(MAX)", "JSON", "_INT8", "TEXT")]
+    [InlineData(typeof(Guid[]), "VARCHAR(MAX)", "JSON", "_UUID", "TEXT")]
+    [InlineData(typeof(char[]), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
+    [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
     // Collection Types (all serialized as JSON)
-    [InlineData(typeof(List<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(IList<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(ICollection<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(IEnumerable<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(List<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(IList<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(ICollection<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(IEnumerable<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(Dictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
+    [InlineData(typeof(IDictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
+    // csharpier-ignore-end
     protected virtual async Task Should_map_common_column_types_exactly_as_expected(
         Type type,
         string sqlServerTypeName,
@@ -222,16 +241,15 @@ public abstract partial class DatabaseMethodsTests
         bool isUnicode = false,
         int? length = null,
         int? precision = null,
-        int? scale = null
+        int? scale = null,
+        bool isFixedLength = false
     )
     {
         using var db = await OpenConnectionAsync();
         var dbType = db.GetDbProviderType();
 
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
-        var providerDataTypes = databaseMethods
-            .GetAvailableDataTypes(includeAdvanced: true)
-            .ToList();
+        var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
 
         string expectedTypeName = dbType switch
         {
@@ -250,14 +268,7 @@ public abstract partial class DatabaseMethodsTests
             null,
             tableName,
             [
-                new DmColumn(
-                    null,
-                    tableName,
-                    "id",
-                    typeof(int),
-                    isPrimaryKey: true,
-                    isAutoIncrement: true
-                ),
+                new DmColumn(null, tableName, "id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
                 new DmColumn(
                     null,
                     tableName,
@@ -267,7 +278,10 @@ public abstract partial class DatabaseMethodsTests
                     length: length,
                     precision: precision,
                     scale: scale
-                ),
+                )
+                {
+                    IsFixedLength = isFixedLength,
+                },
             ]
         );
 
@@ -277,7 +291,6 @@ public abstract partial class DatabaseMethodsTests
         await db.DropTableIfExistsAsync(null, tableName);
         Assert.NotNull(column);
 
-        // STRANGELY, MySQL RETURN TYPES WITH the LENGTH: varchar(234)
         var providerTypeName = column?.ProviderDataTypes.FirstOrDefault().Value;
         Assert.NotNull(providerTypeName);
         Assert.NotEmpty(providerTypeName);
@@ -312,7 +325,17 @@ public abstract partial class DatabaseMethodsTests
         );
 
         // The data type will does not include length/precision/scale in the name, so we add these if they are returned by the provider
-        if (column!.Length.HasValue && column.Length.Value > 0)
+        // Handle -1 as MAX/unlimited length
+        if (column!.Length.HasValue && column.Length.Value == -1)
+        {
+            // For SQL Server, render as (MAX)
+            if (dbType == DbProviderType.SqlServer)
+            {
+                providerTypeName += "(MAX)";
+            }
+            // For other providers (MySQL TEXT, PostgreSQL TEXT, SQLite TEXT), -1 means unlimited, don't append anything
+        }
+        else if (column!.Length.HasValue && column.Length.Value > 0)
         {
             providerTypeName += $"({column.Length.Value})";
         }

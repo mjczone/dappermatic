@@ -95,7 +95,8 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 1,
                 isCommon: false,
                 "Fixed-length character string",
-                "char"
+                "char",
+                "bpchar"
             )
         );
         RegisterDataType(
@@ -370,7 +371,18 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             CreateSimpleType("daterange", DataTypeCategory.Range, isCommon: false, "Range of date")
         );
 
-        // Array notation (conceptual - arrays can be created for most types)
+        // Array types - standard notation (suffix [])
+        RegisterDataType(
+            CreateSimpleType("boolean[]", DataTypeCategory.Array, isCommon: false, "Array of boolean")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "smallint[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of smallint"
+            )
+        );
         RegisterDataType(
             CreateSimpleType(
                 "integer[]",
@@ -380,7 +392,18 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType("text[]", DataTypeCategory.Array, isCommon: false, "Array of text")
+            CreateSimpleType("bigint[]", DataTypeCategory.Array, isCommon: false, "Array of bigint")
+        );
+        RegisterDataType(
+            CreateSimpleType("real[]", DataTypeCategory.Array, isCommon: false, "Array of real")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "double precision[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of double precision"
+            )
         );
         RegisterDataType(
             CreateSimpleType(
@@ -388,6 +411,261 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 DataTypeCategory.Array,
                 isCommon: false,
                 "Array of numeric"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType("text[]", DataTypeCategory.Array, isCommon: false, "Array of text")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "character[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of character"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "character varying[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of character varying"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType("bytea[]", DataTypeCategory.Array, isCommon: false, "Array of bytea")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "timestamp[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of timestamp"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "timestamp without time zone[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of timestamp without time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "timestamp with time zone[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of timestamp with time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType("date[]", DataTypeCategory.Array, isCommon: false, "Array of date")
+        );
+        RegisterDataType(
+            CreateSimpleType("time[]", DataTypeCategory.Array, isCommon: false, "Array of time")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "time without time zone[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of time without time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "time with time zone[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of time with time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "interval[]",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of interval"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType("uuid[]", DataTypeCategory.Array, isCommon: false, "Array of uuid")
+        );
+        RegisterDataType(
+            CreateSimpleType("json[]", DataTypeCategory.Array, isCommon: false, "Array of json")
+        );
+        RegisterDataType(
+            CreateSimpleType("jsonb[]", DataTypeCategory.Array, isCommon: false, "Array of jsonb")
+        );
+
+        // Array types - PostgreSQL internal notation (prefix _)
+        RegisterDataType(
+            CreateSimpleType(
+                "_bool",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of boolean (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_int2",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of smallint (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_int4",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of integer (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_int8",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of bigint (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_float4",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of real (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_float8",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of double precision (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_numeric",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of numeric (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_text",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of text (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_char",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of char (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_varchar",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of varchar (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_bpchar",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of character (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_bytea",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of bytea (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_timestamp",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of timestamp (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_timestamptz",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of timestamp with time zone (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_date",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of date (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_time",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of time (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_timetz",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of time with time zone (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_interval",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of interval (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_uuid",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of uuid (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_json",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of json (internal notation)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "_jsonb",
+                DataTypeCategory.Array,
+                isCommon: false,
+                "Array of jsonb (internal notation)"
             )
         );
 

@@ -45,6 +45,12 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
+    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
+    {
+        return TypeMappingHelpers.CreateStringType(PostgreSqlTypes.sql_char, length: 1, isUnicode: false, isFixedLength: true);
+    }
+
+    /// <inheritdoc />
     public SqlTypeDescriptor CreateObjectType()
     {
         return TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false);
@@ -53,7 +59,8 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
     {
-        if (descriptor.Length == TypeMappingDefaults.MaxLength)
+        // Support both -1 and int.MaxValue for backward compatibility
+        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
         {
             return TypeMappingHelpers.CreateLobType(PostgreSqlTypes.sql_text, isUnicode: false);
         }

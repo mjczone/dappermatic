@@ -433,6 +433,36 @@ public partial class SqlServerMethods
                         StringComparison.OrdinalIgnoreCase
                     );
 
+                // Normalize SQL Server MAX types to -1
+                // CHARACTER_MAXIMUM_LENGTH returns -1 for VARCHAR(MAX), NVARCHAR(MAX), VARBINARY(MAX)
+                // but may return NULL in some cases (e.g., when created without explicit length specification)
+                int? normalizedLength = tableColumn.max_length;
+                if (normalizedLength.HasValue && normalizedLength.Value == -1)
+                {
+                    // Preserve -1 for MAX types
+                    normalizedLength = -1;
+                }
+                // If length is null, check if it's an unlimited/MAX type
+                else if (!normalizedLength.HasValue)
+                {
+                    // These types are always unlimited
+                    if (tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase) ||
+                        tableColumn.data_type.Equals("ntext", StringComparison.OrdinalIgnoreCase) ||
+                        tableColumn.data_type.Equals("image", StringComparison.OrdinalIgnoreCase) ||
+                        tableColumn.data_type.Equals("xml", StringComparison.OrdinalIgnoreCase))
+                    {
+                        normalizedLength = -1;
+                    }
+                    // VARCHAR/NVARCHAR/VARBINARY with NULL length are MAX types
+                    // (CHARACTER_MAXIMUM_LENGTH may return NULL instead of -1 for MAX types)
+                    else if (tableColumn.data_type.Equals("varchar", StringComparison.OrdinalIgnoreCase) ||
+                             tableColumn.data_type.Equals("nvarchar", StringComparison.OrdinalIgnoreCase) ||
+                             tableColumn.data_type.Equals("varbinary", StringComparison.OrdinalIgnoreCase))
+                    {
+                        normalizedLength = -1;
+                    }
+                }
+
                 var column = new DmColumn(
                     tableColumn.schema_name,
                     tableColumn.table_name,
@@ -442,7 +472,7 @@ public partial class SqlServerMethods
                     {
                         { ProviderType, tableColumn.data_type },
                     },
-                    tableColumn.max_length,
+                    normalizedLength,
                     tableColumn.numeric_precision,
                     tableColumn.numeric_scale,
                     tableColumn.is_nullable,

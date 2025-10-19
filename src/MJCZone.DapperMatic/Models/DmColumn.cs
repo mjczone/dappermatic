@@ -156,9 +156,9 @@ public class DmColumn
         ColumnName = columnName;
         DotnetType = dotnetType;
         ProviderDataTypes = providerDataTypes ?? [];
-        Length = length == -1 ? null : length;
-        Precision = precision == -1 ? null : precision;
-        Scale = scale == -1 ? null : scale;
+        Length = length;
+        Precision = precision;
+        Scale = scale;
         IsNullable = isNullable;
         IsPrimaryKey = isPrimaryKey;
         IsAutoIncrement = isAutoIncrement;

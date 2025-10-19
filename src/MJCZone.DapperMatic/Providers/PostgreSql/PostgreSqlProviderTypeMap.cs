@@ -514,7 +514,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         {
             return new DotnetTypeDescriptor(
                 typeof(byte[]),
-                d.Length ?? int.MaxValue,
+                d.Length,
                 isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
             );
         });

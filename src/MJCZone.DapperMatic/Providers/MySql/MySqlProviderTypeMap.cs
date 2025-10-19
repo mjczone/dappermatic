@@ -54,18 +54,36 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return shortName switch
             {
                 // NetTopologySuite types - MySQL supports specific geometry types
-                "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point),
-                "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring),
-                "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon),
-                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipoint),
-                "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multilinestring),
-                "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipolygon),
-                "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometrycollection),
+                "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_geometry
+                ),
+                "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_point
+                ),
+                "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_linestring
+                ),
+                "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_polygon
+                ),
+                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_multipoint
+                ),
+                "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" =>
+                    TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multilinestring),
+                "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_multipolygon
+                ),
+                "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" =>
+                    TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometrycollection),
                 // MySQL types
-                "MySql.Data.Types.MySqlGeometry, MySql.Data" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                "MySqlConnector.MySqlGeometry, MySqlConnector" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                _ => null
+                "MySql.Data.Types.MySqlGeometry, MySql.Data" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_geometry
+                ),
+                "MySqlConnector.MySqlGeometry, MySqlConnector" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_geometry
+                ),
+                _ => null,
             };
         }
 
@@ -84,11 +102,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             var geometricConverter = GetGeometricToDotnetTypeConverter();
 
             // Boolean affinity (in MySQL, bool and boolean are the same, they are synonyms of tinyint(1))
-            RegisterConverterForTypes(
-                booleanConverter,
-                MySqlTypes.sql_bool,
-                MySqlTypes.sql_boolean
-            );
+            RegisterConverterForTypes(booleanConverter, MySqlTypes.sql_bool, MySqlTypes.sql_boolean);
 
             // Numeric affinity
             RegisterConverterForTypes(
@@ -186,10 +200,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
         {
             return new(d =>
             {
-                if (
-                    d.BaseTypeName == MySqlTypes.sql_bool
-                    || d.BaseTypeName == MySqlTypes.sql_boolean
-                )
+                if (d.BaseTypeName == MySqlTypes.sql_bool || d.BaseTypeName == MySqlTypes.sql_boolean)
                 {
                     return new DotnetTypeDescriptor(typeof(bool));
                 }
@@ -237,8 +248,16 @@ namespace MJCZone.DapperMatic.Providers.MySql
                         // make it a long if no recognizable length is specified
                         return new DotnetTypeDescriptor(typeof(long));
                     case MySqlTypes.sql_tinyint:
+                        if (d.Precision == 1)
+                        {
+                            return new DotnetTypeDescriptor(typeof(bool));
+                        }
                         return new DotnetTypeDescriptor(typeof(sbyte));
                     case MySqlTypes.sql_tinyint_unsigned:
+                        if (d.Precision == 1)
+                        {
+                            return new DotnetTypeDescriptor(typeof(bool));
+                        }
                         return new DotnetTypeDescriptor(typeof(byte));
                     case MySqlTypes.sql_smallint:
                         return new DotnetTypeDescriptor(typeof(short));
@@ -348,10 +367,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return new(d =>
             {
                 if (
-                    (
-                        d.BaseTypeName == MySqlTypes.sql_char
-                        || d.BaseTypeName == MySqlTypes.sql_varchar
-                    )
+                    (d.BaseTypeName == MySqlTypes.sql_char || d.BaseTypeName == MySqlTypes.sql_varchar)
                     && d.Length == 36
                 )
                 {
@@ -437,21 +453,11 @@ namespace MJCZone.DapperMatic.Providers.MySql
         private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
         {
             // NetTopologySuite types
-            var sqlNetTopologyGeometryType = Type.GetType(
-                "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
-            );
-            var sqlNetTopologyPointType = Type.GetType(
-                "NetTopologySuite.Geometries.Point, NetTopologySuite"
-            );
-            var sqlNetTopologyLineStringType = Type.GetType(
-                "NetTopologySuite.Geometries.LineString, NetTopologySuite"
-            );
-            var sqlNetTopologyPolygonType = Type.GetType(
-                "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
-            );
-            var sqlNetTopologyMultiPointType = Type.GetType(
-                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-            );
+            var sqlNetTopologyGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+            var sqlNetTopologyPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+            var sqlNetTopologyLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+            var sqlNetTopologyPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+            var sqlNetTopologyMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
             var sqlNetTopologyMultLineStringType = Type.GetType(
                 "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
             );
@@ -463,11 +469,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             );
 
             // Geometry affinity
-            var sqlMySqlDataGeometryType = Type.GetType(
-                "MySql.Data.Types.MySqlGeometry, MySql.Data",
-                false,
-                false
-            );
+            var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data", false, false);
             var sqlMySqlConnectorGeometryType = Type.GetType(
                 "MySqlConnector.MySqlGeometry, MySqlConnector",
                 false,

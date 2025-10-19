@@ -30,9 +30,7 @@ public partial class MySqlMethods
     {
         schemaName = NormalizeSchemaName(schemaName);
 
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
 
         // columns
         var columnsSql = $"""
@@ -138,13 +136,7 @@ public partial class MySqlMethods
             string constraint_name,
             string columns_csv,
             string columns_desc_csv
-        )>(
-                db,
-                constraintsSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, constraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var allDefaultConstraints = columnResults
@@ -181,8 +173,7 @@ public partial class MySqlMethods
                             (c, i) =>
                                 new DmOrderedColumn(
                                     c,
-                                    columnDescs[i]
-                                        .Equals("DESC", StringComparison.OrdinalIgnoreCase)
+                                    columnDescs[i].Equals("DESC", StringComparison.OrdinalIgnoreCase)
                                         ? DmColumnOrder.Descending
                                         : DmColumnOrder.Ascending
                                 )
@@ -206,8 +197,7 @@ public partial class MySqlMethods
                             (c, i) =>
                                 new DmOrderedColumn(
                                     c,
-                                    columnDescs[i]
-                                        .Equals("DESC", StringComparison.OrdinalIgnoreCase)
+                                    columnDescs[i].Equals("DESC", StringComparison.OrdinalIgnoreCase)
                                         ? DmColumnOrder.Descending
                                         : DmColumnOrder.Ascending
                                 )
@@ -253,13 +243,7 @@ public partial class MySqlMethods
             string key_ordinal,
             string column_name,
             string referenced_column_name
-        )>(
-                db,
-                foreignKeysSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, foreignKeysSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         var allForeignKeyConstraints = foreignKeyResults
             .GroupBy(t => new
@@ -324,13 +308,7 @@ public partial class MySqlMethods
                 string? column_name,
                 string constraint_name,
                 string check_expression
-            )>(
-                    db,
-                    checkConstraintsSql,
-                    new { schemaName, where },
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            )>(db, checkConstraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             allCheckConstraints = checkConstraintResults
                 .Select(t =>
@@ -344,15 +322,8 @@ public partial class MySqlMethods
                         {
                             var pattern = $@"\b{Regex.Escape(column.column_name)}\b";
                             if (
-                                column.table_name.Equals(
-                                    t.table_name,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
-                                && Regex.IsMatch(
-                                    t.check_expression,
-                                    pattern,
-                                    RegexOptions.IgnoreCase
-                                )
+                                column.table_name.Equals(t.table_name, StringComparison.OrdinalIgnoreCase)
+                                && Regex.IsMatch(t.check_expression, pattern, RegexOptions.IgnoreCase)
                             )
                             {
                                 columnName = column.column_name;
@@ -386,9 +357,7 @@ public partial class MySqlMethods
 
         var tables = new List<DmTable>();
 
-        foreach (
-            var tableColumns in columnResults.GroupBy(r => new { r.schema_name, r.table_name })
-        )
+        foreach (var tableColumns in columnResults.GroupBy(r => new { r.schema_name, r.table_name }))
         {
             var tableName = tableColumns.Key.table_name;
 
@@ -418,85 +387,87 @@ public partial class MySqlMethods
                     uniqueConstraints.Any(c =>
                         c.Columns.Count == 1
                         && c.Columns.Any(col =>
-                            col.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            col.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     )
                     || indexes.Any(i =>
                         i is { IsUnique: true, Columns.Count: 1 }
                         && i.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     );
 
                 var columnIsPartOfIndex = indexes.Any(i =>
-                    i.Columns.Any(c =>
-                        c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
+                    i.Columns.Any(c => c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase))
                 );
 
                 var foreignKeyConstraint = foreignKeyConstraints.FirstOrDefault(c =>
                     c.SourceColumns.Any(scol =>
-                        scol.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        scol.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                 );
 
                 var foreignKeyColumnIndex = foreignKeyConstraint
                     ?.SourceColumns.Select((scol, i) => new { c = scol, i })
                     .FirstOrDefault(c =>
-                        c.c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        c.c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                     ?.i;
 
-                var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(tableColumn.data_type);
+                var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(tableColumn.data_type_complete);
+
+                // Parse the complete type to get display width for integer types
+                var sqlTypeDescriptor = new SqlTypeDescriptor(tableColumn.data_type_complete);
 
                 var isUnicode =
                     dotnetTypeDescriptor.IsUnicode == true
-                    || tableColumn.data_type.StartsWith(
-                        "varchar",
-                        StringComparison.OrdinalIgnoreCase
-                    )
+                    || tableColumn.data_type.StartsWith("varchar", StringComparison.OrdinalIgnoreCase)
                     || tableColumn.data_type.StartsWith("char", StringComparison.OrdinalIgnoreCase)
                     || tableColumn.data_type.StartsWith("text", StringComparison.OrdinalIgnoreCase);
+
+                // Normalize large/unlimited length values to -1
+                int? normalizedLength = null;
+                if (tableColumn.max_length.HasValue)
+                {
+                    // MySQL TEXT/LONGTEXT types or very large values → -1
+                    if (tableColumn.max_length.Value > int.MaxValue / 2)
+                    {
+                        normalizedLength = -1;
+                    }
+                    else
+                    {
+                        normalizedLength = (int)tableColumn.max_length.Value;
+                    }
+                }
+                // TEXT, MEDIUMTEXT, LONGTEXT without explicit length → -1
+                else if (
+                    tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase)
+                    || tableColumn.data_type.Equals("mediumtext", StringComparison.OrdinalIgnoreCase)
+                    || tableColumn.data_type.Equals("longtext", StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    normalizedLength = -1;
+                }
+
+                // For integer types, use display width from COLUMN_TYPE instead of NUMERIC_PRECISION
+                // NUMERIC_PRECISION is the data precision (e.g., TINYINT=3 digits), not display width
+                // Fall back to numeric_precision if display width not present (MySQL 8.0.19+ doesn't preserve most display widths)
+                var usePrecision = tableColumn.data_type.Contains("int", StringComparison.OrdinalIgnoreCase)
+                    ? sqlTypeDescriptor.Precision ?? tableColumn.numeric_precision
+                    : tableColumn.numeric_precision;
 
                 var column = new DmColumn(
                     tableColumn.schema_name,
                     tableColumn.table_name,
                     tableColumn.column_name,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string>
-                    {
-                        { ProviderType, tableColumn.data_type },
-                    },
-                    tableColumn.max_length.HasValue
-                        ? (
-                            tableColumn.max_length.Value > int.MaxValue
-                                ? int.MaxValue
-                                : (int)tableColumn.max_length.Value
-                        )
-                        : null,
-                    tableColumn.numeric_precision,
+                    new Dictionary<DbProviderType, string> { { ProviderType, tableColumn.data_type } },
+                    normalizedLength,
+                    usePrecision,
                     tableColumn.numeric_scale,
                     tableColumn.is_nullable,
                     primaryKeyConstraint?.Columns.Any(c =>
-                        c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     ) == true,
                     false, // Set to false initially, will be determined by DetermineIsAutoIncrement
                     columnIsUniqueViaUniqueConstraintOrIndex,
@@ -504,36 +475,25 @@ public partial class MySqlMethods
                     columnIsPartOfIndex,
                     foreignKeyConstraint != null,
                     foreignKeyConstraint?.ReferencedTableName,
-                    foreignKeyConstraint
-                        ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
-                        ?.ColumnName,
+                    foreignKeyConstraint?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
                     foreignKeyConstraint?.OnUpdate,
                     checkExpression: checkConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression,
                     defaultExpression: defaultConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression
                 );
 
                 // Apply standardized auto-increment detection
-                column.IsAutoIncrement = DetermineIsAutoIncrement(
-                    column,
-                    tableColumn.extra,
-                    tableColumn.data_type);
+                column.IsAutoIncrement = DetermineIsAutoIncrement(column, tableColumn.extra, tableColumn.data_type);
 
                 columns.Add(column);
             }
@@ -574,13 +534,9 @@ public partial class MySqlMethods
         CancellationToken cancellationToken = default
     )
     {
-        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
+        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
 
-        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter)
-            ? null
-            : ToLikeString(indexNameFilter);
+        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter) ? null : ToLikeString(indexNameFilter);
 
         var sql = $"""
 
@@ -627,13 +583,7 @@ public partial class MySqlMethods
             bool is_unique,
             string columns_csv,
             string columns_desc_csv
-        )>(
-                db,
-                sql,
-                new { whereTableLike, whereIndexLike },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, sql, new { whereTableLike, whereIndexLike }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var indexes = new List<DmIndex>();

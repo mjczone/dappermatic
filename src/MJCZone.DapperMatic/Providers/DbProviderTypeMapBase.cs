@@ -412,6 +412,19 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     }
 
     /// <summary>
+    /// Gets the char to SQL type converter using provider-specific char handling.
+    /// </summary>
+    /// <returns>Char to SQL type converter.</returns>
+    protected virtual DotnetTypeToSqlTypeConverter GetCharToSqlTypeConverter()
+    {
+        var mapping = GetProviderTypeMapping();
+        return new DotnetTypeToSqlTypeConverter(d =>
+        {
+            return mapping.CreateCharType(d);
+        });
+    }
+
+    /// <summary>
     /// Gets the text to SQL type converter using provider-specific text handling.
     /// </summary>
     /// <returns>Text to SQL type converter.</returns>
@@ -506,6 +519,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var booleanConverter = GetBooleanToSqlTypeConverter();
         var numericConverter = GetNumericToSqlTypeConverter();
         var guidConverter = GetGuidToSqlTypeConverter();
+        var charConverter = GetCharToSqlTypeConverter();
         var textConverter = GetTextToSqlTypeConverter();
         var xmlConverter = GetXmlToSqlTypeConverter();
         var jsonConverter = GetJsonToSqlTypeConverter();
@@ -526,6 +540,9 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
         // Guid affinity
         RegisterConverter<Guid>(guidConverter);
+
+        // Char affinity
+        RegisterConverter<char>(charConverter);
 
         // Text affinity
         RegisterConverterForTypes(textConverter, GetStandardTextTypes());
@@ -613,11 +630,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         return new[]
         {
             typeof(string),
-            typeof(char),
             typeof(char[]),
-            typeof(MemoryStream),
-            typeof(ReadOnlyMemory<byte>[]),
-            typeof(Stream),
             typeof(TextReader),
         };
     }
@@ -650,6 +663,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
             typeof(ReadOnlyMemory<byte>),
             typeof(Memory<byte>),
             typeof(Stream),
+            typeof(MemoryStream),
             typeof(BinaryReader),
             typeof(System.Collections.BitArray),
             typeof(System.Collections.Specialized.BitVector32),

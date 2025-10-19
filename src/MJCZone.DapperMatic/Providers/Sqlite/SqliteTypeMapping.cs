@@ -45,6 +45,13 @@ public class SqliteTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
+    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
+    {
+        // SQLite doesn't have fixed-length types, so we use TEXT
+        return TypeMappingHelpers.CreateSimpleType(SqliteTypes.sql_text);
+    }
+
+    /// <inheritdoc />
     public SqlTypeDescriptor CreateObjectType()
     {
         return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_clob, isUnicode: false);
@@ -53,7 +60,8 @@ public class SqliteTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
     {
-        if (descriptor.Length == TypeMappingDefaults.MaxLength)
+        // Support both -1 and int.MaxValue for backward compatibility
+        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
         {
             // max is NOT supported by SQLite, instead, we'll use the text type; however,
             // using nvarchar and varchar gives DapperMatic a better chance of mapping the

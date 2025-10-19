@@ -99,15 +99,7 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
 
-        RegisterDataType(
-            CreateStringType(
-                "char",
-                int.MaxValue,
-                1,
-                isCommon: false,
-                "Character string (maps to TEXT)"
-            )
-        );
+        RegisterDataType(CreateStringType("char", int.MaxValue, 1, isCommon: false, "Character string (maps to TEXT)"));
 
         RegisterDataType(
             CreateSimpleType(
@@ -138,6 +130,15 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
 
         RegisterDataType(
             CreateSimpleType(
+                "time",
+                DataTypeCategory.DateTime,
+                isCommon: true,
+                "Time value (stored as TEXT, REAL, or INTEGER)"
+            )
+        );
+
+        RegisterDataType(
+            CreateSimpleType(
                 "timestamp",
                 DataTypeCategory.DateTime,
                 isCommon: false,
@@ -146,15 +147,7 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         RegisterDataType(
-            CreateDecimalType(
-                "decimal",
-                1000,
-                1000,
-                18,
-                2,
-                isCommon: false,
-                "Decimal number (stored as TEXT or REAL)"
-            )
+            CreateDecimalType("decimal", 1000, 1000, 18, 2, isCommon: false, "Decimal number (stored as TEXT or REAL)")
         );
 
         // SQLite specific features

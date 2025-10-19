@@ -440,6 +440,14 @@ public partial class PostgreSqlMethods
                         StringComparison.OrdinalIgnoreCase
                     );
 
+                // Normalize PostgreSQL TEXT type (unlimited) to -1
+                int? normalizedLength = dotnetTypeDescriptor.Length;
+                if (normalizedLength == null &&
+                    tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase))
+                {
+                    normalizedLength = -1;
+                }
+
                 var column = new DmColumn(
                     tableColumn.schema_name,
                     tableColumn.table_name,
@@ -449,7 +457,7 @@ public partial class PostgreSqlMethods
                     {
                         { ProviderType, tableColumn.data_type },
                     },
-                    dotnetTypeDescriptor.Length,
+                    normalizedLength,
                     dotnetTypeDescriptor.Precision,
                     dotnetTypeDescriptor.Scale,
                     tableColumn.is_nullable,

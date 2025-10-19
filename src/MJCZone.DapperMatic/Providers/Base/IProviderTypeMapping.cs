@@ -38,6 +38,13 @@ public interface IProviderTypeMapping
     SqlTypeDescriptor CreateGuidType();
 
     /// <summary>
+    /// Creates a provider-specific char type descriptor.
+    /// </summary>
+    /// <param name="descriptor">The .NET type descriptor with unicode information.</param>
+    /// <returns>SQL type descriptor for char storage.</returns>
+    SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor);
+
+    /// <summary>
     /// Creates a provider-specific object type descriptor.
     /// </summary>
     /// <returns>SQL type descriptor for object storage.</returns>

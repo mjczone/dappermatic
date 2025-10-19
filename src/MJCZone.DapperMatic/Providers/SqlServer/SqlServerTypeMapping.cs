@@ -45,6 +45,13 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
+    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
+    {
+        var sqlType = descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char;
+        return TypeMappingHelpers.CreateStringType(sqlType, length: 1, descriptor.IsUnicode.GetValueOrDefault(false), isFixedLength: true);
+    }
+
+    /// <inheritdoc />
     public SqlTypeDescriptor CreateObjectType()
     {
         return TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_variant);
@@ -53,7 +60,8 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
     {
-        if (descriptor.Length == TypeMappingDefaults.MaxLength)
+        // Support both -1 and int.MaxValue for backward compatibility
+        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
         {
             var sqlType = descriptor.IsUnicode == true ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
             return TypeMappingHelpers.CreateLobType(sqlType, descriptor.IsUnicode.GetValueOrDefault(false));
@@ -87,7 +95,18 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
     {
-        if (descriptor.Length == TypeMappingDefaults.MaxLength)
+        // Determine appropriate default length when not specified
+        int? actualLength = descriptor.Length;
+        if (actualLength == null)
+        {
+            // Stream types should default to MAX, others to 255
+            actualLength = (descriptor.DotnetType == typeof(Stream) || descriptor.DotnetType == typeof(MemoryStream))
+                ? TypeMappingDefaults.MaxLength
+                : TypeMappingDefaults.DefaultBinaryLength;
+        }
+
+        // Support both -1 and int.MaxValue for backward compatibility
+        if (actualLength == -1 || actualLength == int.MaxValue)
         {
             return TypeMappingHelpers.CreateBinaryType($"{SqlServerTypes.sql_varbinary}(max)", null, false);
         }
@@ -95,7 +114,7 @@ public class SqlServerTypeMapping : IProviderTypeMapping
         var sqlType = descriptor.IsFixedLength == true ? SqlServerTypes.sql_binary : SqlServerTypes.sql_varbinary;
         return TypeMappingHelpers.CreateBinaryType(
             sqlType,
-            descriptor.Length,
+            actualLength,
             descriptor.IsFixedLength.GetValueOrDefault(false));
     }
 

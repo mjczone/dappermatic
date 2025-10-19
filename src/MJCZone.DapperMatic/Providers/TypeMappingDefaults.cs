@@ -42,6 +42,9 @@ public static class TypeMappingDefaults
 
     /// <summary>
     /// Represents maximum/unlimited length for text columns.
+    /// Value of -1 is used as a semantic marker for unlimited/MAX types across all providers.
+    /// For backward compatibility, both -1 and int.MaxValue are accepted when creating columns.
+    /// When reading columns, all providers normalize to -1 for consistency.
     /// </summary>
-    public const int MaxLength = int.MaxValue;
+    public const int MaxLength = -1;
 }
