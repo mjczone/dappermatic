@@ -17,7 +17,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite)]
-    public async Task Datasource_Management_Tests(string datasourceId)
+    public async Task Can_manage_datasource_Async(string datasourceId)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);
@@ -95,7 +95,10 @@ public partial class DapperMaticServiceTests
             IsEnabled = false,
         };
         var updateContext = OperationIdentifiers.ForDatasourceUpdate(updateDatasource);
-        var updatedDatasource = await service.UpdateDatasourceAsync(updateContext, updateDatasource);
+        var updatedDatasource = await service.UpdateDatasourceAsync(
+            updateContext,
+            updateDatasource
+        );
         updatedDatasource.Should().NotBeNull();
         updatedDatasource!.DisplayName.Should().Be("Updated Test Datasource");
         updatedDatasource.IsEnabled.Should().BeFalse();
@@ -104,10 +107,7 @@ public partial class DapperMaticServiceTests
 
         // Verify datasource updated
         var updatedGetContext = OperationIdentifiers.ForDatasourceGet(newDatasourceId);
-        var retrievedUpdated = await service.GetDatasourceAsync(
-            updatedGetContext,
-            newDatasourceId
-        );
+        var retrievedUpdated = await service.GetDatasourceAsync(updatedGetContext, newDatasourceId);
         retrievedUpdated.Should().NotBeNull();
         retrievedUpdated!.DisplayName.Should().Be("Updated Test Datasource");
         retrievedUpdated.IsEnabled.Should().BeFalse();

@@ -34,7 +34,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public", true)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null, false)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null, false)]
-    public async Task SchemaEndpoints_CompleteWorkflow_Success(
+    public async Task Can_perform_complete_workflow_on_schema_endpoints_Async(
         string datasourceId,
         string? defaultSchema,
         bool supportsSchemaOperations
@@ -138,7 +138,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task SchemaEndpoints_FilteredList_Success()
+    public async Task Should_handle_filtered_list_for_schema_endpoints_Async()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         using var client = factory.CreateClient();
@@ -164,7 +164,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Error Scenarios Tests
 
     [Fact]
-    public async Task SchemaEndpoints_ErrorScenarios_HandledCorrectly()
+    public async Task Should_handle_error_scenarios_for_schema_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -234,7 +234,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task SchemaEndpoints_UnsupportedOperations_SQLite()
+    public async Task Should_handle_schema_endpoints_unsupported_operations_sqlite_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -287,7 +287,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Database-Specific Tests
 
     [Fact]
-    public async Task SchemaEndpoints_PostgreSQL_PublicSchema()
+    public async Task Should_handle_schema_endpoints_postgresql_public_schema_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -322,7 +322,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task SchemaEndpoints_SqlServer_DefaultSchema()
+    public async Task Should_handle_schema_endpoints_sqlserver_default_schema_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()

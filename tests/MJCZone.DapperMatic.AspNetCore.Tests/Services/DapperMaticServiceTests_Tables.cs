@@ -17,7 +17,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task Table_Management_Tests(string datasourceId, string? schemaName)
+    public async Task Can_manage_table_Async(string datasourceId, string? schemaName)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);
@@ -263,7 +263,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task Table_Query_Tests(string datasourceId, string? schemaName)
+    public async Task Can_query_table_Async(string datasourceId, string? schemaName)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);

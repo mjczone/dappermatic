@@ -66,7 +66,7 @@ public abstract partial class DatabaseMethodsTests
             typeof(decimal[]),
             typeof(TimeSpan[]),
             // custom classes
-            typeof(TestClassDao)
+            typeof(TestClassDao),
         ];
 
         return typesToSupport;
@@ -78,7 +78,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Provider_type_map_supports_all_desired_dotnet_types()
+    protected virtual async Task Should_expect_provider_type_map_supports_all_desired_dotnet_types_Async()
     {
         using var db = await OpenConnectionAsync();
         var dbTypeMap = db.GetProviderTypeMap();
@@ -95,7 +95,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Provider_returns_datatypes()
+    protected virtual async Task Should_expect_provider_returns_datatypes_Async()
     {
         using var db = await OpenConnectionAsync();
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
@@ -115,7 +115,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Provider_returns_datatypes_with_metadata()
+    protected virtual async Task Should_expect_provider_returns_datatypes_with_metadata_Async()
     {
         using var db = await OpenConnectionAsync();
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
@@ -142,7 +142,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Provider_returns_custom_datatypes()
+    protected virtual async Task Should_expect_provider_returns_custom_datatypes_Async()
     {
         using var db = await OpenConnectionAsync();
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);

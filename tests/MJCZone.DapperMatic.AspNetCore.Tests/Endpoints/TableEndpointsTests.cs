@@ -32,7 +32,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task TableEndpoints_CompleteWorkflow_Success(
+    public async Task Can_perform_complete_workflow_on_table_endpoints_Async(
         string datasourceId,
         string? schemaName
     )
@@ -200,7 +200,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task TableQueryEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_table_query_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -273,7 +273,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Column Management Workflow Tests
 
     [Fact]
-    public async Task ColumnEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_column_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -376,7 +376,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Index Management Workflow Tests
 
     [Fact]
-    public async Task IndexEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_index_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -473,7 +473,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Constraint Management Workflow Tests
 
     [Fact]
-    public async Task ConstraintEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_constraint_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -515,7 +515,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Error Scenarios Tests
 
     [Fact]
-    public async Task TableEndpoints_ErrorScenarios_HandledCorrectly()
+    public async Task Should_handle_error_scenarios_for_table_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()

@@ -12,7 +12,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_PrimaryKeyConstraints_Async(
+    protected virtual async Task Can_perform_simple_crud_on_primary_key_constraints_Async(
         string? schemaName
     )
     {
@@ -34,7 +34,7 @@ public abstract partial class DatabaseMethodsTests
                     typeof(int),
                     defaultExpression: "1",
                     isNullable: false
-                )
+                ),
             ]
         );
         Output.WriteLine("Primary Key Exists: {0}.{1}", tableName, primaryKeyName);

@@ -17,7 +17,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Security;
 public class DefaultDapperMaticPermissionsTests
 {
     [Fact]
-    public async Task IsAuthorizedAsync_AllowAll_ReturnsTrue()
+    public async Task Should_expect_is_authorized_async_allow_all_returns_true_Async()
     {
         var options = Options.Create(new DapperMaticOptions());
         var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.AllowAll);
@@ -29,7 +29,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_RequireAuthentication_UnauthenticatedUser_ReturnsFalse()
+    public async Task Should_expect_is_authorized_async_require_authentication_unauthenticated_user_returns_false_Async()
     {
         var options = Options.Create(new DapperMaticOptions());
         var permissions = new DefaultDapperMaticPermissions(
@@ -44,7 +44,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_RequireAuthentication_AuthenticatedUser_ReturnsTrue()
+    public async Task Should_expect_is_authorized_async_require_authentication_authenticated_user_returns_true_Async()
     {
         var options = Options.Create(new DapperMaticOptions());
         var permissions = new DefaultDapperMaticPermissions(
@@ -59,7 +59,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_RequireRole_UserWithRole_ReturnsTrue()
+    public async Task Should_expect_is_authorized_async_require_role_user_with_role_returns_true_Async()
     {
         var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin" });
         var permissions = new DefaultDapperMaticPermissions(options);
@@ -75,7 +75,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_RequireRole_UserWithoutRole_ReturnsFalse()
+    public async Task Should_expect_is_authorized_async_require_role_user_without_role_returns_false_Async()
     {
         var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin" });
         var permissions = new DefaultDapperMaticPermissions(options);
@@ -91,7 +91,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_RequireRole_NoRoleSpecified_FallsBackToDefault()
+    public async Task Should_expect_is_authorized_async_require_role_no_role_specified_falls_back_to_default_Async()
     {
         var options = Options.Create(new DapperMaticOptions { RequireRole = null });
         var permissions = new DefaultDapperMaticPermissions(
@@ -110,7 +110,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_WithOptions_UsesRequiredRole()
+    public async Task Should_expect_is_authorized_async_with_options_uses_required_role_Async()
     {
         var options = Options.Create(new DapperMaticOptions { RequireRole = "DapperMaticAdmin" });
         var permissions = new DefaultDapperMaticPermissions(options);
@@ -126,7 +126,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_WithOptions_ReadOnlyRole_GetOperation_ReturnsTrue()
+    public async Task Should_expect_is_authorized_async_with_options_read_only_role_get_operation_returns_true_Async()
     {
         var options = Options.Create(
             new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" }
@@ -144,7 +144,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_WithOptions_ReadOnlyRole_NonGetOperation_ReturnsFalse()
+    public async Task Should_expect_is_authorized_async_with_options_read_only_role_non_get_operation_returns_false_Async()
     {
         var options = Options.Create(
             new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" }
@@ -162,7 +162,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_WithOptions_RequiredRoleOverridesReadOnly()
+    public async Task Should_expect_is_authorized_async_with_options_required_role_overrides_read_only_Async()
     {
         var options = Options.Create(
             new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" }
@@ -180,7 +180,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_WithOptions_NoRequiredRole_FallsBackToDefaultBehavior()
+    public async Task Should_expect_is_authorized_async_with_options_no_required_role_falls_back_to_default_behavior_Async()
     {
         var options = Options.Create(new DapperMaticOptions { RequireRole = null });
         var permissions = new DefaultDapperMaticPermissions(
@@ -195,7 +195,7 @@ public class DefaultDapperMaticPermissionsTests
     }
 
     [Fact]
-    public async Task IsAuthorizedAsync_DefaultCase_ReturnsFalse()
+    public async Task Should_expect_is_authorized_async_default_case_returns_false_Async()
     {
         var options = Options.Create(new DapperMaticOptions());
         var permissions = new DefaultDapperMaticPermissions(options, (PermissionDefault)999); // Invalid enum value

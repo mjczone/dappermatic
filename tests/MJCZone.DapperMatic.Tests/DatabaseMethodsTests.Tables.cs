@@ -13,7 +13,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_Tables_Async(string? schemaName)
+    protected virtual async Task Can_perform_simple_crud_on_tables_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -131,7 +131,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("test_schema")]
-    protected virtual async Task Can_create_table_using_property_initializers_async(
+    protected virtual async Task Can_create_table_using_property_initializers_Async(
         string? schemaName
     )
     {

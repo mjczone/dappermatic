@@ -5,7 +5,6 @@
 
 using System.Net;
 using FluentAssertions;
-
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -30,7 +29,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task Datasource_Operations_Log_Audit_Events()
+    public async Task Should_handle_datasource_operations_log_audit_events_Async()
     {
         var auditLogger = new TestDapperMaticAuditLogger();
         using var client = CreateClientWithAuditLogger(auditLogger);

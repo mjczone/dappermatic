@@ -12,7 +12,7 @@ namespace MJCZone.DapperMatic.Tests;
 public abstract partial class DatabaseMethodsTests
 {
     [Fact]
-    protected virtual async Task Can_use_command_timeout_parameter_async()
+    protected virtual async Task Can_use_command_timeout_parameter_Async()
     {
         // Test commandTimeout parameter like documentation example
         var table = new DmTable(
@@ -52,7 +52,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Can_use_transaction_support_async()
+    protected virtual async Task Can_use_transaction_support_Async()
     {
         // Test transaction support like documentation example
         var usersTable = new DmTable(
@@ -135,7 +135,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Can_use_cancellation_token_async()
+    protected virtual async Task Can_use_cancellation_token_Async()
     {
         // Test cancellation token support like documentation example
         var table = new DmTable(
@@ -178,7 +178,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Can_combine_all_parameters_async()
+    protected virtual async Task Can_combine_all_parameters_Async()
     {
         // Test combining timeout, transaction, and cancellation token
         var table = new DmTable(
@@ -228,7 +228,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Transaction_rollback_prevents_table_creation_async()
+    protected virtual async Task Should_expect_transaction_rollback_prevents_table_creation_async_Async()
     {
         // Test that rollback actually prevents table creation
         // Note: MySQL/MariaDB DDL statements auto-commit, so rollback doesn't work for CREATE TABLE

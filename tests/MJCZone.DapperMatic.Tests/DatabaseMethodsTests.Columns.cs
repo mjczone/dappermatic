@@ -15,7 +15,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_set_common_default_expressions_on_Columns_Async(
+    protected virtual async Task Can_set_common_default_expressions_on_columns_Async(
         string? schemaName
     )
     {
@@ -242,7 +242,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_Columns_Async(string? schemaName)
+    protected virtual async Task Can_perform_simple_crud_on_columns_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -297,13 +297,24 @@ public abstract partial class DatabaseMethodsTests
         var newColumnName = "renamedTestColumn";
 
         // Rename the column
-        var renamed = await db.RenameColumnIfExistsAsync(schemaName, tableName, originalColumnName, newColumnName);
+        var renamed = await db.RenameColumnIfExistsAsync(
+            schemaName,
+            tableName,
+            originalColumnName,
+            newColumnName
+        );
         Assert.True(renamed);
 
         // Verify old name doesn't exist and new name exists
         var columns = await db.GetColumnsAsync(schemaName, tableName);
-        Assert.DoesNotContain(columns, c => c.ColumnName.Equals(originalColumnName, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(columns, c => c.ColumnName.Equals(newColumnName, StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(
+            columns,
+            c => c.ColumnName.Equals(originalColumnName, StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.Contains(
+            columns,
+            c => c.ColumnName.Equals(newColumnName, StringComparison.OrdinalIgnoreCase)
+        );
 
         await db.DropTableIfExistsAsync(schemaName, tableName);
     }

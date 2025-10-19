@@ -12,7 +12,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_CheckConstraints_Async(
+    protected virtual async Task Can_perform_simple_crud_on_check_constraints_Async(
         string? schemaName
     )
     {
@@ -114,7 +114,7 @@ public abstract partial class DatabaseMethodsTests
                     "testColumn2",
                     typeof(int),
                     checkExpression: "testColumn2 > 0"
-                )
+                ),
             ]
         );
 

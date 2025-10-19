@@ -100,7 +100,7 @@ public abstract class PostgreSqlDatabaseMethodsTests<TDatabaseFixture>(
         return db;
     }
 
-    protected override async Task Provider_returns_custom_datatypes()
+    protected override async Task Should_expect_provider_returns_custom_datatypes_Async()
     {
         using var db = await OpenConnectionAsync();
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
@@ -114,7 +114,7 @@ public abstract class PostgreSqlDatabaseMethodsTests<TDatabaseFixture>(
     }
 
     [Fact]
-    public async Task GetAvailableDataTypes_PostgreSQL_ShouldHaveAdvancedTypes()
+    public async Task Should_expect_get_available_data_types_postgresql_have_advanced_types_Async()
     {
         using var db = await OpenConnectionAsync();
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);

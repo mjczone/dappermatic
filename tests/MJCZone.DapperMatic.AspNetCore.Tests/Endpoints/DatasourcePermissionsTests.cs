@@ -32,7 +32,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     #region Comprehensive Permission Workflow Tests
 
     [Fact]
-    public async Task DatasourcePermissions_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_datasource_permissions_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 
@@ -140,7 +140,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     }
 
     [Fact]
-    public async Task RoleBasedPermissions_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_role_based_permissions_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 
@@ -201,7 +201,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     }
 
     [Fact]
-    public async Task DatasourceSpecificPermissions_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_datasource_specific_permissions_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 
@@ -249,7 +249,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     #region Permission Denial Tests
 
     [Fact]
-    public async Task DatasourcePermissions_DeniedOperations_ReturnsForbidden()
+    public async Task Should_handle_datasource_permissions_denied_operations_returns_forbidden_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 
@@ -292,7 +292,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     }
 
     [Fact]
-    public async Task RoleBasedPermissions_InsufficientRoles_ReturnsForbidden()
+    public async Task Should_handle_role_based_permissions_insufficient_roles_returns_forbidden_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 
@@ -325,7 +325,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
     }
 
     [Fact]
-    public async Task DatasourceSpecificDenials_PatternMatching_Success()
+    public async Task Should_handle_datasource_specific_denials_pattern_matching_Async()
     {
         var testPermissions = new TestDapperMaticPermissions();
 

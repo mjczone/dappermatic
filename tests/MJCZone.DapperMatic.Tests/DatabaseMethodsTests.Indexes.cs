@@ -13,7 +13,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_Indexes_Async(string? schemaName)
+    protected virtual async Task Can_perform_simple_crud_on_indexes_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -44,7 +44,7 @@ public abstract partial class DatabaseMethodsTests
                 typeof(int),
                 defaultExpression: "1",
                 isNullable: false
-            )
+            ),
         };
         for (var i = 0; i < 10; i++)
         {
@@ -87,7 +87,7 @@ public abstract partial class DatabaseMethodsTests
             indexName + "_multi",
             [
                 new DmOrderedColumn(columnName + "_1", DmColumnOrder.Descending),
-                new DmOrderedColumn(columnName + "_2")
+                new DmOrderedColumn(columnName + "_2"),
             ],
             isUnique: true
         );
@@ -103,7 +103,7 @@ public abstract partial class DatabaseMethodsTests
             indexName + "_multi2",
             [
                 new DmOrderedColumn(columnName + "_3"),
-                new DmOrderedColumn(columnName + "_4", DmColumnOrder.Descending)
+                new DmOrderedColumn(columnName + "_4", DmColumnOrder.Descending),
             ]
         );
 

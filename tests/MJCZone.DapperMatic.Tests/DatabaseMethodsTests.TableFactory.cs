@@ -24,7 +24,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(TestDao3))]
     [InlineData(typeof(TestTable4))]
     [InlineData(typeof(TestTable5))]
-    protected virtual async Task Can_create_tables_from_model_classes_async(Type type)
+    protected virtual async Task Can_create_tables_from_model_classes_Async(Type type)
     {
         var tableDef = DmTableFactory.GetTable(type);
 

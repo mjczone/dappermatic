@@ -28,7 +28,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Comprehensive Workflow Tests
 
     [Fact]
-    public async Task ViewEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_view_endpoints_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -159,7 +159,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     }
 
     [Fact]
-    public async Task ViewQueryEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_view_query_endpoints_Async()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
@@ -233,7 +233,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Error Scenarios Tests
 
     [Fact]
-    public async Task ViewEndpoints_ErrorScenarios_HandledCorrectly()
+    public async Task Should_handle_error_scenarios_for_view_endpoints_Async()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
@@ -342,7 +342,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region Schema-Specific Workflow Tests
 
     [Fact]
-    public async Task SchemaSpecificViewEndpoints_CompleteWorkflow_Success()
+    public async Task Can_perform_complete_workflow_on_schema_specific_view_endpoints_Async()
     {
         using var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources());
         var client = factory.CreateClient();
@@ -427,7 +427,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region SQLite-Specific Tests
 
     [Fact]
-    public async Task SQLiteViewEndpoints_BasicWorkflow_Success()
+    public async Task Should_handle_sqlite_view_endpoints_basic_workflow_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()
@@ -474,7 +474,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     #region SQL Server Comparison Test
 
     [Fact]
-    public async Task SqlServerViewEndpoints_BasicWorkflow_Success()
+    public async Task Should_handle_sqlserver_view_endpoints_basic_workflow_Async()
     {
         var datasources = _fixture
             .GetTestDatasources()

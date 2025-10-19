@@ -32,7 +32,7 @@ public class RepositoryImplementationTests(
     private readonly ITestOutputHelper _outputHelper = outputHelper;
 
     [Fact]
-    public async Task InMemoryRepository_DataPersistsWithinApplication_ButNotBetweenRestarts()
+    public async Task Should_handle_in_memory_repository_data_persists_within_application_but_not_between_restarts_Async()
     {
         var addRequest = new DatasourceDto
         {
@@ -76,7 +76,7 @@ public class RepositoryImplementationTests(
     }
 
     [Fact]
-    public async Task FileRepository_DataPersistsBetweenApplicationRestarts()
+    public async Task Should_handle_file_repository_data_persists_between_application_restarts_Async()
     {
         WafWithFileDatasourceRepository.DeleteDatasourcesFile();
 
@@ -135,7 +135,7 @@ public class RepositoryImplementationTests(
     }
 
     [Fact]
-    public async Task DatabaseRepository_DataPersistsBetweenApplicationRestarts()
+    public async Task Should_handle_database_repository_data_persists_between_application_restarts_Async()
     {
         WafWithDatabaseDatasourceRepository.DeleteDatabaseFile();
 
@@ -194,7 +194,7 @@ public class RepositoryImplementationTests(
     }
 
     [Fact]
-    public async Task AllRepositoryTypes_SupportBasicCrudOperations()
+    public async Task Should_require_all_repository_types_support_basic_crud_operations_Async()
     {
         // Clean up any existing files before starting
         WafWithDatabaseDatasourceRepository.DeleteDatabaseFile();

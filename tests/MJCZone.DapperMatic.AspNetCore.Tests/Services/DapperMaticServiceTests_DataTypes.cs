@@ -15,7 +15,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite)]
-    public async Task DataTypes_Management_Tests(string datasourceId)
+    public async Task Can_manage_data_types_Async(string datasourceId)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);

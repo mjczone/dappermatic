@@ -22,7 +22,10 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task PrimaryKeyConstraint_Management_Tests(string datasourceId, string? schemaName)
+    public async Task Can_manage_primary_key_constraint_Async(
+        string datasourceId,
+        string? schemaName
+    )
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);

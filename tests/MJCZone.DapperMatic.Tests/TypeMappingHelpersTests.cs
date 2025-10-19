@@ -11,10 +11,11 @@ namespace MJCZone.DapperMatic.Tests;
 
 public class TypeMappingHelpersTests : TestBase
 {
-    public TypeMappingHelpersTests(ITestOutputHelper output) : base(output) { }
+    public TypeMappingHelpersTests(ITestOutputHelper output)
+        : base(output) { }
 
     [Fact]
-    public void GetAssemblyQualifiedShortName_WithValidType_ReturnsShortName()
+    public void Should_expect_get_assembly_qualified_short_name_with_valid_type_returns_short_name()
     {
         // Arrange
         var type = typeof(string);
@@ -31,7 +32,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetAssemblyQualifiedShortName_WithNullType_ReturnsNull()
+    public void Should_expect_get_assembly_qualified_short_name_with_null_type_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetAssemblyQualifiedShortName(null);
@@ -41,7 +42,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateDecimalType_WithDefaults_UsesDefaultPrecisionAndScale()
+    public void Should_create_decimal_type_with_defaults_uses_default_precision_and_scale()
     {
         // Act
         var result = TypeMappingHelpers.CreateDecimalType("decimal");
@@ -53,7 +54,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateDecimalType_WithCustomValues_UsesProvidedValues()
+    public void Should_create_decimal_type_with_custom_values_uses_provided_values()
     {
         // Act
         var result = TypeMappingHelpers.CreateDecimalType("numeric", 10, 2);
@@ -65,7 +66,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateStringType_WithDefaults_UsesDefaultLength()
+    public void Should_create_string_type_with_defaults_uses_default_length()
     {
         // Act
         var result = TypeMappingHelpers.CreateStringType("varchar");
@@ -78,7 +79,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateStringType_WithMaxLength_UsesMaxSyntax()
+    public void Should_create_string_type_with_max_length_uses_max_syntax()
     {
         // Act
         var result = TypeMappingHelpers.CreateStringType("varchar", TypeMappingDefaults.MaxLength);
@@ -91,10 +92,15 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateStringType_WithUnicodeAndFixedLength_SetsFlags()
+    public void Should_create_string_type_with_unicode_and_fixed_length_sets_flags()
     {
         // Act
-        var result = TypeMappingHelpers.CreateStringType("nchar", 50, isUnicode: true, isFixedLength: true);
+        var result = TypeMappingHelpers.CreateStringType(
+            "nchar",
+            50,
+            isUnicode: true,
+            isFixedLength: true
+        );
 
         // Assert
         Assert.Equal("nchar(50)", result.SqlTypeName);
@@ -104,10 +110,14 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateGuidStringType_ReturnsCorrectConfiguration()
+    public void Should_create_guid_string_type_returns_correct_configuration()
     {
         // Act
-        var result = TypeMappingHelpers.CreateGuidStringType("char", isUnicode: false, isFixedLength: true);
+        var result = TypeMappingHelpers.CreateGuidStringType(
+            "char",
+            isUnicode: false,
+            isFixedLength: true
+        );
 
         // Assert
         Assert.Equal("char(36)", result.SqlTypeName);
@@ -117,7 +127,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateEnumStringType_ReturnsCorrectConfiguration()
+    public void Should_create_enum_string_type_returns_correct_configuration()
     {
         // Act
         var result = TypeMappingHelpers.CreateEnumStringType("varchar", isUnicode: true);
@@ -132,7 +142,10 @@ public class TypeMappingHelpersTests : TestBase
     [Theory]
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
-    public void IsNetTopologySuiteGeometryType_WithNonGeometryTypes_ReturnsFalse(Type type, bool expected)
+    public void Should_expect_is_net_topology_suite_geometry_type_with_non_geometry_types_returns_false(
+        Type type,
+        bool expected
+    )
     {
         // Act
         var result = TypeMappingHelpers.IsNetTopologySuiteGeometryType(type);
@@ -142,7 +155,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void IsNetTopologySuiteGeometryType_WithNull_ReturnsFalse()
+    public void Should_expect_is_net_topology_suite_geometry_type_with_null_returns_false()
     {
         // Act
         var result = TypeMappingHelpers.IsNetTopologySuiteGeometryType(null);
@@ -154,7 +167,10 @@ public class TypeMappingHelpersTests : TestBase
     [Theory]
     [InlineData(typeof(string), null)]
     [InlineData(typeof(int), null)]
-    public void GetGeometryTypeName_WithNonGeometryTypes_ReturnsNull(Type type, string? expected)
+    public void Should_expect_get_geometry_type_name_with_non_geometry_types_returns_null(
+        Type type,
+        string? expected
+    )
     {
         // Act
         var result = TypeMappingHelpers.GetGeometryTypeName(type);
@@ -164,7 +180,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetGeometryTypeName_WithNull_ReturnsNull()
+    public void Should_expect_get_geometry_type_name_with_null_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetGeometryTypeName(null);
@@ -174,7 +190,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateSimpleType_ReturnsBasicDescriptor()
+    public void Should_create_simple_type_returns_basic_descriptor()
     {
         // Act
         var result = TypeMappingHelpers.CreateSimpleType("int");
@@ -187,7 +203,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateDateTimeType_WithoutPrecision_ReturnsBasicType()
+    public void Should_create_date_time_type_without_precision_returns_basic_type()
     {
         // Act
         var result = TypeMappingHelpers.CreateDateTimeType("datetime");
@@ -198,7 +214,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateDateTimeType_WithPrecision_IncludesPrecision()
+    public void Should_create_date_time_type_with_precision_includes_precision()
     {
         // Act
         var result = TypeMappingHelpers.CreateDateTimeType("datetime2", 3);
@@ -209,7 +225,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateBinaryType_WithoutLength_ReturnsBasicType()
+    public void Should_create_binary_type_without_length_returns_basic_type()
     {
         // Act
         var result = TypeMappingHelpers.CreateBinaryType("binary");
@@ -221,10 +237,14 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateBinaryType_WithMaxLength_UsesMaxSyntax()
+    public void Should_create_binary_type_with_max_length_uses_max_syntax()
     {
         // Act
-        var result = TypeMappingHelpers.CreateBinaryType("varbinary", TypeMappingDefaults.MaxLength, false);
+        var result = TypeMappingHelpers.CreateBinaryType(
+            "varbinary",
+            TypeMappingDefaults.MaxLength,
+            false
+        );
 
         // Assert
         Assert.Equal("varbinary(max)", result.SqlTypeName);
@@ -233,7 +253,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateBinaryType_WithSpecificLength_UsesLength()
+    public void Should_create_binary_type_with_specific_length_uses_length()
     {
         // Act
         var result = TypeMappingHelpers.CreateBinaryType("binary", 50, true);
@@ -245,7 +265,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateJsonType_AsNativeJson_ReturnsBasicType()
+    public void Should_create_json_type_as_native_json_returns_basic_type()
     {
         // Act
         var result = TypeMappingHelpers.CreateJsonType("json", false);
@@ -256,7 +276,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateJsonType_AsText_SetsMaxLength()
+    public void Should_create_json_type_as_text_sets_max_length()
     {
         // Act
         var result = TypeMappingHelpers.CreateJsonType("nvarchar(max)", true);
@@ -267,7 +287,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateGeometryType_WithoutTypeName_ReturnsBasicType()
+    public void Should_create_geometry_type_without_type_name_returns_basic_type()
     {
         // Act
         var result = TypeMappingHelpers.CreateGeometryType("geometry");
@@ -277,7 +297,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateGeometryType_WithTypeName_ReturnsBasicType()
+    public void Should_create_geometry_type_with_type_name_returns_basic_type()
     {
         // Act
         var result = TypeMappingHelpers.CreateGeometryType("geometry", "Point");
@@ -287,7 +307,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateLobType_SetsMaxLengthAndUnicode()
+    public void Should_create_lob_type_sets_max_length_and_unicode()
     {
         // Act
         var result = TypeMappingHelpers.CreateLobType("text", true);
@@ -299,7 +319,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateArrayType_ReturnsArrayDescriptor()
+    public void Should_create_array_type_returns_array_descriptor()
     {
         // Act
         var result = TypeMappingHelpers.CreateArrayType("integer[]", "integer");
@@ -309,7 +329,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreatePrecisionType_IncludesPrecision()
+    public void Should_create_precision_type_includes_precision()
     {
         // Act
         var result = TypeMappingHelpers.CreatePrecisionType("time", 6);
@@ -324,7 +344,7 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData(typeof(string[]), true)]
     [InlineData(typeof(int), false)]
     [InlineData(typeof(string), false)]
-    public void IsArrayType_ReturnsCorrectResult(Type type, bool expected)
+    public void Should_expect_is_array_type_returns_correct_result(Type type, bool expected)
     {
         // Act
         var result = TypeMappingHelpers.IsArrayType(type);
@@ -334,7 +354,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void IsArrayType_WithNull_ReturnsFalse()
+    public void Should_expect_is_array_type_with_null_returns_false()
     {
         // Act
         var result = TypeMappingHelpers.IsArrayType(null);
@@ -344,7 +364,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetArrayElementType_WithArrayType_ReturnsElementType()
+    public void Should_expect_get_array_element_type_with_array_type_returns_element_type()
     {
         // Act
         var result = TypeMappingHelpers.GetArrayElementType(typeof(int[]));
@@ -354,7 +374,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetArrayElementType_WithNonArrayType_ReturnsNull()
+    public void Should_expect_get_array_element_type_with_non_array_type_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetArrayElementType(typeof(int));
@@ -372,7 +392,10 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData(typeof(int[]), false)]
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
-    public void IsGenericCollectionType_ReturnsCorrectResult(Type type, bool expected)
+    public void Should_expect_is_generic_collection_type_returns_correct_result(
+        Type type,
+        bool expected
+    )
     {
         // Act
         var result = TypeMappingHelpers.IsGenericCollectionType(type);
@@ -382,7 +405,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void IsGenericCollectionType_WithNull_ReturnsFalse()
+    public void Should_expect_is_generic_collection_type_with_null_returns_false()
     {
         // Act
         var result = TypeMappingHelpers.IsGenericCollectionType(null);
@@ -392,7 +415,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetCollectionElementType_WithGenericCollection_ReturnsElementType()
+    public void Should_expect_get_collection_element_type_with_generic_collection_returns_element_type()
     {
         // Act
         var result = TypeMappingHelpers.GetCollectionElementType(typeof(List<string>));
@@ -402,7 +425,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetCollectionElementType_WithNonGenericCollection_ReturnsNull()
+    public void Should_expect_get_collection_element_type_with_non_generic_collection_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetCollectionElementType(typeof(string[]));
@@ -412,7 +435,7 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetCollectionElementType_WithNull_ReturnsNull()
+    public void Should_expect_get_collection_element_type_with_null_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetCollectionElementType(null);
@@ -422,18 +445,18 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetStandardGeometryTypes_ReturnsFilteredArray()
+    public void Should_expect_get_standard_geometry_types_returns_filtered_array()
     {
         // Act
         var types = TypeMappingHelpers.GetStandardGeometryTypes();
-        
+
         // Assert
         Assert.NotNull(types);
         Assert.IsType<Type[]>(types);
-        
+
         // All returned types should be non-null
         Assert.True(types.All(t => t != null));
-        
+
         // If NetTopologySuite is available, should have 8 types
         if (types.Length > 0)
         {
@@ -442,46 +465,46 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetSqlServerGeometryTypes_ReturnsFilteredArray()
+    public void Should_expect_get_sqlserver_geometry_types_returns_filtered_array()
     {
         // Act
         var types = TypeMappingHelpers.GetSqlServerGeometryTypes();
-        
+
         // Assert
         Assert.NotNull(types);
         Assert.IsType<Type[]>(types);
-        
+
         // All returned types should be non-null
         Assert.True(types.All(t => t != null));
     }
 
     [Fact]
-    public void GetMySqlGeometryTypes_ReturnsFilteredArray()
+    public void Should_expect_get_mysql_geometry_types_returns_filtered_array()
     {
         // Act
         var types = TypeMappingHelpers.GetMySqlGeometryTypes();
-        
+
         // Assert
         Assert.NotNull(types);
         Assert.IsType<Type[]>(types);
-        
+
         // All returned types should be non-null
         Assert.True(types.All(t => t != null));
     }
 
     [Fact]
-    public void GetPostgreSqlSpecialTypes_ReturnsFilteredArray()
+    public void Should_expect_get_postgresql_special_types_returns_filtered_array()
     {
         // Act
         var types = TypeMappingHelpers.GetPostgreSqlSpecialTypes();
-        
+
         // Assert
         Assert.NotNull(types);
         Assert.IsType<Type[]>(types);
-        
+
         // All returned types should be non-null
         Assert.True(types.All(t => t != null));
-        
+
         // Should at least have some system types
         if (types.Length > 0)
         {
@@ -492,61 +515,61 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void GetGeometryTypesForProvider_ReturnsCorrectTypesForEachProvider()
+    public void Should_expect_get_geometry_types_for_provider_returns_correct_types_for_each_provider()
     {
         // Test SQL Server
         var sqlServerTypes = TypeMappingHelpers.GetGeometryTypesForProvider("sqlserver");
         Assert.NotNull(sqlServerTypes);
         Assert.True(sqlServerTypes.All(t => t != null));
-        
+
         // Test MySQL
         var mysqlTypes = TypeMappingHelpers.GetGeometryTypesForProvider("mysql");
         Assert.NotNull(mysqlTypes);
         Assert.True(mysqlTypes.All(t => t != null));
-        
+
         // Test PostgreSQL
         var postgresTypes = TypeMappingHelpers.GetGeometryTypesForProvider("postgresql");
         Assert.NotNull(postgresTypes);
         Assert.True(postgresTypes.All(t => t != null));
-        
+
         // Test SQLite
         var sqliteTypes = TypeMappingHelpers.GetGeometryTypesForProvider("sqlite");
         Assert.NotNull(sqliteTypes);
         Assert.True(sqliteTypes.All(t => t != null));
-        
+
         // Test unknown provider (should return standard types)
         var unknownTypes = TypeMappingHelpers.GetGeometryTypesForProvider("unknown");
         Assert.NotNull(unknownTypes);
         Assert.True(unknownTypes.All(t => t != null));
-        
+
         // SQLite should only have standard types (no additional provider-specific types)
         var standardTypes = TypeMappingHelpers.GetStandardGeometryTypes();
         Assert.Equal(standardTypes.Length, sqliteTypes.Length);
     }
 
     [Fact]
-    public void GetGeometryTypesForProvider_CaseInsensitive()
+    public void Should_expect_get_geometry_types_for_provider_case_insensitive()
     {
         // Act
         var sqlServerLower = TypeMappingHelpers.GetGeometryTypesForProvider("sqlserver");
         var sqlServerUpper = TypeMappingHelpers.GetGeometryTypesForProvider("SQLSERVER");
         var sqlServerMixed = TypeMappingHelpers.GetGeometryTypesForProvider("SqlServer");
-        
+
         // Assert
         Assert.Equal(sqlServerLower.Length, sqlServerUpper.Length);
         Assert.Equal(sqlServerLower.Length, sqlServerMixed.Length);
     }
 
     [Fact]
-    public void GetStandardJsonTypes_ReturnsExpectedTypes()
+    public void Should_expect_get_standard_json_types_returns_expected_types()
     {
         // Act
         var jsonTypes = TypeMappingHelpers.GetStandardJsonTypes();
-        
+
         // Assert
         Assert.NotNull(jsonTypes);
         Assert.Equal(6, jsonTypes.Length);
-        
+
         // Verify specific types are included
         Assert.Contains(typeof(System.Text.Json.JsonDocument), jsonTypes);
         Assert.Contains(typeof(System.Text.Json.JsonElement), jsonTypes);
@@ -557,16 +580,16 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateJsonConverter_ReturnsCorrectConverterForEachProvider()
+    public void Should_create_json_converter_returns_correct_converter_for_each_provider()
     {
         // Test each provider
         var providers = new[] { "mysql", "postgresql", "sqlserver", "sqlite", "unknown" };
-        
+
         foreach (var provider in providers)
         {
             // Act
             var converter = TypeMappingHelpers.CreateJsonConverter(provider);
-            
+
             // Assert
             Assert.NotNull(converter);
             Assert.IsType<DotnetTypeToSqlTypeConverter>(converter);
@@ -574,46 +597,52 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateJsonConverter_CaseInsensitive()
+    public void Should_create_json_converter_case_insensitive()
     {
         // Act & Assert - should not throw exceptions
         var mysqlLower = TypeMappingHelpers.CreateJsonConverter("mysql");
         var mysqlUpper = TypeMappingHelpers.CreateJsonConverter("MYSQL");
         var mysqlMixed = TypeMappingHelpers.CreateJsonConverter("MySQL");
-        
+
         Assert.NotNull(mysqlLower);
         Assert.NotNull(mysqlUpper);
         Assert.NotNull(mysqlMixed);
     }
 
     [Fact]
-    public void CreateProviderOptimizedJsonType_ReturnsCorrectTypeForEachProvider()
+    public void Should_create_provider_optimized_json_type_returns_correct_type_for_each_provider()
     {
         // Test MySQL (native JSON)
         var mysqlJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("mysql");
         Assert.NotNull(mysqlJson);
         Assert.Equal("json", mysqlJson.SqlTypeName);
-        
+
         // Test PostgreSQL (native JSONB)
         var postgresJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("postgresql");
         Assert.NotNull(postgresJson);
         Assert.Equal("jsonb", postgresJson.SqlTypeName);
-        
+
         // Test SQL Server (text-based, non-Unicode)
-        var sqlServerJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("sqlserver", isUnicode: false);
+        var sqlServerJson = TypeMappingHelpers.CreateProviderOptimizedJsonType(
+            "sqlserver",
+            isUnicode: false
+        );
         Assert.NotNull(sqlServerJson);
         Assert.Equal("varchar(max)", sqlServerJson.SqlTypeName);
-        
+
         // Test SQL Server (text-based, Unicode)
-        var sqlServerJsonUnicode = TypeMappingHelpers.CreateProviderOptimizedJsonType("sqlserver", isUnicode: true);
+        var sqlServerJsonUnicode = TypeMappingHelpers.CreateProviderOptimizedJsonType(
+            "sqlserver",
+            isUnicode: true
+        );
         Assert.NotNull(sqlServerJsonUnicode);
         Assert.Equal("nvarchar(max)", sqlServerJsonUnicode.SqlTypeName);
-        
+
         // Test SQLite (text-based)
         var sqliteJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("sqlite");
         Assert.NotNull(sqliteJson);
         Assert.Equal("text", sqliteJson.SqlTypeName);
-        
+
         // Test unknown provider (defaults to text)
         var unknownJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("unknown");
         Assert.NotNull(unknownJson);
@@ -621,55 +650,55 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreateProviderOptimizedJsonType_CaseInsensitive()
+    public void Should_create_provider_optimized_json_type_case_insensitive()
     {
         // Act
         var mysqlLower = TypeMappingHelpers.CreateProviderOptimizedJsonType("mysql");
         var mysqlUpper = TypeMappingHelpers.CreateProviderOptimizedJsonType("MYSQL");
         var mysqlMixed = TypeMappingHelpers.CreateProviderOptimizedJsonType("MySQL");
-        
+
         // Assert
         Assert.Equal(mysqlLower.SqlTypeName, mysqlUpper.SqlTypeName);
         Assert.Equal(mysqlLower.SqlTypeName, mysqlMixed.SqlTypeName);
     }
 
     [Fact]
-    public void CreateNativeArrayType_ReturnsCorrectArrayType()
+    public void Should_create_native_array_type_returns_correct_array_type()
     {
         // Act
         var intArrayType = TypeMappingHelpers.CreateNativeArrayType("integer");
         var textArrayType = TypeMappingHelpers.CreateNativeArrayType("text");
-        
+
         // Assert
         Assert.NotNull(intArrayType);
         Assert.Equal("integer[]", intArrayType.SqlTypeName);
-        
+
         Assert.NotNull(textArrayType);
         Assert.Equal("text[]", textArrayType.SqlTypeName);
     }
 
     [Fact]
-    public void CreateArrayConverter_PostgreSqlUsesNativeArrays()
+    public void Should_create_array_converter_postgresql_uses_native_arrays()
     {
         // Act
         var postgresConverter = TypeMappingHelpers.CreateArrayConverter("postgresql");
-        
+
         // Assert
         Assert.NotNull(postgresConverter);
         Assert.IsType<DotnetTypeToSqlTypeConverter>(postgresConverter);
     }
 
     [Fact]
-    public void CreateArrayConverter_OtherProvidersFallBackToJson()
+    public void Should_create_array_converter_other_providers_fall_back_to_json()
     {
         // Test other providers fall back to JSON
         var providers = new[] { "mysql", "sqlserver", "sqlite", "unknown" };
-        
+
         foreach (var provider in providers)
         {
             // Act
             var converter = TypeMappingHelpers.CreateArrayConverter(provider);
-            
+
             // Assert
             Assert.NotNull(converter);
             Assert.IsType<DotnetTypeToSqlTypeConverter>(converter);
@@ -692,31 +721,34 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData(typeof(DateOnly), "date")]
     [InlineData(typeof(TimeOnly), "time")]
     [InlineData(typeof(Guid), "uuid")]
-    public void GetPostgreSqlArrayTypeName_ReturnsMappedType(Type elementType, string expectedSqlType)
+    public void Should_expect_get_postgresql_array_type_name_returns_mapped_type(
+        Type elementType,
+        string expectedSqlType
+    )
     {
         // Act
         var result = TypeMappingHelpers.GetPostgreSqlArrayTypeName(elementType);
-        
+
         // Assert
         Assert.Equal(expectedSqlType, result);
     }
 
     [Fact]
-    public void GetPostgreSqlArrayTypeName_WithUnsupportedType_ReturnsNull()
+    public void Should_expect_get_postgresql_array_type_name_with_unsupported_type_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetPostgreSqlArrayTypeName(typeof(object));
-        
+
         // Assert
         Assert.Null(result);
     }
 
     [Fact]
-    public void GetPostgreSqlArrayTypeName_WithNull_ReturnsNull()
+    public void Should_expect_get_postgresql_array_type_name_with_null_returns_null()
     {
         // Act
         var result = TypeMappingHelpers.GetPostgreSqlArrayTypeName(null);
-        
+
         // Assert
         Assert.Null(result);
     }
@@ -728,25 +760,25 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData("sqlserver", false)]
     [InlineData("sqlite", false)]
     [InlineData("unknown", false)]
-    public void SupportsNativeArrays_ReturnsCorrectResult(string provider, bool expected)
+    public void Should_require_native_arrays_returns_correct_result(string provider, bool expected)
     {
         // Act
         var result = TypeMappingHelpers.SupportsNativeArrays(provider);
-        
+
         // Assert
         Assert.Equal(expected, result);
     }
 
     [Fact]
-    public void GetPostgreSqlStandardArrayTypes_ReturnsExpectedTypes()
+    public void Should_expect_get_postgresql_standard_array_types_returns_expected_types()
     {
         // Act
         var arrayTypes = TypeMappingHelpers.GetPostgreSqlStandardArrayTypes();
-        
+
         // Assert
         Assert.NotNull(arrayTypes);
         Assert.True(arrayTypes.Length > 0);
-        
+
         // Verify some key array types are included
         Assert.Contains("boolean[]", arrayTypes);
         Assert.Contains("integer[]", arrayTypes);
@@ -757,11 +789,11 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void CreatePostgreSqlArrayTypeConverter_ReturnsValidConverter()
+    public void Should_create_postgresql_array_type_converter_returns_valid_converter()
     {
         // Act
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
-        
+
         // Assert
         Assert.NotNull(converter);
         Assert.IsType<SqlTypeToDotnetTypeConverter>(converter);
@@ -789,15 +821,18 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData("_date", typeof(DateOnly[]))]
     [InlineData("_time", typeof(TimeOnly[]))]
     [InlineData("_interval", typeof(TimeSpan[]))]
-    public void CreatePostgreSqlArrayTypeConverter_MapsArrayTypesCorrectly(string sqlType, Type expectedDotnetType)
+    public void Should_expect_postgresql_array_type_converter_maps_array_types_correctly(
+        string sqlType,
+        Type expectedDotnetType
+    )
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
         var sqlDescriptor = new SqlTypeDescriptor(sqlType);
-        
+
         // Act
         var result = converter.ConvertFunc(sqlDescriptor);
-        
+
         // Assert
         Assert.NotNull(result);
         Assert.Equal(expectedDotnetType, result.DotnetType);
@@ -807,65 +842,67 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData("text")]
     [InlineData("integer")]
     [InlineData("notanarray")]
-    public void CreatePostgreSqlArrayTypeConverter_WithNonArrayTypes_ReturnsNull(string sqlType)
+    public void Should_create_postgresql_array_type_converter_with_non_array_types_returns_null(
+        string sqlType
+    )
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
         var sqlDescriptor = new SqlTypeDescriptor(sqlType);
-        
+
         // Act
         var result = converter.ConvertFunc(sqlDescriptor);
-        
+
         // Assert
         Assert.Null(result);
     }
 
     [Fact]
-    public void CreatePostgreSqlArrayTypeConverter_WithNullTypeName_ReturnsNull()
+    public void Should_create_postgresql_array_type_converter_with_null_type_name_returns_null()
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
         var sqlDescriptor = new SqlTypeDescriptor("text");
-        
+
         // Use reflection to set SqlTypeName to null for testing
         var sqlTypeNameProperty = typeof(SqlTypeDescriptor).GetProperty("SqlTypeName");
         sqlTypeNameProperty?.SetValue(sqlDescriptor, null);
-        
+
         // Act
         var result = converter.ConvertFunc(sqlDescriptor);
-        
+
         // Assert
         Assert.Null(result);
     }
 
     [Fact]
-    public void CreatePostgreSqlArrayTypeConverter_WithEmptyTypeName_ReturnsNull()
+    public void Should_create_postgresql_array_type_converter_with_empty_type_name_returns_null()
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
         var sqlDescriptor = new SqlTypeDescriptor("text");
-        
+
         // Use reflection to set SqlTypeName to empty string for testing
         var sqlTypeNameProperty = typeof(SqlTypeDescriptor).GetProperty("SqlTypeName");
         sqlTypeNameProperty?.SetValue(sqlDescriptor, "");
-        
+
         // Act
         var result = converter.ConvertFunc(sqlDescriptor);
-        
+
         // Assert
         Assert.Null(result);
     }
 
     [Fact]
-    public void CreatePostgreSqlArrayTypeConverter_WithUnsupportedArrayType_ReturnsNull()
+    public void Should_create_postgresql_array_type_converter_with_unsupported_array_type_returns_null()
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
         var sqlDescriptor = new SqlTypeDescriptor("unsupported_type[]");
-        
+
         // Act
         var result = converter.ConvertFunc(sqlDescriptor);
-        
+
         // Assert
         Assert.Null(result);
     }

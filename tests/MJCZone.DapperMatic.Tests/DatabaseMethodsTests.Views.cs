@@ -13,7 +13,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_Views_Async(string? schemaName)
+    protected virtual async Task Can_perform_simple_crud_on_views_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -36,7 +36,7 @@ public abstract partial class DatabaseMethodsTests
                     isPrimaryKey: true,
                     isAutoIncrement: true
                 ),
-                new DmColumn(schemaName, tableForView, "name", typeof(string))
+                new DmColumn(schemaName, tableForView, "name", typeof(string)),
             ]
         );
 

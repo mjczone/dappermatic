@@ -12,7 +12,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_UniqueConstraints_Async(
+    protected virtual async Task Can_perform_simple_crud_on_unique_constraints_Async(
         string? schemaName
     )
     {
@@ -44,7 +44,7 @@ public abstract partial class DatabaseMethodsTests
                     typeof(int),
                     defaultExpression: "1",
                     isNullable: false
-                )
+                ),
             ],
             uniqueConstraints:
             [
@@ -53,7 +53,7 @@ public abstract partial class DatabaseMethodsTests
                     tableName,
                     uniqueConstraintName2,
                     [new DmOrderedColumn(columnName2)]
-                )
+                ),
             ]
         );
 
@@ -170,7 +170,7 @@ public abstract partial class DatabaseMethodsTests
                     typeof(int),
                     defaultExpression: "1",
                     isNullable: false
-                )
+                ),
             ],
             uniqueConstraints:
             [
@@ -180,9 +180,9 @@ public abstract partial class DatabaseMethodsTests
                     uniqueConstraintName,
                     [
                         new DmOrderedColumn(columnName2),
-                        new DmOrderedColumn(columnName, DmColumnOrder.Descending)
+                        new DmOrderedColumn(columnName, DmColumnOrder.Descending),
                     ]
-                )
+                ),
             ]
         );
 
