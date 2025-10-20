@@ -21,11 +21,7 @@ public partial class SqlServerMethods
     /// <param name="tableName">The current table name.</param>
     /// <param name="newTableName">The new table name.</param>
     /// <returns>The SQL string to rename the table.</returns>
-    protected override string SqlRenameTable(
-        string? schemaName,
-        string tableName,
-        string newTableName
-    )
+    protected override string SqlRenameTable(string? schemaName, string tableName, string newTableName)
     {
         return $"EXEC sp_rename '{GetSchemaQualifiedIdentifierName(schemaName, tableName)}', '{NormalizeName(newTableName)}'";
     }
@@ -65,9 +61,7 @@ public partial class SqlServerMethods
         string? viewNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 
@@ -96,14 +90,9 @@ public partial class SqlServerMethods
     /// <param name="schemaName">The schema name.</param>
     /// <param name="viewNameFilter">The view name filter.</param>
     /// <returns>A tuple containing the SQL string and parameters.</returns>
-    protected override (string sql, object parameters) SqlGetViews(
-        string? schemaName,
-        string? viewNameFilter
-    )
+    protected override (string sql, object parameters) SqlGetViews(string? schemaName, string? viewNameFilter)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 

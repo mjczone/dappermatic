@@ -33,9 +33,7 @@ public static class OperationIdentifiers
             EndpointPath = "/api/dappermatic",
             IpAddress = "127.0.0.1",
             Properties = [],
-            QueryParameters = new Dictionary<string, StringValues>(
-                StringComparer.OrdinalIgnoreCase
-            ),
+            QueryParameters = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
             RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             HeaderValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
         };
@@ -97,10 +95,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceGet(
-        string datasourceId,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceGet(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/get", user);
         context.DatasourceId = datasourceId;
@@ -113,10 +108,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource to add.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceAdd(
-        object requestBody,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceAdd(object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/post", user);
         context.RequestBody = requestBody;
@@ -129,10 +121,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource update data.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceUpdate(
-        object requestBody,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceUpdate(object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/put", user);
         context.RequestBody = requestBody;
@@ -145,10 +134,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceRemove(
-        string datasourceId,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceRemove(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/delete", user);
         context.DatasourceId = datasourceId;
@@ -161,10 +147,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceExists(
-        string datasourceId,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceExists(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/exists", user);
         context.DatasourceId = datasourceId;
@@ -177,10 +160,7 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceTest(
-        string datasourceId,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForDatasourceTest(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/test", user);
         context.DatasourceId = datasourceId;
@@ -211,11 +191,7 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaGet(
-        string datasourceId,
-        string schemaName,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForSchemaGet(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("schemas/get", user);
         context.DatasourceId = datasourceId;
@@ -249,11 +225,7 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaDrop(
-        string datasourceId,
-        string schemaName,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForSchemaDrop(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("schemas/delete", user);
         context.DatasourceId = datasourceId;
@@ -513,11 +485,7 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="requestBody">The view to create.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewCreate(
-        string datasourceId,
-        object requestBody,
-        ClaimsPrincipal? user = null
-    )
+    public static IOperationContext ForViewCreate(string datasourceId, object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("views/post", user);
         context.DatasourceId = datasourceId;
@@ -1462,9 +1430,7 @@ public static class OperationIdentifiers
 
         if (queryParams != null)
         {
-            context.QueryParameters ??= new Dictionary<string, StringValues>(
-                StringComparer.OrdinalIgnoreCase
-            );
+            context.QueryParameters ??= new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, value) in queryParams)
             {
                 context.QueryParameters[key] = value;
@@ -1473,9 +1439,7 @@ public static class OperationIdentifiers
 
         if (headers != null)
         {
-            context.HeaderValues ??= new Dictionary<string, string>(
-                StringComparer.OrdinalIgnoreCase
-            );
+            context.HeaderValues ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
             foreach (var (key, value) in headers)
             {
                 context.HeaderValues[key] = value;

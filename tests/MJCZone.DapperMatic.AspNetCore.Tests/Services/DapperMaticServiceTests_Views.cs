@@ -33,18 +33,9 @@ public partial class DapperMaticServiceTests
         await CreateTestTableWithoutViews(service, datasourceId, tableName, schemaName);
 
         // Non-existent view throws NotFound
-        var invalidViewContext = OperationIdentifiers.ForViewGet(
-            datasourceId,
-            "NonExistentView",
-            schemaName
-        );
+        var invalidViewContext = OperationIdentifiers.ForViewGet(datasourceId, "NonExistentView", schemaName);
         var invalidViewAct = async () =>
-            await service.GetViewAsync(
-                invalidViewContext,
-                datasourceId,
-                "NonExistentView",
-                schemaName
-            );
+            await service.GetViewAsync(invalidViewContext, datasourceId, "NonExistentView", schemaName);
         await invalidViewAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Retrieve Views (should be empty)
@@ -65,11 +56,7 @@ public partial class DapperMaticServiceTests
             Definition = $"SELECT * FROM {tableName}",
         };
         var createContext = OperationIdentifiers.ForViewCreate(datasourceId, createViewRequest);
-        var createdView = await service.CreateViewAsync(
-            createContext,
-            datasourceId,
-            createViewRequest
-        );
+        var createdView = await service.CreateViewAsync(createContext, datasourceId, createViewRequest);
         var createViewRequest2 = new ViewDto
         {
             ViewName = viewName + "2",
@@ -77,28 +64,15 @@ public partial class DapperMaticServiceTests
             Definition = $"SELECT Id, Name FROM {tableName}",
         };
         var createContext2 = OperationIdentifiers.ForViewCreate(datasourceId, createViewRequest2);
-        var createdView2 = await service.CreateViewAsync(
-            createContext2,
-            datasourceId,
-            createViewRequest2
-        );
+        var createdView2 = await service.CreateViewAsync(createContext2, datasourceId, createViewRequest2);
 
         // Verify Views added
         views = await service.GetViewsAsync(listContext, datasourceId, schemaName: schemaName);
         views.Should().HaveCount(2);
 
         // Verify single View exists
-        var viewContext = OperationIdentifiers.ForViewGet(
-            datasourceId,
-            createdView.ViewName!,
-            schemaName
-        );
-        var retrievedView = await service.GetViewAsync(
-            viewContext,
-            datasourceId,
-            createdView.ViewName!,
-            schemaName
-        );
+        var viewContext = OperationIdentifiers.ForViewGet(datasourceId, createdView.ViewName!, schemaName);
+        var retrievedView = await service.GetViewAsync(viewContext, datasourceId, createdView.ViewName!, schemaName);
         retrievedView.Should().BeEquivalentTo(createdView);
         retrievedView.Definition.Should().ContainEquivalentOf(tableName);
         // This actually only works for SQL Server and SQLite due to how the other DBs store view definitions
@@ -113,8 +87,7 @@ public partial class DapperMaticServiceTests
         }
 
         // Attempt to add duplicate View (should fail)
-        var duplicateAct = async () =>
-            await service.CreateViewAsync(createContext, datasourceId, createViewRequest);
+        var duplicateAct = async () => await service.CreateViewAsync(createContext, datasourceId, createViewRequest);
         await duplicateAct.Should().ThrowAsync<DuplicateKeyException>();
 
         // Rename View
@@ -136,12 +109,7 @@ public partial class DapperMaticServiceTests
         renamedView.ViewName.Should().BeEquivalentTo(newViewName);
 
         // Verify View renamed
-        renamedView = await service.GetViewAsync(
-            renameContext,
-            datasourceId,
-            newViewName,
-            schemaName
-        );
+        renamedView = await service.GetViewAsync(renameContext, datasourceId, newViewName, schemaName);
         renamedView.Should().NotBeNull();
         renamedView.ViewName.Should().BeEquivalentTo(newViewName);
 
@@ -163,17 +131,8 @@ public partial class DapperMaticServiceTests
             SchemaName = schemaName,
             Definition = $"SELECT Id, Name, CreatedAt FROM {tableName}",
         };
-        var updateContext = OperationIdentifiers.ForViewUpdate(
-            datasourceId,
-            newViewName,
-            updateRequest
-        );
-        var updatedView = await service.UpdateViewAsync(
-            updateContext,
-            datasourceId,
-            newViewName,
-            updateRequest
-        );
+        var updateContext = OperationIdentifiers.ForViewUpdate(datasourceId, newViewName, updateRequest);
+        var updatedView = await service.UpdateViewAsync(updateContext, datasourceId, newViewName, updateRequest);
         updatedView.Should().NotBeNull();
         updatedView.Definition.Should().ContainEquivalentOf(tableName);
         updatedView.Definition.Should().ContainEquivalentOf("CreatedAt");
@@ -185,18 +144,8 @@ public partial class DapperMaticServiceTests
             Skip = 0,
             Filters = new Dictionary<string, string> { { "Name.eq", "Chili Flakes" } },
         };
-        var queryContext = OperationIdentifiers.ForViewQuery(
-            datasourceId,
-            newViewName,
-            queryRequest,
-            schemaName
-        );
-        var queryResult = await service.QueryViewAsync(
-            queryContext,
-            datasourceId,
-            newViewName,
-            queryRequest
-        );
+        var queryContext = OperationIdentifiers.ForViewQuery(datasourceId, newViewName, queryRequest, schemaName);
+        var queryResult = await service.QueryViewAsync(queryContext, datasourceId, newViewName, queryRequest);
         queryResult.Should().NotBeNull();
         queryResult.Data.Should().NotBeNull();
         queryResult.Data.Should().BeEmpty();
@@ -209,16 +158,11 @@ public partial class DapperMaticServiceTests
         views = await service.GetViewsAsync(listContext, datasourceId, schemaName: schemaName);
         views.Should().HaveCount(1);
 
-        var getDroppedAct = async () =>
-            await service.GetViewAsync(dropContext, datasourceId, newViewName, schemaName);
+        var getDroppedAct = async () => await service.GetViewAsync(dropContext, datasourceId, newViewName, schemaName);
         await getDroppedAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Cleanup - drop test table
-        var dropTableContext = OperationIdentifiers.ForTableDrop(
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var dropTableContext = OperationIdentifiers.ForTableDrop(datasourceId, tableName, schemaName);
         await service.DropTableAsync(dropTableContext, datasourceId, tableName, schemaName);
     }
 
@@ -234,11 +178,7 @@ public partial class DapperMaticServiceTests
 
         // Verify initial state - get initial view count
         var context = OperationIdentifiers.ForViewList(datasourceId, schemaName);
-        var initialViews = await service.GetViewsAsync(
-            context,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var initialViews = await service.GetViewsAsync(context, datasourceId, schemaName: schemaName);
         initialViews.Should().NotBeNull();
         var initialViewCount = initialViews.Count();
 
@@ -247,70 +187,29 @@ public partial class DapperMaticServiceTests
         // ***********************************************
 
         // Create multiple test views with different structures
-        var simpleView = await CreateSimpleTestView(
-            service,
-            datasourceId,
-            "WorkflowTest_SimpleView",
-            schemaName
-        );
-        var complexView = await CreateComplexTestView(
-            service,
-            datasourceId,
-            "WorkflowTest_ComplexView",
-            schemaName
-        );
-        var dataView = await CreateTestViewWithData(
-            service,
-            datasourceId,
-            "WorkflowTest_DataView",
-            schemaName
-        );
+        var simpleView = await CreateSimpleTestView(service, datasourceId, "WorkflowTest_SimpleView", schemaName);
+        var complexView = await CreateComplexTestView(service, datasourceId, "WorkflowTest_ComplexView", schemaName);
+        var dataView = await CreateTestViewWithData(service, datasourceId, "WorkflowTest_DataView", schemaName);
 
         simpleView.Should().NotBeNull();
         complexView.Should().NotBeNull();
         dataView.Should().NotBeNull();
 
         // Verify view creation - should now have 3 more views
-        var viewsAfterCreation = await service.GetViewsAsync(
-            context,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var viewsAfterCreation = await service.GetViewsAsync(context, datasourceId, schemaName: schemaName);
         viewsAfterCreation.Should().HaveCount(initialViewCount + 3);
         viewsAfterCreation
             .Should()
-            .Contain(v =>
-                string.Equals(
-                    v.ViewName,
-                    "WorkflowTest_SimpleView",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(v => string.Equals(v.ViewName, "WorkflowTest_SimpleView", StringComparison.OrdinalIgnoreCase));
         viewsAfterCreation
             .Should()
-            .Contain(v =>
-                string.Equals(
-                    v.ViewName,
-                    "WorkflowTest_ComplexView",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(v => string.Equals(v.ViewName, "WorkflowTest_ComplexView", StringComparison.OrdinalIgnoreCase));
         viewsAfterCreation
             .Should()
-            .Contain(v =>
-                string.Equals(
-                    v.ViewName,
-                    "WorkflowTest_DataView",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(v => string.Equals(v.ViewName, "WorkflowTest_DataView", StringComparison.OrdinalIgnoreCase));
 
         // Step 4: Get specific view with full details
-        var getContext = OperationIdentifiers.ForViewGet(
-            datasourceId,
-            "WorkflowTest_ComplexView",
-            schemaName
-        );
+        var getContext = OperationIdentifiers.ForViewGet(datasourceId, "WorkflowTest_ComplexView", schemaName);
         var specificView = await service.GetViewAsync(
             getContext,
             datasourceId,
@@ -318,11 +217,7 @@ public partial class DapperMaticServiceTests
             schemaName: schemaName
         );
         specificView.Should().NotBeNull();
-        string.Equals(
-                specificView!.ViewName,
-                "WorkflowTest_ComplexView",
-                StringComparison.OrdinalIgnoreCase
-            )
+        string.Equals(specificView!.ViewName, "WorkflowTest_ComplexView", StringComparison.OrdinalIgnoreCase)
             .Should()
             .BeTrue();
         specificView.Definition.Should().NotBeNullOrEmpty();
@@ -350,22 +245,14 @@ public partial class DapperMaticServiceTests
             "WorkflowTest_ComplexView",
             schemaName: schemaName
         );
-        var dataExistsContext = OperationIdentifiers.ForViewExists(
-            datasourceId,
-            "WorkflowTest_DataView",
-            schemaName
-        );
+        var dataExistsContext = OperationIdentifiers.ForViewExists(datasourceId, "WorkflowTest_DataView", schemaName);
         var dataExists = await service.ViewExistsAsync(
             dataExistsContext,
             datasourceId,
             "WorkflowTest_DataView",
             schemaName: schemaName
         );
-        var nonExistentExistsContext = OperationIdentifiers.ForViewExists(
-            datasourceId,
-            "NonExistentView",
-            schemaName
-        );
+        var nonExistentExistsContext = OperationIdentifiers.ForViewExists(datasourceId, "NonExistentView", schemaName);
         var nonExistentExists = await service.ViewExistsAsync(
             nonExistentExistsContext,
             datasourceId,
@@ -379,12 +266,7 @@ public partial class DapperMaticServiceTests
         nonExistentExists.Should().BeFalse();
 
         // Create view with known data
-        await CreateTestView(
-            service,
-            datasourceId,
-            "QueryableView",
-            "SELECT 1 AS Id, 'Test' AS Name"
-        );
+        await CreateTestView(service, datasourceId, "QueryableView", "SELECT 1 AS Id, 'Test' AS Name");
 
         var request = new QueryDto
         {
@@ -393,17 +275,8 @@ public partial class DapperMaticServiceTests
             IncludeTotal = true,
         };
 
-        var queryContext = OperationIdentifiers.ForViewQuery(
-            datasourceId,
-            "QueryableView",
-            request
-        );
-        var result = await service.QueryViewAsync(
-            queryContext,
-            datasourceId,
-            "QueryableView",
-            request
-        );
+        var queryContext = OperationIdentifiers.ForViewQuery(datasourceId, "QueryableView", request);
+        var result = await service.QueryViewAsync(queryContext, datasourceId, "QueryableView", request);
 
         result.Should().NotBeNull();
         result.Data.Should().NotBeEmpty();
@@ -427,12 +300,7 @@ public partial class DapperMaticServiceTests
         };
 
         queryContext = OperationIdentifiers.ForViewQuery(datasourceId, "FilterableView", request);
-        result = await service.QueryViewAsync(
-            queryContext,
-            datasourceId,
-            "FilterableView",
-            request
-        );
+        result = await service.QueryViewAsync(queryContext, datasourceId, "FilterableView", request);
 
         result.Should().NotBeNull();
         result.Data.Should().NotBeEmpty();
@@ -453,12 +321,7 @@ public partial class DapperMaticServiceTests
         };
 
         queryContext = OperationIdentifiers.ForViewQuery(datasourceId, "SelectableView", request);
-        result = await service.QueryViewAsync(
-            queryContext,
-            datasourceId,
-            "SelectableView",
-            request
-        );
+        result = await service.QueryViewAsync(queryContext, datasourceId, "SelectableView", request);
 
         result.Should().NotBeNull();
         result.Data.Should().NotBeEmpty();
@@ -472,11 +335,7 @@ public partial class DapperMaticServiceTests
         );
         foreach (var view in allViews)
         {
-            var dropContext = OperationIdentifiers.ForViewDrop(
-                datasourceId,
-                view.ViewName!,
-                schemaName
-            );
+            var dropContext = OperationIdentifiers.ForViewDrop(datasourceId, view.ViewName!, schemaName);
             await service.DropViewAsync(dropContext, datasourceId, view.ViewName!, schemaName);
         }
     }
@@ -513,10 +372,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },
@@ -527,19 +384,12 @@ public partial class DapperMaticServiceTests
         return await service.CreateTableAsync(context, datasourceId, request);
     }
 
-    private async Task CheckInvalidDatasourceHandlingFetchingViews(
-        IDapperMaticService service,
-        string? schemaName
-    )
+    private async Task CheckInvalidDatasourceHandlingFetchingViews(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";
         var invalidContext = OperationIdentifiers.ForViewList(invalidDatasourceId, schemaName);
         var invalidAct = async () =>
-            await service.GetViewsAsync(
-                invalidContext,
-                invalidDatasourceId,
-                schemaName: schemaName
-            );
+            await service.GetViewsAsync(invalidContext, invalidDatasourceId, schemaName: schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -559,8 +409,7 @@ public partial class DapperMaticServiceTests
         }
 
         var invalidContext = OperationIdentifiers.ForViewList(datasourceId, schemaName);
-        var invalidAct = async () =>
-            await service.GetViewsAsync(invalidContext, datasourceId, schemaName);
+        var invalidAct = async () => await service.GetViewsAsync(invalidContext, datasourceId, schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -575,9 +424,7 @@ public partial class DapperMaticServiceTests
 
         var context = OperationIdentifiers.ForViewCreate(datasourceId, view);
         var result = await service.CreateViewAsync(context, datasourceId, view);
-        result
-            .Should()
-            .NotBeNull($"Failed to create view '{viewName}' in datasource '{datasourceId}'");
+        result.Should().NotBeNull($"Failed to create view '{viewName}' in datasource '{datasourceId}'");
     }
 
     private static async Task<ViewDto?> CreateSimpleTestView(
@@ -641,8 +488,7 @@ public partial class DapperMaticServiceTests
         {
             SchemaName = schemaName,
             ViewName = viewName,
-            Definition =
-                "SELECT 1 AS Id, 'Active' AS Status, 25 AS Age UNION ALL SELECT 2, 'Inactive', 30",
+            Definition = "SELECT 1 AS Id, 'Active' AS Status, 25 AS Age UNION ALL SELECT 2, 'Inactive', 30",
         };
 
         var context = OperationIdentifiers.ForViewCreate(datasourceId, view);

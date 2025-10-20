@@ -50,22 +50,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             columns = await connection
@@ -73,8 +62,7 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(context, true, $"Retrieved columns from table '{tableName}'")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Retrieved columns from table '{tableName}'").ConfigureAwait(false);
         return columns.ToColumnDtos();
     }
 
@@ -114,45 +102,23 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var column = await connection
-                .GetColumnAsync(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    cancellationToken: cancellationToken
-                )
+                .GetColumnAsync(schemaName, tableName, columnName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             if (column == null)
             {
-                throw new KeyNotFoundException(
-                    $"Column '{columnName}' does not exist in table '{tableName}'."
-                );
+                throw new KeyNotFoundException($"Column '{columnName}' does not exist in table '{tableName}'.");
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved column '{columnName}' from table '{tableName}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved column '{columnName}' from table '{tableName}'")
                 .ConfigureAwait(false);
             return column.ToColumnDto();
         }
@@ -206,38 +172,20 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check column doesn't already exist
             var exists = await connection
-                .DoesColumnExistAsync(
-                    schemaName,
-                    tableName,
-                    column.ColumnName,
-                    cancellationToken: cancellationToken
-                )
+                .DoesColumnExistAsync(schemaName, tableName, column.ColumnName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             if (exists)
             {
-                throw new DuplicateKeyException(
-                    $"Column '{column.ColumnName}' already exists on table '{tableName}'."
-                );
+                throw new DuplicateKeyException($"Column '{column.ColumnName}' already exists on table '{tableName}'.");
             }
 
             var dmColumn = new DmColumn(
@@ -271,19 +219,12 @@ public partial class DapperMaticService
             }
 
             var createdColumn = await connection
-                .GetColumnAsync(
-                    schemaName,
-                    tableName,
-                    column.ColumnName,
-                    cancellationToken: cancellationToken
-                )
+                .GetColumnAsync(schemaName, tableName, column.ColumnName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             if (createdColumn == null)
             {
-                throw new InvalidOperationException(
-                    $"Failed to retrieve the created column '{dmColumn.ColumnName}'."
-                );
+                throw new InvalidOperationException($"Failed to retrieve the created column '{dmColumn.ColumnName}'.");
             }
 
             await LogAuditEventAsync(
@@ -339,73 +280,39 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check column doesn't already exist
             var exists = await connection
-                .DoesColumnExistAsync(
-                    schemaName,
-                    tableName,
-                    newColumnName,
-                    cancellationToken: cancellationToken
-                )
+                .DoesColumnExistAsync(schemaName, tableName, newColumnName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             if (exists)
             {
-                throw new DuplicateKeyException(
-                    $"Column '{newColumnName}' already exists on table '{tableName}'."
-                );
+                throw new DuplicateKeyException($"Column '{newColumnName}' already exists on table '{tableName}'.");
             }
 
             var renamed = await connection
-                .RenameColumnIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    newColumnName,
-                    null,
-                    cancellationToken
-                )
+                .RenameColumnIfExistsAsync(schemaName, tableName, columnName, newColumnName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!renamed)
             {
-                throw new InvalidOperationException(
-                    $"Failed to rename column '{columnName}' to '{newColumnName}'."
-                );
+                throw new InvalidOperationException($"Failed to rename column '{columnName}' to '{newColumnName}'.");
             }
 
             // If renamed, fetch the full column details
             var column = await connection
-                .GetColumnAsync(
-                    schemaName,
-                    tableName,
-                    newColumnName,
-                    cancellationToken: cancellationToken
-                )
+                .GetColumnAsync(schemaName, tableName, newColumnName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             if (column == null)
             {
-                throw new InvalidOperationException(
-                    $"Failed to retrieve the renamed column '{newColumnName}'."
-                );
+                throw new InvalidOperationException($"Failed to retrieve the renamed column '{newColumnName}'.");
             }
 
             await LogAuditEventAsync(
@@ -454,32 +361,16 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             if (
                 !await connection
-                    .DoesColumnExistAsync(
-                        schemaName,
-                        tableName,
-                        columnName,
-                        cancellationToken: cancellationToken
-                    )
+                    .DoesColumnExistAsync(schemaName, tableName, columnName, cancellationToken: cancellationToken)
                     .ConfigureAwait(false)
             )
             {
@@ -492,9 +383,7 @@ public partial class DapperMaticService
 
             if (!dropped)
             {
-                throw new InvalidOperationException(
-                    $"Failed to drop column '{columnName}' for an unknown reason."
-                );
+                throw new InvalidOperationException($"Failed to drop column '{columnName}' for an unknown reason.");
             }
 
             await LogAuditEventAsync(

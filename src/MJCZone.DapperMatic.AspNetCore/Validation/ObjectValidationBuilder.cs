@@ -94,10 +94,8 @@ public class ObjectValidationBuilder<T>
         var value = selector(_item);
 
         if (
-            value?.Equals(
-                compareValue,
-                ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
-            ) != true
+            value?.Equals(compareValue, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+            != true
         )
         {
             AddOrUpdateError(
@@ -127,10 +125,8 @@ public class ObjectValidationBuilder<T>
         var value = selector(_item);
 
         if (
-            value?.Equals(
-                compareValue,
-                ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
-            ) == true
+            value?.Equals(compareValue, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal)
+            == true
         )
         {
             AddOrUpdateError(
@@ -217,11 +213,7 @@ public class ObjectValidationBuilder<T>
     /// <param name="propertyName">The name of the property being validated (for error messages).</param>
     /// <param name="errorMessage">The error message to add if the validation fails.</param>
     /// <returns>The current <see cref="ObjectValidationBuilder{T}"/> instance for method chaining.</returns>
-    public ObjectValidationBuilder<T> Custom(
-        Func<T, bool> condition,
-        string propertyName,
-        string errorMessage
-    )
+    public ObjectValidationBuilder<T> Custom(Func<T, bool> condition, string propertyName, string errorMessage)
     {
         if (!condition(_item))
         {

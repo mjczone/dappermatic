@@ -18,10 +18,7 @@ public static class CommonProviderCheckExpressions
     /// <param name="columnName">The column name to check.</param>
     /// <param name="length">The minimum length (exclusive). Default is 0.</param>
     /// <returns>A function that generates provider-specific check expressions.</returns>
-    public static Func<DbProviderType, string> LengthGreaterThanCheck(
-        string columnName,
-        int length = 0
-    ) =>
+    public static Func<DbProviderType, string> LengthGreaterThanCheck(string columnName, int length = 0) =>
         provider =>
             provider switch
             {
@@ -37,10 +34,7 @@ public static class CommonProviderCheckExpressions
     /// <param name="columnName">The column name to check.</param>
     /// <param name="length">The minimum length (inclusive). Default is 0.</param>
     /// <returns>A function that generates provider-specific check expressions.</returns>
-    public static Func<DbProviderType, string> LengthGreaterThanOrEqualCheck(
-        string columnName,
-        int length = 0
-    ) =>
+    public static Func<DbProviderType, string> LengthGreaterThanOrEqualCheck(string columnName, int length = 0) =>
         provider =>
             provider switch
             {
@@ -72,10 +66,7 @@ public static class CommonProviderCheckExpressions
     /// <param name="columnName">The column name to check.</param>
     /// <param name="length">The maximum length (inclusive).</param>
     /// <returns>A function that generates provider-specific check expressions.</returns>
-    public static Func<DbProviderType, string> LengthLessThanOrEqualCheck(
-        string columnName,
-        int length
-    ) =>
+    public static Func<DbProviderType, string> LengthLessThanOrEqualCheck(string columnName, int length) =>
         provider =>
             provider switch
             {

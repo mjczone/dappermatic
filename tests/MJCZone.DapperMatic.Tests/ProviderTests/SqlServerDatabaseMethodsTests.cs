@@ -21,35 +21,29 @@ namespace MJCZone.DapperMatic.Tests.ProviderTests;
 /// <summary>
 /// Testing SqlServer 2022 Linux (CU image)
 /// </summary>
-public class SqlServer_2022_DatabaseMethodsTests(
-    SqlServer_2022_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : SqlServerDatabaseMethodsests<SqlServer_2022_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2022_DatabaseMethodsTests(SqlServer_2022_DatabaseFixture fixture, ITestOutputHelper output)
+    : SqlServerDatabaseMethodsests<SqlServer_2022_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing SqlServer 2019
 /// </summary>
-public class SqlServer_2019_DatabaseMethodsTests(
-    SqlServer_2019_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : SqlServerDatabaseMethodsests<SqlServer_2019_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2019_DatabaseMethodsTests(SqlServer_2019_DatabaseFixture fixture, ITestOutputHelper output)
+    : SqlServerDatabaseMethodsests<SqlServer_2019_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing SqlServer 2017
 /// </summary>
-public class SqlServer_2017_DatabaseMethodsTests(
-    SqlServer_2017_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : SqlServerDatabaseMethodsests<SqlServer_2017_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2017_DatabaseMethodsTests(SqlServer_2017_DatabaseFixture fixture, ITestOutputHelper output)
+    : SqlServerDatabaseMethodsests<SqlServer_2017_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Abstract class for Postgres database tests
 /// </summary>
 /// <typeparam name="TDatabaseFixture"></typeparam>
-public abstract class SqlServerDatabaseMethodsests<TDatabaseFixture>(
-    TDatabaseFixture fixture,
-    ITestOutputHelper output
-) : DatabaseMethodsTests(output), IClassFixture<TDatabaseFixture>, IDisposable
+public abstract class SqlServerDatabaseMethodsests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
+    : DatabaseMethodsTests(output),
+        IClassFixture<TDatabaseFixture>,
+        IDisposable
     where TDatabaseFixture : SqlServerDatabaseFixture
 {
     static SqlServerDatabaseMethodsests()

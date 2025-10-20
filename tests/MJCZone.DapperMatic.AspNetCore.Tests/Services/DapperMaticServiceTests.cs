@@ -10,7 +10,5 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Services;
 /// <summary>
 /// Unit tests for DapperMatic service constraint operations.
 /// </summary>
-public partial class DapperMaticServiceTests(
-    TestcontainersAssemblyFixture fixture,
-    ITestOutputHelper outputHelper
-) : DapperMaticServiceTestBase(fixture, outputHelper) { }
+public partial class DapperMaticServiceTests(TestcontainersAssemblyFixture fixture, ITestOutputHelper outputHelper)
+    : DapperMaticServiceTestBase(fixture, outputHelper) { }

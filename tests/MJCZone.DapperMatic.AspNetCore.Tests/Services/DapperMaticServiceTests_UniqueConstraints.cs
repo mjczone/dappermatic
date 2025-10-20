@@ -34,11 +34,7 @@ public partial class DapperMaticServiceTests
 
         // Get Unique Constraints on table without unique constraints returns empty list
         var uniqueConstraints = await service.GetUniqueConstraintsAsync(
-            context: OperationIdentifiers.ForUniqueConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForUniqueConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -68,17 +64,11 @@ public partial class DapperMaticServiceTests
         );
         addUcResult.Should().NotBeNull();
         addUcResult.ConstraintName.Should().BeEquivalentTo(uniqueConstraintName);
-        addUcResult
-            .ColumnNames.Should()
-            .BeEquivalentTo(uniqueConstraintRequest.ColumnNames, (_) => _.IgnoringCase());
+        addUcResult.ColumnNames.Should().BeEquivalentTo(uniqueConstraintRequest.ColumnNames, (_) => _.IgnoringCase());
 
         // Verify Unique Constraint was added
         uniqueConstraints = await service.GetUniqueConstraintsAsync(
-            context: OperationIdentifiers.ForUniqueConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForUniqueConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -130,11 +120,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Unique Constraint was dropped
         uniqueConstraints = await service.GetUniqueConstraintsAsync(
-            context: OperationIdentifiers.ForUniqueConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForUniqueConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -253,10 +239,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },

@@ -25,9 +25,7 @@ public partial class SqlServerMethods
         CancellationToken cancellationToken = default
     )
     {
-        if (
-            !await DoesSchemaExistAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false)
-        )
+        if (!await DoesSchemaExistAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
@@ -40,11 +38,7 @@ public partial class SqlServerMethods
             await (db as DbConnection)!.OpenAsync(cancellationToken).ConfigureAwait(false);
         }
 
-        var innerTx =
-            tx
-            ?? await (db as DbConnection)!
-                .BeginTransactionAsync(cancellationToken)
-                .ConfigureAwait(false);
+        var innerTx = tx ?? await (db as DbConnection)!.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             // drop all objects in the schemaName (except tables, which will be handled separately)
@@ -154,12 +148,7 @@ public partial class SqlServerMethods
             }
 
             // drop the schemaName itself
-            await ExecuteAsync(
-                    db,
-                    $"DROP SCHEMA [{schemaName}]",
-                    tx: innerTx,
-                    cancellationToken: cancellationToken
-                )
+            await ExecuteAsync(db, $"DROP SCHEMA [{schemaName}]", tx: innerTx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             if (tx == null)

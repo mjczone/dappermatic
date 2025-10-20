@@ -32,14 +32,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesDefaultConstraintExistAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DoesDefaultConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -63,14 +56,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesDefaultConstraintExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesDefaultConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -151,14 +137,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetDefaultConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .GetDefaultConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -182,14 +161,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetDefaultConstraintNameOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetDefaultConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -213,14 +185,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetDefaultConstraintNamesAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetDefaultConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -244,14 +209,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetDefaultConstraintOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetDefaultConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -275,14 +233,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetDefaultConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetDefaultConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -306,14 +257,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropDefaultConstraintIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DropDefaultConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -337,14 +281,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropDefaultConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropDefaultConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
     #endregion // IDatabaseDefaultConstraintMethods

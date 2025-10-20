@@ -59,9 +59,8 @@ public partial class OperationContextInitializer : IOperationContextInitializer
     public virtual Task InitializeAsync(IOperationContext context, HttpContext httpContext)
     {
         var basePathFromOptions =
-            httpContext
-                .RequestServices.GetService<IOptions<DapperMaticOptions>>()
-                ?.Value.BasePath?.TrimEnd('/') ?? string.Empty;
+            httpContext.RequestServices.GetService<IOptions<DapperMaticOptions>>()?.Value.BasePath?.TrimEnd('/')
+            ?? string.Empty;
         var endpoint = httpContext.GetEndpoint() as RouteEndpoint;
         var routePattern = endpoint?.RoutePattern.RawText; // e.g., "/api/d/{datasourceId}"
 
@@ -112,9 +111,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
         // Populate HTTP context information in Properties for potential endpoint inference
         context.HttpMethod ??= httpContext.Request.Method;
         context.EndpointPath ??= httpContext.Request.Path.Value ?? string.Empty;
-        context.QueryParameters ??= new Dictionary<string, StringValues>(
-            StringComparer.OrdinalIgnoreCase
-        );
+        context.QueryParameters ??= new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
         context.RouteValues ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         context.HeaderValues ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
@@ -155,11 +152,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
             // If known route values exist, set them in the context
             if (
                 string.IsNullOrWhiteSpace(context.DatasourceId)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(context.DatasourceId),
-                    out var dsIdStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(context.DatasourceId), out var dsIdStr)
             )
             {
                 context.DatasourceId = dsIdStr;
@@ -167,11 +160,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
             if (
                 string.IsNullOrWhiteSpace(context.SchemaName)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(context.SchemaName),
-                    out var schemaStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(context.SchemaName), out var schemaStr)
             )
             {
                 context.SchemaName = schemaStr;
@@ -179,11 +168,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
             if (
                 string.IsNullOrWhiteSpace(context.TableName)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(context.TableName),
-                    out var tableStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(context.TableName), out var tableStr)
             )
             {
                 context.TableName = tableStr;
@@ -199,11 +184,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
             if (
                 (context.ColumnNames == null || context.ColumnNames.Count == 0)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(ColumnDto.ColumnName),
-                    out var columnStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(ColumnDto.ColumnName), out var columnStr)
             )
             {
                 context.ColumnNames = [columnStr];
@@ -211,11 +192,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
             if (
                 string.IsNullOrWhiteSpace(context.IndexName)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(context.IndexName),
-                    out var indexStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(context.IndexName), out var indexStr)
             )
             {
                 context.IndexName = indexStr;
@@ -223,11 +200,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
             if (
                 string.IsNullOrWhiteSpace(context.ConstraintName)
-                && TryGetRouteValue(
-                    context.RouteValues,
-                    nameof(context.ConstraintName),
-                    out var constraintStr
-                )
+                && TryGetRouteValue(context.RouteValues, nameof(context.ConstraintName), out var constraintStr)
             )
             {
                 context.ConstraintName = constraintStr;
@@ -237,12 +210,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
         if (string.IsNullOrWhiteSpace(context.Operation))
         {
             var resourceType = GetContextResourceType(context);
-            var operationVerb = GetContextOperationVerb(
-                context,
-                endpoint,
-                resourceType,
-                httpContext.Request.Method
-            );
+            var operationVerb = GetContextOperationVerb(context, endpoint, resourceType, httpContext.Request.Method);
             context.Operation ??= $"{resourceType}/{operationVerb}";
         }
 
@@ -309,10 +277,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
         var methodLowerCase = method.ToLowerInvariant();
         if (methodLowerCase == "post")
         {
-            if (
-                routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase)
-                && resourceType == "datasources"
-            )
+            if (routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase) && resourceType == "datasources")
             {
                 return "test";
             }
@@ -343,10 +308,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
 
         if (methodLowerCase == "get")
         {
-            if (
-                routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase)
-                && resourceType == "datasources"
-            )
+            if (routePattern.EndsWith("/test", StringComparison.OrdinalIgnoreCase) && resourceType == "datasources")
             {
                 return "test";
             }
@@ -359,9 +321,7 @@ public partial class OperationContextInitializer : IOperationContextInitializer
             }
 
             // If the route pattern ends with a parameter, it's a "get" operation
-            return
-                routePattern.EndsWith('}')
-                || routePattern.EndsWith("/exists", StringComparison.OrdinalIgnoreCase)
+            return routePattern.EndsWith('}') || routePattern.EndsWith("/exists", StringComparison.OrdinalIgnoreCase)
                 ? "get"
                 : "list";
         }
@@ -369,16 +329,11 @@ public partial class OperationContextInitializer : IOperationContextInitializer
         return "unknown";
     }
 
-    private bool TryGetRouteValue(
-        Dictionary<string, string> routeValues,
-        string key,
-        out string dsIdStr
-    )
+    private bool TryGetRouteValue(Dictionary<string, string> routeValues, string key, out string dsIdStr)
     {
         if (
             // TryGetValue but ignore case
-            routeValues.TryGetValue(key, out var dsIdStrVal)
-            && !string.IsNullOrWhiteSpace(dsIdStrVal)
+            routeValues.TryGetValue(key, out var dsIdStrVal) && !string.IsNullOrWhiteSpace(dsIdStrVal)
         )
         {
             dsIdStr = dsIdStrVal;

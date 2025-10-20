@@ -32,14 +32,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesIndexExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesIndexExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -82,9 +75,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .CreateIndexIfNotExistsAsync(db, index, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).CreateIndexIfNotExistsAsync(db, index, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -111,16 +102,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .CreateIndexIfNotExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                indexName,
-                columns,
-                isUnique,
-                tx,
-                cancellationToken
-            )
+            .CreateIndexIfNotExistsAsync(db, schemaName, tableName, indexName, columns, isUnique, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -216,14 +198,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetIndexNamesOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetIndexNamesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -271,14 +246,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropIndexesOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropIndexesOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 

@@ -22,21 +22,22 @@ public class SqliteTypeMapping : IProviderTypeMapping
     public bool IsUnicodeProvider => false; // SQLite can handle both, but we default to non-Unicode
 
     /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } = new()
-    {
-        { typeof(byte), SqliteTypes.sql_tinyint },
-        { typeof(sbyte), SqliteTypes.sql_tinyint },
-        { typeof(short), SqliteTypes.sql_smallint },
-        { typeof(ushort), SqliteTypes.sql_smallint },
-        { typeof(int), SqliteTypes.sql_int },
-        { typeof(uint), SqliteTypes.sql_int },
-        { typeof(System.Numerics.BigInteger), SqliteTypes.sql_bigint },
-        { typeof(long), SqliteTypes.sql_bigint },
-        { typeof(ulong), SqliteTypes.sql_bigint },
-        { typeof(float), SqliteTypes.sql_real },
-        { typeof(double), SqliteTypes.sql_double },
-        { typeof(decimal), SqliteTypes.sql_numeric },
-    };
+    public Dictionary<Type, string> NumericTypeMap { get; } =
+        new()
+        {
+            { typeof(byte), SqliteTypes.sql_tinyint },
+            { typeof(sbyte), SqliteTypes.sql_tinyint },
+            { typeof(short), SqliteTypes.sql_smallint },
+            { typeof(ushort), SqliteTypes.sql_smallint },
+            { typeof(int), SqliteTypes.sql_int },
+            { typeof(uint), SqliteTypes.sql_int },
+            { typeof(System.Numerics.BigInteger), SqliteTypes.sql_bigint },
+            { typeof(long), SqliteTypes.sql_bigint },
+            { typeof(ulong), SqliteTypes.sql_bigint },
+            { typeof(float), SqliteTypes.sql_real },
+            { typeof(double), SqliteTypes.sql_double },
+            { typeof(decimal), SqliteTypes.sql_numeric },
+        };
 
     /// <inheritdoc />
     public SqlTypeDescriptor CreateGuidType()
@@ -50,7 +51,12 @@ public class SqliteTypeMapping : IProviderTypeMapping
         // SQLite doesn't enforce fixed-length types but preserves type names in schema
         // Using CHAR(1)/NCHAR(1) for consistency with other providers and to enable proper round-tripping
         var sqlType = descriptor.IsUnicode == true ? SqliteTypes.sql_nchar : SqliteTypes.sql_char;
-        return TypeMappingHelpers.CreateStringType(sqlType, length: 1, descriptor.IsUnicode.GetValueOrDefault(false), isFixedLength: true);
+        return TypeMappingHelpers.CreateStringType(
+            sqlType,
+            length: 1,
+            descriptor.IsUnicode.GetValueOrDefault(false),
+            isFixedLength: true
+        );
     }
 
     /// <inheritdoc />
@@ -70,18 +76,21 @@ public class SqliteTypeMapping : IProviderTypeMapping
             // correct type when reading the schema
             return TypeMappingHelpers.CreateLobType(
                 descriptor.IsUnicode == true ? SqliteTypes.sql_nvarchar : SqliteTypes.sql_varchar,
-                descriptor.IsUnicode.GetValueOrDefault(false));
+                descriptor.IsUnicode.GetValueOrDefault(false)
+            );
         }
 
-        var sqlType = descriptor.IsFixedLength == true
-            ? (descriptor.IsUnicode == true ? SqliteTypes.sql_nchar : SqliteTypes.sql_char)
-            : (descriptor.IsUnicode == true ? SqliteTypes.sql_nvarchar : SqliteTypes.sql_varchar);
+        var sqlType =
+            descriptor.IsFixedLength == true
+                ? (descriptor.IsUnicode == true ? SqliteTypes.sql_nchar : SqliteTypes.sql_char)
+                : (descriptor.IsUnicode == true ? SqliteTypes.sql_nvarchar : SqliteTypes.sql_varchar);
 
         return TypeMappingHelpers.CreateStringType(
             sqlType,
             descriptor.Length,
             descriptor.IsUnicode.GetValueOrDefault(false),
-            descriptor.IsFixedLength.GetValueOrDefault(false));
+            descriptor.IsFixedLength.GetValueOrDefault(false)
+        );
     }
 
     /// <inheritdoc />

@@ -49,22 +49,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             foreignKeys = await connection
@@ -112,32 +101,15 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var foreignKey = await connection
-                .GetForeignKeyConstraintAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .GetForeignKeyConstraintAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (foreignKey == null)
@@ -215,9 +187,7 @@ public partial class DapperMaticService
                             "At least one column is required."
                         )
                         .Custom(
-                            r =>
-                                r.ReferencedColumnNames != null
-                                && r.ReferencedColumnNames.Count > 0,
+                            r => r.ReferencedColumnNames != null && r.ReferencedColumnNames.Count > 0,
                             nameof(foreignKeyConstraint.ReferencedColumnNames),
                             "At least one referenced column is required."
                         )
@@ -229,22 +199,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check referenced table exists
@@ -308,13 +267,7 @@ public partial class DapperMaticService
             {
                 // try to match up the foreign key based on columns if no name was provided
                 var foreignKeys = await connection
-                    .GetForeignKeyConstraintsAsync(
-                        schemaName,
-                        tableName,
-                        null,
-                        null,
-                        cancellationToken
-                    )
+                    .GetForeignKeyConstraintsAsync(schemaName, tableName, null, null, cancellationToken)
                     .ConfigureAwait(false);
 
                 createdForeignKey = foreignKeys.FirstOrDefault(fk =>
@@ -326,9 +279,7 @@ public partial class DapperMaticService
 
                 if (createdForeignKey == null)
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to retrieve the created foreign key constraint."
-                    );
+                    throw new InvalidOperationException($"Failed to retrieve the created foreign key constraint.");
                 }
             }
 
@@ -378,33 +329,16 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check foreign key constraint exists
             var existingConstraint = await connection
-                .DoesForeignKeyConstraintExistAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DoesForeignKeyConstraintExistAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!existingConstraint)
@@ -415,13 +349,7 @@ public partial class DapperMaticService
             }
 
             var dropped = await connection
-                .DropForeignKeyConstraintIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DropForeignKeyConstraintIfExistsAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)

@@ -13,43 +13,35 @@ namespace MJCZone.DapperMatic.Tests.ProviderTests;
 /// <summary>
 /// Testing MariaDb 12.0
 /// </summary>
-public class MariaDb_12_0_DatabaseMethodsTests(
-    MariaDb_12_0_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MariaDbDatabaseMethodsTests<MariaDb_12_0_DatabaseFixture>(fixture, output) { }
+public class MariaDb_12_0_DatabaseMethodsTests(MariaDb_12_0_DatabaseFixture fixture, ITestOutputHelper output)
+    : MariaDbDatabaseMethodsTests<MariaDb_12_0_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing MariaDb 11.8
 /// </summary>
-public class MariaDb_11_8_DatabaseMethodsTests(
-    MariaDb_11_8_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MariaDbDatabaseMethodsTests<MariaDb_11_8_DatabaseFixture>(fixture, output) { }
+public class MariaDb_11_8_DatabaseMethodsTests(MariaDb_11_8_DatabaseFixture fixture, ITestOutputHelper output)
+    : MariaDbDatabaseMethodsTests<MariaDb_11_8_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing MariaDb 11.4
 /// </summary>
-public class MariaDb_11_4_DatabaseMethodsTests(
-    MariaDb_11_4_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MariaDbDatabaseMethodsTests<MariaDb_11_4_DatabaseFixture>(fixture, output) { }
+public class MariaDb_11_4_DatabaseMethodsTests(MariaDb_11_4_DatabaseFixture fixture, ITestOutputHelper output)
+    : MariaDbDatabaseMethodsTests<MariaDb_11_4_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing MariaDb 10.11
 /// </summary>
-public class MariaDb_10_11_DatabaseMethodsTests(
-    MariaDb_10_11_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MariaDbDatabaseMethodsTests<MariaDb_10_11_DatabaseFixture>(fixture, output) { }
+public class MariaDb_10_11_DatabaseMethodsTests(MariaDb_10_11_DatabaseFixture fixture, ITestOutputHelper output)
+    : MariaDbDatabaseMethodsTests<MariaDb_10_11_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Abstract class for MySql database tests
 /// </summary>
 /// <typeparam name="TDatabaseFixture"></typeparam>
-public abstract class MariaDbDatabaseMethodsTests<TDatabaseFixture>(
-    TDatabaseFixture fixture,
-    ITestOutputHelper output
-) : DatabaseMethodsTests(output), IClassFixture<TDatabaseFixture>, IDisposable
+public abstract class MariaDbDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
+    : DatabaseMethodsTests(output),
+        IClassFixture<TDatabaseFixture>,
+        IDisposable
     where TDatabaseFixture : MariaDbDatabaseFixture
 {
     static MariaDbDatabaseMethodsTests()

@@ -28,14 +28,7 @@ public abstract partial class DatabaseMethodsTests
             schemaName,
             tableForView,
             [
-                new DmColumn(
-                    schemaName,
-                    tableForView,
-                    "id",
-                    typeof(int),
-                    isPrimaryKey: true,
-                    isAutoIncrement: true
-                ),
+                new DmColumn(schemaName, tableForView, "id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
                 new DmColumn(schemaName, tableForView, "name", typeof(string)),
             ]
         );
@@ -59,12 +52,8 @@ public abstract partial class DatabaseMethodsTests
 
         await db.ExecuteAsync($"INSERT INTO {schemaQualifiedTableName} (name) VALUES ('test123')");
         await db.ExecuteAsync($"INSERT INTO {schemaQualifiedTableName} (name) VALUES ('test456')");
-        var tableRowCount = await db.ExecuteScalarAsync<int>(
-            $"SELECT COUNT(*) FROM {schemaQualifiedTableName}"
-        );
-        var viewRowCount = await db.ExecuteScalarAsync<int>(
-            $"SELECT COUNT(*) FROM {schemaQualifiedTableName}"
-        );
+        var tableRowCount = await db.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {schemaQualifiedTableName}");
+        var viewRowCount = await db.ExecuteScalarAsync<int>($"SELECT COUNT(*) FROM {schemaQualifiedTableName}");
 
         Assert.Equal(2, tableRowCount);
         Assert.Equal(2, viewRowCount);
@@ -89,11 +78,7 @@ public abstract partial class DatabaseMethodsTests
         Assert.Contains("= 1", updatedView.Definition, StringComparison.OrdinalIgnoreCase);
 
         // databases often rewrite the definition, so we just check that it contains the updated definition
-        Assert.StartsWith(
-            "select ",
-            updatedView.Definition.Trim(),
-            StringComparison.OrdinalIgnoreCase
-        );
+        Assert.StartsWith("select ", updatedView.Definition.Trim(), StringComparison.OrdinalIgnoreCase);
 
         var dropped = await db.DropViewIfExistsAsync(schemaName, viewName);
         Assert.False(dropped);

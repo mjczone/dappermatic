@@ -39,9 +39,7 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         listResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Get existing datasource - should log audit event
-        var getResponse = await client.GetAsync(
-            $"/api/dm/d/{TestcontainersAssemblyFixture.DatasourceId_SqlServer}"
-        );
+        var getResponse = await client.GetAsync($"/api/dm/d/{TestcontainersAssemblyFixture.DatasourceId_SqlServer}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Add new datasource - should log audit event
@@ -84,19 +82,13 @@ public class DatasourceAuditTests : IClassFixture<TestcontainersAssemblyFixture>
         getEvents[0].DatasourceId.Should().Be(TestcontainersAssemblyFixture.DatasourceId_SqlServer);
 
         // Verify successful add operation
-        var successfulAddEvents = auditLogger
-            .GetEventsForOperation("datasources/post")
-            .Where(e => e.Success)
-            .ToList();
+        var successfulAddEvents = auditLogger.GetEventsForOperation("datasources/post").Where(e => e.Success).ToList();
         successfulAddEvents.Should().HaveCount(1);
         successfulAddEvents[0].DatasourceId.Should().Be("AuditTest");
         successfulAddEvents[0].UserIdentifier.Should().NotBeNull();
 
         // Verify failed add operation (duplicate)
-        var failedAddEvents = auditLogger
-            .GetEventsForOperation("datasources/post")
-            .Where(e => !e.Success)
-            .ToList();
+        var failedAddEvents = auditLogger.GetEventsForOperation("datasources/post").Where(e => !e.Success).ToList();
         failedAddEvents.Should().HaveCount(1);
         failedAddEvents[0].DatasourceId.Should().Be("AuditTest");
         failedAddEvents[0].Message.Should().NotBeNull();

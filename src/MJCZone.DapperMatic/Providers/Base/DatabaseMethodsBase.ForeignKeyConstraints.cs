@@ -29,14 +29,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetForeignKeyConstraintAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetForeignKeyConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -59,14 +52,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetForeignKeyConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetForeignKeyConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -142,26 +128,17 @@ public abstract partial class DatabaseMethodsBase
 
         if (sourceColumns.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one column must be specified.",
-                nameof(sourceColumns)
-            );
+            throw new ArgumentException("At least one column must be specified.", nameof(sourceColumns));
         }
 
         if (string.IsNullOrWhiteSpace(referencedTableName))
         {
-            throw new ArgumentException(
-                "Referenced table name is required.",
-                nameof(referencedTableName)
-            );
+            throw new ArgumentException("Referenced table name is required.", nameof(referencedTableName));
         }
 
         if (referencedColumns.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one column must be specified.",
-                nameof(referencedColumns)
-            );
+            throw new ArgumentException("At least one column must be specified.", nameof(referencedColumns));
         }
 
         if (sourceColumns.Length != referencedColumns.Length)
@@ -173,14 +150,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesForeignKeyConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesForeignKeyConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -198,8 +168,7 @@ public abstract partial class DatabaseMethodsBase
             onUpdate
         );
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -260,14 +229,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         return (
-            await GetForeignKeyConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            await GetForeignKeyConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )?.ConstraintName;
     }
@@ -337,9 +299,7 @@ public abstract partial class DatabaseMethodsBase
             )
             .ConfigureAwait(false);
         return foreignKeyConstraints.FirstOrDefault(c =>
-            c.SourceColumns.Any(sc =>
-                sc.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-            )
+            c.SourceColumns.Any(sc => sc.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
         );
     }
 
@@ -367,23 +327,18 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Table name is required.", nameof(tableName));
         }
 
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
             return new List<DmForeignKeyConstraint>();
         }
 
-        var filter = string.IsNullOrWhiteSpace(constraintNameFilter)
-            ? null
-            : ToSafeString(constraintNameFilter);
+        var filter = string.IsNullOrWhiteSpace(constraintNameFilter) ? null : ToSafeString(constraintNameFilter);
 
         return string.IsNullOrWhiteSpace(filter)
             ? table.ForeignKeyConstraints
-            : table
-                .ForeignKeyConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter))
-                .ToList();
+            : table.ForeignKeyConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter)).ToList();
     }
 
     /// <summary>
@@ -446,14 +401,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         if (
-            !await DoesForeignKeyConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesForeignKeyConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -462,8 +410,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropForeignKeyConstraint(schemaName, tableName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

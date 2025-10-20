@@ -18,18 +18,12 @@ internal static partial class SqliteSqlParser
     /// <param name="createTableSql">The CREATE TABLE statement to parse.</param>
     /// <param name="providerTypeMap">The provider type map.</param>
     /// <returns>The table schema, or null if the statement is not a CREATE TABLE statement.</returns>
-    public static DmTable? ParseCreateTableStatement(
-        string createTableSql,
-        IDbProviderTypeMap providerTypeMap
-    )
+    public static DmTable? ParseCreateTableStatement(string createTableSql, IDbProviderTypeMap providerTypeMap)
     {
         var statements = ParseDdlSql(createTableSql);
         if (
             statements.SingleOrDefault() is not SqlCompoundClause createTableStatement
-            || (
-                createTableStatement.FindTokenIndex("CREATE") != 0
-                && createTableStatement.FindTokenIndex("TABLE") != 1
-            )
+            || (createTableStatement.FindTokenIndex("CREATE") != 0 && createTableStatement.FindTokenIndex("TABLE") != 1)
         )
         {
             return null;
@@ -53,9 +47,7 @@ internal static partial class SqliteSqlParser
 
         // see: https://www.sqlite.org/lang_createtable.html
 
-        var tableGuts = createTableStatement.GetChild<SqlCompoundClause>(x =>
-            x.Children.Count > 0 && x.Parenthesis
-        );
+        var tableGuts = createTableStatement.GetChild<SqlCompoundClause>(x => x.Children.Count > 0 && x.Parenthesis);
         if (tableGuts == null || tableGuts.Children.Count == 0)
         {
             return table;
@@ -170,10 +162,14 @@ internal static partial class SqliteSqlParser
 
                 // Normalize SQLite TEXT/VARCHAR/NVARCHAR without length to -1
                 int? normalizedLength = length;
-                if (normalizedLength == null &&
-                    (columnDataType.Equals("text", StringComparison.OrdinalIgnoreCase) ||
-                     columnDataType.Equals("varchar", StringComparison.OrdinalIgnoreCase) ||
-                     columnDataType.Equals("nvarchar", StringComparison.OrdinalIgnoreCase)))
+                if (
+                    normalizedLength == null
+                    && (
+                        columnDataType.Equals("text", StringComparison.OrdinalIgnoreCase)
+                        || columnDataType.Equals("varchar", StringComparison.OrdinalIgnoreCase)
+                        || columnDataType.Equals("nvarchar", StringComparison.OrdinalIgnoreCase)
+                    )
+                )
                 {
                     normalizedLength = -1;
                 }
@@ -183,10 +179,7 @@ internal static partial class SqliteSqlParser
                     tableName,
                     columnName,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string>
-                    {
-                        { DbProviderType.Sqlite, columnDataType },
-                    },
+                    new Dictionary<DbProviderType, string> { { DbProviderType.Sqlite, columnDataType } },
                     normalizedLength,
                     precision,
                     scale
@@ -220,9 +213,7 @@ internal static partial class SqliteSqlParser
                                 break;
 
                             case "CONSTRAINT":
-                                inlineConstraintName = columnDefinition
-                                    .GetChild<SqlWordClause>(i + 1)
-                                    ?.Text;
+                                inlineConstraintName = columnDefinition.GetChild<SqlWordClause>(i + 1)?.Text;
                                 // skip the next opt
                                 i++;
                                 break;
@@ -241,10 +232,7 @@ internal static partial class SqliteSqlParser
                                     // add the default constraint to the table
                                     var defaultConstraintName =
                                         inlineConstraintName
-                                        ?? DbProviderUtils.GenerateDefaultConstraintName(
-                                            tableName,
-                                            columnName
-                                        );
+                                        ?? DbProviderUtils.GenerateDefaultConstraintName(tableName, columnName);
                                     table.DefaultConstraints.Add(
                                         new DmDefaultConstraint(
                                             null,
@@ -263,10 +251,7 @@ internal static partial class SqliteSqlParser
                                 // add the default constraint to the table
                                 var uniqueConstraintName =
                                     inlineConstraintName
-                                    ?? DbProviderUtils.GenerateUniqueConstraintName(
-                                        tableName,
-                                        columnName
-                                    );
+                                    ?? DbProviderUtils.GenerateUniqueConstraintName(tableName, columnName);
                                 table.UniqueConstraints.Add(
                                     new DmUniqueConstraint(
                                         null,
@@ -292,10 +277,7 @@ internal static partial class SqliteSqlParser
                                     // add the default constraint to the table
                                     var checkConstraintName =
                                         inlineConstraintName
-                                        ?? DbProviderUtils.GenerateCheckConstraintName(
-                                            tableName,
-                                            columnName
-                                        );
+                                        ?? DbProviderUtils.GenerateCheckConstraintName(tableName, columnName);
                                     table.CheckConstraints.Add(
                                         new DmCheckConstraint(
                                             null,
@@ -314,10 +296,7 @@ internal static partial class SqliteSqlParser
                                 // add the default constraint to the table
                                 var pkConstraintName =
                                     inlineConstraintName
-                                    ?? DbProviderUtils.GeneratePrimaryKeyConstraintName(
-                                        tableName,
-                                        columnName
-                                    );
+                                    ?? DbProviderUtils.GeneratePrimaryKeyConstraintName(tableName, columnName);
                                 var columnOrder = DmColumnOrder.Ascending;
                                 if (
                                     columnDefinition
@@ -388,9 +367,7 @@ internal static partial class SqliteSqlParser
                                     [new DmOrderedColumn(referenceColumnName)]
                                 );
 
-                                var onDeleteTokenIndex = columnDefinition.FindTokenIndex(
-                                    "ON DELETE"
-                                );
+                                var onDeleteTokenIndex = columnDefinition.FindTokenIndex("ON DELETE");
                                 if (onDeleteTokenIndex >= i)
                                 {
                                     var onDelete = columnDefinition
@@ -402,9 +379,7 @@ internal static partial class SqliteSqlParser
                                     }
                                 }
 
-                                var onUpdateTokenIndex = columnDefinition.FindTokenIndex(
-                                    "ON UPDATE"
-                                );
+                                var onUpdateTokenIndex = columnDefinition.FindTokenIndex("ON UPDATE");
                                 if (onUpdateTokenIndex >= i)
                                 {
                                     var onUpdate = columnDefinition
@@ -417,9 +392,7 @@ internal static partial class SqliteSqlParser
                                 }
 
                                 column.ReferencedTableName = foreignKey.ReferencedTableName;
-                                column.ReferencedColumnName = foreignKey
-                                    .ReferencedColumns[0]
-                                    .ColumnName;
+                                column.ReferencedColumnName = foreignKey.ReferencedColumns[0].ColumnName;
                                 column.OnDelete = foreignKey.OnDelete;
                                 column.OnUpdate = foreignKey.OnUpdate;
 
@@ -429,9 +402,7 @@ internal static partial class SqliteSqlParser
                                 break;
 
                             case "COLLATE":
-                                var collation = columnDefinition
-                                    .GetChild<SqlWordClause>(i + 1)
-                                    ?.ToString();
+                                var collation = columnDefinition.GetChild<SqlWordClause>(i + 1)?.ToString();
                                 if (!string.IsNullOrWhiteSpace(collation))
                                 {
                                     // TODO: not supported at this time
@@ -462,24 +433,16 @@ internal static partial class SqliteSqlParser
                         switch (swc.Text.ToUpperInvariant())
                         {
                             case "CONSTRAINT":
-                                inlineConstraintName = tableConstraint
-                                    .GetChild<SqlWordClause>(i + 1)
-                                    ?.Text;
+                                inlineConstraintName = tableConstraint.GetChild<SqlWordClause>(i + 1)?.Text;
                                 // skip the next opt
                                 i++;
                                 break;
                             case "PRIMARY KEY":
-                                var pkColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(
-                                    i + 1
-                                );
+                                var pkColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(i + 1);
 
-                                var pkOrderedColumns = ExtractOrderedColumnsFromClause(
-                                    pkColumnsClause
-                                );
+                                var pkOrderedColumns = ExtractOrderedColumnsFromClause(pkColumnsClause);
 
-                                var pkColumnNames = pkOrderedColumns
-                                    .Select(oc => oc.ColumnName)
-                                    .ToArray();
+                                var pkColumnNames = pkOrderedColumns.Select(oc => oc.ColumnName).ToArray();
 
                                 if (pkColumnNames.Length == 0)
                                 {
@@ -490,37 +453,23 @@ internal static partial class SqliteSqlParser
                                     null,
                                     tableName,
                                     inlineConstraintName
-                                        ?? DbProviderUtils.GeneratePrimaryKeyConstraintName(
-                                            tableName,
-                                            pkColumnNames
-                                        ),
+                                        ?? DbProviderUtils.GeneratePrimaryKeyConstraintName(tableName, pkColumnNames),
                                     pkOrderedColumns
                                 );
                                 foreach (var column in table.Columns)
                                 {
-                                    if (
-                                        pkColumnNames.Contains(
-                                            column.ColumnName,
-                                            StringComparer.OrdinalIgnoreCase
-                                        )
-                                    )
+                                    if (pkColumnNames.Contains(column.ColumnName, StringComparer.OrdinalIgnoreCase))
                                     {
                                         column.IsPrimaryKey = true;
                                     }
                                 }
                                 continue; // we're done with this clause, so we can move on to the next constraint
                             case "UNIQUE":
-                                var ucColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(
-                                    i + 1
-                                );
+                                var ucColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(i + 1);
 
-                                var ucOrderedColumns = ExtractOrderedColumnsFromClause(
-                                    ucColumnsClause
-                                );
+                                var ucOrderedColumns = ExtractOrderedColumnsFromClause(ucColumnsClause);
 
-                                var ucColumnNames = ucOrderedColumns
-                                    .Select(oc => oc.ColumnName)
-                                    .ToArray();
+                                var ucColumnNames = ucOrderedColumns.Select(oc => oc.ColumnName).ToArray();
 
                                 if (ucColumnNames.Length == 0)
                                 {
@@ -531,10 +480,7 @@ internal static partial class SqliteSqlParser
                                     null,
                                     tableName,
                                     inlineConstraintName
-                                        ?? DbProviderUtils.GenerateUniqueConstraintName(
-                                            tableName,
-                                            ucColumnNames
-                                        ),
+                                        ?? DbProviderUtils.GenerateUniqueConstraintName(tableName, ucColumnNames),
                                     ucOrderedColumns
                                 );
                                 table.UniqueConstraints.Add(ucConstraint);
@@ -581,27 +527,20 @@ internal static partial class SqliteSqlParser
                                 }
                                 continue; // we're done with this clause, so we can move on to the next constraint
                             case "FOREIGN KEY":
-                                var fkSourceColumnsClause =
-                                    tableConstraint.GetChild<SqlCompoundClause>(i + 1);
+                                var fkSourceColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(i + 1);
                                 if (fkSourceColumnsClause == null)
                                 {
                                     continue; // skip this clause as it's invalid
                                 }
 
-                                var fkOrderedSourceColumns = ExtractOrderedColumnsFromClause(
-                                    fkSourceColumnsClause
-                                );
-                                var fkSourceColumnNames = fkOrderedSourceColumns
-                                    .Select(oc => oc.ColumnName)
-                                    .ToArray();
+                                var fkOrderedSourceColumns = ExtractOrderedColumnsFromClause(fkSourceColumnsClause);
+                                var fkSourceColumnNames = fkOrderedSourceColumns.Select(oc => oc.ColumnName).ToArray();
                                 if (fkSourceColumnNames.Length == 0)
                                 {
                                     continue; // skip this clause as it's invalid
                                 }
 
-                                var referencesClauseIndex = tableConstraint.FindTokenIndex(
-                                    "REFERENCES"
-                                );
+                                var referencesClauseIndex = tableConstraint.FindTokenIndex("REFERENCES");
                                 if (referencesClauseIndex == -1)
                                 {
                                     continue; // skip this clause as it's invalid
@@ -610,14 +549,10 @@ internal static partial class SqliteSqlParser
                                 var referencedTableName = tableConstraint
                                     .GetChild<SqlWordClause>(referencesClauseIndex + 1)
                                     ?.Text;
-                                var fkReferencedColumnsClause =
-                                    tableConstraint.GetChild<SqlCompoundClause>(
-                                        referencesClauseIndex + 2
-                                    );
-                                if (
-                                    string.IsNullOrWhiteSpace(referencedTableName)
-                                    || fkReferencedColumnsClause == null
-                                )
+                                var fkReferencedColumnsClause = tableConstraint.GetChild<SqlCompoundClause>(
+                                    referencesClauseIndex + 2
+                                );
+                                if (string.IsNullOrWhiteSpace(referencedTableName) || fkReferencedColumnsClause == null)
                                 {
                                     continue; // skip this clause as it's invalid
                                 }
@@ -651,9 +586,7 @@ internal static partial class SqliteSqlParser
                                     fkOrderedReferencedColumns
                                 );
 
-                                var onDeleteTokenIndex = tableConstraint.FindTokenIndex(
-                                    "ON DELETE"
-                                );
+                                var onDeleteTokenIndex = tableConstraint.FindTokenIndex("ON DELETE");
                                 if (onDeleteTokenIndex >= i)
                                 {
                                     var onDelete = tableConstraint
@@ -665,9 +598,7 @@ internal static partial class SqliteSqlParser
                                     }
                                 }
 
-                                var onUpdateTokenIndex = tableConstraint.FindTokenIndex(
-                                    "ON UPDATE"
-                                );
+                                var onUpdateTokenIndex = tableConstraint.FindTokenIndex("ON UPDATE");
                                 if (onUpdateTokenIndex >= i)
                                 {
                                     var onUpdate = tableConstraint
@@ -679,24 +610,16 @@ internal static partial class SqliteSqlParser
                                     }
                                 }
 
-                                if (
-                                    fkSourceColumnNames.Length == 1
-                                    && fkReferencedColumnNames.Length == 1
-                                )
+                                if (fkSourceColumnNames.Length == 1 && fkReferencedColumnNames.Length == 1)
                                 {
                                     var column = table.Columns.FirstOrDefault(c =>
-                                        c.ColumnName.Equals(
-                                            fkSourceColumnNames[0],
-                                            StringComparison.OrdinalIgnoreCase
-                                        )
+                                        c.ColumnName.Equals(fkSourceColumnNames[0], StringComparison.OrdinalIgnoreCase)
                                     );
                                     if (column != null)
                                     {
                                         column.IsForeignKey = true;
                                         column.ReferencedTableName = foreignKey.ReferencedTableName;
-                                        column.ReferencedColumnName = foreignKey
-                                            .ReferencedColumns[0]
-                                            .ColumnName;
+                                        column.ReferencedColumnName = foreignKey.ReferencedColumns[0].ColumnName;
                                         column.OnDelete = foreignKey.OnDelete;
                                         column.OnUpdate = foreignKey.OnUpdate;
                                     }
@@ -713,15 +636,9 @@ internal static partial class SqliteSqlParser
         return table;
     }
 
-    private static DmOrderedColumn[] ExtractOrderedColumnsFromClause(
-        SqlCompoundClause? pkColumnsClause
-    )
+    private static DmOrderedColumn[] ExtractOrderedColumnsFromClause(SqlCompoundClause? pkColumnsClause)
     {
-        if (
-            pkColumnsClause == null
-            || pkColumnsClause.Children.Count == 0
-            || !pkColumnsClause.Parenthesis
-        )
+        if (pkColumnsClause == null || pkColumnsClause.Children.Count == 0 || !pkColumnsClause.Parenthesis)
         {
             return [];
         }
@@ -743,8 +660,8 @@ internal static partial class SqliteSqlParser
 
                         var ccOrder = DmColumnOrder.Ascending;
                         if (
-                            cc.GetChild<SqlWordClause>(1)
-                                ?.Text.Equals("DESC", StringComparison.OrdinalIgnoreCase) == true
+                            cc.GetChild<SqlWordClause>(1)?.Text.Equals("DESC", StringComparison.OrdinalIgnoreCase)
+                            == true
                         )
                         {
                             ccOrder = DmColumnOrder.Descending;
@@ -765,11 +682,7 @@ internal static partial class SqliteSqlParser
 [SuppressMessage("ReSharper", "ForCanBeConvertedToForeach", Justification = "Reviewed")]
 [SuppressMessage("ReSharper", "ConvertIfStatementToSwitchStatement", Justification = "Reviewed")]
 [SuppressMessage("ReSharper", "InvertIf", Justification = "Reviewed")]
-[SuppressMessage(
-    "ReSharper",
-    "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator",
-    Justification = "Reviewed"
-)]
+[SuppressMessage("ReSharper", "ForeachCanBeConvertedToQueryUsingAnotherGetEnumerator", Justification = "Reviewed")]
 internal static partial class SqliteSqlParser
 {
     private static List<SqlClause> ParseDdlSql(string sql)
@@ -818,10 +731,7 @@ internal static partial class SqliteSqlParser
         // split the SQL into parts
         sql = string.Join(
             ' ',
-            sql.Split(
-                [' ', '\r', '\n'],
-                StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries
-            )
+            sql.Split([' ', '\r', '\n'], StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
         );
         var cpart = string.Empty;
         var inQuotes = false;
@@ -1174,8 +1084,7 @@ internal static partial class SqliteSqlParser
             if (this is SqlCompoundClause scc)
             {
                 return scc.Children.FindIndex(c =>
-                    c is SqlWordClause swc
-                    && swc.Text.Equals(token, StringComparison.OrdinalIgnoreCase)
+                    c is SqlWordClause swc && swc.Text.Equals(token, StringComparison.OrdinalIgnoreCase)
                 );
             }
             return -1;

@@ -58,13 +58,7 @@ public partial class SqliteMethods
                 table =>
                 {
                     table.DefaultConstraints.Add(
-                        new DmDefaultConstraint(
-                            schemaName,
-                            tableName,
-                            columnName,
-                            constraintName,
-                            expression
-                        )
+                        new DmDefaultConstraint(schemaName, tableName, columnName, constraintName, expression)
                     );
                     return table;
                 },
@@ -84,11 +78,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        (schemaName, tableName, constraintName) = NormalizeNames(
-            schemaName,
-            tableName,
-            constraintName
-        );
+        (schemaName, tableName, constraintName) = NormalizeNames(schemaName, tableName, constraintName);
 
         return await AlterTableUsingRecreateTableStrategyAsync(
                 db,
@@ -108,10 +98,7 @@ public partial class SqliteMethods
                     if (!string.IsNullOrWhiteSpace(defaultConstraint?.ColumnName))
                     {
                         var column = table.Columns.SingleOrDefault(x =>
-                            x.ColumnName.Equals(
-                                defaultConstraint.ColumnName,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            x.ColumnName.Equals(defaultConstraint.ColumnName, StringComparison.OrdinalIgnoreCase)
                         );
                         if (column != null)
                         {

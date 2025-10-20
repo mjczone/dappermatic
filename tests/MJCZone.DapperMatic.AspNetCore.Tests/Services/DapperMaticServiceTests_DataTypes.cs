@@ -156,9 +156,7 @@ public partial class DapperMaticServiceTests
 
         foreach (var type in expectedDataTypes)
         {
-            availableTypeNames
-                .Should()
-                .Contain(type, $"SQL Server should have data type '{type}'");
+            availableTypeNames.Should().Contain(type, $"SQL Server should have data type '{type}'");
         }
     }
 
@@ -263,9 +261,7 @@ public partial class DapperMaticServiceTests
 
         foreach (var type in expectedDataTypes)
         {
-            availableTypeNames
-                .Should()
-                .Contain(type, $"PostgreSQL should have data type '{type}'");
+            availableTypeNames.Should().Contain(type, $"PostgreSQL should have data type '{type}'");
         }
     }
 
@@ -339,9 +335,7 @@ public partial class DapperMaticServiceTests
 
         foreach (var type in expectedDataTypes)
         {
-            availableTypeNames
-                .Should()
-                .Contain(type, $"MySQL should have data type '{type}'");
+            availableTypeNames.Should().Contain(type, $"MySQL should have data type '{type}'");
         }
     }
 
@@ -398,9 +392,7 @@ public partial class DapperMaticServiceTests
 
         foreach (var type in expectedDataTypes)
         {
-            availableTypeNames
-                .Should()
-                .Contain(type, $"SQLite should have data type '{type}'");
+            availableTypeNames.Should().Contain(type, $"SQLite should have data type '{type}'");
         }
     }
 }

@@ -39,8 +39,7 @@ public class SqlServer_2017_DatabaseFixture : SqlServerDatabaseFixture
     // : base("mcr.microsoft.com/mssql/server:2017-latest") { }
 }
 
-public abstract class SqlServerDatabaseFixture(string imageName)
-    : DatabaseFixtureBase<MsSqlContainer>
+public abstract class SqlServerDatabaseFixture(string imageName) : DatabaseFixtureBase<MsSqlContainer>
 {
     private readonly MsSqlContainer _container = new MsSqlBuilder()
         .WithImage(imageName)

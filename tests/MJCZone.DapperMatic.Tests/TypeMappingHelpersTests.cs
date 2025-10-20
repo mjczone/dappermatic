@@ -95,12 +95,7 @@ public class TypeMappingHelpersTests : TestBase
     public void Should_create_string_type_with_unicode_and_fixed_length_sets_flags()
     {
         // Act
-        var result = TypeMappingHelpers.CreateStringType(
-            "nchar",
-            50,
-            isUnicode: true,
-            isFixedLength: true
-        );
+        var result = TypeMappingHelpers.CreateStringType("nchar", 50, isUnicode: true, isFixedLength: true);
 
         // Assert
         Assert.Equal("nchar(50)", result.SqlTypeName);
@@ -113,11 +108,7 @@ public class TypeMappingHelpersTests : TestBase
     public void Should_create_guid_string_type_returns_correct_configuration()
     {
         // Act
-        var result = TypeMappingHelpers.CreateGuidStringType(
-            "char",
-            isUnicode: false,
-            isFixedLength: true
-        );
+        var result = TypeMappingHelpers.CreateGuidStringType("char", isUnicode: false, isFixedLength: true);
 
         // Assert
         Assert.Equal("char(36)", result.SqlTypeName);
@@ -167,10 +158,7 @@ public class TypeMappingHelpersTests : TestBase
     [Theory]
     [InlineData(typeof(string), null)]
     [InlineData(typeof(int), null)]
-    public void Should_expect_get_geometry_type_name_with_non_geometry_types_returns_null(
-        Type type,
-        string? expected
-    )
+    public void Should_expect_get_geometry_type_name_with_non_geometry_types_returns_null(Type type, string? expected)
     {
         // Act
         var result = TypeMappingHelpers.GetGeometryTypeName(type);
@@ -240,11 +228,7 @@ public class TypeMappingHelpersTests : TestBase
     public void Should_create_binary_type_with_max_length_uses_max_syntax()
     {
         // Act
-        var result = TypeMappingHelpers.CreateBinaryType(
-            "varbinary",
-            TypeMappingDefaults.MaxLength,
-            false
-        );
+        var result = TypeMappingHelpers.CreateBinaryType("varbinary", TypeMappingDefaults.MaxLength, false);
 
         // Assert
         Assert.Equal("varbinary(max)", result.SqlTypeName);
@@ -392,10 +376,7 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData(typeof(int[]), false)]
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
-    public void Should_expect_is_generic_collection_type_returns_correct_result(
-        Type type,
-        bool expected
-    )
+    public void Should_expect_is_generic_collection_type_returns_correct_result(Type type, bool expected)
     {
         // Act
         var result = TypeMappingHelpers.IsGenericCollectionType(type);
@@ -623,18 +604,12 @@ public class TypeMappingHelpersTests : TestBase
         Assert.Equal("jsonb", postgresJson.SqlTypeName);
 
         // Test SQL Server (text-based, non-Unicode)
-        var sqlServerJson = TypeMappingHelpers.CreateProviderOptimizedJsonType(
-            "sqlserver",
-            isUnicode: false
-        );
+        var sqlServerJson = TypeMappingHelpers.CreateProviderOptimizedJsonType("sqlserver", isUnicode: false);
         Assert.NotNull(sqlServerJson);
         Assert.Equal("varchar(max)", sqlServerJson.SqlTypeName);
 
         // Test SQL Server (text-based, Unicode)
-        var sqlServerJsonUnicode = TypeMappingHelpers.CreateProviderOptimizedJsonType(
-            "sqlserver",
-            isUnicode: true
-        );
+        var sqlServerJsonUnicode = TypeMappingHelpers.CreateProviderOptimizedJsonType("sqlserver", isUnicode: true);
         Assert.NotNull(sqlServerJsonUnicode);
         Assert.Equal("nvarchar(max)", sqlServerJsonUnicode.SqlTypeName);
 
@@ -842,9 +817,7 @@ public class TypeMappingHelpersTests : TestBase
     [InlineData("text")]
     [InlineData("integer")]
     [InlineData("notanarray")]
-    public void Should_create_postgresql_array_type_converter_with_non_array_types_returns_null(
-        string sqlType
-    )
+    public void Should_create_postgresql_array_type_converter_with_non_array_types_returns_null(string sqlType)
     {
         // Arrange
         var converter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();

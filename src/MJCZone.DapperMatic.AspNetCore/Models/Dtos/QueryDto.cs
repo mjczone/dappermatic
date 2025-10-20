@@ -65,16 +65,10 @@ public class QueryDto
             return pairs;
         }
 
-        var parts = OrderBy.Split(
-            ',',
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-        );
+        var parts = OrderBy.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
         foreach (var part in parts)
         {
-            var orderParts = part.Split(
-                '.',
-                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-            );
+            var orderParts = part.Split('.', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
             if (orderParts.Length == 2)
             {
                 var column = orderParts[0];
@@ -133,9 +127,7 @@ public class QueryDto
             return [];
         }
 
-        return Select
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .ToList();
+        return Select.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
     }
 
     /// <summary>
@@ -158,10 +150,7 @@ public class QueryDto
             request.Skip = Math.Max(skip, 0);
         }
 
-        if (
-            query.TryGetValue("count", out var countValue)
-            && bool.TryParse(countValue, out var count)
-        )
+        if (query.TryGetValue("count", out var countValue) && bool.TryParse(countValue, out var count))
         {
             request.IncludeTotal = count;
         }
@@ -190,10 +179,7 @@ public class QueryDto
         }
 
         // Parse select parameter
-        if (
-            query.TryGetValue("select", out var selectValue)
-            && !string.IsNullOrWhiteSpace(selectValue)
-        )
+        if (query.TryGetValue("select", out var selectValue) && !string.IsNullOrWhiteSpace(selectValue))
         {
             request.Select = selectValue;
         }

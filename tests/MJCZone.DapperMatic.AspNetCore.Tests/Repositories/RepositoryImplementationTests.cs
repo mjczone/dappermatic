@@ -23,10 +23,8 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Repositories;
 /// <summary>
 /// Integration tests for different repository implementations.
 /// </summary>
-public class RepositoryImplementationTests(
-    TestcontainersAssemblyFixture fixture,
-    ITestOutputHelper outputHelper
-) : IClassFixture<TestcontainersAssemblyFixture>
+public class RepositoryImplementationTests(TestcontainersAssemblyFixture fixture, ITestOutputHelper outputHelper)
+    : IClassFixture<TestcontainersAssemblyFixture>
 {
     private readonly TestcontainersAssemblyFixture _fixture = fixture;
     private readonly ITestOutputHelper _outputHelper = outputHelper;
@@ -246,10 +244,7 @@ public class RepositoryImplementationTests(
             var getResult = await getResponse.ReadAsJsonAsync<DatasourceResponse>();
             getResult.Should().NotBeNull();
             getResult!.Result.Should().NotBeNull();
-            getResult
-                .Result!.Id!.ToLowerInvariant()
-                .Should()
-                .Be(testDatasource.Id.ToLowerInvariant());
+            getResult.Result!.Id!.ToLowerInvariant().Should().Be(testDatasource.Id.ToLowerInvariant());
 
             // UPDATE
             var updateRequest = new DatasourceDto
@@ -258,10 +253,7 @@ public class RepositoryImplementationTests(
                 Description = "Updated description",
                 IsEnabled = false,
             };
-            var updateResponse = await client.PutAsJsonAsync(
-                $"/api/dm/d/{testDatasource.Id}",
-                updateRequest
-            );
+            var updateResponse = await client.PutAsJsonAsync($"/api/dm/d/{testDatasource.Id}", updateRequest);
             // If not OK, read the error content for debugging
             if (updateResponse.StatusCode != HttpStatusCode.OK)
             {

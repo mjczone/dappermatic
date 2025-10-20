@@ -37,14 +37,7 @@ public partial class SqliteMethods
         }
 
         if (
-            await DoesUniqueConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -60,17 +53,12 @@ public partial class SqliteMethods
                 table =>
                 {
                     return table.UniqueConstraints.All(uc =>
-                        !uc.ConstraintName.Equals(
-                            constraintName,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        !uc.ConstraintName.Equals(constraintName, StringComparison.OrdinalIgnoreCase)
                     );
                 },
                 table =>
                 {
-                    table.UniqueConstraints.Add(
-                        new DmUniqueConstraint(schemaName, tableName, constraintName, columns)
-                    );
+                    table.UniqueConstraints.Add(new DmUniqueConstraint(schemaName, tableName, constraintName, columns));
 
                     return table;
                 },
@@ -101,14 +89,7 @@ public partial class SqliteMethods
         }
 
         if (
-            !await DoesUniqueConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -135,10 +116,7 @@ public partial class SqliteMethods
                         if (uc.Columns.Count == 1)
                         {
                             var tableColumn = table.Columns.First(x =>
-                                x.ColumnName.Equals(
-                                    uc.Columns[0].ColumnName,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                x.ColumnName.Equals(uc.Columns[0].ColumnName, StringComparison.OrdinalIgnoreCase)
                             );
                             if (!tableColumn.IsIndexed)
                             {

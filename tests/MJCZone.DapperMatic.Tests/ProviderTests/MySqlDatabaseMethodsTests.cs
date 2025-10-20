@@ -13,35 +13,29 @@ namespace MJCZone.DapperMatic.Tests.ProviderTests;
 /// <summary>
 /// Testing MySql 90
 /// </summary>
-public class MySql_90_DatabaseMethodsTests(
-    MySql_94_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MySqlDatabaseMethodsTests<MySql_94_DatabaseFixture>(fixture, output) { }
+public class MySql_90_DatabaseMethodsTests(MySql_94_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDatabaseMethodsTests<MySql_94_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing MySql 84
 /// </summary>
-public class MySql_84_DatabaseMethodsTests(
-    MySql_84_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MySqlDatabaseMethodsTests<MySql_84_DatabaseFixture>(fixture, output) { }
+public class MySql_84_DatabaseMethodsTests(MySql_84_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDatabaseMethodsTests<MySql_84_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Testing MySql 57
 /// </summary>
-public class MySql_57_DatabaseMethodsTests(
-    MySql_57_DatabaseFixture fixture,
-    ITestOutputHelper output
-) : MySqlDatabaseMethodsTests<MySql_57_DatabaseFixture>(fixture, output) { }
+public class MySql_57_DatabaseMethodsTests(MySql_57_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDatabaseMethodsTests<MySql_57_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
 /// Abstract class for MySql database tests
 /// </summary>
 /// <typeparam name="TDatabaseFixture"></typeparam>
-public abstract class MySqlDatabaseMethodsTests<TDatabaseFixture>(
-    TDatabaseFixture fixture,
-    ITestOutputHelper output
-) : DatabaseMethodsTests(output), IClassFixture<TDatabaseFixture>, IDisposable
+public abstract class MySqlDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
+    : DatabaseMethodsTests(output),
+        IClassFixture<TDatabaseFixture>,
+        IDisposable
     where TDatabaseFixture : MySqlDatabaseFixture
 {
     static MySqlDatabaseMethodsTests()

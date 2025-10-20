@@ -44,12 +44,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Get views using extension method
@@ -57,11 +52,7 @@ public partial class DapperMaticService
                 .GetViewsAsync(schemaName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved views for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved views for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return views.ToViewDtos();
         }
@@ -101,12 +92,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Get view using extension method
@@ -123,11 +109,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved view '{viewName}' for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved view '{viewName}' for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return view.ToViewDto();
         }
@@ -167,22 +149,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view does not already exist
-            await AssertViewDoesNotExistAsync(
-                    datasourceId,
-                    dmView.ViewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewDoesNotExistAsync(datasourceId, dmView.ViewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Create view using extension method
@@ -202,11 +173,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"View '{dmView.ViewName}' created successfully."
-                )
+            await LogAuditEventAsync(context, true, $"View '{dmView.ViewName}' created successfully.")
                 .ConfigureAwait(false);
 
             var createdView = await connection
@@ -256,22 +223,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view exists
-            await AssertViewExistsAsync(
-                    datasourceId,
-                    viewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var changesMade = false;
@@ -291,32 +247,20 @@ public partial class DapperMaticService
                 if (updated)
                 {
                     changesMade = true;
-                    await LogAuditEventAsync(
-                            context,
-                            true,
-                            $"View '{viewName}' definition updated successfully."
-                        )
+                    await LogAuditEventAsync(context, true, $"View '{viewName}' definition updated successfully.")
                         .ConfigureAwait(false);
                 }
                 else
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to update definition for view '{viewName}'."
-                    );
+                    throw new InvalidOperationException($"Failed to update definition for view '{viewName}'.");
                 }
             }
 
             if (!changesMade)
             {
-                await LogAuditEventAsync(
-                        context,
-                        false,
-                        "No changes made - no valid definition provided"
-                    )
+                await LogAuditEventAsync(context, false, "No changes made - no valid definition provided")
                     .ConfigureAwait(false);
-                throw new InvalidOperationException(
-                    "No changes made - no valid definition provided"
-                );
+                throw new InvalidOperationException("No changes made - no valid definition provided");
             }
 
             // Get the updated view
@@ -326,9 +270,7 @@ public partial class DapperMaticService
 
             return (
                 updatedView
-                ?? throw new InvalidOperationException(
-                    $"View '{viewName}' was updated but could not be retrieved."
-                )
+                ?? throw new InvalidOperationException($"View '{viewName}' was updated but could not be retrieved.")
             ).ToViewDto();
         }
     }
@@ -369,49 +311,25 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view exists
-            await AssertViewExistsAsync(
-                    datasourceId,
-                    currentViewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewExistsAsync(datasourceId, currentViewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view does not already exist
-            await AssertViewDoesNotExistAsync(
-                    datasourceId,
-                    newViewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewDoesNotExistAsync(datasourceId, newViewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Rename the view
             var updated = await connection
-                .RenameViewIfExistsAsync(
-                    schemaName,
-                    currentViewName,
-                    newViewName,
-                    cancellationToken: cancellationToken
-                )
+                .RenameViewIfExistsAsync(schemaName, currentViewName, newViewName, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             if (!updated)
             {
-                throw new InvalidOperationException(
-                    $"Failed to rename view '{currentViewName}' to '{newViewName}'."
-                );
+                throw new InvalidOperationException($"Failed to rename view '{currentViewName}' to '{newViewName}'.");
             }
 
             await LogAuditEventAsync(
@@ -428,9 +346,7 @@ public partial class DapperMaticService
 
             return (
                 renamedView
-                ?? throw new InvalidOperationException(
-                    $"View '{newViewName}' was renamed but could not be retrieved."
-                )
+                ?? throw new InvalidOperationException($"View '{newViewName}' was renamed but could not be retrieved.")
             ).ToViewDto();
         }
     }
@@ -468,22 +384,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view exists
-            await AssertViewExistsAsync(
-                    datasourceId,
-                    viewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Drop view using extension method
@@ -493,9 +398,7 @@ public partial class DapperMaticService
 
             if (!dropped)
             {
-                throw new InvalidOperationException(
-                    $"Failed to drop view '{viewName}' for an unknown reason."
-                );
+                throw new InvalidOperationException($"Failed to drop view '{viewName}' for an unknown reason.");
             }
 
             await LogAuditEventAsync(context, dropped, $"View '{viewName}' dropped successfully.")
@@ -535,12 +438,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check if view exists using extension method
@@ -551,9 +449,7 @@ public partial class DapperMaticService
             await LogAuditEventAsync(
                     context,
                     true,
-                    exists == true
-                        ? $"View '{viewName}' exists."
-                        : $"View '{viewName}' does not exist."
+                    exists == true ? $"View '{viewName}' exists." : $"View '{viewName}' does not exist."
                 )
                 .ConfigureAwait(false);
             return exists;
@@ -599,11 +495,7 @@ public partial class DapperMaticService
                             nameof(request.Take),
                             "Take must be greater than 0 and less than or equal to 1000."
                         )
-                        .Custom(
-                            r => r.Skip >= 0,
-                            nameof(request.Skip),
-                            "Skip must be greater than or equal to 0."
-                        )
+                        .Custom(r => r.Skip >= 0, nameof(request.Skip), "Skip must be greater than or equal to 0.")
             )
             .Assert();
 
@@ -611,22 +503,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view exists
-            await AssertViewExistsAsync(
-                    datasourceId,
-                    viewName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Build the query using provider-specific identifier naming
@@ -641,11 +522,7 @@ public partial class DapperMaticService
                 )
                 .ConfigureAwait(false);
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Queried view '{viewName}' for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Queried view '{viewName}' for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return result;
         }

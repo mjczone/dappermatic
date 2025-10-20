@@ -15,9 +15,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_set_common_default_expressions_on_columns_Async(
-        string? schemaName
-    )
+    protected virtual async Task Can_set_common_default_expressions_on_columns_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -70,14 +68,7 @@ public abstract partial class DatabaseMethodsTests
             schemaName,
             tableName,
             [
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    "id",
-                    typeof(int),
-                    isPrimaryKey: true,
-                    isAutoIncrement: true
-                ),
+                new DmColumn(schemaName, tableName, "id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
                 new DmColumn(
                     schemaName,
                     tableName,
@@ -91,13 +82,7 @@ public abstract partial class DatabaseMethodsTests
 
         // Add a column with a default expression after the table is created
         var columnCreated = await db.CreateColumnIfNotExistsAsync(
-            new DmColumn(
-                schemaName,
-                tableName,
-                columnName2,
-                typeof(DateTime),
-                defaultExpression: defaultDateTimeSql
-            )
+            new DmColumn(schemaName, tableName, columnName2, typeof(DateTime), defaultExpression: defaultDateTimeSql)
         );
         Assert.True(columnCreated);
 
@@ -105,13 +90,7 @@ public abstract partial class DatabaseMethodsTests
         {
             // Add a column with a default expression after the table is created
             columnCreated = await db.CreateColumnIfNotExistsAsync(
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    columnName3,
-                    typeof(Guid),
-                    defaultExpression: defaultGuidSql
-                )
+                new DmColumn(schemaName, tableName, columnName3, typeof(Guid), defaultExpression: defaultGuidSql)
             );
             Assert.True(columnCreated);
         }
@@ -124,18 +103,11 @@ public abstract partial class DatabaseMethodsTests
 
         if (
             db is NpgsqlConnection
-            || db is LoggedDbConnection loggedDbConnection
-                && loggedDbConnection.Inner is NpgsqlConnection
+            || db is LoggedDbConnection loggedDbConnection && loggedDbConnection.Inner is NpgsqlConnection
         )
         {
             columnCreated = await db.CreateColumnIfNotExistsAsync(
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    columnName5,
-                    typeof(bool),
-                    defaultExpression: "true"
-                )
+                new DmColumn(schemaName, tableName, columnName5, typeof(bool), defaultExpression: "true")
             );
             Assert.True(columnCreated);
         }
@@ -143,13 +115,7 @@ public abstract partial class DatabaseMethodsTests
         {
             // other databases take an integer
             columnCreated = await db.CreateColumnIfNotExistsAsync(
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    columnName5,
-                    typeof(bool),
-                    defaultExpression: "1"
-                )
+                new DmColumn(schemaName, tableName, columnName5, typeof(bool), defaultExpression: "1")
             );
             Assert.True(columnCreated);
         }
@@ -197,9 +163,7 @@ public abstract partial class DatabaseMethodsTests
         }
 
         // Now try to remove the default expressions (first using the column name, then using the constraint name)
-        Assert.True(
-            await db.DropDefaultConstraintOnColumnIfExistsAsync(schemaName, tableName, columnName1)
-        );
+        Assert.True(await db.DropDefaultConstraintOnColumnIfExistsAsync(schemaName, tableName, columnName1));
         var constraintName = table
             ?.DefaultConstraints.First(dc =>
                 dc.ColumnName.Equals(column2.ColumnName, StringComparison.OrdinalIgnoreCase)
@@ -207,9 +171,7 @@ public abstract partial class DatabaseMethodsTests
             .ConstraintName;
         Assert.NotNull(constraintName);
         Assert.NotEmpty(constraintName);
-        Assert.True(
-            await db.DropDefaultConstraintIfExistsAsync(schemaName, tableName, constraintName)
-        );
+        Assert.True(await db.DropDefaultConstraintIfExistsAsync(schemaName, tableName, constraintName));
 
         // TODO: timestamp columns can't have default values dropped in MariaDB, WEIRD!
         // might have to change syntax to use ALTER TABLE table_name MODIFY COLUMN column_name TIMESTAMP NULL;
@@ -256,16 +218,7 @@ public abstract partial class DatabaseMethodsTests
         await db.CreateTableIfNotExistsAsync(
             schemaName,
             tableName,
-            [
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    "id",
-                    typeof(int),
-                    isPrimaryKey: true,
-                    isAutoIncrement: true
-                ),
-            ]
+            [new DmColumn(schemaName, tableName, "id", typeof(int), isPrimaryKey: true, isAutoIncrement: true)]
         );
 
         // try adding a columnName of all the supported types
@@ -274,13 +227,7 @@ public abstract partial class DatabaseMethodsTests
         {
             // create a column with the supported type
             var uniqueColumnName = $"{columnName}_{type.Name.ToAlpha()}_{i++}";
-            var column = new DmColumn(
-                schemaName,
-                tableName,
-                uniqueColumnName,
-                type,
-                isNullable: true
-            );
+            var column = new DmColumn(schemaName, tableName, uniqueColumnName, type, isNullable: true);
             var columnCreated = await db.CreateColumnIfNotExistsAsync(column);
 
             if (!columnCreated)
@@ -297,12 +244,7 @@ public abstract partial class DatabaseMethodsTests
         var newColumnName = "renamedTestColumn";
 
         // Rename the column
-        var renamed = await db.RenameColumnIfExistsAsync(
-            schemaName,
-            tableName,
-            originalColumnName,
-            newColumnName
-        );
+        var renamed = await db.RenameColumnIfExistsAsync(schemaName, tableName, originalColumnName, newColumnName);
         Assert.True(renamed);
 
         // Verify old name doesn't exist and new name exists
@@ -311,10 +253,7 @@ public abstract partial class DatabaseMethodsTests
             columns,
             c => c.ColumnName.Equals(originalColumnName, StringComparison.OrdinalIgnoreCase)
         );
-        Assert.Contains(
-            columns,
-            c => c.ColumnName.Equals(newColumnName, StringComparison.OrdinalIgnoreCase)
-        );
+        Assert.Contains(columns, c => c.ColumnName.Equals(newColumnName, StringComparison.OrdinalIgnoreCase));
 
         await db.DropTableIfExistsAsync(schemaName, tableName);
     }

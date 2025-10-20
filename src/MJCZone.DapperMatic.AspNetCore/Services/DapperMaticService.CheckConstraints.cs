@@ -51,22 +51,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             checkConstraints = await connection
@@ -74,11 +63,7 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(
-                context,
-                true,
-                $"Retrieved check constraints from table '{tableName}'"
-            )
+        await LogAuditEventAsync(context, true, $"Retrieved check constraints from table '{tableName}'")
             .ConfigureAwait(false);
         return checkConstraints.ToCheckConstraintDtos();
     }
@@ -120,39 +105,20 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var checkConstraint = await connection
-                .GetCheckConstraintAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .GetCheckConstraintAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (checkConstraint == null)
             {
-                throw new KeyNotFoundException(
-                    $"Check constraint '{constraintName}' not found on table '{tableName}'"
-                );
+                throw new KeyNotFoundException($"Check constraint '{constraintName}' not found on table '{tableName}'");
             }
 
             await LogAuditEventAsync(
@@ -200,10 +166,7 @@ public partial class DapperMaticService
         {
             checkConstraint.ConstraintName = $"chk_{tableName}_{checkConstraint.ColumnName}";
         }
-        else if (
-            checkConstraint != null
-            && string.IsNullOrWhiteSpace(checkConstraint.ConstraintName)
-        )
+        else if (checkConstraint != null && string.IsNullOrWhiteSpace(checkConstraint.ConstraintName))
         {
             checkConstraint.ConstraintName = $"CK_{tableName}_{Guid.NewGuid().ToString("N")[..8]}";
         }
@@ -217,11 +180,7 @@ public partial class DapperMaticService
             .Object(
                 checkConstraint,
                 nameof(checkConstraint),
-                builder =>
-                    builder.NotNullOrWhiteSpace(
-                        r => r.CheckExpression,
-                        nameof(checkConstraint.CheckExpression)
-                    )
+                builder => builder.NotNullOrWhiteSpace(r => r.CheckExpression, nameof(checkConstraint.CheckExpression))
             )
             .Assert();
 
@@ -230,22 +189,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check constraint doesn't already exist
@@ -303,26 +251,14 @@ public partial class DapperMaticService
                 {
                     // try to match up the check constraint based on column if no name was provided
                     createdCheckConstraint = await connection
-                        .GetCheckConstraintOnColumnAsync(
-                            schemaName,
-                            tableName,
-                            dmColumnName,
-                            null,
-                            cancellationToken
-                        )
+                        .GetCheckConstraintOnColumnAsync(schemaName, tableName, dmColumnName, null, cancellationToken)
                         .ConfigureAwait(false);
                 }
                 else
                 {
                     // if there's only one check constraint on the table, return that
                     var allConstraints = await connection
-                        .GetCheckConstraintsAsync(
-                            schemaName,
-                            tableName,
-                            null,
-                            null,
-                            cancellationToken
-                        )
+                        .GetCheckConstraintsAsync(schemaName, tableName, null, null, cancellationToken)
                         .ConfigureAwait(false);
                     if (allConstraints.Count == 1)
                     {
@@ -332,9 +268,7 @@ public partial class DapperMaticService
 
                 if (createdCheckConstraint == null)
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to retrieve the created check constraint."
-                    );
+                    throw new InvalidOperationException($"Failed to retrieve the created check constraint.");
                 }
             }
 
@@ -386,50 +320,25 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check check constraint exists
             var existingConstraint = await connection
-                .DoesCheckConstraintExistAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DoesCheckConstraintExistAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!existingConstraint)
             {
-                throw new KeyNotFoundException(
-                    $"Check constraint '{constraintName}' not found on table '{tableName}'"
-                );
+                throw new KeyNotFoundException($"Check constraint '{constraintName}' not found on table '{tableName}'");
             }
 
             var dropped = await connection
-                .DropCheckConstraintIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DropCheckConstraintIfExistsAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)
@@ -439,11 +348,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    dropped,
-                    $"Check constraint '{constraintName}' dropped successfully."
-                )
+            await LogAuditEventAsync(context, dropped, $"Check constraint '{constraintName}' dropped successfully.")
                 .ConfigureAwait(false);
         }
     }

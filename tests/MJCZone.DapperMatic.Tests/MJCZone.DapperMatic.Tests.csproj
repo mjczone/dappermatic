@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <!-- <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks> -->
     <TargetFramework>net8.0</TargetFramework>
@@ -9,7 +8,6 @@
     <IsTestProject>true</IsTestProject>
     <NoWarn>CA2007</NoWarn>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="DbQueryLogging" Version="1.0.1" />
@@ -31,22 +29,17 @@
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic\MJCZone.DapperMatic.csproj" />
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic.AspNetCore\MJCZone.DapperMatic.AspNetCore.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
-
   <ItemGroup>
     <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
-
   <PropertyGroup>
     <ExcludeFromSourceOnlyBuild>true</ExcludeFromSourceOnlyBuild>
   </PropertyGroup>
-
 </Project>

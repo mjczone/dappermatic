@@ -40,11 +40,7 @@ public static class ForeignKeyConstraintEndpoints
             OperationTags.DatasourceTables
         );
 
-        RegisterForeignKeyConstraintEndpoints(
-            defaultGroup,
-            "DefaultSchema",
-            isSchemaSpecific: false
-        );
+        RegisterForeignKeyConstraintEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false);
 
         // Register schema-specific endpoints (for multi-tenant scenarios)
         var schemaGroup = app.MapDapperMaticEndpointGroup(
@@ -69,12 +65,7 @@ public static class ForeignKeyConstraintEndpoints
 
         // Foreign key constraint endpoints
         group
-            .MapGet(
-                "/",
-                isSchemaSpecific
-                    ? ListSchemaForeignKeyConstraintsAsync
-                    : ListForeignKeyConstraintsAsync
-            )
+            .MapGet("/", isSchemaSpecific ? ListSchemaForeignKeyConstraintsAsync : ListForeignKeyConstraintsAsync)
             .WithName($"List{namePrefix}ForeignKeyConstraints")
             .WithSummary($"Gets all foreign key constraints for a table {schemaInText}")
             .Produces<ForeignKeyListResponse>((int)HttpStatusCode.OK)
@@ -93,12 +84,7 @@ public static class ForeignKeyConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapPost(
-                "/",
-                isSchemaSpecific
-                    ? CreateSchemaForeignKeyConstraintAsync
-                    : CreateForeignKeyConstraintAsync
-            )
+            .MapPost("/", isSchemaSpecific ? CreateSchemaForeignKeyConstraintAsync : CreateForeignKeyConstraintAsync)
             .WithName($"Create{namePrefix}ForeignKeyConstraint")
             .WithSummary($"Creates a foreign key constraint on a table {schemaInText}")
             .Produces<ForeignKeyResponse>((int)HttpStatusCode.Created)
@@ -109,9 +95,7 @@ public static class ForeignKeyConstraintEndpoints
         group
             .MapDelete(
                 "/{constraintName}",
-                isSchemaSpecific
-                    ? DropSchemaForeignKeyConstraintAsync
-                    : DropForeignKeyConstraintAsync
+                isSchemaSpecific ? DropSchemaForeignKeyConstraintAsync : DropForeignKeyConstraintAsync
             )
             .WithName($"Drop{namePrefix}ForeignKeyConstraint")
             .WithSummary($"Drops a foreign key constraint from a table {schemaInText}")
@@ -147,13 +131,7 @@ public static class ForeignKeyConstraintEndpoints
     )
     {
         var foreignKeys = await service
-            .GetForeignKeyConstraintsAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintsAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new ForeignKeyListResponse(foreignKeys));

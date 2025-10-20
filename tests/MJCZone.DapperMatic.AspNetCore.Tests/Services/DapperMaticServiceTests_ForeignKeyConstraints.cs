@@ -17,10 +17,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task Can_manage_foreign_key_constraint_Async(
-        string datasourceId,
-        string? schemaName
-    )
+    public async Task Can_manage_foreign_key_constraint_Async(string datasourceId, string? schemaName)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);
@@ -40,11 +37,7 @@ public partial class DapperMaticServiceTests
 
         // Get Foreign Keys on table without foreign keys returns empty list
         var foreignKeys = await service.GetForeignKeyConstraintsAsync(
-            context: OperationIdentifiers.ForForeignKeyList(
-                datasourceId,
-                childTableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForForeignKeyList(datasourceId, childTableName, schemaName),
             datasourceId,
             childTableName,
             schemaName
@@ -78,9 +71,7 @@ public partial class DapperMaticServiceTests
         );
         addFkResult.Should().NotBeNull();
         addFkResult.ConstraintName.Should().BeEquivalentTo(foreignKeyName);
-        addFkResult
-            .ColumnNames.Should()
-            .BeEquivalentTo(foreignKeyRequest.ColumnNames, (_) => _.IgnoringCase());
+        addFkResult.ColumnNames.Should().BeEquivalentTo(foreignKeyRequest.ColumnNames, (_) => _.IgnoringCase());
         addFkResult.ReferencedTableName.Should().BeEquivalentTo(parentTableName);
         addFkResult
             .ReferencedColumnNames.Should()
@@ -88,11 +79,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Foreign Key was added
         foreignKeys = await service.GetForeignKeyConstraintsAsync(
-            context: OperationIdentifiers.ForForeignKeyList(
-                datasourceId,
-                childTableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForForeignKeyList(datasourceId, childTableName, schemaName),
             datasourceId,
             childTableName,
             schemaName
@@ -102,12 +89,7 @@ public partial class DapperMaticServiceTests
 
         // Verify single Foreign Key details
         var fk = await service.GetForeignKeyConstraintAsync(
-            context: OperationIdentifiers.ForForeignKeyGet(
-                datasourceId,
-                childTableName,
-                foreignKeyName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForForeignKeyGet(datasourceId, childTableName, foreignKeyName, schemaName),
             datasourceId,
             childTableName,
             foreignKeyName,
@@ -145,11 +127,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Foreign Key was dropped
         foreignKeys = await service.GetForeignKeyConstraintsAsync(
-            context: OperationIdentifiers.ForForeignKeyList(
-                datasourceId,
-                childTableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForForeignKeyList(datasourceId, childTableName, schemaName),
             datasourceId,
             childTableName,
             schemaName
@@ -194,11 +172,7 @@ public partial class DapperMaticServiceTests
     )
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForForeignKeyList(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForForeignKeyList(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
             await service.GetForeignKeyConstraintsAsync(
                 invalidContext,
@@ -215,11 +189,7 @@ public partial class DapperMaticServiceTests
         string? schemaName
     )
     {
-        var invalidTableContext = OperationIdentifiers.ForForeignKeyList(
-            datasourceId,
-            "NonExistentTable",
-            schemaName
-        );
+        var invalidTableContext = OperationIdentifiers.ForForeignKeyList(datasourceId, "NonExistentTable", schemaName);
         var invalidTableAct = async () =>
             await service.GetForeignKeyConstraintsAsync(
                 invalidTableContext,
@@ -319,10 +289,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },

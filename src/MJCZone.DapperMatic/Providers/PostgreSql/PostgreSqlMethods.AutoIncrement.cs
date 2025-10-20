@@ -20,7 +20,7 @@ public partial class PostgreSqlMethods
             bool isIdentity => isIdentity,
             int isIdentity => isIdentity == 1,
             string attidentity => !string.IsNullOrWhiteSpace(attidentity),
-            _ => false
+            _ => false,
         };
     }
 }

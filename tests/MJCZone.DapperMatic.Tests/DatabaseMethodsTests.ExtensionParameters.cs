@@ -40,10 +40,7 @@ public abstract partial class DatabaseMethodsTests
 
         // Test introspection operations
         var tables = await db.GetTablesAsync(table.SchemaName);
-        Assert.Contains(
-            tables,
-            t => t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase)
-        );
+        Assert.Contains(tables, t => t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
 
         // Clean up
         await db.DropTableIfExistsAsync(table.SchemaName, table.TableName);
@@ -113,14 +110,8 @@ public abstract partial class DatabaseMethodsTests
 
         // Verify all tables were created
         var usersExists = await db.DoesTableExistAsync(usersTable.SchemaName, usersTable.TableName);
-        var ordersExists = await db.DoesTableExistAsync(
-            ordersTable.SchemaName,
-            ordersTable.TableName
-        );
-        var itemsExists = await db.DoesTableExistAsync(
-            orderItemsTable.SchemaName,
-            orderItemsTable.TableName
-        );
+        var ordersExists = await db.DoesTableExistAsync(ordersTable.SchemaName, ordersTable.TableName);
+        var itemsExists = await db.DoesTableExistAsync(orderItemsTable.SchemaName, orderItemsTable.TableName);
 
         Assert.True(usersExists);
         Assert.True(ordersExists);
@@ -160,19 +151,11 @@ public abstract partial class DatabaseMethodsTests
         Assert.True(created);
 
         // Verify table exists
-        var exists = await db.DoesTableExistAsync(
-            table.SchemaName,
-            table.TableName,
-            cancellationToken: cts.Token
-        );
+        var exists = await db.DoesTableExistAsync(table.SchemaName, table.TableName, cancellationToken: cts.Token);
         Assert.True(exists);
 
         // Clean up
-        await db.DropTableIfExistsAsync(
-            table.SchemaName,
-            table.TableName,
-            cancellationToken: cts.Token
-        );
+        await db.DropTableIfExistsAsync(table.SchemaName, table.TableName, cancellationToken: cts.Token);
 
         Output.WriteLine("✅ Cancellation token support works correctly");
     }
@@ -202,11 +185,7 @@ public abstract partial class DatabaseMethodsTests
         try
         {
             // Combine transaction and cancellation token
-            var created = await db.CreateTableIfNotExistsAsync(
-                table,
-                tx: transaction,
-                cancellationToken: cts.Token
-            );
+            var created = await db.CreateTableIfNotExistsAsync(table, tx: transaction, cancellationToken: cts.Token);
             Assert.True(created);
 
             transaction.Commit();

@@ -42,9 +42,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .GetDatabaseVersionAsync(db, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).GetDatabaseVersionAsync(db, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -63,10 +61,7 @@ public static partial class DbConnectionExtensions
     /// <param name="db">The database connection.</param>
     /// <param name="sqlType">The SQL type.</param>
     /// <returns>The <see cref="DotnetTypeDescriptor"/> corresponding to the SQL type.</returns>
-    public static DotnetTypeDescriptor GetDotnetTypeFromSqlType(
-        this IDbConnection db,
-        string sqlType
-    )
+    public static DotnetTypeDescriptor GetDotnetTypeFromSqlType(this IDbConnection db, string sqlType)
     {
         return Database(db).GetDotnetTypeFromSqlType(sqlType);
     }
@@ -77,10 +72,7 @@ public static partial class DbConnectionExtensions
     /// <param name="db">The database connection.</param>
     /// <param name="descriptor">The .NET type descriptor.</param>
     /// <returns>The SQL type corresponding to the .NET type descriptor.</returns>
-    public static string GetSqlTypeFromDotnetType(
-        this IDbConnection db,
-        DotnetTypeDescriptor descriptor
-    )
+    public static string GetSqlTypeFromDotnetType(this IDbConnection db, DotnetTypeDescriptor descriptor)
     {
         return Database(db).GetSqlTypeFromDotnetType(descriptor);
     }

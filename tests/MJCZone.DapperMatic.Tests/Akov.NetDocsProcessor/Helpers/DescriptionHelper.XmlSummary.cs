@@ -14,7 +14,8 @@ internal partial class DescriptionHelper
     public static void UpdateTypeSummary(TypeDescription typeDescription, List<XmlMember> members)
     {
         var typeData = members.FirstOrDefault(m => m.Name == typeDescription.CommentId);
-        if(typeData is null) return;
+        if (typeData is null)
+            return;
 
         typeDescription.FillBy(typeData);
     }
@@ -24,19 +25,21 @@ internal partial class DescriptionHelper
         foreach (var memberDescription in memberDescriptions)
         {
             var memberData = members.FirstOrDefault(m => m.Name == memberDescription.CommentId);
-            if (memberData is null) continue;
-            
+            if (memberData is null)
+                continue;
+
             memberDescription.FillBy(memberData, memberDescription.Symbol);
         }
     }
-    
+
     public static void UpdateEnumMembers(List<EnumMemberDescription> memberDescriptions, List<XmlMember> members)
     {
         foreach (var memberDescription in memberDescriptions)
         {
             var memberData = members.FirstOrDefault(m => m.Name == memberDescription.CommentId);
-            if (memberData is null) continue;
-            
+            if (memberData is null)
+                continue;
+
             memberDescription.FillBy(memberData);
         }
     }

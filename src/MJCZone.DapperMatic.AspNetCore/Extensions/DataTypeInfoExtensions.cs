@@ -49,9 +49,7 @@ internal static class DataTypeInfoExtensions
     /// </summary>
     /// <param name="dataTypeInfos">The collection of internal data type infos.</param>
     /// <returns>A collection of public provider data types.</returns>
-    public static IEnumerable<ProviderDataType> ToProviderDataTypes(
-        this IEnumerable<DataTypeInfo> dataTypeInfos
-    )
+    public static IEnumerable<ProviderDataType> ToProviderDataTypes(this IEnumerable<DataTypeInfo> dataTypeInfos)
     {
         return dataTypeInfos.Select(ToProviderDataType);
     }

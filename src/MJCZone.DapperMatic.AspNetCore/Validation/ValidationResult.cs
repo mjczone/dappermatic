@@ -43,6 +43,5 @@ public class ValidationResult
     /// </summary>
     /// <param name="errors">The list of validation error messages.</param>
     /// <returns>A failed <see cref="ValidationResult"/>.</returns>
-    public static ValidationResult Failure(Dictionary<string, List<string>> errors) =>
-        new(false, errors);
+    public static ValidationResult Failure(Dictionary<string, List<string>> errors) => new(false, errors);
 }

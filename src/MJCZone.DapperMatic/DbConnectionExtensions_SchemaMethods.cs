@@ -28,11 +28,7 @@ public static partial class DbConnectionExtensions
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
     /// <returns>The schema-qualified table name.</returns>
-    public static string GetSchemaQualifiedTableName(
-        this IDbConnection db,
-        string? schemaName,
-        string tableName
-    )
+    public static string GetSchemaQualifiedTableName(this IDbConnection db, string? schemaName, string tableName)
     {
         return Database(db).GetSchemaQualifiedIdentifierName(schemaName, tableName);
     }
@@ -50,9 +46,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .SupportsCheckConstraintsAsync(db, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).SupportsCheckConstraintsAsync(db, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -108,9 +102,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .DoesSchemaExistAsync(db, schemaName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).DoesSchemaExistAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -148,9 +140,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .DropSchemaIfExistsAsync(db, schemaName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).DropSchemaIfExistsAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false);
     }
     #endregion // IDatabaseSchemaMethods
 }

@@ -16,13 +16,9 @@ public partial class PostgreSqlMethods
     /// </summary>
     /// <param name="schemaNameFilter">Optional filter for schema names.</param>
     /// <returns>SQL query and parameters.</returns>
-    protected override (string sql, object parameters) SqlGetSchemaNames(
-        string? schemaNameFilter = null
-    )
+    protected override (string sql, object parameters) SqlGetSchemaNames(string? schemaNameFilter = null)
     {
-        var where = string.IsNullOrWhiteSpace(schemaNameFilter)
-            ? string.Empty
-            : ToLikeString(schemaNameFilter);
+        var where = string.IsNullOrWhiteSpace(schemaNameFilter) ? string.Empty : ToLikeString(schemaNameFilter);
 
         var sql = $"""
             SELECT DISTINCT nspname
@@ -66,9 +62,7 @@ public partial class PostgreSqlMethods
             return string.Empty;
         }
 
-        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey
-            ? " NULL"
-            : " NOT NULL";
+        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
     }
 
     /// <summary>
@@ -97,10 +91,7 @@ public partial class PostgreSqlMethods
     /// <param name="schemaName">Schema name.</param>
     /// <param name="tableName">Table name.</param>
     /// <returns>SQL query and parameters.</returns>
-    protected override (string sql, object parameters) SqlDoesTableExist(
-        string? schemaName,
-        string tableName
-    )
+    protected override (string sql, object parameters) SqlDoesTableExist(string? schemaName, string tableName)
     {
         var sql = $"""
                SELECT COUNT(*)
@@ -114,14 +105,7 @@ public partial class PostgreSqlMethods
                    AND lower(pgc.relname) = @tableName
             """;
 
-        return (
-            sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName),
-                tableName = NormalizeName(tableName),
-            }
-        );
+        return (sql, new { schemaName = NormalizeSchemaName(schemaName), tableName = NormalizeName(tableName) });
     }
 
     /// <summary>
@@ -135,9 +119,7 @@ public partial class PostgreSqlMethods
         string? tableNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? string.Empty
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? string.Empty : ToLikeString(tableNameFilter);
 
         var sql = $"""
                     SELECT TABLE_NAME
@@ -154,11 +136,7 @@ public partial class PostgreSqlMethods
 
         return (
             sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(),
-                where = where.ToLowerInvariant(),
-            }
+            new { schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(), where = where.ToLowerInvariant() }
         );
     }
 
@@ -205,7 +183,7 @@ public partial class PostgreSqlMethods
 
                         ALTER TABLE {schemaQualifiedTableName}
                             ALTER COLUMN {NormalizeName(columnName)} SET DEFAULT {expression}
-            
+
             """;
     }
 
@@ -265,9 +243,7 @@ public partial class PostgreSqlMethods
         string? viewNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 
@@ -288,11 +264,7 @@ public partial class PostgreSqlMethods
 
         return (
             sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(),
-                where = where.ToLowerInvariant(),
-            }
+            new { schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(), where = where.ToLowerInvariant() }
         );
     }
 
@@ -302,14 +274,9 @@ public partial class PostgreSqlMethods
     /// <param name="schemaName">Schema name.</param>
     /// <param name="viewNameFilter">Optional filter for view names.</param>
     /// <returns>SQL query and parameters.</returns>
-    protected override (string sql, object parameters) SqlGetViews(
-        string? schemaName,
-        string? viewNameFilter
-    )
+    protected override (string sql, object parameters) SqlGetViews(string? schemaName, string? viewNameFilter)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 
@@ -332,11 +299,7 @@ public partial class PostgreSqlMethods
 
         return (
             sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(),
-                where = where.ToLowerInvariant(),
-            }
+            new { schemaName = NormalizeSchemaName(schemaName)?.ToLowerInvariant(), where = where.ToLowerInvariant() }
         );
     }
     #endregion // View Strings

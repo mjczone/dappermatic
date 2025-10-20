@@ -23,10 +23,7 @@ public class SqliteMethodsFactory : DatabaseMethodsFactoryBase
     /// <inheritdoc/>
     public override bool SupportsConnection(IDbConnection db) =>
         SupportsConnectionCustom(db)
-        || (db.GetType().FullName ?? string.Empty).Contains(
-            "sqlite",
-            StringComparison.OrdinalIgnoreCase
-        );
+        || (db.GetType().FullName ?? string.Empty).Contains("sqlite", StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
     protected override IDatabaseMethods CreateMethodsCore() => new SqliteMethods();

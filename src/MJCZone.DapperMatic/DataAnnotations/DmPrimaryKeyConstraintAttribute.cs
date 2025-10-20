@@ -13,11 +13,7 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// <example>
 /// [DmPrimaryKeyConstraint(new[] { "Id" }, "PK_MyTable")]
 /// </example>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Class,
-    AllowMultiple = false,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
 public sealed class DmPrimaryKeyConstraintAttribute : Attribute
 {
     /// <summary>
@@ -25,10 +21,7 @@ public sealed class DmPrimaryKeyConstraintAttribute : Attribute
     /// </summary>
     /// <param name="columnNames">The column names that form the primary key constraint.</param>
     /// <param name="constraintName">The name of the constraint.</param>
-    public DmPrimaryKeyConstraintAttribute(
-        string[]? columnNames = null,
-        string? constraintName = null
-    )
+    public DmPrimaryKeyConstraintAttribute(string[]? columnNames = null, string? constraintName = null)
     {
         // The column names are only required if the attribute is applied to a class.
         // If applied to a property, the column name is derived from the property name.

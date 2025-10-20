@@ -40,11 +40,7 @@ public partial class DapperMaticServiceTests
 
         // Get Check Constraints on table without check constraints returns empty list
         var checkConstraints = await service.GetCheckConstraintsAsync(
-            context: OperationIdentifiers.ForCheckConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForCheckConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -59,12 +55,9 @@ public partial class DapperMaticServiceTests
             ConstraintName = checkConstraintName,
             ColumnName = "Age",
             CheckExpression =
-                datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                    ? "[Age] >= 0 AND [Age] <= 120"
-                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                    ? "Age >= 0 AND Age <= 120"
-                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_Sqlite
-                    ? "Age >= 0 AND Age <= 120"
+                datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "[Age] >= 0 AND [Age] <= 120"
+                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "Age >= 0 AND Age <= 120"
+                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_Sqlite ? "Age >= 0 AND Age <= 120"
                 : "Age >= 0 AND Age <= 120",
         };
         var ccCreateContext = OperationIdentifiers.ForCheckConstraintCreate(
@@ -85,11 +78,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Check Constraint was added
         checkConstraints = await service.GetCheckConstraintsAsync(
-            context: OperationIdentifiers.ForCheckConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForCheckConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -141,11 +130,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Check Constraint was dropped
         checkConstraints = await service.GetCheckConstraintsAsync(
-            context: OperationIdentifiers.ForCheckConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForCheckConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -197,12 +182,7 @@ public partial class DapperMaticServiceTests
 
         // Clean up complex check constraint
         await service.DropCheckConstraintAsync(
-            context: OperationIdentifiers.ForCheckConstraintDrop(
-                datasourceId,
-                tableName,
-                complexCheckName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForCheckConstraintDrop(datasourceId, tableName, complexCheckName, schemaName),
             datasourceId,
             tableName,
             complexCheckName,
@@ -263,11 +243,7 @@ public partial class DapperMaticServiceTests
     )
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForCheckConstraintList(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForCheckConstraintList(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
             await service.GetCheckConstraintsAsync(
                 invalidContext,
@@ -347,10 +323,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "StartDate",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = true,
                 },
@@ -358,10 +332,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "EndDate",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = true,
                 },

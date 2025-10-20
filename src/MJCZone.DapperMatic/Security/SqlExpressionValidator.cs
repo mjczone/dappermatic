@@ -74,10 +74,7 @@ internal static partial class SqlExpressionValidator
     /// <param name="viewDefinition">The view definition SQL.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateViewDefinition(
-        string viewDefinition,
-        string parameterName = "viewDefinition"
-    )
+    public static void ValidateViewDefinition(string viewDefinition, string parameterName = "viewDefinition")
     {
         ValidateBasicExpression(viewDefinition, parameterName);
 
@@ -85,10 +82,7 @@ internal static partial class SqlExpressionValidator
         var trimmed = viewDefinition.Trim();
         if (!trimmed.StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException(
-                "View definition must start with SELECT statement",
-                parameterName
-            );
+            throw new ArgumentException("View definition must start with SELECT statement", parameterName);
         }
 
         // View definitions are less restrictive since they're legitimate SELECT statements
@@ -128,9 +122,7 @@ internal static partial class SqlExpressionValidator
             if (statements.Length > 1)
             {
                 // Check if there are multiple non-empty statements
-                var nonEmptyStatements = statements
-                    .Where(s => !string.IsNullOrWhiteSpace(s))
-                    .Count();
+                var nonEmptyStatements = statements.Where(s => !string.IsNullOrWhiteSpace(s)).Count();
                 if (nonEmptyStatements > 1)
                 {
                     throw new ArgumentException(
@@ -148,10 +140,7 @@ internal static partial class SqlExpressionValidator
     /// <param name="checkExpression">The check constraint expression.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateCheckExpression(
-        string checkExpression,
-        string parameterName = "checkExpression"
-    )
+    public static void ValidateCheckExpression(string checkExpression, string parameterName = "checkExpression")
     {
         ValidateBasicExpression(checkExpression, parameterName);
         ValidateAgainstPatterns(
@@ -176,10 +165,7 @@ internal static partial class SqlExpressionValidator
     /// <param name="defaultExpression">The default constraint expression.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when the expression is invalid or potentially dangerous.</exception>
-    public static void ValidateDefaultExpression(
-        string defaultExpression,
-        string parameterName = "defaultExpression"
-    )
+    public static void ValidateDefaultExpression(string defaultExpression, string parameterName = "defaultExpression")
     {
         ValidateBasicExpression(defaultExpression, parameterName);
         ValidateAgainstPatterns(
@@ -213,17 +199,11 @@ internal static partial class SqlExpressionValidator
 
         if (expression.Length > MaxExpressionLength)
         {
-            throw new ArgumentException(
-                $"Expression too long (max {MaxExpressionLength} characters)",
-                parameterName
-            );
+            throw new ArgumentException($"Expression too long (max {MaxExpressionLength} characters)", parameterName);
         }
 
         // Check for SQL comments before removing them
-        if (
-            expression.Contains("--", StringComparison.Ordinal)
-            || expression.Contains("/*", StringComparison.Ordinal)
-        )
+        if (expression.Contains("--", StringComparison.Ordinal) || expression.Contains("/*", StringComparison.Ordinal))
         {
             throw new ArgumentException(
                 "Expression contains potentially dangerous SQL pattern: comment",
@@ -237,10 +217,7 @@ internal static partial class SqlExpressionValidator
         // Check for null bytes and other control characters
         if (sanitized.Any(c => c < 32 && c != '\t' && c != '\n' && c != '\r'))
         {
-            throw new ArgumentException(
-                "Expression contains invalid control characters",
-                parameterName
-            );
+            throw new ArgumentException("Expression contains invalid control characters", parameterName);
         }
     }
 
@@ -251,11 +228,7 @@ internal static partial class SqlExpressionValidator
     /// <param name="patterns">The dangerous patterns to check for.</param>
     /// <param name="parameterName">The parameter name for error reporting.</param>
     /// <exception cref="ArgumentException">Thrown when dangerous patterns are found.</exception>
-    private static void ValidateAgainstPatterns(
-        string expression,
-        string[] patterns,
-        string parameterName
-    )
+    private static void ValidateAgainstPatterns(string expression, string[] patterns, string parameterName)
     {
         var sanitized = RemoveSqlComments(expression);
 

@@ -37,13 +37,7 @@ public partial class SqliteMethods
         }
 
         if (
-            await DoesPrimaryKeyConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesPrimaryKeyConstraintExistAsync(db, schemaName, tableName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -89,13 +83,7 @@ public partial class SqliteMethods
         }
 
         if (
-            !await DoesPrimaryKeyConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesPrimaryKeyConstraintExistAsync(db, schemaName, tableName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {

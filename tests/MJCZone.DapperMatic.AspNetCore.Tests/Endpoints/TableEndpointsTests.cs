@@ -32,20 +32,14 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task Can_perform_complete_workflow_on_table_endpoints_Async(
-        string datasourceId,
-        string? schemaName
-    )
+    public async Task Can_perform_complete_workflow_on_table_endpoints_Async(string datasourceId, string? schemaName)
     {
         var datasources = _fixture.GetTestDatasources().Where(ds => ds.Id == datasourceId).ToList();
         using var factory = new WafWithInMemoryDatasourceRepository(datasources);
         using var client = factory.CreateClient();
         const string tableName = "WorkflowTestTable";
 
-        var baseUrl =
-            schemaName != null
-                ? $"/api/dm/d/{datasourceId}/s/{schemaName}/t"
-                : $"/api/dm/d/{datasourceId}/t";
+        var baseUrl = schemaName != null ? $"/api/dm/d/{datasourceId}/s/{schemaName}/t" : $"/api/dm/d/{datasourceId}/t";
 
         // 1. GET MULTI - List all tables (get initial count)
         var listResponse1 = await client.GetAsync($"{baseUrl}/");
@@ -56,9 +50,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var initialTableCount = listResult1.Result!.Count();
         listResult1
             .Result.Should()
-            .NotContain(t =>
-                string.Equals(t.TableName, tableName, StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(t => string.Equals(t.TableName, tableName, StringComparison.OrdinalIgnoreCase));
 
         // 2. GET SINGLE - Try to get non-existent table (should return 404)
         var getResponse1 = await client.GetAsync($"{baseUrl}/{tableName}");
@@ -107,9 +99,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var createResult = await createResponse.ReadAsJsonAsync<TableResponse>();
         createResult.Should().NotBeNull();
         createResult!.Result.Should().NotBeNull();
-        string.Equals(createResult.Result!.TableName, tableName, StringComparison.OrdinalIgnoreCase)
-            .Should()
-            .BeTrue();
+        string.Equals(createResult.Result!.TableName, tableName, StringComparison.OrdinalIgnoreCase).Should().BeTrue();
 
         // 4. EXISTS - Check if table exists (should return true)
         var existsResponse1 = await client.GetAsync($"{baseUrl}/{tableName}/exists");
@@ -127,9 +117,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult2.Result.Should().HaveCount(initialTableCount + 1);
         listResult2
             .Result.Should()
-            .Contain(t =>
-                string.Equals(t.TableName, tableName, StringComparison.OrdinalIgnoreCase)
-            );
+            .Contain(t => string.Equals(t.TableName, tableName, StringComparison.OrdinalIgnoreCase));
 
         // 6. GET SINGLE - Get the created table (should return table details)
         var getResponse2 = await client.GetAsync($"{baseUrl}/{tableName}");
@@ -137,9 +125,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var getResult2 = await getResponse2.ReadAsJsonAsync<TableResponse>();
         getResult2.Should().NotBeNull();
         getResult2!.Result.Should().NotBeNull();
-        string.Equals(getResult2.Result!.TableName, tableName, StringComparison.OrdinalIgnoreCase)
-            .Should()
-            .BeTrue();
+        string.Equals(getResult2.Result!.TableName, tableName, StringComparison.OrdinalIgnoreCase).Should().BeTrue();
         getResult2.Result.Columns.Should().HaveCount(3);
 
         // 7. UPDATE - Update the table (rename)
@@ -162,13 +148,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var getResult3 = await getResponse3.ReadAsJsonAsync<TableResponse>();
         getResult3.Should().NotBeNull();
         getResult3!.Result.Should().NotBeNull();
-        string.Equals(
-                getResult3.Result!.TableName,
-                newTableName,
-                StringComparison.OrdinalIgnoreCase
-            )
-            .Should()
-            .BeTrue();
+        string.Equals(getResult3.Result!.TableName, newTableName, StringComparison.OrdinalIgnoreCase).Should().BeTrue();
 
         // 9. DELETE - Delete the table
         var deleteResponse = await client.DeleteAsync($"{baseUrl}/{newTableName}");
@@ -190,9 +170,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult3.Result.Should().HaveCount(initialTableCount);
         listResult3
             .Result.Should()
-            .NotContain(t =>
-                string.Equals(t.TableName, newTableName, StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(t => string.Equals(t.TableName, newTableName, StringComparison.OrdinalIgnoreCase));
 
         // 12. GET SINGLE - Try to get deleted table (should return 404)
         var getResponse4 = await client.GetAsync($"{baseUrl}/{newTableName}");
@@ -230,10 +208,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 Encoding.UTF8,
                 "application/json"
             );
-            var postQueryResponse = await client.PostAsync(
-                $"{baseUrl}/{tableName}/query",
-                postQueryContent
-            );
+            var postQueryResponse = await client.PostAsync($"{baseUrl}/{tableName}/query", postQueryContent);
             postQueryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var postQueryResult = await postQueryResponse.ReadAsJsonAsync<QueryResponse>();
             postQueryResult.Should().NotBeNull();
@@ -242,9 +217,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             postQueryResult.Pagination.Take.Should().Be(10);
 
             // Test GET query with parameters
-            var getQueryResponse = await client.GetAsync(
-                $"{baseUrl}/{tableName}/query?take=5&skip=0"
-            );
+            var getQueryResponse = await client.GetAsync($"{baseUrl}/{tableName}/query?take=5&skip=0");
             getQueryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var getQueryResult = await getQueryResponse.ReadAsJsonAsync<QueryResponse>();
             getQueryResult.Should().NotBeNull();
@@ -253,9 +226,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             getQueryResult.Pagination.Take.Should().Be(5);
 
             // Test GET query with column selection
-            var selectQueryResponse = await client.GetAsync(
-                $"{baseUrl}/{tableName}/query?select=Id,Name&take=10"
-            );
+            var selectQueryResponse = await client.GetAsync($"{baseUrl}/{tableName}/query?select=Id,Name&take=10");
             selectQueryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var selectQueryResult = await selectQueryResponse.ReadAsJsonAsync<QueryResponse>();
             selectQueryResult.Should().NotBeNull();
@@ -306,9 +277,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             var column = await getColumnResponse.ReadAsJsonAsync<ColumnResponse>();
             column.Should().NotBeNull();
             column!.Result.Should().NotBeNull();
-            string.Equals(column.Result!.ColumnName, "Name", StringComparison.OrdinalIgnoreCase)
-                .Should()
-                .BeTrue();
+            string.Equals(column.Result!.ColumnName, "Name", StringComparison.OrdinalIgnoreCase).Should().BeTrue();
 
             // 3. Add a new column
             var addColumnRequest = new ColumnDto
@@ -322,17 +291,13 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 Encoding.UTF8,
                 "application/json"
             );
-            var addColumnResponse = await client.PostAsync(
-                $"{baseUrl}/{tableName}/columns",
-                addColumnContent
-            );
+            var addColumnResponse = await client.PostAsync($"{baseUrl}/{tableName}/columns", addColumnContent);
             addColumnResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // 4. Verify column was added
             var columnsAfterAddResponse = await client.GetAsync($"{baseUrl}/{tableName}/columns");
             columnsAfterAddResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var columnsAfterAdd =
-                await columnsAfterAddResponse.ReadAsJsonAsync<ColumnListResponse>();
+            var columnsAfterAdd = await columnsAfterAddResponse.ReadAsJsonAsync<ColumnListResponse>();
             columnsAfterAdd.Should().NotBeNull();
             columnsAfterAdd!.Result.Should().NotBeNull();
             columnsAfterAdd.Result.Should().HaveCount(initialColumnCount + 1);
@@ -344,16 +309,11 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 Encoding.UTF8,
                 "application/json"
             );
-            var updateResponse = await client.PutAsync(
-                $"{baseUrl}/{tableName}/columns/PhoneNumber",
-                updateContent
-            );
+            var updateResponse = await client.PutAsync($"{baseUrl}/{tableName}/columns/PhoneNumber", updateContent);
             updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
             // 6. Drop the added column
-            var dropColumnResponse = await client.DeleteAsync(
-                $"{baseUrl}/{tableName}/columns/PhoneNumberUpdated"
-            );
+            var dropColumnResponse = await client.DeleteAsync($"{baseUrl}/{tableName}/columns/PhoneNumberUpdated");
             dropColumnResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // 7. Verify final column count
@@ -414,43 +374,29 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 Encoding.UTF8,
                 "application/json"
             );
-            var createIndexResponse = await client.PostAsync(
-                $"{baseUrl}/{tableName}/indexes",
-                createIndexContent
-            );
+            var createIndexResponse = await client.PostAsync($"{baseUrl}/{tableName}/indexes", createIndexContent);
             createIndexResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
             // 3. List indexes after creation
-            var indexesAfterCreateResponse = await client.GetAsync(
-                $"{baseUrl}/{tableName}/indexes"
-            );
+            var indexesAfterCreateResponse = await client.GetAsync($"{baseUrl}/{tableName}/indexes");
             indexesAfterCreateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-            var indexesAfterCreate =
-                await indexesAfterCreateResponse.ReadAsJsonAsync<IndexListResponse>();
+            var indexesAfterCreate = await indexesAfterCreateResponse.ReadAsJsonAsync<IndexListResponse>();
             indexesAfterCreate.Should().NotBeNull();
             indexesAfterCreate!.Result.Should().NotBeNull();
             indexesAfterCreate.Result.Should().HaveCount(initialIndexCount + 1);
 
             // 4. Get the specific index
-            var getIndexResponse = await client.GetAsync(
-                $"{baseUrl}/{tableName}/indexes/IX_IndexTestTable_Name"
-            );
+            var getIndexResponse = await client.GetAsync($"{baseUrl}/{tableName}/indexes/IX_IndexTestTable_Name");
             getIndexResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var index = await getIndexResponse.ReadAsJsonAsync<IndexResponse>();
             index.Should().NotBeNull();
             index!.Result.Should().NotBeNull();
-            string.Equals(
-                    index.Result!.IndexName,
-                    "IX_IndexTestTable_Name",
-                    StringComparison.OrdinalIgnoreCase
-                )
+            string.Equals(index.Result!.IndexName, "IX_IndexTestTable_Name", StringComparison.OrdinalIgnoreCase)
                 .Should()
                 .BeTrue();
 
             // 5. Drop the index
-            var dropIndexResponse = await client.DeleteAsync(
-                $"{baseUrl}/{tableName}/indexes/IX_IndexTestTable_Name"
-            );
+            var dropIndexResponse = await client.DeleteAsync($"{baseUrl}/{tableName}/indexes/IX_IndexTestTable_Name");
             dropIndexResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
             // 6. Verify index was dropped
@@ -574,10 +520,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 Encoding.UTF8,
                 "application/json"
             );
-            var duplicateCreateResponse = await client.PostAsync(
-                $"{baseUrl}",
-                duplicateCreateContent
-            );
+            var duplicateCreateResponse = await client.PostAsync($"{baseUrl}", duplicateCreateContent);
             duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
         }
         finally
@@ -591,12 +534,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
 
     #region Helper Methods
 
-    private static async Task CreateTestTable(
-        HttpClient client,
-        string baseUrl,
-        string tableName,
-        string? schemaName
-    )
+    private static async Task CreateTestTable(HttpClient client, string baseUrl, string tableName, string? schemaName)
     {
         var createRequest = new TableDto
         {
@@ -624,11 +562,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 },
             ],
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(createRequest),
-            Encoding.UTF8,
-            "application/json"
-        );
+        var content = new StringContent(JsonSerializer.Serialize(createRequest), Encoding.UTF8, "application/json");
 
         var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
@@ -672,11 +606,7 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 ColumnNames = ["Id"],
             },
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(createRequest),
-            Encoding.UTF8,
-            "application/json"
-        );
+        var content = new StringContent(JsonSerializer.Serialize(createRequest), Encoding.UTF8, "application/json");
 
         var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
@@ -727,46 +657,29 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 },
             ],
         };
-        var content = new StringContent(
-            JsonSerializer.Serialize(createRequest),
-            Encoding.UTF8,
-            "application/json"
-        );
+        var content = new StringContent(JsonSerializer.Serialize(createRequest), Encoding.UTF8, "application/json");
 
         var response = await client.PostAsync($"{baseUrl}", content);
         response.EnsureSuccessStatusCode();
     }
 
-    private static async Task TestPrimaryKeyWorkflow(
-        HttpClient client,
-        string baseUrl,
-        string tableName
-    )
+    private static async Task TestPrimaryKeyWorkflow(HttpClient client, string baseUrl, string tableName)
     {
         // 1. Verify no primary key exists initially
-        var initialPkResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/primary-key-constraint"
-        );
+        var initialPkResponse = await client.GetAsync($"{baseUrl}/{tableName}/primary-key-constraint");
         initialPkResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var retrievedPk = await initialPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
         retrievedPk.Should().NotBeNull();
         retrievedPk!.Result.Should().BeNull();
 
         // 2. Create a primary key constraint
-        var createPkRequest = new PrimaryKeyConstraintDto
-        {
-            ConstraintName = $"PK_{tableName}",
-            ColumnNames = ["Id"],
-        };
+        var createPkRequest = new PrimaryKeyConstraintDto { ConstraintName = $"PK_{tableName}", ColumnNames = ["Id"] };
         var createPkContent = new StringContent(
             JsonSerializer.Serialize(createPkRequest),
             Encoding.UTF8,
             "application/json"
         );
-        var createPkResponse = await client.PostAsync(
-            $"{baseUrl}/{tableName}/primary-key-constraint",
-            createPkContent
-        );
+        var createPkResponse = await client.PostAsync($"{baseUrl}/{tableName}/primary-key-constraint", createPkContent);
         createPkResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. Get the primary key constraint
@@ -775,42 +688,27 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         retrievedPk = await getPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
         retrievedPk.Should().NotBeNull();
         retrievedPk!.Result.Should().NotBeNull();
-        string.Equals(
-                retrievedPk.Result!.ConstraintName,
-                $"PK_{tableName}",
-                StringComparison.OrdinalIgnoreCase
-            )
+        string.Equals(retrievedPk.Result!.ConstraintName, $"PK_{tableName}", StringComparison.OrdinalIgnoreCase)
             .Should()
             .BeTrue();
 
         // 4. Drop the primary key constraint
-        var dropPkResponse = await client.DeleteAsync(
-            $"{baseUrl}/{tableName}/primary-key-constraint"
-        );
+        var dropPkResponse = await client.DeleteAsync($"{baseUrl}/{tableName}/primary-key-constraint");
         dropPkResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 5. Verify primary key was dropped
-        var finalPkResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/primary-key-constraint"
-        );
+        var finalPkResponse = await client.GetAsync($"{baseUrl}/{tableName}/primary-key-constraint");
         retrievedPk = await finalPkResponse.ReadAsJsonAsync<PrimaryKeyResponse>();
         retrievedPk.Should().NotBeNull();
         retrievedPk!.Result.Should().BeNull();
     }
 
-    private static async Task TestCheckConstraintWorkflow(
-        HttpClient client,
-        string baseUrl,
-        string tableName
-    )
+    private static async Task TestCheckConstraintWorkflow(HttpClient client, string baseUrl, string tableName)
     {
         // 1. List initial check constraints
-        var initialChecksResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/check-constraints"
-        );
+        var initialChecksResponse = await client.GetAsync($"{baseUrl}/{tableName}/check-constraints");
         initialChecksResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var initialChecks =
-            await initialChecksResponse.ReadAsJsonAsync<CheckConstraintListResponse>();
+        var initialChecks = await initialChecksResponse.ReadAsJsonAsync<CheckConstraintListResponse>();
         var initialCheckCount = initialChecks?.Result?.Count() ?? 0;
 
         // 2. Create a check constraint
@@ -831,12 +729,9 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createCheckResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. List check constraints after creation
-        var checksAfterCreateResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/check-constraints"
-        );
+        var checksAfterCreateResponse = await client.GetAsync($"{baseUrl}/{tableName}/check-constraints");
         checksAfterCreateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var checksAfterCreate =
-            await checksAfterCreateResponse.ReadAsJsonAsync<CheckConstraintListResponse>();
+        var checksAfterCreate = await checksAfterCreateResponse.ReadAsJsonAsync<CheckConstraintListResponse>();
         checksAfterCreate.Should().NotBeNull();
         checksAfterCreate!.Result.Should().NotBeNull();
         checksAfterCreate.Result.Should().HaveCount(initialCheckCount + 1);
@@ -848,19 +743,12 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         dropCheckResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
-    private static async Task TestUniqueConstraintWorkflow(
-        HttpClient client,
-        string baseUrl,
-        string tableName
-    )
+    private static async Task TestUniqueConstraintWorkflow(HttpClient client, string baseUrl, string tableName)
     {
         // 1. List initial unique constraints
-        var initialUniquesResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/unique-constraints"
-        );
+        var initialUniquesResponse = await client.GetAsync($"{baseUrl}/{tableName}/unique-constraints");
         initialUniquesResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var initialUniques =
-            await initialUniquesResponse.ReadAsJsonAsync<UniqueConstraintListResponse>();
+        var initialUniques = await initialUniquesResponse.ReadAsJsonAsync<UniqueConstraintListResponse>();
         var initialUniqueCount = initialUniques?.Result?.Count() ?? 0;
 
         // 2. Create a unique constraint
@@ -881,12 +769,9 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createUniqueResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. List unique constraints after creation
-        var uniquesAfterCreateResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/unique-constraints"
-        );
+        var uniquesAfterCreateResponse = await client.GetAsync($"{baseUrl}/{tableName}/unique-constraints");
         uniquesAfterCreateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var uniquesAfterCreate =
-            await uniquesAfterCreateResponse.ReadAsJsonAsync<UniqueConstraintListResponse>();
+        var uniquesAfterCreate = await uniquesAfterCreateResponse.ReadAsJsonAsync<UniqueConstraintListResponse>();
         uniquesAfterCreate.Should().NotBeNull();
         uniquesAfterCreate!.Result.Should().NotBeNull();
         uniquesAfterCreate.Result.Should().HaveCount(initialUniqueCount + 1);
@@ -898,19 +783,12 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         dropUniqueResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
-    private static async Task TestDefaultConstraintWorkflow(
-        HttpClient client,
-        string baseUrl,
-        string tableName
-    )
+    private static async Task TestDefaultConstraintWorkflow(HttpClient client, string baseUrl, string tableName)
     {
         // 1. List initial default constraints
-        var initialDefaultsResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/default-constraints"
-        );
+        var initialDefaultsResponse = await client.GetAsync($"{baseUrl}/{tableName}/default-constraints");
         initialDefaultsResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var initialDefaults =
-            await initialDefaultsResponse.ReadAsJsonAsync<DefaultConstraintListResponse>();
+        var initialDefaults = await initialDefaultsResponse.ReadAsJsonAsync<DefaultConstraintListResponse>();
         var initialDefaultCount = initialDefaults?.Result?.Count() ?? 0;
 
         // 2. Create a default constraint
@@ -932,12 +810,9 @@ public class TableEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createDefaultResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         // 3. List default constraints after creation
-        var defaultsAfterCreateResponse = await client.GetAsync(
-            $"{baseUrl}/{tableName}/default-constraints"
-        );
+        var defaultsAfterCreateResponse = await client.GetAsync($"{baseUrl}/{tableName}/default-constraints");
         defaultsAfterCreateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var defaultsAfterCreate =
-            await defaultsAfterCreateResponse.ReadAsJsonAsync<DefaultConstraintListResponse>();
+        var defaultsAfterCreate = await defaultsAfterCreateResponse.ReadAsJsonAsync<DefaultConstraintListResponse>();
         defaultsAfterCreate.Should().NotBeNull();
         defaultsAfterCreate!.Result.Should().NotBeNull();
         defaultsAfterCreate.Result.Should().HaveCount(initialDefaultCount + 1);

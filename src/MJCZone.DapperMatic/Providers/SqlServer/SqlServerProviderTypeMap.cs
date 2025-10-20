@@ -50,19 +50,28 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         return shortName switch
         {
             // NetTopologySuite types
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry),
-            "NetTopologySuite.Geometries.Point, NetTopologySuite" or
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType("nvarchar(max)", isUnicode: true),
+            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                SqlServerTypes.sql_geometry
+            ),
+            "NetTopologySuite.Geometries.Point, NetTopologySuite"
+            or "NetTopologySuite.Geometries.LineString, NetTopologySuite"
+            or "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
+            or "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType(
+                "nvarchar(max)",
+                isUnicode: true
+            ),
             // SQL Server types
-            "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types" => TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry),
-            "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types" => TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography),
-            "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types" => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid),
-            _ => null
+            "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types" => TypeMappingHelpers.CreateGeometryType(
+                SqlServerTypes.sql_geometry
+            ),
+            "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types" =>
+                TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography),
+            "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types" =>
+                TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid),
+            _ => null,
         };
     }
 
@@ -169,7 +178,9 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
             return d.DotnetType switch
             {
                 Type t when t == typeof(DateTime) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_datetime),
-                Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_datetimeoffset),
+                Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateSimpleType(
+                    SqlServerTypes.sql_datetimeoffset
+                ),
                 Type t when t == typeof(TimeSpan) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_time),
                 Type t when t == typeof(DateOnly) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_date),
                 Type t when t == typeof(TimeOnly) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_time),
@@ -321,9 +332,7 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
     private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
     {
         // NetTopologySuite types
-        var sqlNetTopologyGeometryType = Type.GetType(
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
-        );
+        var sqlNetTopologyGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
 
         // var sqlNetTopologyPointType = Type.GetType(
         //     "NetTopologySuite.Geometries.Point, NetTopologySuite"

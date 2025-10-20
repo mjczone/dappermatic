@@ -28,9 +28,7 @@ public class DefaultDapperMaticPermissions : IDapperMaticPermissions
     {
         _requireRole = options.Value.RequireRole;
         _readOnlyRole = options.Value.ReadOnlyRole;
-        _defaultBehavior = string.IsNullOrWhiteSpace(_requireRole)
-            ? defaultBehavior
-            : PermissionDefault.RequireRole;
+        _defaultBehavior = string.IsNullOrWhiteSpace(_requireRole) ? defaultBehavior : PermissionDefault.RequireRole;
     }
 
     /// <inheritdoc />
@@ -56,25 +54,15 @@ public class DefaultDapperMaticPermissions : IDapperMaticPermissions
             }
 
             var isGetRequest =
-                (context.HttpMethod ?? string.Empty).Equals(
-                    "GET",
-                    StringComparison.OrdinalIgnoreCase
-                )
+                (context.HttpMethod ?? string.Empty).Equals("GET", StringComparison.OrdinalIgnoreCase)
                 || context.Operation?.EndsWith("/get", StringComparison.OrdinalIgnoreCase) == true;
 
-            if (
-                isGetRequest
-                && !string.IsNullOrEmpty(_readOnlyRole)
-                && context.User?.IsInRole(_readOnlyRole) == true
-            )
+            if (isGetRequest && !string.IsNullOrEmpty(_readOnlyRole) && context.User?.IsInRole(_readOnlyRole) == true)
             {
                 return Task.FromResult(true);
             }
 
-            if (
-                !string.IsNullOrWhiteSpace(_requireRole)
-                && context.User?.IsInRole(_requireRole) == true
-            )
+            if (!string.IsNullOrWhiteSpace(_requireRole) && context.User?.IsInRole(_requireRole) == true)
             {
                 return Task.FromResult(true);
             }

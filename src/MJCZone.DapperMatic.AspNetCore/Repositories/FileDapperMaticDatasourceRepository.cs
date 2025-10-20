@@ -14,9 +14,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Repositories;
 /// <summary>
 /// File-based implementation of IDapperMaticDatasourceRepository that stores datasources in a JSON file with encrypted connection strings.
 /// </summary>
-public sealed class FileDapperMaticDatasourceRepository
-    : DapperMaticDatasourceRepositoryBase,
-        IDisposable
+public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceRepositoryBase, IDisposable
 {
     private readonly DataStore _dataStore;
     private readonly IDatasourceIdFactory _datasourceIdFactory;
@@ -86,10 +84,7 @@ public sealed class FileDapperMaticDatasourceRepository
 
         if (string.IsNullOrWhiteSpace(datasource.ConnectionString))
         {
-            throw new ArgumentException(
-                "Datasource connection string is required.",
-                nameof(datasource)
-            );
+            throw new ArgumentException("Datasource connection string is required.", nameof(datasource));
         }
 
         if (await DatasourceExistsAsync(datasource.Id).ConfigureAwait(false))
@@ -177,9 +172,7 @@ public sealed class FileDapperMaticDatasourceRepository
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
         var removed = await GetCollection()
-            .DeleteOneAsync(d =>
-                d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
-            )
+            .DeleteOneAsync(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
             .ConfigureAwait(false);
 
         return removed;
@@ -196,9 +189,7 @@ public sealed class FileDapperMaticDatasourceRepository
             [
                 .. collection
                     .AsQueryable()
-                    .Where(d =>
-                        d.Tags != null && d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)
-                    )
+                    .Where(d => d.Tags != null && d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
                     .OrderBy(d => d.DisplayName),
             ];
 
@@ -218,9 +209,7 @@ public sealed class FileDapperMaticDatasourceRepository
 
         var datasource = GetCollection()
             .AsQueryable()
-            .FirstOrDefault(d =>
-                d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
-            );
+            .FirstOrDefault(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         if (datasource != null)
         {
             // Do not return the encrypted connection string
@@ -245,9 +234,7 @@ public sealed class FileDapperMaticDatasourceRepository
 
         var datasource = GetCollection()
             .AsQueryable()
-            .FirstOrDefault(d =>
-                d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase)
-            );
+            .FirstOrDefault(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
         if (datasource == null)
         {
             return Task.FromResult<string?>(null);
@@ -265,11 +252,7 @@ public sealed class FileDapperMaticDatasourceRepository
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to decrypt connection string for datasource ID {DatasourceId}",
-                id
-            );
+            _logger.LogError(ex, "Failed to decrypt connection string for datasource ID {DatasourceId}", id);
             return Task.FromResult<string?>(null);
         }
     }

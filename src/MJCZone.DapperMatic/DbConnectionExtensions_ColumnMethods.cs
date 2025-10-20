@@ -123,9 +123,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .CreateColumnIfNotExistsAsync(db, column, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).CreateColumnIfNotExistsAsync(db, column, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -259,15 +257,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .RenameColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                newColumnName,
-                tx,
-                cancellationToken
-            )
+            .RenameColumnIfExistsAsync(db, schemaName, tableName, columnName, newColumnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
     #endregion // IDatabaseColumnMethods

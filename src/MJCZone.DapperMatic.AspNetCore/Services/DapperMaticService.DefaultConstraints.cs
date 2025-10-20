@@ -49,22 +49,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             defaultConstraints = await connection
@@ -72,11 +61,7 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(
-                context,
-                true,
-                $"Retrieved default constraints for table '{tableName}'"
-            )
+        await LogAuditEventAsync(context, true, $"Retrieved default constraints for table '{tableName}'")
             .ConfigureAwait(false);
         return defaultConstraints.ToDefaultConstraintDtos();
     }
@@ -116,32 +101,15 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var defaultConstraint = await connection
-                .GetDefaultConstraintAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .GetDefaultConstraintAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (defaultConstraint == null)
@@ -198,32 +166,15 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var defaultConstraint = await connection
-                .GetDefaultConstraintOnColumnAsync(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    null,
-                    cancellationToken
-                )
+                .GetDefaultConstraintOnColumnAsync(schemaName, tableName, columnName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (defaultConstraint == null)
@@ -287,14 +238,8 @@ public partial class DapperMaticService
                 nameof(defaultConstraint),
                 builder =>
                     builder
-                        .NotNullOrWhiteSpace(
-                            r => r.ColumnName,
-                            nameof(defaultConstraint.ColumnName)
-                        )
-                        .NotNullOrWhiteSpace(
-                            r => r.DefaultExpression,
-                            nameof(defaultConstraint.DefaultExpression)
-                        )
+                        .NotNullOrWhiteSpace(r => r.ColumnName, nameof(defaultConstraint.ColumnName))
+                        .NotNullOrWhiteSpace(r => r.DefaultExpression, nameof(defaultConstraint.DefaultExpression))
             )
             .Assert();
 
@@ -303,22 +248,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check constraint doesn't already exist
@@ -358,17 +292,10 @@ public partial class DapperMaticService
                 );
             }
 
-            var dmDefaultConstraint = defaultConstraint.ToDmDefaultConstraint(
-                schemaName,
-                tableName
-            );
+            var dmDefaultConstraint = defaultConstraint.ToDmDefaultConstraint(schemaName, tableName);
 
             var created = await connection
-                .CreateDefaultConstraintIfNotExistsAsync(
-                    dmDefaultConstraint,
-                    null,
-                    cancellationToken
-                )
+                .CreateDefaultConstraintIfNotExistsAsync(dmDefaultConstraint, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!created)
@@ -380,9 +307,7 @@ public partial class DapperMaticService
                 );
             }
 
-            var createdDefaultConstraint = !string.IsNullOrWhiteSpace(
-                defaultConstraint.ConstraintName
-            )
+            var createdDefaultConstraint = !string.IsNullOrWhiteSpace(defaultConstraint.ConstraintName)
                 ? await connection
                     .GetDefaultConstraintAsync(
                         schemaName,
@@ -409,9 +334,7 @@ public partial class DapperMaticService
 
                 if (createdDefaultConstraint == null)
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to retrieve the created default constraint."
-                    );
+                    throw new InvalidOperationException($"Failed to retrieve the created default constraint.");
                 }
             }
 
@@ -461,33 +384,16 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check default constraint exists
             var existingConstraint = await connection
-                .DoesDefaultConstraintExistAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DoesDefaultConstraintExistAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!existingConstraint)
@@ -498,13 +404,7 @@ public partial class DapperMaticService
             }
 
             var dropped = await connection
-                .DropDefaultConstraintIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DropDefaultConstraintIfExistsAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)
@@ -514,11 +414,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    dropped,
-                    $"Default constraint '{constraintName}' dropped successfully."
-                )
+            await LogAuditEventAsync(context, dropped, $"Default constraint '{constraintName}' dropped successfully.")
                 .ConfigureAwait(false);
         }
     }
@@ -560,33 +456,16 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check default constraint exists
             var existingConstraint = await connection
-                .DoesDefaultConstraintExistOnColumnAsync(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    null,
-                    cancellationToken
-                )
+                .DoesDefaultConstraintExistOnColumnAsync(schemaName, tableName, columnName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!existingConstraint)
@@ -597,13 +476,7 @@ public partial class DapperMaticService
             }
 
             var dropped = await connection
-                .DropDefaultConstraintOnColumnIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    null,
-                    cancellationToken
-                )
+                .DropDefaultConstraintOnColumnIfExistsAsync(schemaName, tableName, columnName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)

@@ -49,22 +49,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var primaryKey = await connection
@@ -80,11 +69,7 @@ public partial class DapperMaticService
                 // );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved primary key constraint for table '{tableName}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved primary key constraint for table '{tableName}'")
                 .ConfigureAwait(false);
             return primaryKey.ToPrimaryKeyConstraintDto();
         }
@@ -114,10 +99,7 @@ public partial class DapperMaticService
         schemaName = NormalizeSchemaName(schemaName);
 
         // auto-generate constraint name if not provided
-        if (
-            primaryKeyConstraint != null
-            && string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName)
-        )
+        if (primaryKeyConstraint != null && string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName))
         {
             primaryKeyConstraint.ConstraintName = string.IsNullOrWhiteSpace(schemaName)
                 ? $"pk_{tableName}"
@@ -147,22 +129,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var exists = await connection
@@ -171,9 +142,7 @@ public partial class DapperMaticService
 
             if (exists)
             {
-                throw new DuplicateKeyException(
-                    $"Table '{tableName}' already has a primary key constraint."
-                );
+                throw new DuplicateKeyException($"Table '{tableName}' already has a primary key constraint.");
             }
 
             var dmPrimaryKey = primaryKeyConstraint.ToDmPrimaryKeyConstraint(schemaName, tableName);
@@ -199,9 +168,7 @@ public partial class DapperMaticService
 
             if (createdPrimaryKey == null)
             {
-                throw new InvalidOperationException(
-                    $"Failed to retrieve the created primary key constraint."
-                );
+                throw new InvalidOperationException($"Failed to retrieve the created primary key constraint.");
             }
 
             await LogAuditEventAsync(
@@ -247,22 +214,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check if primary key exists
@@ -272,18 +228,11 @@ public partial class DapperMaticService
 
             if (existingPrimaryKey == null)
             {
-                throw new KeyNotFoundException(
-                    $"Primary key constraint not found on table '{tableName}'"
-                );
+                throw new KeyNotFoundException($"Primary key constraint not found on table '{tableName}'");
             }
 
             var dropped = await connection
-                .DropPrimaryKeyConstraintIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    null,
-                    cancellationToken
-                )
+                .DropPrimaryKeyConstraintIfExistsAsync(schemaName, tableName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)
@@ -293,11 +242,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    dropped,
-                    $"Primary key constraint dropped successfully."
-                )
+            await LogAuditEventAsync(context, dropped, $"Primary key constraint dropped successfully.")
                 .ConfigureAwait(false);
         }
     }

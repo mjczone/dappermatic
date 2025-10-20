@@ -134,20 +134,14 @@ public partial class DapperMaticService : IDapperMaticService
 
         if (string.IsNullOrWhiteSpace(datasource.Provider))
         {
-            throw new InvalidOperationException(
-                $"Datasource '{datasourceId}' is missing a provider."
-            );
+            throw new InvalidOperationException($"Datasource '{datasourceId}' is missing a provider.");
         }
 
-        var connectionString = await _datasourceRepository
-            .GetConnectionStringAsync(datasourceId)
-            .ConfigureAwait(false);
+        var connectionString = await _datasourceRepository.GetConnectionStringAsync(datasourceId).ConfigureAwait(false);
 
         if (connectionString == null)
         {
-            throw new InvalidOperationException(
-                $"Connection string for datasource '{datasourceId}' is not available."
-            );
+            throw new InvalidOperationException($"Connection string for datasource '{datasourceId}' is not available.");
         }
 
         return _connectionFactory.CreateConnection(datasource.Provider, connectionString);
@@ -228,9 +222,7 @@ public partial class DapperMaticService : IDapperMaticService
                             parameters.Add(inParamName, value);
                         }
 
-                        whereConditions.Add(
-                            $"{condition.Column} {sqlOperator} ({string.Join(",", inParams)})"
-                        );
+                        whereConditions.Add($"{condition.Column} {sqlOperator} ({string.Join(",", inParams)})");
                     }
                 }
                 else if (condition.Operator == "like" || condition.Operator == "nlike")
@@ -253,9 +245,7 @@ public partial class DapperMaticService : IDapperMaticService
         if (orderByPairs.Count > 0)
         {
             sql.AppendLine(" ORDER BY");
-            var orderByParts = orderByPairs.Select(pair =>
-                $"{pair.Column} {(pair.IsAscending ? "ASC" : "DESC")}"
-            );
+            var orderByParts = orderByPairs.Select(pair => $"{pair.Column} {(pair.IsAscending ? "ASC" : "DESC")}");
             sql.Append(string.Join(", ", orderByParts));
         }
 
@@ -271,10 +261,7 @@ public partial class DapperMaticService : IDapperMaticService
                 if (whereIndex > 0)
                 {
                     var whereClause = sqlString[whereIndex..];
-                    var orderByIndex = whereClause.IndexOf(
-                        "ORDER BY",
-                        StringComparison.OrdinalIgnoreCase
-                    );
+                    var orderByIndex = whereClause.IndexOf("ORDER BY", StringComparison.OrdinalIgnoreCase);
                     if (orderByIndex > 0)
                     {
                         whereClause = whereClause[..orderByIndex];
@@ -283,9 +270,7 @@ public partial class DapperMaticService : IDapperMaticService
                 }
             }
 
-            totalCount = await connection
-                .QuerySingleAsync<long>(countSql, parameters)
-                .ConfigureAwait(false);
+            totalCount = await connection.QuerySingleAsync<long>(countSql, parameters).ConfigureAwait(false);
         }
 
         // Add pagination - database specific syntax
@@ -324,9 +309,7 @@ public partial class DapperMaticService : IDapperMaticService
         if (!string.IsNullOrWhiteSpace(tableName))
         {
             // Get table columns from schema
-            var tableColumns = await connection
-                .GetColumnsAsync(schemaName, tableName)
-                .ConfigureAwait(false);
+            var tableColumns = await connection.GetColumnsAsync(schemaName, tableName).ConfigureAwait(false);
 
             // Filter columns based on SELECT clause if specific columns are requested
             var targetColumns =
@@ -370,8 +353,7 @@ public partial class DapperMaticService : IDapperMaticService
 
         // Check if there are more records
         var hasMore =
-            results.Count() == request.Take
-            && (totalCount == null || request.Skip + request.Take < totalCount);
+            results.Count() == request.Take && (totalCount == null || request.Skip + request.Take < totalCount);
 
         return new QueryResultDto
         {
@@ -415,9 +397,7 @@ public partial class DapperMaticService : IDapperMaticService
 
             if (!schemaExists)
             {
-                throw new KeyNotFoundException(
-                    $"Schema '{schemaName}' not found in datasource '{datasourceId}'"
-                );
+                throw new KeyNotFoundException($"Schema '{schemaName}' not found in datasource '{datasourceId}'");
             }
         }
     }
@@ -437,9 +417,7 @@ public partial class DapperMaticService : IDapperMaticService
 
             if (schemaExists)
             {
-                throw new DuplicateKeyException(
-                    $"Schema '{schemaName}' already exists in datasource '{datasourceId}'"
-                );
+                throw new DuplicateKeyException($"Schema '{schemaName}' already exists in datasource '{datasourceId}'");
             }
         }
     }

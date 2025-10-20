@@ -43,18 +43,10 @@ public partial class MySqlMethods : DatabaseMethodsBase<MySqlProviderTypeMap>, I
     )
     {
         var versionStr =
-            await ExecuteScalarAsync<string>(
-                    db,
-                    "SELECT VERSION()",
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            await ExecuteScalarAsync<string>(db, "SELECT VERSION()", tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false) ?? string.Empty;
         var version = DbProviderUtils.ExtractVersionFromVersionString(versionStr);
-        return (
-                versionStr.Contains("MariaDB", StringComparison.OrdinalIgnoreCase)
-                && version > new Version(10, 2, 1)
-            )
+        return (versionStr.Contains("MariaDB", StringComparison.OrdinalIgnoreCase) && version > new Version(10, 2, 1))
             || version >= new Version(8, 0, 16);
     }
 

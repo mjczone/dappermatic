@@ -31,11 +31,7 @@ public class ConnectionStringEncryptionTest
         var logger = new LoggerFactory().CreateLogger<InMemoryDapperMaticDatasourceRepository>();
         var idFactory = new GuidDatasourceIdFactory();
 
-        var repository = new InMemoryDapperMaticDatasourceRepository(
-            optionsWrapper,
-            idFactory,
-            logger
-        );
+        var repository = new InMemoryDapperMaticDatasourceRepository(optionsWrapper, idFactory, logger);
 
         var testDatasource = new DatasourceDto
         {
@@ -48,9 +44,7 @@ public class ConnectionStringEncryptionTest
 
         // Act
         var addResult = await repository.AddDatasourceAsync(testDatasource);
-        var retrievedConnectionString = await repository.GetConnectionStringAsync(
-            "Test-Encryption"
-        );
+        var retrievedConnectionString = await repository.GetConnectionStringAsync("Test-Encryption");
 
         // Assert
         addResult.Should().BeTrue();
@@ -69,11 +63,7 @@ public class ConnectionStringEncryptionTest
         var logger = new LoggerFactory().CreateLogger<InMemoryDapperMaticDatasourceRepository>();
         var idFactory = new GuidDatasourceIdFactory();
 
-        var repository = new InMemoryDapperMaticDatasourceRepository(
-            optionsWrapper,
-            idFactory,
-            logger
-        );
+        var repository = new InMemoryDapperMaticDatasourceRepository(optionsWrapper, idFactory, logger);
 
         // Act
         var retrievedConnectionString = await repository.GetConnectionStringAsync("NonExistent");

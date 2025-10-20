@@ -48,17 +48,11 @@ public partial class SqliteMethods
                     if (!string.IsNullOrWhiteSpace(columnName))
                     {
                         return table.CheckConstraints.All(x =>
-                                !x.ConstraintName.Equals(
-                                    constraintName,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                !x.ConstraintName.Equals(constraintName, StringComparison.OrdinalIgnoreCase)
                             )
                             && table.CheckConstraints.All(x =>
                                 string.IsNullOrWhiteSpace(x.ColumnName)
-                                || !x.ColumnName.Equals(
-                                    columnName,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                || !x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
                             );
                     }
                     return table.CheckConstraints.All(x =>
@@ -68,13 +62,7 @@ public partial class SqliteMethods
                 table =>
                 {
                     table.CheckConstraints.Add(
-                        new DmCheckConstraint(
-                            schemaName,
-                            tableName,
-                            columnName,
-                            constraintName,
-                            expression
-                        )
+                        new DmCheckConstraint(schemaName, tableName, columnName, constraintName, expression)
                     );
                     return table;
                 },
@@ -94,11 +82,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        (schemaName, tableName, constraintName) = NormalizeNames(
-            schemaName,
-            tableName,
-            constraintName
-        );
+        (schemaName, tableName, constraintName) = NormalizeNames(schemaName, tableName, constraintName);
 
         return await AlterTableUsingRecreateTableStrategyAsync(
                 db,
@@ -118,10 +102,7 @@ public partial class SqliteMethods
                     if (!string.IsNullOrWhiteSpace(checkConstraint?.ColumnName))
                     {
                         var column = table.Columns.SingleOrDefault(x =>
-                            x.ColumnName.Equals(
-                                checkConstraint.ColumnName,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            x.ColumnName.Equals(checkConstraint.ColumnName, StringComparison.OrdinalIgnoreCase)
                         );
                         if (column != null)
                         {

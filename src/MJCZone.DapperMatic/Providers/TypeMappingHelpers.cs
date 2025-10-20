@@ -66,7 +66,8 @@ public static class TypeMappingHelpers
         string sqlType,
         int? length = null,
         bool isUnicode = false,
-        bool isFixedLength = false)
+        bool isFixedLength = false
+    )
     {
         var actualLength = length ?? TypeMappingDefaults.DefaultStringLength;
 
@@ -98,7 +99,8 @@ public static class TypeMappingHelpers
     public static SqlTypeDescriptor CreateGuidStringType(
         string sqlType,
         bool isUnicode = false,
-        bool isFixedLength = true)
+        bool isFixedLength = true
+    )
     {
         return CreateStringType(sqlType, TypeMappingDefaults.GuidStringLength, isUnicode, isFixedLength);
     }
@@ -127,9 +129,9 @@ public static class TypeMappingHelpers
         }
 
         var shortName = GetAssemblyQualifiedShortName(type);
-        return !string.IsNullOrWhiteSpace(shortName) &&
-               shortName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase) &&
-               shortName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
+        return !string.IsNullOrWhiteSpace(shortName)
+            && shortName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase)
+            && shortName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -188,10 +190,7 @@ public static class TypeMappingHelpers
     {
         if (precision.HasValue)
         {
-            return new SqlTypeDescriptor($"{sqlType}({precision})")
-            {
-                Precision = precision,
-            };
+            return new SqlTypeDescriptor($"{sqlType}({precision})") { Precision = precision };
         }
 
         return new SqlTypeDescriptor(sqlType);
@@ -204,34 +203,20 @@ public static class TypeMappingHelpers
     /// <param name="length">The length, or null to use default.</param>
     /// <param name="isFixedLength">Whether the type is fixed-length.</param>
     /// <returns>A SqlTypeDescriptor configured for binary storage.</returns>
-    public static SqlTypeDescriptor CreateBinaryType(
-        string sqlType,
-        int? length = null,
-        bool isFixedLength = false)
+    public static SqlTypeDescriptor CreateBinaryType(string sqlType, int? length = null, bool isFixedLength = false)
     {
         if (length == TypeMappingDefaults.MaxLength)
         {
-            return new SqlTypeDescriptor($"{sqlType}(max)")
-            {
-                Length = null,
-                IsFixedLength = isFixedLength,
-            };
+            return new SqlTypeDescriptor($"{sqlType}(max)") { Length = null, IsFixedLength = isFixedLength };
         }
 
         if (length.HasValue)
         {
-            return new SqlTypeDescriptor($"{sqlType}({length})")
-            {
-                Length = length,
-                IsFixedLength = isFixedLength,
-            };
+            return new SqlTypeDescriptor($"{sqlType}({length})") { Length = length, IsFixedLength = isFixedLength };
         }
 
         // Default binary types don't typically have length specification
-        return new SqlTypeDescriptor(sqlType)
-        {
-            IsFixedLength = isFixedLength,
-        };
+        return new SqlTypeDescriptor(sqlType) { IsFixedLength = isFixedLength };
     }
 
     /// <summary>
@@ -280,11 +265,7 @@ public static class TypeMappingHelpers
     /// <returns>A SqlTypeDescriptor configured for LOB storage.</returns>
     public static SqlTypeDescriptor CreateLobType(string sqlType, bool isUnicode = false)
     {
-        return new SqlTypeDescriptor(sqlType)
-        {
-            Length = TypeMappingDefaults.MaxLength,
-            IsUnicode = isUnicode,
-        };
+        return new SqlTypeDescriptor(sqlType) { Length = TypeMappingDefaults.MaxLength, IsUnicode = isUnicode };
     }
 
     /// <summary>
@@ -315,10 +296,7 @@ public static class TypeMappingHelpers
     /// <returns>A SqlTypeDescriptor with precision formatting.</returns>
     public static SqlTypeDescriptor CreatePrecisionType(string sqlType, int precision)
     {
-        return new SqlTypeDescriptor($"{sqlType}({precision})")
-        {
-            Precision = precision,
-        };
+        return new SqlTypeDescriptor($"{sqlType}({precision})") { Precision = precision };
     }
 
     /// <summary>
@@ -354,12 +332,12 @@ public static class TypeMappingHelpers
         }
 
         var genericTypeDefinition = type.GetGenericTypeDefinition();
-        return genericTypeDefinition == typeof(List<>) ||
-               genericTypeDefinition == typeof(IList<>) ||
-               genericTypeDefinition == typeof(ICollection<>) ||
-               genericTypeDefinition == typeof(IEnumerable<>) ||
-               genericTypeDefinition == typeof(HashSet<>) ||
-               genericTypeDefinition == typeof(ISet<>);
+        return genericTypeDefinition == typeof(List<>)
+            || genericTypeDefinition == typeof(IList<>)
+            || genericTypeDefinition == typeof(ICollection<>)
+            || genericTypeDefinition == typeof(IEnumerable<>)
+            || genericTypeDefinition == typeof(HashSet<>)
+            || genericTypeDefinition == typeof(ISet<>);
     }
 
     /// <summary>
@@ -517,7 +495,7 @@ public static class TypeMappingHelpers
                 return CreateJsonType(sqlType, isText: true);
             }),
             "sqlite" => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)),
-            _ => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)) // Default to text storage
+            _ => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)), // Default to text storage
         };
     }
 
@@ -535,7 +513,7 @@ public static class TypeMappingHelpers
             "postgresql" => CreateJsonType("jsonb", isText: false), // jsonb is preferred over json in PostgreSQL
             "sqlserver" => CreateJsonType(isUnicode ? "nvarchar(max)" : "varchar(max)", isText: true),
             "sqlite" => CreateJsonType("text", isText: true),
-            _ => CreateJsonType("text", isText: true)
+            _ => CreateJsonType("text", isText: true),
         };
     }
 
@@ -575,7 +553,7 @@ public static class TypeMappingHelpers
                 return null;
             }),
             // Other providers fall back to JSON
-            _ => CreateJsonConverter(provider)
+            _ => CreateJsonConverter(provider),
         };
     }
 
@@ -609,7 +587,7 @@ public static class TypeMappingHelpers
             Type t when t == typeof(DateOnly) => "date",
             Type t when t == typeof(TimeOnly) => "time",
             Type t when t == typeof(Guid) => "uuid",
-            _ => null // Unsupported type
+            _ => null, // Unsupported type
         };
     }
 
@@ -720,9 +698,7 @@ public static class TypeMappingHelpers
             // Strip any parameters from the element type name (e.g., "character(1)" → "character")
             // This allows matching parameterized types in the switch statement
             var parenIndex = elementTypeName.IndexOf('(', StringComparison.Ordinal);
-            var baseElementTypeName = parenIndex > 0
-                ? elementTypeName[..parenIndex]
-                : elementTypeName;
+            var baseElementTypeName = parenIndex > 0 ? elementTypeName[..parenIndex] : elementTypeName;
 
             // Map element type to .NET array type
             return baseElementTypeName switch
@@ -752,7 +728,7 @@ public static class TypeMappingHelpers
                 "uuid" => new DotnetTypeDescriptor(typeof(Guid[])),
                 "json" => new DotnetTypeDescriptor(typeof(System.Text.Json.JsonDocument[])),
                 "jsonb" => new DotnetTypeDescriptor(typeof(System.Text.Json.JsonDocument[])),
-                _ => null // Unsupported array element type
+                _ => null, // Unsupported array element type
             };
         });
     }

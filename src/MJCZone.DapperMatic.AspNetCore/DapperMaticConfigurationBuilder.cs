@@ -53,9 +53,7 @@ public sealed class DapperMaticConfigurationBuilder
     {
         ArgumentNullException.ThrowIfNull(datasources);
 
-        _services.Configure<DapperMaticOptions>(options =>
-            options.Datasources.AddRange(datasources)
-        );
+        _services.Configure<DapperMaticOptions>(options => options.Datasources.AddRange(datasources));
 
         return this;
     }
@@ -69,9 +67,7 @@ public sealed class DapperMaticConfigurationBuilder
     {
         ArgumentNullException.ThrowIfNull(datasources);
 
-        _services.Configure<DapperMaticOptions>(options =>
-            options.Datasources.AddRange(datasources)
-        );
+        _services.Configure<DapperMaticOptions>(options => options.Datasources.AddRange(datasources));
 
         return this;
     }
@@ -187,15 +183,8 @@ public sealed class DapperMaticConfigurationBuilder
         {
             var options = provider.GetRequiredService<IOptions<DapperMaticOptions>>();
             var datasourceIdFactory = provider.GetRequiredService<IDatasourceIdFactory>();
-            var logger = provider.GetRequiredService<
-                ILogger<FileDapperMaticDatasourceRepository>
-            >();
-            var repository = new FileDapperMaticDatasourceRepository(
-                filePath,
-                datasourceIdFactory,
-                options,
-                logger
-            );
+            var logger = provider.GetRequiredService<ILogger<FileDapperMaticDatasourceRepository>>();
+            var repository = new FileDapperMaticDatasourceRepository(filePath, datasourceIdFactory, options, logger);
 
             // Initialize with configured datasources from options
             if (options.Value.Datasources?.Count > 0)
@@ -218,10 +207,7 @@ public sealed class DapperMaticConfigurationBuilder
     /// <param name="provider">The database provider for the repository storage.</param>
     /// <param name="connectionString">The connection string for the repository database.</param>
     /// <returns>The configuration builder for method chaining.</returns>
-    public DapperMaticConfigurationBuilder UseDatabaseDatasourceRepository(
-        string provider,
-        string connectionString
-    )
+    public DapperMaticConfigurationBuilder UseDatabaseDatasourceRepository(string provider, string connectionString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
@@ -230,9 +216,7 @@ public sealed class DapperMaticConfigurationBuilder
             var options = serviceProvider.GetRequiredService<IOptions<DapperMaticOptions>>();
             var connectionFactory = serviceProvider.GetRequiredService<IDbConnectionFactory>();
             var datasourceIdFactory = serviceProvider.GetRequiredService<IDatasourceIdFactory>();
-            var logger = serviceProvider.GetRequiredService<
-                ILogger<DatabaseDapperMaticDatasourceRepository>
-            >();
+            var logger = serviceProvider.GetRequiredService<ILogger<DatabaseDapperMaticDatasourceRepository>>();
             var repository = new DatabaseDapperMaticDatasourceRepository(
                 provider,
                 connectionString,

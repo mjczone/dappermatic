@@ -90,7 +90,10 @@ public static class UniqueConstraintEndpoints
             .Produces((int)HttpStatusCode.Forbidden);
 
         group
-            .MapDelete("/{constraintName}", isSchemaSpecific ? DropSchemaUniqueConstraintAsync : DropUniqueConstraintAsync)
+            .MapDelete(
+                "/{constraintName}",
+                isSchemaSpecific ? DropSchemaUniqueConstraintAsync : DropUniqueConstraintAsync
+            )
             .WithName($"Drop{namePrefix}UniqueConstraint")
             .WithSummary($"Drops a unique constraint from a table {schemaInText}")
             .Produces<UniqueConstraintResponse>((int)HttpStatusCode.OK)
@@ -117,13 +120,7 @@ public static class UniqueConstraintEndpoints
     )
     {
         var uniqueConstraints = await service
-            .GetUniqueConstraintsAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .GetUniqueConstraintsAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new UniqueConstraintListResponse(uniqueConstraints));
@@ -136,7 +133,16 @@ public static class UniqueConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => GetSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        GetSchemaUniqueConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> GetSchemaUniqueConstraintAsync(
         IOperationContext operationContext,
@@ -169,7 +175,16 @@ public static class UniqueConstraintEndpoints
         [FromRoute] string tableName,
         [FromBody] UniqueConstraintDto uniqueConstraint,
         CancellationToken cancellationToken = default
-    ) => CreateSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, uniqueConstraint, cancellationToken);
+    ) =>
+        CreateSchemaUniqueConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            uniqueConstraint,
+            cancellationToken
+        );
 
     private static async Task<IResult> CreateSchemaUniqueConstraintAsync(
         IOperationContext operationContext,
@@ -222,7 +237,16 @@ public static class UniqueConstraintEndpoints
         [FromRoute] string tableName,
         [FromRoute] string constraintName,
         CancellationToken cancellationToken = default
-    ) => DropSchemaUniqueConstraintAsync(operationContext, service, datasourceId, null, tableName, constraintName, cancellationToken);
+    ) =>
+        DropSchemaUniqueConstraintAsync(
+            operationContext,
+            service,
+            datasourceId,
+            null,
+            tableName,
+            constraintName,
+            cancellationToken
+        );
 
     private static async Task<IResult> DropSchemaUniqueConstraintAsync(
         IOperationContext operationContext,

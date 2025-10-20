@@ -20,9 +20,7 @@ public class SqlExpressionValidatorTests
     {
         var validView = "SELECT id, name FROM users WHERE active = 1";
 
-        var exception = Record.Exception(() =>
-            SqlExpressionValidator.ValidateViewDefinition(validView)
-        );
+        var exception = Record.Exception(() => SqlExpressionValidator.ValidateViewDefinition(validView));
 
         Assert.Null(exception);
     }
@@ -85,9 +83,7 @@ public class SqlExpressionValidatorTests
     {
         var validCheck = "status IN ('A', 'B', 'C')";
 
-        var exception = Record.Exception(() =>
-            SqlExpressionValidator.ValidateCheckExpression(validCheck)
-        );
+        var exception = Record.Exception(() => SqlExpressionValidator.ValidateCheckExpression(validCheck));
 
         Assert.Null(exception);
     }
@@ -137,9 +133,7 @@ public class SqlExpressionValidatorTests
     {
         var validDefault = "'default_value'";
 
-        var exception = Record.Exception(() =>
-            SqlExpressionValidator.ValidateDefaultExpression(validDefault)
-        );
+        var exception = Record.Exception(() => SqlExpressionValidator.ValidateDefaultExpression(validDefault));
 
         Assert.Null(exception);
     }
@@ -149,9 +143,7 @@ public class SqlExpressionValidatorTests
     {
         var validDefault = "GETDATE()";
 
-        var exception = Record.Exception(() =>
-            SqlExpressionValidator.ValidateDefaultExpression(validDefault)
-        );
+        var exception = Record.Exception(() => SqlExpressionValidator.ValidateDefaultExpression(validDefault));
 
         Assert.Null(exception);
     }
@@ -189,9 +181,7 @@ public class SqlExpressionValidatorTests
     {
         var longView = "SELECT " + new string('*', 2500);
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            SqlExpressionValidator.ValidateViewDefinition(longView)
-        );
+        var exception = Assert.Throws<ArgumentException>(() => SqlExpressionValidator.ValidateViewDefinition(longView));
 
         Assert.Contains("too long", exception.Message);
     }
@@ -225,9 +215,7 @@ public class SqlExpressionValidatorTests
     [InlineData("1=1; EXEC xp_cmdshell 'format c:'")]
     [InlineData("1 OR (SELECT COUNT(*) FROM sys.tables) > 0")]
     [InlineData("1 UNION SELECT password FROM users")]
-    public void Should_validate_check_expression_various_sql_injection_attempts_does_throw(
-        string maliciousExpression
-    )
+    public void Should_validate_check_expression_various_sql_injection_attempts_does_throw(string maliciousExpression)
     {
         var exception = Assert.Throws<ArgumentException>(() =>
             SqlExpressionValidator.ValidateCheckExpression(maliciousExpression)

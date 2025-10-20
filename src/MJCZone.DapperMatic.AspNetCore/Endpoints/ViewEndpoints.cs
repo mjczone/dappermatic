@@ -65,11 +65,7 @@ public static class ViewEndpoints
         return app;
     }
 
-    private static void RegisterViewEndpoints(
-        RouteGroupBuilder group,
-        string namePrefix,
-        bool isSchemaSpecific
-    )
+    private static void RegisterViewEndpoints(RouteGroupBuilder group, string namePrefix, bool isSchemaSpecific)
     {
         var schemaText = isSchemaSpecific ? "a specific schema" : "the default schema";
         var schemaInText = isSchemaSpecific ? "in a specific schema" : "in the default schema";
@@ -144,10 +140,7 @@ public static class ViewEndpoints
 
         // Check if view exists
         group
-            .MapGet(
-                "/{viewName}/exists",
-                isSchemaSpecific ? SchemaViewExistsAsync : ViewExistsAsync
-            )
+            .MapGet("/{viewName}/exists", isSchemaSpecific ? SchemaViewExistsAsync : ViewExistsAsync)
             .WithName($"{namePrefix}ViewExists")
             .WithSummary($"Checks if a view exists {schemaInText}")
             .Produces<ViewExistsResponse>((int)HttpStatusCode.OK)
@@ -156,10 +149,7 @@ public static class ViewEndpoints
 
         // Query view via GET with URL parameters
         group
-            .MapGet(
-                "/{viewName}/query",
-                isSchemaSpecific ? QuerySchemaViewViaGetAsync : QueryViewViaGetAsync
-            )
+            .MapGet("/{viewName}/query", isSchemaSpecific ? QuerySchemaViewViaGetAsync : QueryViewViaGetAsync)
             .WithName($"Query{namePrefix}ViewViaGet")
             .WithSummary($"Queries a view {schemaInText} using URL parameters")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -184,16 +174,7 @@ public static class ViewEndpoints
         [FromQuery] string? include,
         [FromQuery] string? filter,
         CancellationToken cancellationToken = default
-    ) =>
-        ListSchemaViewsAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            include,
-            filter,
-            cancellationToken
-        );
+    ) => ListSchemaViewsAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
 
     private static async Task<IResult> ListSchemaViewsAsync(
         IOperationContext operationContext,
@@ -212,8 +193,7 @@ public static class ViewEndpoints
         if (!string.IsNullOrWhiteSpace(filter))
         {
             views = views.Where(v =>
-                v.ViewName != null
-                && v.ViewName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                v.ViewName != null && v.ViewName.Contains(filter, StringComparison.OrdinalIgnoreCase)
             );
         }
 
@@ -242,16 +222,7 @@ public static class ViewEndpoints
         [FromRoute] string viewName,
         [FromQuery] string? include,
         CancellationToken cancellationToken = default
-    ) =>
-        GetSchemaViewAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            include,
-            cancellationToken
-        );
+    ) => GetSchemaViewAsync(operationContext, service, datasourceId, null, viewName, include, cancellationToken);
 
     private static async Task<IResult> GetSchemaViewAsync(
         IOperationContext operationContext,
@@ -295,15 +266,7 @@ public static class ViewEndpoints
         [FromRoute] string datasourceId,
         [FromBody] ViewDto view,
         CancellationToken cancellationToken = default
-    ) =>
-        CreateSchemaViewAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            view,
-            cancellationToken
-        );
+    ) => CreateSchemaViewAsync(operationContext, service, datasourceId, null, view, cancellationToken);
 
     private static async Task<IResult> CreateSchemaViewAsync(
         IOperationContext operationContext,
@@ -346,16 +309,7 @@ public static class ViewEndpoints
         [FromRoute] string viewName,
         [FromBody] ViewDto updates,
         CancellationToken cancellationToken = default
-    ) =>
-        UpdateSchemaViewAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            updates,
-            cancellationToken
-        );
+    ) => UpdateSchemaViewAsync(operationContext, service, datasourceId, null, viewName, updates, cancellationToken);
 
     private static async Task<IResult> UpdateSchemaViewAsync(
         IOperationContext operationContext,
@@ -374,10 +328,7 @@ public static class ViewEndpoints
         }
 
         // API layer validation
-        Validate
-            .Object(updates)
-            .MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
-            .Assert();
+        Validate.Object(updates).MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true).Assert();
 
         operationContext.RequestBody = updates;
 
@@ -387,9 +338,7 @@ public static class ViewEndpoints
 
         if (!isRename && !hasPropertyUpdates)
         {
-            throw new InvalidOperationException(
-                "No changes provided - ViewName or Definition must be specified"
-            );
+            throw new InvalidOperationException("No changes provided - ViewName or Definition must be specified");
         }
 
         var currentViewName = viewName;
@@ -400,22 +349,14 @@ public static class ViewEndpoints
         if (hasPropertyUpdates)
         {
             updated = await service
-                .UpdateViewAsync(
-                    operationContext,
-                    datasourceId,
-                    currentViewName,
-                    updates,
-                    cancellationToken
-                )
+                .UpdateViewAsync(operationContext, datasourceId, currentViewName, updates, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         // Handle rename separately if needed
         if (isRename)
         {
-            operationContext.Properties ??= new Dictionary<string, object>(
-                StringComparer.OrdinalIgnoreCase
-            );
+            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             operationContext.Properties["NewViewName"] = updates.ViewName!;
             var renamed = await service
                 .RenameViewAsync(
@@ -433,13 +374,7 @@ public static class ViewEndpoints
 
         // Get the updated view if only properties were changed
         updated ??= await service
-            .GetViewAsync(
-                operationContext,
-                datasourceId,
-                currentViewName,
-                schemaName,
-                cancellationToken
-            )
+            .GetViewAsync(operationContext, datasourceId, currentViewName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new ViewResponse(updated));
@@ -451,15 +386,7 @@ public static class ViewEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
         CancellationToken cancellationToken = default
-    ) =>
-        DropSchemaViewAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            cancellationToken
-        );
+    ) => DropSchemaViewAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> DropSchemaViewAsync(
         IOperationContext operationContext,
@@ -483,15 +410,7 @@ public static class ViewEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
         CancellationToken cancellationToken = default
-    ) =>
-        SchemaViewExistsAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            cancellationToken
-        );
+    ) => SchemaViewExistsAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> SchemaViewExistsAsync(
         IOperationContext operationContext,
@@ -503,13 +422,7 @@ public static class ViewEndpoints
     )
     {
         var exists = await service
-            .ViewExistsAsync(
-                operationContext,
-                datasourceId,
-                viewName,
-                schemaName,
-                cancellationToken
-            )
+            .ViewExistsAsync(operationContext, datasourceId, viewName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new ViewExistsResponse(exists));
@@ -522,16 +435,7 @@ public static class ViewEndpoints
         [FromRoute] string viewName,
         [FromBody] QueryDto query,
         CancellationToken cancellationToken = default
-    ) =>
-        QuerySchemaViewAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            query,
-            cancellationToken
-        );
+    ) => QuerySchemaViewAsync(operationContext, service, datasourceId, null, viewName, query, cancellationToken);
 
     private static async Task<IResult> QuerySchemaViewAsync(
         IOperationContext operationContext,
@@ -551,22 +455,11 @@ public static class ViewEndpoints
         operationContext.RequestBody = query;
 
         var queryResult = await service
-            .QueryViewAsync(
-                operationContext,
-                datasourceId,
-                viewName,
-                query,
-                schemaName,
-                cancellationToken
-            )
+            .QueryViewAsync(operationContext, datasourceId, viewName, query, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(
-            new QueryResponse(queryResult.Data)
-            {
-                Pagination = queryResult.Pagination,
-                Fields = queryResult.Fields,
-            }
+            new QueryResponse(queryResult.Data) { Pagination = queryResult.Pagination, Fields = queryResult.Fields }
         );
     }
 
@@ -576,15 +469,7 @@ public static class ViewEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
         CancellationToken cancellationToken = default
-    ) =>
-        QuerySchemaViewViaGetAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            viewName,
-            cancellationToken
-        );
+    ) => QuerySchemaViewViaGetAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> QuerySchemaViewViaGetAsync(
         IOperationContext operationContext,
@@ -604,22 +489,11 @@ public static class ViewEndpoints
         operationContext.RequestBody = query;
 
         var queryResult = await service
-            .QueryViewAsync(
-                operationContext,
-                datasourceId,
-                viewName,
-                query,
-                schemaName,
-                cancellationToken
-            )
+            .QueryViewAsync(operationContext, datasourceId, viewName, query, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(
-            new QueryResponse(queryResult.Data)
-            {
-                Pagination = queryResult.Pagination,
-                Fields = queryResult.Fields,
-            }
+            new QueryResponse(queryResult.Data) { Pagination = queryResult.Pagination, Fields = queryResult.Fields }
         );
     }
 }

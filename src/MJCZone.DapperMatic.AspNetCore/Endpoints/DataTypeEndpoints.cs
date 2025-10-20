@@ -73,23 +73,13 @@ public static class DataTypeEndpoints
     {
         // Parse include parameter to determine if custom types should be included
         var includeCustomTypes =
-            !string.IsNullOrWhiteSpace(include)
-            && include.Contains("customTypes", StringComparison.OrdinalIgnoreCase);
+            !string.IsNullOrWhiteSpace(include) && include.Contains("customTypes", StringComparison.OrdinalIgnoreCase);
 
         var (providerName, dataTypes) = await service
-            .GetDatasourceDataTypesAsync(
-                operationContext,
-                datasourceId,
-                includeCustomTypes,
-                cancellationToken
-            )
+            .GetDatasourceDataTypesAsync(operationContext, datasourceId, includeCustomTypes, cancellationToken)
             .ConfigureAwait(false);
 
-        var dataTypeDtos = dataTypes
-            .ToDataTypeDtos()
-            .OrderBy(dt => dt.Category)
-            .ThenBy(dt => dt.DataType)
-            .ToList();
+        var dataTypeDtos = dataTypes.ToDataTypeDtos().OrderBy(dt => dt.Category).ThenBy(dt => dt.DataType).ToList();
         return Results.Ok(new ProviderDataTypeListResponse(providerName, dataTypeDtos));
     }
 }

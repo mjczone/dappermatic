@@ -23,11 +23,7 @@ internal static class XmlMemberElementExtensions
         if (element is IXmlMemberElement member)
         {
             member.Exceptions = xmlMember
-                .Exceptions?.Select(e => new ExceptionInfo
-                {
-                    Text = e.Text,
-                    Reference = e.Reference
-                })
+                .Exceptions?.Select(e => new ExceptionInfo { Text = e.Text, Reference = e.Reference })
                 .ToList();
 
             member.Parameters = xmlMember
@@ -37,12 +33,12 @@ internal static class XmlMemberElementExtensions
             member.Returns = xmlMember.Returns?.InnerXml;
         }
     }
-    
+
     public static void FillBy(this IXmlMemberBaseElement element, XmlMember xmlMember, ISymbol? symbol)
     {
         // First, fill with XML information
         element.FillBy(xmlMember);
-        
+
         // Then, enhance parameter information with type data from symbol
         if (element is IXmlMemberElement member && symbol != null)
         {

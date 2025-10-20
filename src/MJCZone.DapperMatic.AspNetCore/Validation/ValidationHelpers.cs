@@ -93,8 +93,7 @@ internal static class ValidationHelpers
     /// <param name="propertyName">The name of the property.</param>
     /// <param name="max">The maximum value.</param>
     /// <returns>The error message.</returns>
-    public static string LessThanMessage(string propertyName, object max) =>
-        $"{propertyName} must be less than {max}.";
+    public static string LessThanMessage(string propertyName, object max) => $"{propertyName} must be less than {max}.";
 
     /// <summary>
     /// Generates a standard "less than or equal" error message.
@@ -132,9 +131,5 @@ internal static class ValidationHelpers
     /// <param name="ignoreCase">Whether to ignore case.</param>
     /// <returns>true if the strings are equal; otherwise, false.</returns>
     public static bool StringEquals(string? value1, string? value2, bool ignoreCase) =>
-        string.Equals(
-            value1,
-            value2,
-            ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal
-        );
+        string.Equals(value1, value2, ignoreCase ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal);
 }

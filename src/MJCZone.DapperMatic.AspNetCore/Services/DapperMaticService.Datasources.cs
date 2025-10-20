@@ -54,17 +54,14 @@ public partial class DapperMaticService
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
             .Assert();
 
-        var datasource = await _datasourceRepository
-            .GetDatasourceAsync(datasourceId)
-            .ConfigureAwait(false);
+        var datasource = await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false);
 
         if (datasource == null)
         {
             throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
         }
 
-        await LogAuditEventAsync(context, true, $"Retrieved datasource '{datasourceId}'")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Retrieved datasource '{datasourceId}'").ConfigureAwait(false);
         return datasource;
     }
 
@@ -84,42 +81,31 @@ public partial class DapperMaticService
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        Validate
-            .Arguments()
-            .NotNull(context, nameof(context))
-            .NotNull(datasource, nameof(datasource))
-            .Assert();
+        Validate.Arguments().NotNull(context, nameof(context)).NotNull(datasource, nameof(datasource)).Assert();
 
         if (
             !string.IsNullOrWhiteSpace(datasource.Id)
-            && await _datasourceRepository
-                .DatasourceExistsAsync(datasource.Id!)
-                .ConfigureAwait(false)
+            && await _datasourceRepository.DatasourceExistsAsync(datasource.Id!).ConfigureAwait(false)
         )
         {
             throw new DuplicateKeyException($"Datasource '{datasource.Id}' already exists");
         }
 
-        var created = await _datasourceRepository
-            .AddDatasourceAsync(datasource)
-            .ConfigureAwait(false);
+        var created = await _datasourceRepository.AddDatasourceAsync(datasource).ConfigureAwait(false);
 
         if (!created)
         {
             throw new InvalidOperationException("Failed to create datasource");
         }
 
-        var newDatasource = await _datasourceRepository
-            .GetDatasourceAsync(datasource.Id!)
-            .ConfigureAwait(false);
+        var newDatasource = await _datasourceRepository.GetDatasourceAsync(datasource.Id!).ConfigureAwait(false);
 
         if (newDatasource == null)
         {
             throw new InvalidOperationException("Failed to retrieve newly created datasource");
         }
 
-        await LogAuditEventAsync(context, true, $"Datasource '{newDatasource.Id}' created")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Datasource '{newDatasource.Id}' created").ConfigureAwait(false);
         return newDatasource;
     }
 
@@ -151,35 +137,28 @@ public partial class DapperMaticService
             )
             .Assert();
 
-        var existing = await _datasourceRepository
-            .GetDatasourceAsync(datasource.Id!)
-            .ConfigureAwait(false);
+        var existing = await _datasourceRepository.GetDatasourceAsync(datasource.Id!).ConfigureAwait(false);
 
         if (existing == null)
         {
             throw new KeyNotFoundException($"Datasource '{datasource.Id}' not found");
         }
 
-        var updated = await _datasourceRepository
-            .UpdateDatasourceAsync(datasource!)
-            .ConfigureAwait(false);
+        var updated = await _datasourceRepository.UpdateDatasourceAsync(datasource!).ConfigureAwait(false);
 
         if (!updated)
         {
             throw new InvalidOperationException("Failed to update datasource");
         }
 
-        existing = await _datasourceRepository
-            .GetDatasourceAsync(datasource.Id!)
-            .ConfigureAwait(false);
+        existing = await _datasourceRepository.GetDatasourceAsync(datasource.Id!).ConfigureAwait(false);
 
         if (existing == null)
         {
             throw new KeyNotFoundException($"Datasource '{datasource.Id}' not found after update");
         }
 
-        await LogAuditEventAsync(context, true, $"Updated datasource '{datasource.Id}'")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Updated datasource '{datasource.Id}'").ConfigureAwait(false);
         return existing;
     }
 
@@ -206,26 +185,21 @@ public partial class DapperMaticService
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
             .Assert();
 
-        var existing = await _datasourceRepository
-            .GetDatasourceAsync(datasourceId)
-            .ConfigureAwait(false);
+        var existing = await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false);
 
         if (existing == null)
         {
             throw new KeyNotFoundException($"Datasource '{datasourceId}' not found");
         }
 
-        var deleted = await _datasourceRepository
-            .RemoveDatasourceAsync(datasourceId)
-            .ConfigureAwait(false);
+        var deleted = await _datasourceRepository.RemoveDatasourceAsync(datasourceId).ConfigureAwait(false);
 
         if (!deleted)
         {
             throw new InvalidOperationException("Failed to delete datasource");
         }
 
-        await LogAuditEventAsync(context, true, $"Removed datasource '{datasourceId}'")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Removed datasource '{datasourceId}'").ConfigureAwait(false);
     }
 
     /// <summary>
@@ -250,9 +224,7 @@ public partial class DapperMaticService
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
             .Assert();
 
-        var exists = await _datasourceRepository
-            .DatasourceExistsAsync(datasourceId)
-            .ConfigureAwait(false);
+        var exists = await _datasourceRepository.DatasourceExistsAsync(datasourceId).ConfigureAwait(false);
 
         await LogAuditEventAsync(context, true, $"Checked existence of datasource '{datasourceId}'")
             .ConfigureAwait(false);
@@ -286,8 +258,7 @@ public partial class DapperMaticService
         var startTime = System.Diagnostics.Stopwatch.StartNew();
         try
         {
-            using var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
+            using var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
             connection.Open();
 
             result.Connected = true;
@@ -297,11 +268,7 @@ public partial class DapperMaticService
                 $"{await connection.GetDatabaseVersionAsync(cancellationToken: cancellationToken)
                     .ConfigureAwait(false)}";
             result.ResponseTimeMs = startTime.ElapsedMilliseconds;
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Tested datasource '{datasourceId}' connectivity"
-                )
+            await LogAuditEventAsync(context, true, $"Tested datasource '{datasourceId}' connectivity")
                 .ConfigureAwait(false);
         }
         catch (Exception ex)

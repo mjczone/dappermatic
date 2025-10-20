@@ -28,10 +28,8 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return (
-                await GetViewNamesAsync(db, schemaName, viewName, tx, cancellationToken)
-                    .ConfigureAwait(false)
-            ).Count == 1;
+        return (await GetViewNamesAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false)).Count
+            == 1;
     }
 
     /// <summary>
@@ -84,18 +82,14 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("View definition is required.", nameof(definition));
         }
 
-        if (
-            await DoesViewExistAsync(db, schemaName, viewName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (await DoesViewExistAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
         var sql = SqlCreateView(schemaName, viewName, definition);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -123,8 +117,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         return (
-            await GetViewsAsync(db, schemaName, viewName, tx, cancellationToken)
-                .ConfigureAwait(false)
+            await GetViewsAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false)
         ).SingleOrDefault();
     }
 
@@ -147,13 +140,7 @@ public abstract partial class DatabaseMethodsBase
     {
         var (sql, parameters) = SqlGetViewNames(schemaName, viewNameFilter);
         var viewNames = (
-            await QueryAsync<string>(
-                    db,
-                    sql,
-                    parameters,
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            await QueryAsync<string>(db, sql, parameters, tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false)
         ).AsList();
         return viewNames;
@@ -177,13 +164,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         var (sql, parameters) = SqlGetViews(schemaName, viewNameFilter);
-        var views = await QueryAsync<DmView>(
-                db,
-                sql,
-                parameters,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        var views = await QueryAsync<DmView>(db, sql, parameters, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         foreach (var view in views)
         {
@@ -209,18 +190,14 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        if (
-            !await DoesViewExistAsync(db, schemaName, viewName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (!await DoesViewExistAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
         var sql = SqlDropView(schemaName, viewName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -244,25 +221,16 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var view = await GetViewAsync(db, schemaName, viewName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var view = await GetViewAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false);
 
         if (view == null || string.IsNullOrWhiteSpace(view.Definition))
         {
             return false;
         }
 
-        await DropViewIfExistsAsync(db, schemaName, viewName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        await DropViewIfExistsAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false);
 
-        await CreateViewIfNotExistsAsync(
-                db,
-                schemaName,
-                newViewName,
-                view.Definition,
-                tx,
-                cancellationToken
-            )
+        await CreateViewIfNotExistsAsync(db, schemaName, newViewName, view.Definition, tx, cancellationToken)
             .ConfigureAwait(false);
 
         return true;

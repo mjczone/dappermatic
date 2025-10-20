@@ -77,9 +77,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createResult.Result!.SchemaName.Should().BeEquivalentTo(testSchemaName);
 
         // 4. EXISTS - Check if schema exists (should return true)
-        var existsResponse1 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
-        );
+        var existsResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists");
         existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult1 = await existsResponse1.ReadAsJsonAsync<SchemaExistsResponse>();
         existsResult1.Should().NotBeNull();
@@ -105,15 +103,11 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         getResult2.Result!.SchemaName.Should().BeEquivalentTo(testSchemaName);
 
         // 7. DELETE - Delete the schema
-        var deleteResponse = await client.DeleteAsync(
-            $"/api/dm/d/{datasourceId}/s/{testSchemaName}"
-        );
+        var deleteResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}");
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 8. EXISTS - Check if schema exists (should return false)
-        var existsResponse2 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists"
-        );
+        var existsResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}/exists");
         existsResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult2 = await existsResponse2.ReadAsJsonAsync<SchemaExistsResponse>();
         existsResult2.Should().NotBeNull();
@@ -128,9 +122,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult3.Result.Should().HaveCount(initialSchemaCount);
         listResult3
             .Result.Should()
-            .NotContain(s =>
-                s.SchemaName.Equals(testSchemaName, StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(s => s.SchemaName.Equals(testSchemaName, StringComparison.OrdinalIgnoreCase));
 
         // 10. GET SINGLE - Try to get deleted schema (should return 404)
         var getResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{testSchemaName}");
@@ -188,10 +180,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var invalidCreateResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/",
-            invalidCreateContent
-        );
+        var invalidCreateResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/s/", invalidCreateContent);
         invalidCreateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test duplicate schema creation (try to create dbo)
@@ -201,34 +190,24 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var duplicateCreateResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s",
-            duplicateCreateContent
-        );
+        var duplicateCreateResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/s", duplicateCreateContent);
         duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
 
         // Test operations on non-existent schema
         const string nonExistentSchema = "NonExistentSchema";
 
         // Get non-existent schema
-        var getNonExistentResponse = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}"
-        );
+        var getNonExistentResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{nonExistentSchema}");
         getNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Delete non-existent schema
-        var deleteNonExistentResponse = await client.DeleteAsync(
-            $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}"
-        );
+        var deleteNonExistentResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/s/{nonExistentSchema}");
         deleteNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Check existence of non-existent schema
-        var existsNonExistentResponse = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/{nonExistentSchema}/exists"
-        );
+        var existsNonExistentResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{nonExistentSchema}/exists");
         existsNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.OK);
-        var existsNonExistentResult =
-            await existsNonExistentResponse.ReadAsJsonAsync<SchemaExistsResponse>();
+        var existsNonExistentResult = await existsNonExistentResponse.ReadAsJsonAsync<SchemaExistsResponse>();
         existsNonExistentResult.Should().NotBeNull();
         existsNonExistentResult!.Result.Should().BeFalse();
     }
@@ -273,9 +252,7 @@ public class SchemaEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         getInvalidResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         // Test that invalid schema exists returns false
-        var existsInvalidResponse = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/invalidschema/exists"
-        );
+        var existsInvalidResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/invalidschema/exists");
         responseBody.Should().NotBeNull();
         responseBody.Detail.Should().NotBeNull();
         responseBody.Detail.Contains("The provider does not support schema operations.");

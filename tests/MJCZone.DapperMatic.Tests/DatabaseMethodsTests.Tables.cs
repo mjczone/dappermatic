@@ -102,16 +102,10 @@ public abstract partial class DatabaseMethodsTests
 
         // add a new row
         var newRow = new { id = 0, name = "Test" };
-        await db.ExecuteAsync(
-            @$"INSERT INTO {schemaQualifiedTableName} (name) VALUES (@name)",
-            newRow
-        );
+        await db.ExecuteAsync(@$"INSERT INTO {schemaQualifiedTableName} (name) VALUES (@name)", newRow);
 
         // get all rows
-        var rows = await db.QueryAsync<dynamic>(
-            @$"SELECT * FROM {schemaQualifiedTableName}",
-            new { }
-        );
+        var rows = await db.QueryAsync<dynamic>(@$"SELECT * FROM {schemaQualifiedTableName}", new { });
         Assert.Single(rows);
 
         // truncate the table
@@ -131,9 +125,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("test_schema")]
-    protected virtual async Task Can_create_table_using_property_initializers_Async(
-        string? schemaName
-    )
+    protected virtual async Task Can_create_table_using_property_initializers_Async(string? schemaName)
     {
         // This test validates that property initializers work correctly with DmTable
         // and that child objects get their TableName/SchemaName set properly
@@ -164,10 +156,7 @@ public abstract partial class DatabaseMethodsTests
                 new("Username", typeof(string), length: 50)
                 {
                     IsNullable = false,
-                    CheckExpressionFunc = CommonProviderCheckExpressions.LengthGreaterThanCheck(
-                        "Username",
-                        0
-                    ),
+                    CheckExpressionFunc = CommonProviderCheckExpressions.LengthGreaterThanCheck("Username", 0),
                 },
                 new("Email", typeof(string), length: 100) { IsNullable = false, IsUnique = true },
                 new("Age", typeof(int)) { IsNullable = true },
@@ -181,22 +170,13 @@ public abstract partial class DatabaseMethodsTests
             ],
 
             // Initialize PrimaryKeyConstraint via property
-            PrimaryKeyConstraint = new DmPrimaryKeyConstraint(
-                "PK_PropertyInitTest",
-                [new DmOrderedColumn("Id")]
-            ),
+            PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_PropertyInitTest", [new DmOrderedColumn("Id")]),
 
             // Initialize Indexes via property
             Indexes =
             [
-                new("IX_PropertyInitTest_Username", [new DmOrderedColumn("Username")])
-                {
-                    IsUnique = true,
-                },
-                new("IX_PropertyInitTest_Email", [new DmOrderedColumn("Email")])
-                {
-                    IsUnique = true,
-                },
+                new("IX_PropertyInitTest_Username", [new DmOrderedColumn("Username")]) { IsUnique = true },
+                new("IX_PropertyInitTest_Email", [new DmOrderedColumn("Email")]) { IsUnique = true },
                 new("IX_PropertyInitTest_CreatedAt", [new DmOrderedColumn("CreatedAt")]),
             ],
 
@@ -222,10 +202,7 @@ public abstract partial class DatabaseMethodsTests
 
         // CRITICAL TEST: Try to create the table
         var created = await db.CreateTableIfNotExistsAsync(table);
-        Assert.True(
-            created,
-            "Table should have been created successfully using property initializers"
-        );
+        Assert.True(created, "Table should have been created successfully using property initializers");
 
         // Verify the table exists
         var exists = await db.DoesTableExistAsync(schemaName, tableName);
@@ -255,10 +232,7 @@ public abstract partial class DatabaseMethodsTests
             _ => throw new NotSupportedException(),
         };
 
-        if (
-            db.GetDbProviderType() == DbProviderType.MySql
-            || db.GetDbProviderType() == DbProviderType.Sqlite
-        )
+        if (db.GetDbProviderType() == DbProviderType.MySql || db.GetDbProviderType() == DbProviderType.Sqlite)
         {
             sql = string.Format(sql, "", tableName);
         }
@@ -392,10 +366,7 @@ public abstract partial class DatabaseMethodsTests
         // Verify check constraints were added
         Assert.Equal(2, userTable.CheckConstraints.Count);
         Assert.Contains(userTable.CheckConstraints, c => c.ConstraintName == "CK_User_Email_Valid");
-        Assert.Contains(
-            userTable.CheckConstraints,
-            c => c.ConstraintName == "CK_User_Status_Valid"
-        );
+        Assert.Contains(userTable.CheckConstraints, c => c.ConstraintName == "CK_User_Status_Valid");
 
         Output.WriteLine("✅ Configuration with all options applied successfully");
     }

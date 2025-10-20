@@ -28,13 +28,9 @@ public abstract partial class DatabaseMethodsBase
     /// </summary>
     /// <param name="schemaNameFilter">The schema name.</param>
     /// <returns>The SQL to check if the schema exists.</returns>
-    protected virtual (string sql, object parameters) SqlGetSchemaNames(
-        string? schemaNameFilter = null
-    )
+    protected virtual (string sql, object parameters) SqlGetSchemaNames(string? schemaNameFilter = null)
     {
-        var where = string.IsNullOrWhiteSpace(schemaNameFilter)
-            ? string.Empty
-            : ToLikeString(schemaNameFilter);
+        var where = string.IsNullOrWhiteSpace(schemaNameFilter) ? string.Empty : ToLikeString(schemaNameFilter);
 
         var sql = $"""
 
@@ -68,10 +64,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
     /// <returns>The SQL to create the table.</returns>
-    protected virtual (string sql, object parameters) SqlDoesTableExist(
-        string? schemaName,
-        string tableName
-    )
+    protected virtual (string sql, object parameters) SqlDoesTableExist(string? schemaName, string tableName)
     {
         var sql = $"""
 
@@ -85,14 +78,7 @@ public abstract partial class DatabaseMethodsBase
                             AND TABLE_NAME = @tableName
             """;
 
-        return (
-            sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName),
-                tableName = NormalizeName(tableName),
-            }
-        );
+        return (sql, new { schemaName = NormalizeSchemaName(schemaName), tableName = NormalizeName(tableName) });
     }
 
     /// <summary>
@@ -106,9 +92,7 @@ public abstract partial class DatabaseMethodsBase
         string? tableNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? string.Empty
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? string.Empty : ToLikeString(tableNameFilter);
 
         var sql = $"""
                             SELECT TABLE_NAME
@@ -143,11 +127,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="tableName">The current name of the table to rename.</param>
     /// <param name="newTableName">The new name for the table.</param>
     /// <returns>The SQL query string for renaming the table.</returns>
-    protected virtual string SqlRenameTable(
-        string? schemaName,
-        string tableName,
-        string newTableName
-    )
+    protected virtual string SqlRenameTable(string? schemaName, string tableName, string newTableName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} RENAME TO {NormalizeName(newTableName)}";
     }
@@ -200,21 +180,13 @@ public abstract partial class DatabaseMethodsBase
                 tpkc == null
                 || (
                     tpkc.Columns.Count == 1
-                    && tpkc.Columns[0]
-                        .ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
+                    && tpkc.Columns[0].ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
                 )
             )
         )
         {
-            var pkConstraintName = DbProviderUtils.GeneratePrimaryKeyConstraintName(
-                tableName,
-                columnName
-            );
-            var pkInlineSql = SqlInlinePrimaryKeyColumnConstraint(
-                column,
-                pkConstraintName,
-                out var useTableConstraint
-            );
+            var pkConstraintName = DbProviderUtils.GeneratePrimaryKeyConstraintName(tableName, columnName);
+            var pkInlineSql = SqlInlinePrimaryKeyColumnConstraint(column, pkConstraintName, out var useTableConstraint);
             if (!string.IsNullOrWhiteSpace(pkInlineSql))
             {
                 sql.Append($" {pkInlineSql}");
@@ -250,13 +222,8 @@ public abstract partial class DatabaseMethodsBase
             )
         )
         {
-            var defConstraintName = DbProviderUtils.GenerateDefaultConstraintName(
-                tableName,
-                columnName
-            );
-            sql.Append(
-                $" {SqlInlineDefaultColumnConstraint(defConstraintName, defaultExpression)}"
-            );
+            var defConstraintName = DbProviderUtils.GenerateDefaultConstraintName(tableName, columnName);
+            sql.Append($" {SqlInlineDefaultColumnConstraint(defConstraintName, defaultExpression)}");
         }
         else
         {
@@ -284,10 +251,7 @@ public abstract partial class DatabaseMethodsBase
             )
         )
         {
-            var ckConstraintName = DbProviderUtils.GenerateCheckConstraintName(
-                tableName,
-                columnName
-            );
+            var ckConstraintName = DbProviderUtils.GenerateCheckConstraintName(tableName, columnName);
             var ckInlineSql = SqlInlineCheckColumnConstraint(
                 ckConstraintName,
                 checkExpression,
@@ -302,13 +266,7 @@ public abstract partial class DatabaseMethodsBase
             if (useTableConstraint)
             {
                 tableConstraints.CheckConstraints.Add(
-                    new DmCheckConstraint(
-                        schemaName,
-                        tableName,
-                        columnName,
-                        ckConstraintName,
-                        checkExpression
-                    )
+                    new DmCheckConstraint(schemaName, tableName, columnName, ckConstraintName, checkExpression)
                 );
             }
         }
@@ -317,20 +275,12 @@ public abstract partial class DatabaseMethodsBase
             column.IsUnique
             && !column.IsIndexed
             && tableConstraints.UniqueConstraints.All(uc =>
-                !uc.Columns.Any(c =>
-                    c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
-                )
+                !uc.Columns.Any(c => c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
             )
         )
         {
-            var ucConstraintName = DbProviderUtils.GenerateUniqueConstraintName(
-                tableName,
-                columnName
-            );
-            var ucInlineSql = SqlInlineUniqueColumnConstraint(
-                ucConstraintName,
-                out var useTableConstraint
-            );
+            var ucConstraintName = DbProviderUtils.GenerateUniqueConstraintName(tableName, columnName);
+            var ucInlineSql = SqlInlineUniqueColumnConstraint(ucConstraintName, out var useTableConstraint);
 
             if (!string.IsNullOrWhiteSpace(ucInlineSql))
             {
@@ -340,12 +290,7 @@ public abstract partial class DatabaseMethodsBase
             if (useTableConstraint)
             {
                 tableConstraints.UniqueConstraints.Add(
-                    new DmUniqueConstraint(
-                        schemaName,
-                        tableName,
-                        ucConstraintName,
-                        [new DmOrderedColumn(columnName)]
-                    )
+                    new DmUniqueConstraint(schemaName, tableName, ucConstraintName, [new DmOrderedColumn(columnName)])
                 );
             }
         }
@@ -355,9 +300,7 @@ public abstract partial class DatabaseMethodsBase
             && !string.IsNullOrWhiteSpace(column.ReferencedTableName)
             && !string.IsNullOrWhiteSpace(column.ReferencedColumnName)
             && tableConstraints.ForeignKeyConstraints.All(fk =>
-                !fk.SourceColumns.Any(c =>
-                    c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
-                )
+                !fk.SourceColumns.Any(c => c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
             )
         )
         {
@@ -402,21 +345,13 @@ public abstract partial class DatabaseMethodsBase
         if (
             column.IsIndexed
             && tableConstraints.Indexes.All(i =>
-                !i.Columns.Any(c =>
-                    c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
-                )
+                !i.Columns.Any(c => c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
             )
         )
         {
             var indexName = DbProviderUtils.GenerateIndexName(tableName, columnName);
             tableConstraints.Indexes.Add(
-                new DmIndex(
-                    schemaName,
-                    tableName,
-                    indexName,
-                    [new DmOrderedColumn(columnName)],
-                    column.IsUnique
-                )
+                new DmIndex(schemaName, tableName, indexName, [new DmOrderedColumn(columnName)], column.IsUnique)
             );
         }
 
@@ -481,19 +416,12 @@ public abstract partial class DatabaseMethodsBase
                 {
                     // Check for multi-word type modifiers (e.g., PostgreSQL "time with time zone")
                     // Parameters must be inserted BEFORE these modifiers, not at the end
-                    string[] modifiers =
-                    [
-                        " with time zone",
-                        " without time zone",
-                    ];
+                    string[] modifiers = [" with time zone", " without time zone"];
 
                     var inserted = false;
                     foreach (var modifier in modifiers)
                     {
-                        var modifierIndex = columnType.IndexOf(
-                            modifier,
-                            StringComparison.OrdinalIgnoreCase
-                        );
+                        var modifierIndex = columnType.IndexOf(modifier, StringComparison.OrdinalIgnoreCase);
                         if (modifierIndex > 0)
                         {
                             // Insert parameters before the modifier
@@ -536,9 +464,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A string representing the NULLability clause for use in SQL inline statements, or an empty string if not specified.</returns>
     protected virtual string SqlInlineColumnNullable(DmColumn column)
     {
-        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey
-            ? " NULL"
-            : " NOT NULL";
+        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
     }
 
     /// <summary>
@@ -577,10 +503,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="constraintName">The desired name for the DEFAULT constraint. If null, no constraint name will be included.</param>
     /// <param name="defaultExpression">The default value or expression to use when inserting null values into the column.</param>
     /// <returns>A string representing the DEFAULT constraint clause for use in SQL inline statements, or an empty string if no constraint name is provided and the default expression is not set.</returns>
-    protected virtual string SqlInlineDefaultColumnConstraint(
-        string constraintName,
-        string defaultExpression
-    )
+    protected virtual string SqlInlineDefaultColumnConstraint(string constraintName, string defaultExpression)
     {
         SqlExpressionValidator.ValidateDefaultExpression(defaultExpression, nameof(defaultExpression));
 
@@ -625,10 +548,7 @@ public abstract partial class DatabaseMethodsBase
     ///     The method determines which syntax to use based on the database provider.
     /// </param>
     /// <returns>A string representing the UNIQUE constraint clause for use in SQL inline statements, or an empty string if no constraint name is provided.</returns>
-    protected virtual string SqlInlineUniqueColumnConstraint(
-        string constraintName,
-        out bool useTableConstraint
-    )
+    protected virtual string SqlInlineUniqueColumnConstraint(string constraintName, out bool useTableConstraint)
     {
         useTableConstraint = false;
         return $"CONSTRAINT {NormalizeName(constraintName)} UNIQUE";
@@ -678,10 +598,7 @@ public abstract partial class DatabaseMethodsBase
         var pkColumnNames = primaryKeyConstraint.Columns.Select(c => c.ColumnName).ToArray();
         var pkConstrainName = !string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName)
             ? primaryKeyConstraint.ConstraintName
-            : DbProviderUtils.GeneratePrimaryKeyConstraintName(
-                table.TableName,
-                pkColumnNames.ToArray()
-            );
+            : DbProviderUtils.GeneratePrimaryKeyConstraintName(table.TableName, pkColumnNames.ToArray());
         var pkColumnsCsv = string.Join(", ", pkColumnNames);
         return $"CONSTRAINT {NormalizeName(pkConstrainName)} PRIMARY KEY ({pkColumnsCsv})";
     }
@@ -699,14 +616,11 @@ public abstract partial class DatabaseMethodsBase
     {
         SqlExpressionValidator.ValidateCheckExpression(check.Expression, nameof(check.Expression));
 
-        var ckConstraintName = !string.IsNullOrWhiteSpace(check.ConstraintName)
-            ? check.ConstraintName
+        var ckConstraintName =
+            !string.IsNullOrWhiteSpace(check.ConstraintName) ? check.ConstraintName
             : string.IsNullOrWhiteSpace(check.ColumnName)
-                ? DbProviderUtils.GenerateCheckConstraintName(
-                    table.TableName,
-                    DateTime.Now.Ticks.ToString()
-                )
-                : DbProviderUtils.GenerateCheckConstraintName(table.TableName, check.ColumnName);
+                ? DbProviderUtils.GenerateCheckConstraintName(table.TableName, DateTime.Now.Ticks.ToString())
+            : DbProviderUtils.GenerateCheckConstraintName(table.TableName, check.ColumnName);
 
         return $"CONSTRAINT {NormalizeName(ckConstraintName)} CHECK ({check.Expression})";
     }
@@ -754,10 +668,7 @@ public abstract partial class DatabaseMethodsBase
     ///     as well as the ON DELETE and ON UPDATE actions. If no constraint name is provided, none will be included in the generated clause.
     /// </param>
     /// <returns>A string representing the FOREIGN KEY constraint clause for use in SQL inline statements, or an empty string if no columns are specified in the DmForeignKeyConstraint object.</returns>
-    protected virtual string SqlInlineForeignKeyTableConstraint(
-        DmTable table,
-        DmForeignKeyConstraint fk
-    )
+    protected virtual string SqlInlineForeignKeyTableConstraint(DmTable table, DmForeignKeyConstraint fk)
     {
         return $"""
 
@@ -826,11 +737,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="tableName">The name of the table that contains the CHECK constraint to remove.</param>
     /// <param name="constraintName">The name of the CHECK constraint to drop from the table.</param>
     /// <returns>A SQL statement that drops (removes) the specified CHECK constraint from the given table in its schema.</returns>
-    protected virtual string SqlDropCheckConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected virtual string SqlDropCheckConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
     }
@@ -929,11 +836,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="tableName">The name of the table that contains the PRIMARY KEY constraint to remove.</param>
     /// <param name="constraintName">The name of the PRIMARY KEY constraint to drop from the table.</param>
     /// <returns>A SQL statement that drops (removes) the specified PRIMARY KEY constraint from the given table in its schema.</returns>
-    protected virtual string SqlDropPrimaryKeyConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected virtual string SqlDropPrimaryKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
     }
@@ -981,11 +884,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="tableName">The name of the table that contains the UNIQUE constraint to remove.</param>
     /// <param name="constraintName">The name of the UNIQUE constraint to drop from the table.</param>
     /// <returns>A SQL statement that drops (removes) the specified UNIQUE constraint from the given table in its schema.</returns>
-    protected virtual string SqlDropUniqueConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected virtual string SqlDropUniqueConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
     }
@@ -1019,10 +918,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         var schemaQualifiedTableName = GetSchemaQualifiedIdentifierName(schemaName, tableName);
-        var schemaQualifiedReferencedTableName = GetSchemaQualifiedIdentifierName(
-            schemaName,
-            referencedTableName
-        );
+        var schemaQualifiedReferencedTableName = GetSchemaQualifiedIdentifierName(schemaName, referencedTableName);
         var columnNames = columns.Select(c => NormalizeName(c.ColumnName));
         var referencedColumnNames = referencedColumns.Select(c => NormalizeName(c.ColumnName));
 
@@ -1048,11 +944,7 @@ public abstract partial class DatabaseMethodsBase
     /// <param name="tableName">The name of the table that contains the foreign key constraint to remove.</param>
     /// <param name="constraintName">The name of the foreign key constraint to drop from the table.</param>
     /// <returns>A SQL statement that drops (removes) the specified foreign key constraint from the given table in its schema.</returns>
-    protected virtual string SqlDropForeignKeyConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected virtual string SqlDropForeignKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
     }
@@ -1121,14 +1013,9 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A tuple containing:
     ///     - The SQL statement to retrieve view names from the specified schema and filter.
     ///     - An object representing any parameters required for executing the generated SQL statement (e.g., a parameterized query or stored procedure input parameters).</returns>
-    protected virtual (string sql, object parameters) SqlGetViewNames(
-        string? schemaName,
-        string? viewNameFilter = null
-    )
+    protected virtual (string sql, object parameters) SqlGetViewNames(string? schemaName, string? viewNameFilter = null)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
             SELECT
@@ -1161,14 +1048,9 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A tuple containing:
     ///     - The SQL statement to retrieve views from the specified schema and filter.
     ///     - An object representing any parameters required for executing the generated SQL statement (e.g., a parameterized query or stored procedure input parameters).</returns>
-    protected virtual (string sql, object parameters) SqlGetViews(
-        string? schemaName,
-        string? viewNameFilter
-    )
+    protected virtual (string sql, object parameters) SqlGetViews(string? schemaName, string? viewNameFilter)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
             SELECT
@@ -1232,8 +1114,7 @@ public abstract partial class DatabaseMethodsBase
         var functionPart = expression[..parenIndex].Trim();
 
         // Check if it's a valid function name (contains only letters, numbers, underscores)
-        return !string.IsNullOrEmpty(functionPart) &&
-               functionPart.All(c => char.IsLetterOrDigit(c) || c == '_');
+        return !string.IsNullOrEmpty(functionPart) && functionPart.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
     #endregion // View Strings
 }

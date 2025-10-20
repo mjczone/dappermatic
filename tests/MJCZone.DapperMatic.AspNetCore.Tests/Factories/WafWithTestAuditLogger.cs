@@ -14,10 +14,8 @@ using MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Factories;
 
-public class WafWithTestAuditLogger(
-    IReadOnlyList<DatasourceDto> datasources,
-    TestDapperMaticAuditLogger auditLogger
-) : WebApplicationFactory<Program>
+public class WafWithTestAuditLogger(IReadOnlyList<DatasourceDto> datasources, TestDapperMaticAuditLogger auditLogger)
+    : WebApplicationFactory<Program>
 {
     private static readonly string EncryptionKey = CryptoUtils.GenerateEncryptionKey();
 

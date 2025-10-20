@@ -44,16 +44,12 @@ public partial class DapperMaticServiceTests
         // Non-existent datasource throws NotFound
         var nonExistentId = "NonExistent_" + Guid.NewGuid().ToString("N")[..8];
         var nonExistentGetContext = OperationIdentifiers.ForDatasourceGet(nonExistentId);
-        var nonExistentAct = async () =>
-            await service.GetDatasourceAsync(nonExistentGetContext, nonExistentId);
+        var nonExistentAct = async () => await service.GetDatasourceAsync(nonExistentGetContext, nonExistentId);
         await nonExistentAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Check non-existent datasource
         var nonExistentExistsContext = OperationIdentifiers.ForDatasourceExists(nonExistentId);
-        var nonExistentExists = await service.DatasourceExistsAsync(
-            nonExistentExistsContext,
-            nonExistentId
-        );
+        var nonExistentExists = await service.DatasourceExistsAsync(nonExistentExistsContext, nonExistentId);
         nonExistentExists.Should().BeFalse();
 
         // Add test datasource
@@ -95,10 +91,7 @@ public partial class DapperMaticServiceTests
             IsEnabled = false,
         };
         var updateContext = OperationIdentifiers.ForDatasourceUpdate(updateDatasource);
-        var updatedDatasource = await service.UpdateDatasourceAsync(
-            updateContext,
-            updateDatasource
-        );
+        var updatedDatasource = await service.UpdateDatasourceAsync(updateContext, updateDatasource);
         updatedDatasource.Should().NotBeNull();
         updatedDatasource!.DisplayName.Should().Be("Updated Test Datasource");
         updatedDatasource.IsEnabled.Should().BeFalse();
@@ -128,15 +121,11 @@ public partial class DapperMaticServiceTests
         datasourcesAfterRemove.Should().NotContain(d => d.Id == newDatasourceId);
 
         // Verify datasource removed using GetDatasource (should throw)
-        var getRemovedAct = async () =>
-            await service.GetDatasourceAsync(updatedGetContext, newDatasourceId);
+        var getRemovedAct = async () => await service.GetDatasourceAsync(updatedGetContext, newDatasourceId);
         await getRemovedAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Verify datasource removed using DatasourceExists
-        var removedExists = await service.DatasourceExistsAsync(
-            nonExistentExistsContext,
-            newDatasourceId
-        );
+        var removedExists = await service.DatasourceExistsAsync(nonExistentExistsContext, newDatasourceId);
         removedExists.Should().BeFalse();
     }
 }

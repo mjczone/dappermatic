@@ -22,7 +22,11 @@ public interface IDocsProcessor
     /// <param name="xmlDoc">The source deserialized xml.</param>
     /// <param name="settings">The generation settings.</param>
     /// <returns>The collection of NamespaceDescription.</returns>
-    List<NamespaceDescription> PopulateNamespaceCollection(Assembly assembly, XmlDoc xmlDoc, GenerationSettings settings);
+    List<NamespaceDescription> PopulateNamespaceCollection(
+        Assembly assembly,
+        XmlDoc xmlDoc,
+        GenerationSettings settings
+    );
 
     /// <summary>
     /// Add xml comments to the populated NamespaceDescription list.

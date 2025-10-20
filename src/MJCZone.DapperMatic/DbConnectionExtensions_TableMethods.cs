@@ -69,9 +69,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .CreateTableIfNotExistsAsync(db, table, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).CreateTableIfNotExistsAsync(db, table, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -140,9 +138,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -231,14 +227,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .RenameTableIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                newTableName,
-                tx,
-                cancellationToken
-            )
+            .RenameTableIfExistsAsync(db, schemaName, tableName, newTableName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 

@@ -33,11 +33,7 @@ public static class SchemaEndpoints
         string? basePath = null
     )
     {
-        var group = app.MapDapperMaticEndpointGroup(
-            basePath,
-            "/d/{datasourceId}/s",
-            OperationTags.DatasourceSchemas
-        );
+        var group = app.MapDapperMaticEndpointGroup(basePath, "/d/{datasourceId}/s", OperationTags.DatasourceSchemas);
 
         // List all schemas for a datasource
         group
@@ -103,8 +99,7 @@ public static class SchemaEndpoints
         if (!string.IsNullOrWhiteSpace(filter))
         {
             schemas = schemas.Where(s =>
-                s.SchemaName != null
-                && s.SchemaName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                s.SchemaName != null && s.SchemaName.Contains(filter, StringComparison.OrdinalIgnoreCase)
             );
         }
 

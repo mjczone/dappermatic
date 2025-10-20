@@ -50,15 +50,18 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
         return shortName switch
         {
             // NetTopologySuite types - SQLite stores geometry as text (WKT format)
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" or
-            "NetTopologySuite.Geometries.Point, NetTopologySuite" or
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false),
-            _ => null
+            "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
+            or "NetTopologySuite.Geometries.Point, NetTopologySuite"
+            or "NetTopologySuite.Geometries.LineString, NetTopologySuite"
+            or "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
+            or "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
+            or "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType(
+                SqliteTypes.sql_text,
+                isUnicode: false
+            ),
+            _ => null,
         };
     }
 

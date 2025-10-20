@@ -40,11 +40,7 @@ public static class PrimaryKeyConstraintEndpoints
             OperationTags.DatasourceTables
         );
 
-        RegisterPrimaryKeyConstraintEndpoints(
-            defaultGroup,
-            "DefaultSchema",
-            isSchemaSpecific: false
-        );
+        RegisterPrimaryKeyConstraintEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false);
 
         // Register schema-specific endpoints (for multi-tenant scenarios)
         var schemaGroup = app.MapDapperMaticEndpointGroup(
@@ -101,15 +97,7 @@ public static class PrimaryKeyConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        GetSchemaPrimaryKeyAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => GetSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> GetSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
@@ -121,13 +109,7 @@ public static class PrimaryKeyConstraintEndpoints
     )
     {
         var result = await service
-            .GetPrimaryKeyConstraintAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .GetPrimaryKeyConstraintAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new PrimaryKeyResponse(result));
@@ -174,9 +156,7 @@ public static class PrimaryKeyConstraintEndpoints
 
         operationContext.RequestBody = primaryKey;
         operationContext.ColumnNames =
-            primaryKey.ColumnNames != null && primaryKey.ColumnNames.Count >= 1
-                ? primaryKey.ColumnNames
-                : null;
+            primaryKey.ColumnNames != null && primaryKey.ColumnNames.Count >= 1 ? primaryKey.ColumnNames : null;
         if (!string.IsNullOrWhiteSpace(primaryKey.ConstraintName))
         {
             operationContext.ConstraintName = primaryKey.ConstraintName;
@@ -193,10 +173,7 @@ public static class PrimaryKeyConstraintEndpoints
             )
             .ConfigureAwait(false);
 
-        return Results.Created(
-            operationContext.EndpointPath?.TrimEnd('/'),
-            new PrimaryKeyResponse(result)
-        );
+        return Results.Created(operationContext.EndpointPath?.TrimEnd('/'), new PrimaryKeyResponse(result));
     }
 
     private static Task<IResult> DropPrimaryKeyAsync(
@@ -205,15 +182,7 @@ public static class PrimaryKeyConstraintEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        DropSchemaPrimaryKeyAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => DropSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> DropSchemaPrimaryKeyAsync(
         IOperationContext operationContext,
@@ -225,13 +194,7 @@ public static class PrimaryKeyConstraintEndpoints
     )
     {
         await service
-            .DropPrimaryKeyConstraintAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .DropPrimaryKeyConstraintAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.NoContent();

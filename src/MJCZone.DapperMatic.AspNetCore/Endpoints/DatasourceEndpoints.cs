@@ -115,29 +115,15 @@ public static class DatasourceEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        var datasources = await service
-            .GetDatasourcesAsync(operationContext, cancellationToken)
-            .ConfigureAwait(false);
+        var datasources = await service.GetDatasourcesAsync(operationContext, cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrWhiteSpace(filter))
         {
             datasources = datasources.Where(d =>
                 (d.Id != null && d.Id.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                || (
-                    d.DisplayName != null
-                    && d.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                )
-                || (
-                    d.Description != null
-                    && d.Description.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                )
-                || (
-                    d.Provider != null
-                    && d.Provider.Contains(filter, StringComparison.OrdinalIgnoreCase)
-                )
-                || (
-                    d.Tags != null
-                    && d.Tags.Any(t => t.Contains(filter, StringComparison.OrdinalIgnoreCase))
-                )
+                || (d.DisplayName != null && d.DisplayName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                || (d.Description != null && d.Description.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                || (d.Provider != null && d.Provider.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                || (d.Tags != null && d.Tags.Any(t => t.Contains(filter, StringComparison.OrdinalIgnoreCase)))
             );
         }
         return Results.Ok(new DatasourceListResponse(datasources));
@@ -172,12 +158,7 @@ public static class DatasourceEndpoints
             .MaxLength(r => r.Provider, 10, nameof(DatasourceDto.Provider), inclusive: true)
             .MinLength(r => r.Provider, 2, nameof(DatasourceDto.Provider), inclusive: true)
             .NotNullOrWhiteSpace(r => r.ConnectionString, nameof(DatasourceDto.ConnectionString))
-            .MaxLength(
-                r => r.ConnectionString,
-                2000,
-                nameof(DatasourceDto.ConnectionString),
-                inclusive: false
-            )
+            .MaxLength(r => r.ConnectionString, 2000, nameof(DatasourceDto.ConnectionString), inclusive: false)
             .NotNullOrWhiteSpace(r => r.DisplayName, nameof(DatasourceDto.DisplayName))
             .MaxLength(r => r.DisplayName, 128, nameof(DatasourceDto.DisplayName), inclusive: true)
             .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
@@ -211,12 +192,7 @@ public static class DatasourceEndpoints
             .Object(datasource)
             .MaxLength(r => r.Provider, 10, nameof(DatasourceDto.Provider), inclusive: true) // pgsql
             .MinLength(r => r.Provider, 2, nameof(DatasourceDto.Provider), inclusive: true) // pg
-            .MaxLength(
-                r => r.ConnectionString,
-                2000,
-                nameof(DatasourceDto.ConnectionString),
-                inclusive: false
-            )
+            .MaxLength(r => r.ConnectionString, 2000, nameof(DatasourceDto.ConnectionString), inclusive: false)
             .MaxLength(r => r.DisplayName, 128, nameof(DatasourceDto.DisplayName), inclusive: true)
             .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
             .Assert();
@@ -237,9 +213,7 @@ public static class DatasourceEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        await service
-            .RemoveDatasourceAsync(operationContext, datasourceId, cancellationToken)
-            .ConfigureAwait(false);
+        await service.RemoveDatasourceAsync(operationContext, datasourceId, cancellationToken).ConfigureAwait(false);
 
         return Results.NoContent();
     }

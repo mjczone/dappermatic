@@ -5,7 +5,6 @@
 
 using System.ComponentModel.DataAnnotations;
 using System.Data;
-
 using Microsoft.AspNetCore.Http;
 
 namespace MJCZone.DapperMatic.AspNetCore.Validation;
@@ -23,10 +22,7 @@ internal static class ErrorHandler
     /// <param name="builder">The validation builder containing the item to validate.</param>
     /// <param name="result">The resulting <see cref="ValidationResult"/>.</param>
     /// <returns>True if the item is valid; otherwise, false.</returns>
-    public static bool PassesValidation<T>(
-        this ObjectValidationBuilder<T> builder,
-        out IResult? result
-    )
+    public static bool PassesValidation<T>(this ObjectValidationBuilder<T> builder, out IResult? result)
     {
         result = null;
         var validationResult = builder.Build();
@@ -86,10 +82,7 @@ internal static class ErrorHandler
             InvalidOperationException ioe => Results.Problem(
                 title: "Invalid operation",
                 detail: ioe.Message,
-                statusCode: (ioe.Message ?? string.Empty).Contains(
-                    "already exists",
-                    StringComparison.OrdinalIgnoreCase
-                )
+                statusCode: (ioe.Message ?? string.Empty).Contains("already exists", StringComparison.OrdinalIgnoreCase)
                     ? StatusCodes.Status409Conflict
                     : StatusCodes.Status400BadRequest
             ),

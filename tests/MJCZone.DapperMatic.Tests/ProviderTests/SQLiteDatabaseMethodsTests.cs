@@ -9,9 +9,7 @@ using Xunit.Abstractions;
 
 namespace MJCZone.DapperMatic.Tests.ProviderTests;
 
-public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output)
-    : DatabaseMethodsTests(output),
-        IDisposable
+public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseMethodsTests(output), IDisposable
 {
     static SQLite_3_DatabaseMethodsTests()
     {

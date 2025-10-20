@@ -13,9 +13,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_crud_on_default_constraints_Async(
-        string? schemaName
-    )
+    protected virtual async Task Can_perform_simple_crud_on_default_constraints_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -29,15 +27,8 @@ public abstract partial class DatabaseMethodsTests
         );
 
         // in MySQL, default constraints are not named, so this MUST use the ProviderUtils method which is what MJCZone.DapperMatic uses internally
-        var constraintName = DbProviderUtils.GenerateDefaultConstraintName(
-            testTableName,
-            testColumnName
-        );
-        var exists = await db.DoesDefaultConstraintExistAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        var constraintName = DbProviderUtils.GenerateDefaultConstraintName(testTableName, testColumnName);
+        var exists = await db.DoesDefaultConstraintExistAsync(schemaName, testTableName, constraintName);
         if (exists)
         {
             await db.DropDefaultConstraintIfExistsAsync(schemaName, testTableName, constraintName);
@@ -50,25 +41,14 @@ public abstract partial class DatabaseMethodsTests
             constraintName,
             "0"
         );
-        var existingConstraint = await db.GetDefaultConstraintAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        var existingConstraint = await db.GetDefaultConstraintAsync(schemaName, testTableName, constraintName);
         Assert.Equal(constraintName, existingConstraint?.ConstraintName, true);
 
-        var defaultConstraintNames = await db.GetDefaultConstraintNamesAsync(
-            schemaName,
-            testTableName
-        );
+        var defaultConstraintNames = await db.GetDefaultConstraintNamesAsync(schemaName, testTableName);
         Assert.Contains(constraintName, defaultConstraintNames, StringComparer.OrdinalIgnoreCase);
 
         await db.DropDefaultConstraintIfExistsAsync(schemaName, testTableName, constraintName);
-        exists = await db.DoesDefaultConstraintExistAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        exists = await db.DoesDefaultConstraintExistAsync(schemaName, testTableName, constraintName);
         Assert.False(exists);
 
         await db.DropTableIfExistsAsync(schemaName, testTableName);
@@ -78,20 +58,10 @@ public abstract partial class DatabaseMethodsTests
             testTableName,
             [
                 new DmColumn(schemaName, testTableName, testColumnName, typeof(int)),
-                new DmColumn(
-                    schemaName,
-                    testTableName,
-                    "testColumn2",
-                    typeof(int),
-                    defaultExpression: "0"
-                ),
+                new DmColumn(schemaName, testTableName, "testColumn2", typeof(int), defaultExpression: "0"),
             ]
         );
-        var defaultConstraint = await db.GetDefaultConstraintOnColumnAsync(
-            schemaName,
-            testTableName,
-            "testColumn2"
-        );
+        var defaultConstraint = await db.GetDefaultConstraintOnColumnAsync(schemaName, testTableName, "testColumn2");
         Assert.NotNull(defaultConstraint);
 
         var tableDeleted = await db.DropTableIfExistsAsync(schemaName, testTableName);

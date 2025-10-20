@@ -11,9 +11,7 @@ namespace MJCZone.DapperMatic.Providers.PostgreSql;
 /// <summary>
 /// Provides PostgreSQL specific database methods.
 /// </summary>
-public partial class PostgreSqlMethods
-    : DatabaseMethodsBase<PostgreSqlProviderTypeMap>,
-        IPostgreSqlMethods
+public partial class PostgreSqlMethods : DatabaseMethodsBase<PostgreSqlProviderTypeMap>, IPostgreSqlMethods
 {
     private static string _defaultSchema = "public";
 
@@ -107,12 +105,7 @@ public partial class PostgreSqlMethods
             WHERE domain_schema NOT IN ('pg_catalog', 'information_schema')
             ORDER BY domain_name";
 
-        var domains = await QueryAsync<dynamic>(
-                db,
-                domainsSql,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        var domains = await QueryAsync<dynamic>(db, domainsSql, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         foreach (var domain in domains)
@@ -147,12 +140,7 @@ public partial class PostgreSqlMethods
             GROUP BY t.typname
             ORDER BY t.typname";
 
-        var enums = await QueryAsync<dynamic>(
-                db,
-                enumsSql,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        var enums = await QueryAsync<dynamic>(db, enumsSql, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         foreach (var enumType in enums)
@@ -186,12 +174,7 @@ public partial class PostgreSqlMethods
             GROUP BY t.typname
             ORDER BY t.typname";
 
-        var composites = await QueryAsync<dynamic>(
-                db,
-                compositesSql,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        var composites = await QueryAsync<dynamic>(db, compositesSql, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         foreach (var composite in composites)

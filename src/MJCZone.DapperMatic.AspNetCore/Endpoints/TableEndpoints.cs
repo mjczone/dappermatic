@@ -64,11 +64,7 @@ public static class TableEndpoints
         return app;
     }
 
-    private static void RegisterTableEndpoints(
-        RouteGroupBuilder group,
-        string namePrefix,
-        bool isSchemaSpecific
-    )
+    private static void RegisterTableEndpoints(RouteGroupBuilder group, string namePrefix, bool isSchemaSpecific)
     {
         var schemaText = isSchemaSpecific ? "a specific schema" : "the default schema";
         var schemaInText = isSchemaSpecific ? "in a specific schema" : "in the default schema";
@@ -143,10 +139,7 @@ public static class TableEndpoints
 
         // Check if table exists
         group
-            .MapGet(
-                "/{tableName}/exists",
-                isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync
-            )
+            .MapGet("/{tableName}/exists", isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync)
             .WithName($"{namePrefix}TableExists")
             .WithSummary($"Checks if a table exists {schemaInText}")
             .Produces<TableExistsResponse>((int)HttpStatusCode.OK)
@@ -155,10 +148,7 @@ public static class TableEndpoints
 
         // Query table via GET with URL parameters
         group
-            .MapGet(
-                "/{tableName}/query",
-                isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync
-            )
+            .MapGet("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync)
             .WithName($"Query{namePrefix}TableViaGet")
             .WithSummary($"Queries a table {schemaInText} using URL parameters")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -167,10 +157,7 @@ public static class TableEndpoints
 
         // Query table with filtering, sorting, and pagination
         group
-            .MapPost(
-                "/{tableName}/query",
-                isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync
-            )
+            .MapPost("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync)
             .WithName($"Query{namePrefix}Table")
             .WithSummary($"Queries a table {schemaInText} with filtering, sorting, and pagination")
             .Produces<QueryResponse>((int)HttpStatusCode.OK)
@@ -185,16 +172,7 @@ public static class TableEndpoints
         [FromQuery] string? include,
         [FromQuery] string? filter,
         CancellationToken cancellationToken = default
-    ) =>
-        ListSchemaTablesAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            include,
-            filter,
-            cancellationToken
-        );
+    ) => ListSchemaTablesAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
 
     private static async Task<IResult> ListSchemaTablesAsync(
         IOperationContext operationContext,
@@ -242,8 +220,7 @@ public static class TableEndpoints
         if (!string.IsNullOrWhiteSpace(filter))
         {
             tables = tables.Where(t =>
-                t.TableName != null
-                && t.TableName.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                t.TableName != null && t.TableName.Contains(filter, StringComparison.OrdinalIgnoreCase)
             );
         }
 
@@ -257,16 +234,7 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromQuery] string? include,
         CancellationToken cancellationToken = default
-    ) =>
-        GetSchemaTableAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            include,
-            cancellationToken
-        );
+    ) => GetSchemaTableAsync(operationContext, service, datasourceId, null, tableName, include, cancellationToken);
 
     private static async Task<IResult> GetSchemaTableAsync(
         IOperationContext operationContext,
@@ -314,15 +282,7 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromBody] TableDto table,
         CancellationToken cancellationToken = default
-    ) =>
-        CreateSchemaTableAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            table,
-            cancellationToken
-        );
+    ) => CreateSchemaTableAsync(operationContext, service, datasourceId, null, table, cancellationToken);
 
     private static async Task<IResult> CreateSchemaTableAsync(
         IOperationContext operationContext,
@@ -340,11 +300,7 @@ public static class TableEndpoints
             .MaxLength(v => v.TableName, 128, nameof(TableDto.TableName), inclusive: true)
             .MinLength(v => v.TableName, 1, nameof(TableDto.TableName), inclusive: true)
             .NotNull(v => v.Columns, nameof(TableDto.Columns))
-            .Custom(
-                v => v.Columns!.Count > 0,
-                nameof(TableDto.Columns),
-                $"At least one column is required"
-            )
+            .Custom(v => v.Columns!.Count > 0, nameof(TableDto.Columns), $"At least one column is required")
             .Assert();
 
         // Ensure schema name from DTO matches route parameter
@@ -353,9 +309,7 @@ public static class TableEndpoints
         operationContext.RequestBody = table;
         operationContext.TableName = table.TableName!.Trim();
         operationContext.ColumnNames =
-            table.Columns != null && table.Columns.Count >= 1
-                ? table.Columns.Select(c => c.ColumnName).ToList()
-                : null;
+            table.Columns != null && table.Columns.Count >= 1 ? table.Columns.Select(c => c.ColumnName).ToList() : null;
 
         var created = await service
             .CreateTableAsync(operationContext, datasourceId, table, cancellationToken)
@@ -374,16 +328,7 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromBody] TableDto updates,
         CancellationToken cancellationToken = default
-    ) =>
-        UpdateSchemaTableAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            updates,
-            cancellationToken
-        );
+    ) => UpdateSchemaTableAsync(operationContext, service, datasourceId, null, tableName, updates, cancellationToken);
 
     private static async Task<IResult> UpdateSchemaTableAsync(
         IOperationContext operationContext,
@@ -413,8 +358,7 @@ public static class TableEndpoints
         operationContext.RequestBody = updates;
 
         // Check if this is a rename (TableName in body differs from route parameter)
-        var isRename =
-            !string.IsNullOrWhiteSpace(updates.TableName) && updates.TableName != tableName;
+        var isRename = !string.IsNullOrWhiteSpace(updates.TableName) && updates.TableName != tableName;
         var hasPropertyUpdates =
             (updates.Columns != null && updates.Columns.Count > 0)
             || (updates.Indexes != null && updates.Indexes.Count > 0)
@@ -425,9 +369,7 @@ public static class TableEndpoints
 
         if (!isRename && !hasPropertyUpdates)
         {
-            throw new InvalidOperationException(
-                "No changes provided - TableName or other additions must be specified"
-            );
+            throw new InvalidOperationException("No changes provided - TableName or other additions must be specified");
         }
 
         var currentTableName = tableName;
@@ -438,22 +380,14 @@ public static class TableEndpoints
         if (hasPropertyUpdates)
         {
             updated = await service
-                .UpdateTableAsync(
-                    operationContext,
-                    datasourceId,
-                    currentTableName,
-                    updates,
-                    cancellationToken
-                )
+                .UpdateTableAsync(operationContext, datasourceId, currentTableName, updates, cancellationToken)
                 .ConfigureAwait(false);
         }
 
         // Handle rename separately if needed
         if (isRename)
         {
-            operationContext.Properties ??= new Dictionary<string, object>(
-                StringComparer.OrdinalIgnoreCase
-            );
+            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             operationContext.Properties["NewTableName"] = updates.TableName!;
             var renamed = await service
                 .RenameTableAsync(
@@ -492,15 +426,7 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        DropSchemaTableAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => DropSchemaTableAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> DropSchemaTableAsync(
         IOperationContext operationContext,
@@ -512,13 +438,7 @@ public static class TableEndpoints
     )
     {
         await service
-            .DropTableAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .DropTableAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.NoContent();
@@ -530,15 +450,7 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        SchemaTableExistsAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => SchemaTableExistsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> SchemaTableExistsAsync(
         IOperationContext operationContext,
@@ -550,13 +462,7 @@ public static class TableEndpoints
     )
     {
         var exists = await service
-            .TableExistsAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .TableExistsAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new TableExistsResponse(exists));
@@ -569,16 +475,7 @@ public static class TableEndpoints
         [FromRoute] string tableName,
         [FromBody] QueryDto request,
         CancellationToken cancellationToken = default
-    ) =>
-        QuerySchemaTableAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            request,
-            cancellationToken
-        );
+    ) => QuerySchemaTableAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
 
     private static async Task<IResult> QuerySchemaTableAsync(
         IOperationContext operationContext,
@@ -593,22 +490,11 @@ public static class TableEndpoints
         operationContext.RequestBody = request;
 
         var queryResult = await service
-            .QueryTableAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                request,
-                schemaName,
-                cancellationToken
-            )
+            .QueryTableAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(
-            new QueryResponse(queryResult.Data)
-            {
-                Pagination = queryResult.Pagination,
-                Fields = queryResult.Fields,
-            }
+            new QueryResponse(queryResult.Data) { Pagination = queryResult.Pagination, Fields = queryResult.Fields }
         );
     }
 
@@ -618,15 +504,7 @@ public static class TableEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        QuerySchemaTableViaGetAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => QuerySchemaTableViaGetAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> QuerySchemaTableViaGetAsync(
         IOperationContext operationContext,
@@ -646,22 +524,11 @@ public static class TableEndpoints
         operationContext.RequestBody = request;
 
         var queryResult = await service
-            .QueryTableAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                request,
-                schemaName,
-                cancellationToken
-            )
+            .QueryTableAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(
-            new QueryResponse(queryResult.Data)
-            {
-                Pagination = queryResult.Pagination,
-                Fields = queryResult.Fields,
-            }
+            new QueryResponse(queryResult.Data) { Pagination = queryResult.Pagination, Fields = queryResult.Fields }
         );
     }
 }

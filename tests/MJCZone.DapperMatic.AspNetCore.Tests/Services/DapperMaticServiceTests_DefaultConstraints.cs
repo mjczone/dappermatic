@@ -26,28 +26,15 @@ public partial class DapperMaticServiceTests
         await CheckInvalidDatasourceHandlingFetchingDefaultConstraints(service, schemaName);
 
         // Non-existent table throws NotFound
-        await CheckInvalidTableHandlingFetchingDefaultConstraints(
-            service,
-            datasourceId,
-            schemaName
-        );
+        await CheckInvalidTableHandlingFetchingDefaultConstraints(service, datasourceId, schemaName);
 
         // Create test table for default constraint operations
         var tableName = "DCTest_" + Guid.NewGuid().ToString("N")[..8];
-        await CreateTestTableWithoutDefaultConstraints(
-            service,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        await CreateTestTableWithoutDefaultConstraints(service, datasourceId, tableName, schemaName);
 
         // Get Default Constraints on table without default constraints returns empty list
         var defaultConstraints = await service.GetDefaultConstraintsAsync(
-            context: OperationIdentifiers.ForDefaultConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForDefaultConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -65,8 +52,7 @@ public partial class DapperMaticServiceTests
             ColumnName = "Status",
             DefaultExpression =
                 datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "'Active'"
-                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                    ? "'Active'::varchar"
+                : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "'Active'::varchar"
                 : "'Active'",
         };
         var dcCreateContext = OperationIdentifiers.ForDefaultConstraintCreate(
@@ -98,11 +84,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Default Constraint was added
         defaultConstraints = await service.GetDefaultConstraintsAsync(
-            context: OperationIdentifiers.ForDefaultConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForDefaultConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -203,11 +185,7 @@ public partial class DapperMaticServiceTests
 
         // Verify Default Constraint was dropped
         defaultConstraints = await service.GetDefaultConstraintsAsync(
-            context: OperationIdentifiers.ForDefaultConstraintList(
-                datasourceId,
-                tableName,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForDefaultConstraintList(datasourceId, tableName, schemaName),
             datasourceId,
             tableName,
             schemaName
@@ -347,11 +325,7 @@ public partial class DapperMaticServiceTests
     )
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForDefaultConstraintList(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForDefaultConstraintList(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
             await service.GetDefaultConstraintsAsync(
                 invalidContext,
@@ -431,10 +405,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = true,
                 },

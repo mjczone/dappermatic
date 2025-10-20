@@ -10,9 +10,7 @@ namespace Akov.NetDocsProcessor.Extensions;
 internal static partial class TypeNameExtensions
 {
     public static List<string> GetArgsTypeNames(this Type type) =>
-        type.IsGenericType
-            ? type.GetGenericArguments().Select(x => x.Name).ToList()
-            : new List<string> { type.Name };
+        type.IsGenericType ? type.GetGenericArguments().Select(x => x.Name).ToList() : new List<string> { type.Name };
 
     public static List<string> GetArgsTypeNames(this ITypeSymbol symbol)
     {

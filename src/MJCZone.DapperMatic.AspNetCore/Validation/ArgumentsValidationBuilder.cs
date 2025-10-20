@@ -73,11 +73,7 @@ public class ArgumentsValidationBuilder
     {
         if (value.CompareTo(min) <= 0)
         {
-            throw new ArgumentOutOfRangeException(
-                paramName,
-                value,
-                ValidationHelpers.GreaterThanMessage("Value", min)
-            );
+            throw new ArgumentOutOfRangeException(paramName, value, ValidationHelpers.GreaterThanMessage("Value", min));
         }
         return this;
     }
@@ -119,11 +115,7 @@ public class ArgumentsValidationBuilder
     {
         if (value.CompareTo(max) >= 0)
         {
-            throw new ArgumentOutOfRangeException(
-                paramName,
-                value,
-                ValidationHelpers.LessThanMessage("Value", max)
-            );
+            throw new ArgumentOutOfRangeException(paramName, value, ValidationHelpers.LessThanMessage("Value", max));
         }
         return this;
     }
@@ -184,12 +176,7 @@ public class ArgumentsValidationBuilder
     /// <param name="inclusive">Whether the minimum length is inclusive (default: true).</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the string is too short.</exception>
-    public ArgumentsValidationBuilder MinLength(
-        string? value,
-        int minLength,
-        string paramName,
-        bool inclusive = true
-    )
+    public ArgumentsValidationBuilder MinLength(string? value, int minLength, string paramName, bool inclusive = true)
     {
         var isValid = inclusive
             ? value != null && value.Length >= minLength
@@ -197,10 +184,7 @@ public class ArgumentsValidationBuilder
 
         if (!isValid)
         {
-            throw new ArgumentException(
-                ValidationHelpers.MinLengthMessage(paramName, minLength, inclusive),
-                paramName
-            );
+            throw new ArgumentException(ValidationHelpers.MinLengthMessage(paramName, minLength, inclusive), paramName);
         }
         return this;
     }
@@ -214,12 +198,7 @@ public class ArgumentsValidationBuilder
     /// <param name="inclusive">Whether the maximum length is inclusive (default: true).</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the string is too long.</exception>
-    public ArgumentsValidationBuilder MaxLength(
-        string? value,
-        int maxLength,
-        string paramName,
-        bool inclusive = true
-    )
+    public ArgumentsValidationBuilder MaxLength(string? value, int maxLength, string paramName, bool inclusive = true)
     {
         var isValid = inclusive
             ? value == null || value.Length <= maxLength
@@ -227,10 +206,7 @@ public class ArgumentsValidationBuilder
 
         if (!isValid)
         {
-            throw new ArgumentException(
-                ValidationHelpers.MaxLengthMessage(paramName, maxLength, inclusive),
-                paramName
-            );
+            throw new ArgumentException(ValidationHelpers.MaxLengthMessage(paramName, maxLength, inclusive), paramName);
         }
         return this;
     }
@@ -243,20 +219,13 @@ public class ArgumentsValidationBuilder
     /// <param name="paramName">The name of the parameter.</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the value doesn't match the pattern.</exception>
-    public ArgumentsValidationBuilder Matches(
-        [NotNull] string? value,
-        string pattern,
-        string paramName
-    )
+    public ArgumentsValidationBuilder Matches([NotNull] string? value, string pattern, string paramName)
     {
         ArgumentException.ThrowIfNullOrEmpty(value, paramName);
 
         if (!Regex.IsMatch(value, pattern))
         {
-            throw new ArgumentException(
-                ValidationHelpers.MustMatchPatternMessage("Value", pattern),
-                paramName
-            );
+            throw new ArgumentException(ValidationHelpers.MustMatchPatternMessage("Value", pattern), paramName);
         }
         return this;
     }
@@ -270,11 +239,7 @@ public class ArgumentsValidationBuilder
     /// <param name="configure">An action to configure the ObjectValidationBuilder.</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when validation fails.</exception>
-    public ArgumentsValidationBuilder Object<T>(
-        T item,
-        string paramName,
-        Action<ObjectValidationBuilder<T>> configure
-    )
+    public ArgumentsValidationBuilder Object<T>(T item, string paramName, Action<ObjectValidationBuilder<T>> configure)
     {
         ArgumentNullException.ThrowIfNull(item, paramName);
 
@@ -371,11 +336,7 @@ public class ArgumentsValidationBuilder
     /// <param name="message">The error message if validation fails.</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the condition evaluates to true.</exception>
-    public ArgumentsValidationBuilder IsFalse(
-        Func<bool> condition,
-        string paramName,
-        string message
-    )
+    public ArgumentsValidationBuilder IsFalse(Func<bool> condition, string paramName, string message)
     {
         ArgumentNullException.ThrowIfNull(condition, nameof(condition));
 
@@ -413,11 +374,7 @@ public class ArgumentsValidationBuilder
     /// <param name="getMessage">A function that returns the error message if validation fails.</param>
     /// <returns>The current <see cref="ArgumentsValidationBuilder"/> instance for method chaining.</returns>
     /// <exception cref="ArgumentException">Thrown when the condition evaluates to false.</exception>
-    public ArgumentsValidationBuilder Custom(
-        Func<bool> condition,
-        string paramName,
-        Func<string> getMessage
-    )
+    public ArgumentsValidationBuilder Custom(Func<bool> condition, string paramName, Func<string> getMessage)
     {
         ArgumentNullException.ThrowIfNull(condition, nameof(condition));
         ArgumentNullException.ThrowIfNull(getMessage, nameof(getMessage));

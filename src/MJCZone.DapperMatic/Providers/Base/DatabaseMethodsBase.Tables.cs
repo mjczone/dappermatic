@@ -30,13 +30,7 @@ public abstract partial class DatabaseMethodsBase
     {
         var (sql, parameters) = SqlDoesTableExist(schemaName, tableName);
 
-        var result = await ExecuteScalarAsync<int>(
-                db,
-                sql,
-                parameters,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        var result = await ExecuteScalarAsync<int>(db, sql, parameters, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         return result > 0;
@@ -61,13 +55,7 @@ public abstract partial class DatabaseMethodsBase
 
         foreach (var table in tables)
         {
-            var created = await CreateTableIfNotExistsAsync(
-                    db,
-                    table,
-                    afterAllTablesConstraints,
-                    tx,
-                    cancellationToken
-                )
+            var created = await CreateTableIfNotExistsAsync(db, table, afterAllTablesConstraints, tx, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!created)
@@ -77,11 +65,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         // Add foreign keys AFTER all tables are created
-        foreach (
-            var foreignKeyConstraint in afterAllTablesConstraints.SelectMany(x =>
-                x.ForeignKeyConstraints
-            )
-        )
+        foreach (var foreignKeyConstraint in afterAllTablesConstraints.SelectMany(x => x.ForeignKeyConstraints))
         {
             await CreateForeignKeyConstraintIfNotExistsAsync(
                     db,
@@ -108,8 +92,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await CreateTableIfNotExistsAsync(db, table, null, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await CreateTableIfNotExistsAsync(db, table, null, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -145,8 +128,7 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        var dbVersion = await GetDatabaseVersionAsync(db, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var dbVersion = await GetDatabaseVersionAsync(db, tx, cancellationToken).ConfigureAwait(false);
 
         var supportsOrderedKeysInConstraints = await SupportsOrderedKeysInConstraintsAsync(
                 db,
@@ -214,10 +196,7 @@ public abstract partial class DatabaseMethodsBase
                     && !string.IsNullOrWhiteSpace(column.ReferencedColumnName)
                     && tableConstraints.ForeignKeyConstraints.All(fk =>
                         !fk.SourceColumns.Any(c =>
-                            c.ColumnName.Equals(
-                                column.ColumnName,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
                         )
                     )
                 )
@@ -241,12 +220,7 @@ public abstract partial class DatabaseMethodsBase
                 }
             }
 
-            var columnDefinitionSql = SqlInlineColumnDefinition(
-                table,
-                column,
-                tableConstraints,
-                dbVersion
-            );
+            var columnDefinitionSql = SqlInlineColumnDefinition(table, column, tableConstraints, dbVersion);
             sql.Append(columnDefinitionSql);
         }
 
@@ -254,9 +228,7 @@ public abstract partial class DatabaseMethodsBase
         {
             sql.AppendLine();
             sql.Append("  ,");
-            sql.Append(
-                SqlInlinePrimaryKeyTableConstraint(table, tableConstraints.PrimaryKeyConstraint)
-            );
+            sql.Append(SqlInlinePrimaryKeyTableConstraint(table, tableConstraints.PrimaryKeyConstraint));
         }
 
         foreach (var check in tableConstraints.CheckConstraints)
@@ -311,17 +283,14 @@ public abstract partial class DatabaseMethodsBase
         // TODO: for MySQL, we need to add the ENGINE=InnoDB; at the end of the CREATE TABLE statement
         if (ProviderType == DbProviderType.MySql)
         {
-            sql.Append(
-                " DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB"
-            );
+            sql.Append(" DEFAULT CHARACTER SET utf8mb4 COLLATE `utf8mb4_unicode_ci` ENGINE = InnoDB");
         }
 
         sql.Append(';');
 
         var sqlStatement = sql.ToString();
 
-        await ExecuteAsync(db, sqlStatement, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sqlStatement, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // Add indexes AFTER the table is created
         foreach (var index in tableConstraints.Indexes)
@@ -329,12 +298,7 @@ public abstract partial class DatabaseMethodsBase
             index.SchemaName = schemaName;
             index.TableName = tableName;
 
-            await CreateIndexIfNotExistsAsync(
-                    db,
-                    index,
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            await CreateIndexIfNotExistsAsync(db, index, tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -435,8 +399,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         return (
-            await GetTablesAsync(db, schemaName, tableName, tx, cancellationToken)
-                .ConfigureAwait(false)
+            await GetTablesAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false)
         ).SingleOrDefault();
     }
 
@@ -458,13 +421,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         var (sql, parameters) = SqlGetTableNames(schemaName, tableNameFilter);
-        return await QueryAsync<string>(
-                db,
-                sql,
-                parameters,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        return await QueryAsync<string>(db, sql, parameters, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -502,8 +459,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (string.IsNullOrWhiteSpace(table?.TableName))
         {
@@ -516,14 +472,7 @@ public abstract partial class DatabaseMethodsBase
         // drop all related objects
         foreach (var index in table.Indexes)
         {
-            await DropIndexIfExistsAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    index.IndexName,
-                    tx,
-                    cancellationToken
-                )
+            await DropIndexIfExistsAsync(db, schemaName, tableName, index.IndexName, tx, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -542,14 +491,7 @@ public abstract partial class DatabaseMethodsBase
 
         foreach (var uc in table.UniqueConstraints)
         {
-            await DropUniqueConstraintIfExistsAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    uc.ConstraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DropUniqueConstraintIfExistsAsync(db, schemaName, tableName, uc.ConstraintName, tx, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -594,8 +536,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropTable(schemaName, tableName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -629,18 +570,14 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("New table name is required.", nameof(newTableName));
         }
 
-        if (
-            !await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (!await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
         var sql = SqlRenameTable(schemaName, tableName, newTableName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -667,18 +604,14 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Table name is required.", nameof(tableName));
         }
 
-        if (
-            !await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (!await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
         var sql = SqlTruncateTable(schemaName, tableName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

@@ -54,11 +54,7 @@ public static class ColumnEndpoints
         return app;
     }
 
-    private static void RegisterColumnEndpoints(
-        RouteGroupBuilder group,
-        string namePrefix,
-        bool isSchemaSpecific
-    )
+    private static void RegisterColumnEndpoints(RouteGroupBuilder group, string namePrefix, bool isSchemaSpecific)
     {
         var schemaText = isSchemaSpecific ? "a specific schema" : "the default schema";
         var schemaInText = isSchemaSpecific ? "in a specific schema" : "in the default schema";
@@ -113,15 +109,7 @@ public static class ColumnEndpoints
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
         CancellationToken cancellationToken = default
-    ) =>
-        ListSchemaColumnsAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            cancellationToken
-        );
+    ) => ListSchemaColumnsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaColumnsAsync(
         IOperationContext operationContext,
@@ -133,13 +121,7 @@ public static class ColumnEndpoints
     )
     {
         var columns = await service
-            .GetColumnsAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                schemaName,
-                cancellationToken
-            )
+            .GetColumnsAsync(operationContext, datasourceId, tableName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new ColumnListResponse(columns));
@@ -152,16 +134,7 @@ public static class ColumnEndpoints
         [FromRoute] string tableName,
         [FromRoute] string columnName,
         CancellationToken cancellationToken = default
-    ) =>
-        GetSchemaColumnAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            columnName,
-            cancellationToken
-        );
+    ) => GetSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
 
     private static async Task<IResult> GetSchemaColumnAsync(
         IOperationContext operationContext,
@@ -174,14 +147,7 @@ public static class ColumnEndpoints
     )
     {
         var column = await service
-            .GetColumnAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                columnName,
-                schemaName,
-                cancellationToken
-            )
+            .GetColumnAsync(operationContext, datasourceId, tableName, columnName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Ok(new ColumnResponse(column));
@@ -194,16 +160,7 @@ public static class ColumnEndpoints
         [FromRoute] string tableName,
         [FromBody] ColumnDto column,
         CancellationToken cancellationToken = default
-    ) =>
-        CreateSchemaColumnAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            column,
-            cancellationToken
-        );
+    ) => CreateSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, column, cancellationToken);
 
     private static async Task<IResult> CreateSchemaColumnAsync(
         IOperationContext operationContext,
@@ -226,14 +183,7 @@ public static class ColumnEndpoints
         operationContext.ColumnNames = [column.ColumnName];
 
         var result = await service
-            .AddColumnAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                column,
-                schemaName,
-                cancellationToken
-            )
+            .AddColumnAsync(operationContext, datasourceId, tableName, column, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.Created(
@@ -279,18 +229,13 @@ public static class ColumnEndpoints
         }
 
         // API layer validation
-        Validate
-            .Object(column)
-            .NotNullOrWhiteSpace(r => r.ColumnName, nameof(ColumnDto.ColumnName))
-            .Assert();
+        Validate.Object(column).NotNullOrWhiteSpace(r => r.ColumnName, nameof(ColumnDto.ColumnName)).Assert();
 
         operationContext.RequestBody = column;
 
         if (!columnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
         {
-            operationContext.Properties ??= new Dictionary<string, object>(
-                StringComparer.OrdinalIgnoreCase
-            );
+            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
             operationContext.Properties["NewColumnName"] = column.ColumnName!;
             var renamedColumn = await service
                 .RenameColumnAsync(
@@ -309,14 +254,7 @@ public static class ColumnEndpoints
         else
         {
             var existingColumn = await service
-                .GetColumnAsync(
-                    operationContext,
-                    datasourceId,
-                    tableName,
-                    columnName,
-                    schemaName,
-                    cancellationToken
-                )
+                .GetColumnAsync(operationContext, datasourceId, tableName, columnName, schemaName, cancellationToken)
                 .ConfigureAwait(false);
 
             return Results.Ok(new ColumnResponse(existingColumn));
@@ -330,16 +268,7 @@ public static class ColumnEndpoints
         [FromRoute] string tableName,
         [FromRoute] string columnName,
         CancellationToken cancellationToken = default
-    ) =>
-        DropSchemaColumnAsync(
-            operationContext,
-            service,
-            datasourceId,
-            null,
-            tableName,
-            columnName,
-            cancellationToken
-        );
+    ) => DropSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
 
     private static async Task<IResult> DropSchemaColumnAsync(
         IOperationContext operationContext,
@@ -352,14 +281,7 @@ public static class ColumnEndpoints
     )
     {
         await service
-            .DropColumnAsync(
-                operationContext,
-                datasourceId,
-                tableName,
-                columnName,
-                schemaName,
-                cancellationToken
-            )
+            .DropColumnAsync(operationContext, datasourceId, tableName, columnName, schemaName, cancellationToken)
             .ConfigureAwait(false);
 
         return Results.NoContent();

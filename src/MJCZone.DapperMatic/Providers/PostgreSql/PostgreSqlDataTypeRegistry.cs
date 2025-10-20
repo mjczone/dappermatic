@@ -16,39 +16,14 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
     protected override void RegisterDataTypes()
     {
         // Integer types
+        RegisterDataType(CreateIntegerType("smallint", "2-byte signed integer", isCommon: false, "int2"));
+        RegisterDataType(CreateIntegerType("integer", "4-byte signed integer", isCommon: true, "int", "int4"));
+        RegisterDataType(CreateIntegerType("bigint", "8-byte signed integer", isCommon: true, "int8"));
         RegisterDataType(
-            CreateIntegerType("smallint", "2-byte signed integer", isCommon: false, "int2")
+            CreateIntegerType("smallserial", "2-byte autoincrementing integer", isCommon: false, "serial2")
         );
-        RegisterDataType(
-            CreateIntegerType("integer", "4-byte signed integer", isCommon: true, "int", "int4")
-        );
-        RegisterDataType(
-            CreateIntegerType("bigint", "8-byte signed integer", isCommon: true, "int8")
-        );
-        RegisterDataType(
-            CreateIntegerType(
-                "smallserial",
-                "2-byte autoincrementing integer",
-                isCommon: false,
-                "serial2"
-            )
-        );
-        RegisterDataType(
-            CreateIntegerType(
-                "serial",
-                "4-byte autoincrementing integer",
-                isCommon: true,
-                "serial4"
-            )
-        );
-        RegisterDataType(
-            CreateIntegerType(
-                "bigserial",
-                "8-byte autoincrementing integer",
-                isCommon: true,
-                "serial8"
-            )
-        );
+        RegisterDataType(CreateIntegerType("serial", "4-byte autoincrementing integer", isCommon: true, "serial4"));
+        RegisterDataType(CreateIntegerType("bigserial", "8-byte autoincrementing integer", isCommon: true, "serial8"));
 
         // Decimal types
         RegisterDataType(
@@ -83,9 +58,7 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // Money type
-        RegisterDataType(
-            CreateSimpleType("money", DataTypeCategory.Money, isCommon: false, "Currency amount")
-        );
+        RegisterDataType(CreateSimpleType("money", DataTypeCategory.Money, isCommon: false, "Currency amount"));
 
         // String types
         RegisterDataType(
@@ -128,27 +101,14 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
 
         // Boolean type
         RegisterDataType(
-            CreateSimpleType(
-                "boolean",
-                DataTypeCategory.Boolean,
-                isCommon: true,
-                "True or false",
-                "bool"
-            )
+            CreateSimpleType("boolean", DataTypeCategory.Boolean, isCommon: true, "True or false", "bool")
         );
 
         // Date/Time types
         RegisterDataType(
-            CreateSimpleType(
-                "date",
-                DataTypeCategory.DateTime,
-                isCommon: true,
-                "Calendar date (year, month, day)"
-            )
+            CreateSimpleType("date", DataTypeCategory.DateTime, isCommon: true, "Calendar date (year, month, day)")
         );
-        RegisterDataType(
-            CreateDateTimeType("time", true, 6, 6, isCommon: false, "Time of day (no time zone)")
-        );
+        RegisterDataType(CreateDateTimeType("time", true, 6, 6, isCommon: false, "Time of day (no time zone)"));
         RegisterDataType(
             CreateDateTimeType(
                 "time with time zone",
@@ -160,16 +120,7 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "timetz"
             )
         );
-        RegisterDataType(
-            CreateDateTimeType(
-                "timestamp",
-                true,
-                6,
-                6,
-                isCommon: true,
-                "Date and time (no time zone)"
-            )
-        );
+        RegisterDataType(CreateDateTimeType("timestamp", true, 6, 6, isCommon: true, "Date and time (no time zone)"));
         RegisterDataType(
             CreateDateTimeType(
                 "timestamp with time zone",
@@ -181,44 +132,22 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "timestamptz"
             )
         );
-        RegisterDataType(
-            CreateSimpleType("interval", DataTypeCategory.DateTime, isCommon: false, "Time span")
-        );
+        RegisterDataType(CreateSimpleType("interval", DataTypeCategory.DateTime, isCommon: false, "Time span"));
 
         // Binary type
         RegisterDataType(
-            CreateSimpleType(
-                "bytea",
-                DataTypeCategory.Binary,
-                isCommon: true,
-                "Binary data (byte array)"
-            )
+            CreateSimpleType("bytea", DataTypeCategory.Binary, isCommon: true, "Binary data (byte array)")
         );
 
         // Network types
         RegisterDataType(
-            CreateSimpleType(
-                "cidr",
-                DataTypeCategory.Network,
-                isCommon: false,
-                "IPv4 or IPv6 network address"
-            )
+            CreateSimpleType("cidr", DataTypeCategory.Network, isCommon: false, "IPv4 or IPv6 network address")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "inet",
-                DataTypeCategory.Network,
-                isCommon: false,
-                "IPv4 or IPv6 host address"
-            )
+            CreateSimpleType("inet", DataTypeCategory.Network, isCommon: false, "IPv4 or IPv6 host address")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "macaddr",
-                DataTypeCategory.Network,
-                isCommon: false,
-                "MAC (Media Access Control) address"
-            )
+            CreateSimpleType("macaddr", DataTypeCategory.Network, isCommon: false, "MAC (Media Access Control) address")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -230,207 +159,71 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // Geometric types
+        RegisterDataType(CreateSimpleType("point", DataTypeCategory.Spatial, isCommon: false, "Point on a plane"));
+        RegisterDataType(CreateSimpleType("line", DataTypeCategory.Spatial, isCommon: false, "Infinite line"));
+        RegisterDataType(CreateSimpleType("lseg", DataTypeCategory.Spatial, isCommon: false, "Line segment"));
+        RegisterDataType(CreateSimpleType("box", DataTypeCategory.Spatial, isCommon: false, "Rectangular box"));
+        RegisterDataType(CreateSimpleType("path", DataTypeCategory.Spatial, isCommon: false, "Geometric path"));
         RegisterDataType(
-            CreateSimpleType("point", DataTypeCategory.Spatial, isCommon: false, "Point on a plane")
+            CreateSimpleType("polygon", DataTypeCategory.Spatial, isCommon: false, "Closed geometric path")
+        );
+        RegisterDataType(CreateSimpleType("circle", DataTypeCategory.Spatial, isCommon: false, "Circle"));
+        RegisterDataType(
+            CreateSimpleType("geometry", DataTypeCategory.Spatial, isCommon: false, "PostGIS geometry type")
         );
         RegisterDataType(
-            CreateSimpleType("line", DataTypeCategory.Spatial, isCommon: false, "Infinite line")
-        );
-        RegisterDataType(
-            CreateSimpleType("lseg", DataTypeCategory.Spatial, isCommon: false, "Line segment")
-        );
-        RegisterDataType(
-            CreateSimpleType("box", DataTypeCategory.Spatial, isCommon: false, "Rectangular box")
-        );
-        RegisterDataType(
-            CreateSimpleType("path", DataTypeCategory.Spatial, isCommon: false, "Geometric path")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "polygon",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Closed geometric path"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("circle", DataTypeCategory.Spatial, isCommon: false, "Circle")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "geometry",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "PostGIS geometry type"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "geography",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "PostGIS geography type"
-            )
+            CreateSimpleType("geography", DataTypeCategory.Spatial, isCommon: false, "PostGIS geography type")
         );
 
         // JSON types
+        RegisterDataType(CreateSimpleType("json", DataTypeCategory.Json, isCommon: true, "JSON data"));
         RegisterDataType(
-            CreateSimpleType("json", DataTypeCategory.Json, isCommon: true, "JSON data")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "jsonb",
-                DataTypeCategory.Json,
-                isCommon: true,
-                "Binary JSON data (recommended)"
-            )
+            CreateSimpleType("jsonb", DataTypeCategory.Json, isCommon: true, "Binary JSON data (recommended)")
         );
 
         // XML type
-        RegisterDataType(
-            CreateSimpleType("xml", DataTypeCategory.Xml, isCommon: false, "XML data")
-        );
+        RegisterDataType(CreateSimpleType("xml", DataTypeCategory.Xml, isCommon: false, "XML data"));
 
         // UUID type
         RegisterDataType(
-            CreateSimpleType(
-                "uuid",
-                DataTypeCategory.Identifier,
-                isCommon: true,
-                "Universally unique identifier"
-            )
+            CreateSimpleType("uuid", DataTypeCategory.Identifier, isCommon: true, "Universally unique identifier")
         );
 
         // Bit string types
+        RegisterDataType(CreateStringType("bit", 83886080, 1, isCommon: false, "Fixed-length bit string"));
         RegisterDataType(
-            CreateStringType("bit", 83886080, 1, isCommon: false, "Fixed-length bit string")
-        );
-        RegisterDataType(
-            CreateStringType(
-                "bit varying",
-                83886080,
-                1,
-                isCommon: false,
-                "Variable-length bit string",
-                "varbit"
-            )
+            CreateStringType("bit varying", 83886080, 1, isCommon: false, "Variable-length bit string", "varbit")
         );
 
         // Text search types
-        RegisterDataType(
-            CreateSimpleType(
-                "tsvector",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Text search vector"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "tsquery",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Text search query"
-            )
-        );
+        RegisterDataType(CreateSimpleType("tsvector", DataTypeCategory.Other, isCommon: false, "Text search vector"));
+        RegisterDataType(CreateSimpleType("tsquery", DataTypeCategory.Other, isCommon: false, "Text search query"));
 
         // Range types (PostgreSQL specific)
+        RegisterDataType(CreateSimpleType("int4range", DataTypeCategory.Range, isCommon: false, "Range of integer"));
+        RegisterDataType(CreateSimpleType("int8range", DataTypeCategory.Range, isCommon: false, "Range of bigint"));
+        RegisterDataType(CreateSimpleType("numrange", DataTypeCategory.Range, isCommon: false, "Range of numeric"));
         RegisterDataType(
-            CreateSimpleType(
-                "int4range",
-                DataTypeCategory.Range,
-                isCommon: false,
-                "Range of integer"
-            )
+            CreateSimpleType("tsrange", DataTypeCategory.Range, isCommon: false, "Range of timestamp without time zone")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "int8range",
-                DataTypeCategory.Range,
-                isCommon: false,
-                "Range of bigint"
-            )
+            CreateSimpleType("tstzrange", DataTypeCategory.Range, isCommon: false, "Range of timestamp with time zone")
         );
-        RegisterDataType(
-            CreateSimpleType(
-                "numrange",
-                DataTypeCategory.Range,
-                isCommon: false,
-                "Range of numeric"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "tsrange",
-                DataTypeCategory.Range,
-                isCommon: false,
-                "Range of timestamp without time zone"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "tstzrange",
-                DataTypeCategory.Range,
-                isCommon: false,
-                "Range of timestamp with time zone"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("daterange", DataTypeCategory.Range, isCommon: false, "Range of date")
-        );
+        RegisterDataType(CreateSimpleType("daterange", DataTypeCategory.Range, isCommon: false, "Range of date"));
 
         // Array types - standard notation (suffix [])
+        RegisterDataType(CreateSimpleType("boolean[]", DataTypeCategory.Array, isCommon: false, "Array of boolean"));
+        RegisterDataType(CreateSimpleType("smallint[]", DataTypeCategory.Array, isCommon: false, "Array of smallint"));
+        RegisterDataType(CreateSimpleType("integer[]", DataTypeCategory.Array, isCommon: false, "Array of integers"));
+        RegisterDataType(CreateSimpleType("bigint[]", DataTypeCategory.Array, isCommon: false, "Array of bigint"));
+        RegisterDataType(CreateSimpleType("real[]", DataTypeCategory.Array, isCommon: false, "Array of real"));
         RegisterDataType(
-            CreateSimpleType("boolean[]", DataTypeCategory.Array, isCommon: false, "Array of boolean")
+            CreateSimpleType("double precision[]", DataTypeCategory.Array, isCommon: false, "Array of double precision")
         );
+        RegisterDataType(CreateSimpleType("numeric[]", DataTypeCategory.Array, isCommon: false, "Array of numeric"));
+        RegisterDataType(CreateSimpleType("text[]", DataTypeCategory.Array, isCommon: false, "Array of text"));
         RegisterDataType(
-            CreateSimpleType(
-                "smallint[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of smallint"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "integer[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of integers"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("bigint[]", DataTypeCategory.Array, isCommon: false, "Array of bigint")
-        );
-        RegisterDataType(
-            CreateSimpleType("real[]", DataTypeCategory.Array, isCommon: false, "Array of real")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "double precision[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of double precision"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "numeric[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of numeric"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("text[]", DataTypeCategory.Array, isCommon: false, "Array of text")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "character[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of character"
-            )
+            CreateSimpleType("character[]", DataTypeCategory.Array, isCommon: false, "Array of character")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -440,16 +233,9 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "Array of character varying"
             )
         );
+        RegisterDataType(CreateSimpleType("bytea[]", DataTypeCategory.Array, isCommon: false, "Array of bytea"));
         RegisterDataType(
-            CreateSimpleType("bytea[]", DataTypeCategory.Array, isCommon: false, "Array of bytea")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "timestamp[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of timestamp"
-            )
+            CreateSimpleType("timestamp[]", DataTypeCategory.Array, isCommon: false, "Array of timestamp")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -467,12 +253,8 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "Array of timestamp with time zone"
             )
         );
-        RegisterDataType(
-            CreateSimpleType("date[]", DataTypeCategory.Array, isCommon: false, "Array of date")
-        );
-        RegisterDataType(
-            CreateSimpleType("time[]", DataTypeCategory.Array, isCommon: false, "Array of time")
-        );
+        RegisterDataType(CreateSimpleType("date[]", DataTypeCategory.Array, isCommon: false, "Array of date"));
+        RegisterDataType(CreateSimpleType("time[]", DataTypeCategory.Array, isCommon: false, "Array of time"));
         RegisterDataType(
             CreateSimpleType(
                 "time without time zone[]",
@@ -489,64 +271,26 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "Array of time with time zone"
             )
         );
-        RegisterDataType(
-            CreateSimpleType(
-                "interval[]",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of interval"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("uuid[]", DataTypeCategory.Array, isCommon: false, "Array of uuid")
-        );
-        RegisterDataType(
-            CreateSimpleType("json[]", DataTypeCategory.Array, isCommon: false, "Array of json")
-        );
-        RegisterDataType(
-            CreateSimpleType("jsonb[]", DataTypeCategory.Array, isCommon: false, "Array of jsonb")
-        );
+        RegisterDataType(CreateSimpleType("interval[]", DataTypeCategory.Array, isCommon: false, "Array of interval"));
+        RegisterDataType(CreateSimpleType("uuid[]", DataTypeCategory.Array, isCommon: false, "Array of uuid"));
+        RegisterDataType(CreateSimpleType("json[]", DataTypeCategory.Array, isCommon: false, "Array of json"));
+        RegisterDataType(CreateSimpleType("jsonb[]", DataTypeCategory.Array, isCommon: false, "Array of jsonb"));
 
         // Array types - PostgreSQL internal notation (prefix _)
         RegisterDataType(
-            CreateSimpleType(
-                "_bool",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of boolean (internal notation)"
-            )
+            CreateSimpleType("_bool", DataTypeCategory.Array, isCommon: false, "Array of boolean (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_int2",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of smallint (internal notation)"
-            )
+            CreateSimpleType("_int2", DataTypeCategory.Array, isCommon: false, "Array of smallint (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_int4",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of integer (internal notation)"
-            )
+            CreateSimpleType("_int4", DataTypeCategory.Array, isCommon: false, "Array of integer (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_int8",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of bigint (internal notation)"
-            )
+            CreateSimpleType("_int8", DataTypeCategory.Array, isCommon: false, "Array of bigint (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_float4",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of real (internal notation)"
-            )
+            CreateSimpleType("_float4", DataTypeCategory.Array, isCommon: false, "Array of real (internal notation)")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -565,20 +309,10 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_text",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of text (internal notation)"
-            )
+            CreateSimpleType("_text", DataTypeCategory.Array, isCommon: false, "Array of text (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_char",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of char (internal notation)"
-            )
+            CreateSimpleType("_char", DataTypeCategory.Array, isCommon: false, "Array of char (internal notation)")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -597,12 +331,7 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_bytea",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of bytea (internal notation)"
-            )
+            CreateSimpleType("_bytea", DataTypeCategory.Array, isCommon: false, "Array of bytea (internal notation)")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -621,20 +350,10 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_date",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of date (internal notation)"
-            )
+            CreateSimpleType("_date", DataTypeCategory.Array, isCommon: false, "Array of date (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_time",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of time (internal notation)"
-            )
+            CreateSimpleType("_time", DataTypeCategory.Array, isCommon: false, "Array of time (internal notation)")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -653,34 +372,17 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_uuid",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of uuid (internal notation)"
-            )
+            CreateSimpleType("_uuid", DataTypeCategory.Array, isCommon: false, "Array of uuid (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_json",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of json (internal notation)"
-            )
+            CreateSimpleType("_json", DataTypeCategory.Array, isCommon: false, "Array of json (internal notation)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "_jsonb",
-                DataTypeCategory.Array,
-                isCommon: false,
-                "Array of jsonb (internal notation)"
-            )
+            CreateSimpleType("_jsonb", DataTypeCategory.Array, isCommon: false, "Array of jsonb (internal notation)")
         );
 
         // PostgreSQL specific types
-        RegisterDataType(
-            CreateSimpleType("hstore", DataTypeCategory.Other, isCommon: false, "Key-value pairs")
-        );
+        RegisterDataType(CreateSimpleType("hstore", DataTypeCategory.Other, isCommon: false, "Key-value pairs"));
         RegisterDataType(
             CreateSimpleType(
                 "ltree",
@@ -691,52 +393,22 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // OID types (Object Identifiers)
+        RegisterDataType(CreateSimpleType("oid", DataTypeCategory.Other, isCommon: false, "Object identifier"));
+        RegisterDataType(CreateSimpleType("regproc", DataTypeCategory.Other, isCommon: false, "Function name"));
         RegisterDataType(
-            CreateSimpleType("oid", DataTypeCategory.Other, isCommon: false, "Object identifier")
+            CreateSimpleType("regprocedure", DataTypeCategory.Other, isCommon: false, "Function with argument types")
+        );
+        RegisterDataType(CreateSimpleType("regoper", DataTypeCategory.Other, isCommon: false, "Operator name"));
+        RegisterDataType(
+            CreateSimpleType("regoperator", DataTypeCategory.Other, isCommon: false, "Operator with argument types")
+        );
+        RegisterDataType(CreateSimpleType("regclass", DataTypeCategory.Other, isCommon: false, "Relation name"));
+        RegisterDataType(CreateSimpleType("regtype", DataTypeCategory.Other, isCommon: false, "Data type name"));
+        RegisterDataType(
+            CreateSimpleType("regconfig", DataTypeCategory.Other, isCommon: false, "Text search configuration")
         );
         RegisterDataType(
-            CreateSimpleType("regproc", DataTypeCategory.Other, isCommon: false, "Function name")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "regprocedure",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Function with argument types"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("regoper", DataTypeCategory.Other, isCommon: false, "Operator name")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "regoperator",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Operator with argument types"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("regclass", DataTypeCategory.Other, isCommon: false, "Relation name")
-        );
-        RegisterDataType(
-            CreateSimpleType("regtype", DataTypeCategory.Other, isCommon: false, "Data type name")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "regconfig",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Text search configuration"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "regdictionary",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Text search dictionary"
-            )
+            CreateSimpleType("regdictionary", DataTypeCategory.Other, isCommon: false, "Text search dictionary")
         );
     }
 }

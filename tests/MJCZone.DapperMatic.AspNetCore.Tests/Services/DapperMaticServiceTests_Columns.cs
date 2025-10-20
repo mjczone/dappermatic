@@ -30,60 +30,28 @@ public partial class DapperMaticServiceTests
 
         // Create test table for column operations
         var tableName = "ColTest_" + Guid.NewGuid().ToString("N")[..8];
-        var testTable = await CreateTestTableForColumns(
-            service,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var testTable = await CreateTestTableForColumns(service, datasourceId, tableName, schemaName);
         testTable.Should().NotBeNull();
 
         // Non-existent column throws NotFound
-        await CheckInvalidColumnHandlingFetchingColumns(
-            service,
-            datasourceId,
-            schemaName,
-            tableName
-        );
+        await CheckInvalidColumnHandlingFetchingColumns(service, datasourceId, schemaName, tableName);
 
         // Retrieve columns (should have 3 initial columns)
         var listContext = OperationIdentifiers.ForColumnList(datasourceId, tableName, schemaName);
-        var initialColumns = await service.GetColumnsAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var initialColumns = await service.GetColumnsAsync(listContext, datasourceId, tableName, schemaName);
         initialColumns.Should().NotBeNull();
         initialColumns.Should().HaveCount(3); // Id, Name, CreatedAt
 
         // Verify initial columns exist
+        initialColumns.Should().Contain(c => string.Equals(c.ColumnName, "Id", StringComparison.OrdinalIgnoreCase));
+        initialColumns.Should().Contain(c => string.Equals(c.ColumnName, "Name", StringComparison.OrdinalIgnoreCase));
         initialColumns
             .Should()
-            .Contain(c => string.Equals(c.ColumnName, "Id", StringComparison.OrdinalIgnoreCase));
-        initialColumns
-            .Should()
-            .Contain(c => string.Equals(c.ColumnName, "Name", StringComparison.OrdinalIgnoreCase));
-        initialColumns
-            .Should()
-            .Contain(c =>
-                string.Equals(c.ColumnName, "CreatedAt", StringComparison.OrdinalIgnoreCase)
-            );
+            .Contain(c => string.Equals(c.ColumnName, "CreatedAt", StringComparison.OrdinalIgnoreCase));
 
         // Verify single column exists
-        var getContext = OperationIdentifiers.ForColumnGet(
-            datasourceId,
-            tableName,
-            "Name",
-            schemaName
-        );
-        var nameColumn = await service.GetColumnAsync(
-            getContext,
-            datasourceId,
-            tableName,
-            "Name",
-            schemaName
-        );
+        var getContext = OperationIdentifiers.ForColumnGet(datasourceId, tableName, "Name", schemaName);
+        var nameColumn = await service.GetColumnAsync(getContext, datasourceId, tableName, "Name", schemaName);
         nameColumn.Should().NotBeNull();
         nameColumn!.ColumnName.Should().BeEquivalentTo("Name");
 
@@ -92,17 +60,10 @@ public partial class DapperMaticServiceTests
         {
             ColumnName = "Description",
             ProviderDataType =
-                datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                    ? "nvarchar(500)"
-                    : "varchar(500)",
+                datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "nvarchar(500)" : "varchar(500)",
             IsNullable = true,
         };
-        var addContext = OperationIdentifiers.ForColumnAdd(
-            datasourceId,
-            tableName,
-            addColumnRequest,
-            schemaName
-        );
+        var addContext = OperationIdentifiers.ForColumnAdd(datasourceId, tableName, addColumnRequest, schemaName);
         var addedColumn = await service.AddColumnAsync(
             addContext,
             datasourceId,
@@ -114,18 +75,11 @@ public partial class DapperMaticServiceTests
         addedColumn!.ColumnName.Should().BeEquivalentTo("Description");
 
         // Verify column added
-        var columnsAfterAdd = await service.GetColumnsAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var columnsAfterAdd = await service.GetColumnsAsync(listContext, datasourceId, tableName, schemaName);
         columnsAfterAdd.Should().HaveCount(4);
         columnsAfterAdd
             .Should()
-            .Contain(c =>
-                string.Equals(c.ColumnName, "Description", StringComparison.OrdinalIgnoreCase)
-            );
+            .Contain(c => string.Equals(c.ColumnName, "Description", StringComparison.OrdinalIgnoreCase));
 
         // Attempt to add duplicate column (should fail)
         var duplicateAct = async () =>
@@ -163,23 +117,14 @@ public partial class DapperMaticServiceTests
         renamedColumn!.ColumnName.Should().BeEquivalentTo("LongDescription");
 
         // Verify column renamed
-        var columnsAfterRename = await service.GetColumnsAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var columnsAfterRename = await service.GetColumnsAsync(listContext, datasourceId, tableName, schemaName);
         columnsAfterRename.Should().HaveCount(4);
         columnsAfterRename
             .Should()
-            .NotContain(c =>
-                string.Equals(c.ColumnName, "Description", StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(c => string.Equals(c.ColumnName, "Description", StringComparison.OrdinalIgnoreCase));
         columnsAfterRename
             .Should()
-            .Contain(c =>
-                string.Equals(c.ColumnName, "LongDescription", StringComparison.OrdinalIgnoreCase)
-            );
+            .Contain(c => string.Equals(c.ColumnName, "LongDescription", StringComparison.OrdinalIgnoreCase));
 
         // Get the renamed column
         var getRenamedContext = OperationIdentifiers.ForColumnGet(
@@ -211,43 +156,19 @@ public partial class DapperMaticServiceTests
         await duplicateRenameAct.Should().ThrowAsync<DuplicateKeyException>();
 
         // Drop column
-        var dropContext = OperationIdentifiers.ForColumnDrop(
-            datasourceId,
-            tableName,
-            "LongDescription",
-            schemaName
-        );
-        await service.DropColumnAsync(
-            dropContext,
-            datasourceId,
-            tableName,
-            "LongDescription",
-            schemaName
-        );
+        var dropContext = OperationIdentifiers.ForColumnDrop(datasourceId, tableName, "LongDescription", schemaName);
+        await service.DropColumnAsync(dropContext, datasourceId, tableName, "LongDescription", schemaName);
 
         // Verify column dropped using GetColumns
-        var columnsAfterDrop = await service.GetColumnsAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var columnsAfterDrop = await service.GetColumnsAsync(listContext, datasourceId, tableName, schemaName);
         columnsAfterDrop.Should().HaveCount(3);
         columnsAfterDrop
             .Should()
-            .NotContain(c =>
-                string.Equals(c.ColumnName, "LongDescription", StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(c => string.Equals(c.ColumnName, "LongDescription", StringComparison.OrdinalIgnoreCase));
 
         // Verify column dropped using GetColumn (should throw)
         var getDroppedAct = async () =>
-            await service.GetColumnAsync(
-                getRenamedContext,
-                datasourceId,
-                tableName,
-                "LongDescription",
-                schemaName
-            );
+            await service.GetColumnAsync(getRenamedContext, datasourceId, tableName, "LongDescription", schemaName);
         await getDroppedAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Cleanup - drop test table
@@ -259,24 +180,12 @@ public partial class DapperMaticServiceTests
         );
     }
 
-    private async Task CheckInvalidDatasourceHandlingFetchingColumns(
-        IDapperMaticService service,
-        string? schemaName
-    )
+    private async Task CheckInvalidDatasourceHandlingFetchingColumns(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForColumnList(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForColumnList(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
-            await service.GetColumnsAsync(
-                invalidContext,
-                invalidDatasourceId,
-                "AnyTable",
-                schemaName
-            );
+            await service.GetColumnsAsync(invalidContext, invalidDatasourceId, "AnyTable", schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -286,18 +195,9 @@ public partial class DapperMaticServiceTests
         string? schemaName
     )
     {
-        var invalidTableContext = OperationIdentifiers.ForColumnList(
-            datasourceId,
-            "NonExistentTable",
-            schemaName
-        );
+        var invalidTableContext = OperationIdentifiers.ForColumnList(datasourceId, "NonExistentTable", schemaName);
         var invalidTableAct = async () =>
-            await service.GetColumnsAsync(
-                invalidTableContext,
-                datasourceId,
-                "NonExistentTable",
-                schemaName
-            );
+            await service.GetColumnsAsync(invalidTableContext, datasourceId, "NonExistentTable", schemaName);
         await invalidTableAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -357,10 +257,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },

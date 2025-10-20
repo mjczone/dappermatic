@@ -12,11 +12,7 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// [DmCheckConstraint("Age > 18")]
 /// public int Age { get; set; }
 /// </example>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Class,
-    AllowMultiple = true,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class DmCheckConstraintAttribute : Attribute
 {
     /// <summary>

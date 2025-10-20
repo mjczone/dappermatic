@@ -22,21 +22,22 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     public bool IsUnicodeProvider => true; // PostgreSQL uses Unicode by default
 
     /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } = new()
-    {
-        { typeof(byte), PostgreSqlTypes.sql_smallint },
-        { typeof(sbyte), PostgreSqlTypes.sql_smallint },
-        { typeof(short), PostgreSqlTypes.sql_smallint },
-        { typeof(ushort), PostgreSqlTypes.sql_int },
-        { typeof(int), PostgreSqlTypes.sql_int },
-        { typeof(uint), PostgreSqlTypes.sql_bigint },
-        { typeof(System.Numerics.BigInteger), PostgreSqlTypes.sql_bigint },
-        { typeof(long), PostgreSqlTypes.sql_bigint },
-        { typeof(ulong), PostgreSqlTypes.sql_bigint },
-        { typeof(float), PostgreSqlTypes.sql_real },
-        { typeof(double), PostgreSqlTypes.sql_double_precision },
-        { typeof(decimal), PostgreSqlTypes.sql_decimal },
-    };
+    public Dictionary<Type, string> NumericTypeMap { get; } =
+        new()
+        {
+            { typeof(byte), PostgreSqlTypes.sql_smallint },
+            { typeof(sbyte), PostgreSqlTypes.sql_smallint },
+            { typeof(short), PostgreSqlTypes.sql_smallint },
+            { typeof(ushort), PostgreSqlTypes.sql_int },
+            { typeof(int), PostgreSqlTypes.sql_int },
+            { typeof(uint), PostgreSqlTypes.sql_bigint },
+            { typeof(System.Numerics.BigInteger), PostgreSqlTypes.sql_bigint },
+            { typeof(long), PostgreSqlTypes.sql_bigint },
+            { typeof(ulong), PostgreSqlTypes.sql_bigint },
+            { typeof(float), PostgreSqlTypes.sql_real },
+            { typeof(double), PostgreSqlTypes.sql_double_precision },
+            { typeof(decimal), PostgreSqlTypes.sql_decimal },
+        };
 
     /// <inheritdoc />
     public SqlTypeDescriptor CreateGuidType()
@@ -47,7 +48,12 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
     {
-        return TypeMappingHelpers.CreateStringType(PostgreSqlTypes.sql_char, length: 1, isUnicode: false, isFixedLength: true);
+        return TypeMappingHelpers.CreateStringType(
+            PostgreSqlTypes.sql_char,
+            length: 1,
+            isUnicode: false,
+            isFixedLength: true
+        );
     }
 
     /// <inheritdoc />
@@ -70,7 +76,8 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
             sqlType,
             descriptor.Length,
             isUnicode: false,
-            descriptor.IsFixedLength.GetValueOrDefault(false));
+            descriptor.IsFixedLength.GetValueOrDefault(false)
+        );
     }
 
     /// <inheritdoc />
@@ -79,7 +86,9 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
         return descriptor.DotnetType switch
         {
             Type t when t == typeof(DateTime) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_timestamp),
-            Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_timestamptz),
+            Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateSimpleType(
+                PostgreSqlTypes.sql_timestamptz
+            ),
             Type t when t == typeof(TimeSpan) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
             Type t when t == typeof(DateOnly) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_date),
             Type t when t == typeof(TimeOnly) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_time),

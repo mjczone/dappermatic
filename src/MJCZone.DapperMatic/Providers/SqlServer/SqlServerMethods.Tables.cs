@@ -21,9 +21,7 @@ public partial class SqlServerMethods
     {
         schemaName = NormalizeSchemaName(schemaName);
 
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
 
         // columns
         var columnsSql = $"""
@@ -113,13 +111,7 @@ public partial class SqlServerMethods
             bool is_unique,
             bool is_primary_key,
             bool is_unique_constraint
-        )>(
-                db,
-                constraintsSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, constraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var foreignKeysSql = $"""
@@ -155,13 +147,7 @@ public partial class SqlServerMethods
             string referenced_column_name,
             string update_rule,
             string delete_rule
-        )>(
-                db,
-                foreignKeysSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, foreignKeysSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var checkConstraintsSql = $"""
@@ -190,13 +176,7 @@ public partial class SqlServerMethods
             string? column_name,
             string constraint_name,
             string check_expression
-        )>(
-                db,
-                checkConstraintsSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, checkConstraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var defaultConstraintsSql = $"""
@@ -224,20 +204,12 @@ public partial class SqlServerMethods
             string column_name,
             string constraint_name,
             string default_expression
-        )>(
-                db,
-                defaultConstraintsSql,
-                new { schemaName, where },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, defaultConstraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var tables = new List<DmTable>();
 
-        foreach (
-            var tableColumns in columnResults.GroupBy(r => new { r.schema_name, r.table_name })
-        )
+        foreach (var tableColumns in columnResults.GroupBy(r => new { r.schema_name, r.table_name }))
         {
             var tableName = tableColumns.Key.table_name;
             var tableConstraints = constraintResults
@@ -375,47 +347,30 @@ public partial class SqlServerMethods
                     uniqueConstraints.Any(dxuc =>
                         dxuc.Columns.Count == 1
                         && dxuc.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     )
                     || indexes.Any(i =>
                         i is { IsUnique: true, Columns.Count: 1 }
                         && i.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     );
 
                 var columnIsPartOfIndex = indexes.Any(i =>
-                    i.Columns.Any(c =>
-                        c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
+                    i.Columns.Any(c => c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase))
                 );
 
                 var foreignKeyConstraint = foreignKeyConstraints.FirstOrDefault(c =>
                     c.SourceColumns.Any(doc =>
-                        doc.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        doc.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                 );
 
                 var foreignKeyColumnIndex = foreignKeyConstraint
                     ?.SourceColumns.Select((c, i) => new { c, i })
                     .FirstOrDefault(c =>
-                        c.c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        c.c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                     ?.i;
 
@@ -423,15 +378,9 @@ public partial class SqlServerMethods
 
                 var isUnicode =
                     dotnetTypeDescriptor.IsUnicode == true
-                    || tableColumn.data_type.StartsWith(
-                        "nvarchar",
-                        StringComparison.OrdinalIgnoreCase
-                    )
+                    || tableColumn.data_type.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
                     || tableColumn.data_type.StartsWith("nchar", StringComparison.OrdinalIgnoreCase)
-                    || tableColumn.data_type.StartsWith(
-                        "ntext",
-                        StringComparison.OrdinalIgnoreCase
-                    );
+                    || tableColumn.data_type.StartsWith("ntext", StringComparison.OrdinalIgnoreCase);
 
                 // Normalize SQL Server MAX types to -1
                 // CHARACTER_MAXIMUM_LENGTH returns -1 for VARCHAR(MAX), NVARCHAR(MAX), VARBINARY(MAX)
@@ -446,18 +395,22 @@ public partial class SqlServerMethods
                 else if (!normalizedLength.HasValue)
                 {
                     // These types are always unlimited
-                    if (tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase) ||
-                        tableColumn.data_type.Equals("ntext", StringComparison.OrdinalIgnoreCase) ||
-                        tableColumn.data_type.Equals("image", StringComparison.OrdinalIgnoreCase) ||
-                        tableColumn.data_type.Equals("xml", StringComparison.OrdinalIgnoreCase))
+                    if (
+                        tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase)
+                        || tableColumn.data_type.Equals("ntext", StringComparison.OrdinalIgnoreCase)
+                        || tableColumn.data_type.Equals("image", StringComparison.OrdinalIgnoreCase)
+                        || tableColumn.data_type.Equals("xml", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         normalizedLength = -1;
                     }
                     // VARCHAR/NVARCHAR/VARBINARY with NULL length are MAX types
                     // (CHARACTER_MAXIMUM_LENGTH may return NULL instead of -1 for MAX types)
-                    else if (tableColumn.data_type.Equals("varchar", StringComparison.OrdinalIgnoreCase) ||
-                             tableColumn.data_type.Equals("nvarchar", StringComparison.OrdinalIgnoreCase) ||
-                             tableColumn.data_type.Equals("varbinary", StringComparison.OrdinalIgnoreCase))
+                    else if (
+                        tableColumn.data_type.Equals("varchar", StringComparison.OrdinalIgnoreCase)
+                        || tableColumn.data_type.Equals("nvarchar", StringComparison.OrdinalIgnoreCase)
+                        || tableColumn.data_type.Equals("varbinary", StringComparison.OrdinalIgnoreCase)
+                    )
                     {
                         normalizedLength = -1;
                     }
@@ -468,20 +421,14 @@ public partial class SqlServerMethods
                     tableColumn.table_name,
                     tableColumn.column_name,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string>
-                    {
-                        { ProviderType, tableColumn.data_type },
-                    },
+                    new Dictionary<DbProviderType, string> { { ProviderType, tableColumn.data_type } },
                     normalizedLength,
                     tableColumn.numeric_precision,
                     tableColumn.numeric_scale,
                     tableColumn.is_nullable,
                     primaryKeyConstraint != null
                         && primaryKeyConstraint.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         ),
                     tableColumn.is_identity,
                     columnIsUniqueViaUniqueConstraintOrIndex,
@@ -489,27 +436,19 @@ public partial class SqlServerMethods
                     columnIsPartOfIndex,
                     foreignKeyConstraint != null,
                     foreignKeyConstraint?.ReferencedTableName,
-                    foreignKeyConstraint
-                        ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
-                        ?.ColumnName,
+                    foreignKeyConstraint?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
                     foreignKeyConstraint?.OnUpdate,
                     checkExpression: checkConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression,
                     defaultExpression: defaultConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression
                 );
@@ -551,15 +490,9 @@ public partial class SqlServerMethods
         CancellationToken cancellationToken = default
     )
     {
-        var whereSchemaLike = string.IsNullOrWhiteSpace(schemaName)
-            ? null
-            : ToLikeString(schemaName);
-        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
-        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter)
-            ? null
-            : ToLikeString(indexNameFilter);
+        var whereSchemaLike = string.IsNullOrWhiteSpace(schemaName) ? null : ToLikeString(schemaName);
+        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
+        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter) ? null : ToLikeString(indexNameFilter);
 
         var sql = $"""
             SELECT
@@ -630,9 +563,7 @@ public partial class SqlServerMethods
                 group
                     .Select(g => new DmOrderedColumn(
                         g.column_name,
-                        g.is_descending_key == 1
-                            ? DmColumnOrder.Descending
-                            : DmColumnOrder.Ascending
+                        g.is_descending_key == 1 ? DmColumnOrder.Descending : DmColumnOrder.Ascending
                     ))
                     .ToArray(),
                 group.First().is_unique == 1

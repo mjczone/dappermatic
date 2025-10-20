@@ -34,12 +34,7 @@ public partial class DapperMaticServiceTests
 
         // Retrieve indexes (may include auto-created indexes like PK)
         var listContext = OperationIdentifiers.ForIndexList(datasourceId, tableName, schemaName);
-        var initialIndexes = await service.GetIndexesAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var initialIndexes = await service.GetIndexesAsync(listContext, datasourceId, tableName, schemaName);
         initialIndexes.Should().NotBeNull();
         var initialIndexCount = initialIndexes.Count();
 
@@ -118,21 +113,11 @@ public partial class DapperMaticServiceTests
         compositeIndex!.IndexName.Should().BeEquivalentTo(compositeIndexName);
 
         // Verify indexes added
-        var indexesAfterCreation = await service.GetIndexesAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var indexesAfterCreation = await service.GetIndexesAsync(listContext, datasourceId, tableName, schemaName);
         indexesAfterCreation.Should().HaveCount(initialIndexCount + 3);
 
         // Verify single index exists
-        var getIndexContext = OperationIdentifiers.ForIndexGet(
-            datasourceId,
-            tableName,
-            uniqueIndexName,
-            schemaName
-        );
+        var getIndexContext = OperationIdentifiers.ForIndexGet(datasourceId, tableName, uniqueIndexName, schemaName);
         var retrievedIndex = await service.GetIndexAsync(
             getIndexContext,
             datasourceId,
@@ -156,43 +141,20 @@ public partial class DapperMaticServiceTests
         await act.Should().ThrowAsync<DuplicateKeyException>();
 
         // Drop simple index
-        var dropSimpleContext = OperationIdentifiers.ForIndexDrop(
-            datasourceId,
-            tableName,
-            simpleIndexName,
-            schemaName
-        );
-        await service.DropIndexAsync(
-            dropSimpleContext,
-            datasourceId,
-            tableName,
-            simpleIndexName,
-            schemaName
-        );
+        var dropSimpleContext = OperationIdentifiers.ForIndexDrop(datasourceId, tableName, simpleIndexName, schemaName);
+        await service.DropIndexAsync(dropSimpleContext, datasourceId, tableName, simpleIndexName, schemaName);
 
         // Verify index dropped using GetIndexes
-        var indexesAfterDrop = await service.GetIndexesAsync(
-            listContext,
-            datasourceId,
-            tableName,
-            schemaName
-        );
+        var indexesAfterDrop = await service.GetIndexesAsync(listContext, datasourceId, tableName, schemaName);
         indexesAfterDrop.Should().HaveCount(initialIndexCount + 2);
         indexesAfterDrop
             .Should()
-            .NotContain(i =>
-                string.Equals(i.IndexName, simpleIndexName, StringComparison.OrdinalIgnoreCase)
-            );
+            .NotContain(i => string.Equals(i.IndexName, simpleIndexName, StringComparison.OrdinalIgnoreCase));
 
         // Verify using GetIndex, throws KeyNotFoundException
         act = async () =>
             await service.GetIndexAsync(
-                OperationIdentifiers.ForIndexGet(
-                    datasourceId,
-                    tableName,
-                    simpleIndexName,
-                    schemaName
-                ),
+                OperationIdentifiers.ForIndexGet(datasourceId, tableName, simpleIndexName, schemaName),
                 datasourceId,
                 tableName,
                 simpleIndexName,
@@ -209,24 +171,12 @@ public partial class DapperMaticServiceTests
         );
     }
 
-    private async Task CheckInvalidDatasourceHandlingFetchingIndexes(
-        IDapperMaticService service,
-        string? schemaName
-    )
+    private async Task CheckInvalidDatasourceHandlingFetchingIndexes(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForIndexList(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForIndexList(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
-            await service.GetIndexesAsync(
-                invalidContext,
-                invalidDatasourceId,
-                "AnyTable",
-                schemaName
-            );
+            await service.GetIndexesAsync(invalidContext, invalidDatasourceId, "AnyTable", schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -237,18 +187,9 @@ public partial class DapperMaticServiceTests
     )
     {
         var invalidTableName = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForIndexList(
-            datasourceId,
-            invalidTableName,
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForIndexList(datasourceId, invalidTableName, schemaName);
         var invalidAct = async () =>
-            await service.GetIndexesAsync(
-                invalidContext,
-                datasourceId,
-                invalidTableName,
-                schemaName
-            );
+            await service.GetIndexesAsync(invalidContext, datasourceId, invalidTableName, schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -293,10 +234,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },

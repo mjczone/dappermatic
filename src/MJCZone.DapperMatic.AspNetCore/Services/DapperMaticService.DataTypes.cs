@@ -16,10 +16,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 public partial class DapperMaticService
 {
     /// <inheritdoc />
-    public async Task<(
-        string providerName,
-        List<DataTypeInfo> dataTypes
-    )> GetDatasourceDataTypesAsync(
+    public async Task<(string providerName, List<DataTypeInfo> dataTypes)> GetDatasourceDataTypesAsync(
         IOperationContext context,
         string datasourceId,
         bool includeCustomTypes = false,
@@ -35,9 +32,7 @@ public partial class DapperMaticService
             .Assert();
 
         // Get datasource to verify it exists and get the provider type
-        var datasource = await _datasourceRepository
-            .GetDatasourceAsync(datasourceId)
-            .ConfigureAwait(false);
+        var datasource = await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false);
 
         if (datasource == null)
         {
@@ -65,10 +60,7 @@ public partial class DapperMaticService
                 try
                 {
                     var customTypes = await databaseMethods
-                        .DiscoverCustomDataTypesAsync(
-                            connection,
-                            cancellationToken: cancellationToken
-                        )
+                        .DiscoverCustomDataTypesAsync(connection, cancellationToken: cancellationToken)
                         .ConfigureAwait(false);
 
                     staticTypes.AddRange(customTypes);
@@ -76,20 +68,12 @@ public partial class DapperMaticService
                 catch (Exception ex)
                 {
                     // Log custom type discovery errors but don't fail the entire operation
-                    await LogAuditEventAsync(
-                            context,
-                            true,
-                            $"Warning: Custom type discovery failed: {ex.Message}"
-                        )
+                    await LogAuditEventAsync(context, true, $"Warning: Custom type discovery failed: {ex.Message}")
                         .ConfigureAwait(false);
                 }
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved data types for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved data types for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
 
             return (providerName, staticTypes);

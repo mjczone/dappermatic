@@ -17,9 +17,9 @@ public partial class MySqlMethods
         // MySQL uses EXTRA column that contains "auto_increment"
         return metadata switch
         {
-            string extra => !string.IsNullOrWhiteSpace(extra) &&
-                           extra.Contains("auto_increment", StringComparison.OrdinalIgnoreCase),
-            _ => false
+            string extra => !string.IsNullOrWhiteSpace(extra)
+                && extra.Contains("auto_increment", StringComparison.OrdinalIgnoreCase),
+            _ => false,
         };
     }
 }

@@ -13,11 +13,7 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// <example>
 /// [DmForeignKeyConstraint(new[] { "ForeignKeyId" }, typeof(ReferencedEntity), new[] { "Id" }, "FK_MyTable_Ref", DmForeignKeyAction.Cascade, DmForeignKeyAction.NoAction)]
 /// </example>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Class,
-    AllowMultiple = true,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class DmForeignKeyConstraintAttribute : Attribute
 {
     /// <summary>

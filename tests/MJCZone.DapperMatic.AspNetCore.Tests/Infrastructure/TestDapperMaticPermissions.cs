@@ -60,11 +60,7 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     /// <param name="operation">The operation name.</param>
     /// <param name="claimType">The required claim type.</param>
     /// <param name="claimValue">The required claim value (optional).</param>
-    public void RequireClaimForOperation(
-        string operation,
-        string claimType,
-        string? claimValue = null
-    )
+    public void RequireClaimForOperation(string operation, string claimType, string? claimValue = null)
     {
         SetRule(
             operation,
@@ -123,9 +119,7 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
         // Check datasource rules first if datasource ID is present
         if (!string.IsNullOrEmpty(opContext.DatasourceId))
         {
-            var applicableRules = _datasourceRules
-                .Where(r => r.operation == opContext.Operation)
-                .ToList();
+            var applicableRules = _datasourceRules.Where(r => r.operation == opContext.Operation).ToList();
 
             if (applicableRules.Count > 0)
             {

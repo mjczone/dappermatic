@@ -24,9 +24,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
 
         var sql = new StringBuilder();
         sql.AppendLine(
@@ -55,10 +53,7 @@ public partial class SqliteMethods
         var tables = new List<DmTable>();
         foreach (var result in results)
         {
-            var table = SqliteSqlParser.ParseCreateTableStatement(
-                result.table_sql,
-                ProviderTypeMap
-            );
+            var table = SqliteSqlParser.ParseCreateTableStatement(result.table_sql, ProviderTypeMap);
             if (table == null)
             {
                 continue;
@@ -68,14 +63,7 @@ public partial class SqliteMethods
         }
 
         // attach indexes to tables
-        var indexes = await GetIndexesInternalAsync(
-                db,
-                schemaName,
-                tableNameFilter,
-                null,
-                tx,
-                cancellationToken
-            )
+        var indexes = await GetIndexesInternalAsync(db, schemaName, tableNameFilter, null, tx, cancellationToken)
             .ConfigureAwait(false);
 
         if (indexes.Count <= 0)
@@ -109,16 +97,10 @@ public partial class SqliteMethods
                 // Apply standardized auto-increment detection
                 // Note: SQLite parser already sets IsAutoIncrement, but we run this for consistency
                 // and to catch any edge cases (e.g., INTEGER PRIMARY KEY implicit ROWID)
-                column.IsAutoIncrement = DetermineIsAutoIncrement(
-                    column,
-                    column.IsAutoIncrement,
-                    providerDataType
-                );
+                column.IsAutoIncrement = DetermineIsAutoIncrement(column, column.IsAutoIncrement, providerDataType);
 
                 column.IsIndexed = table.Indexes.Any(i =>
-                    i.Columns.Any(c =>
-                        c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
-                    )
+                    i.Columns.Any(c => c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
                 );
                 if (column is { IsIndexed: true, IsUnique: false })
                 {
@@ -126,10 +108,7 @@ public partial class SqliteMethods
                         .Indexes.Where(i => i.IsUnique)
                         .Any(i =>
                             i.Columns.Any(c =>
-                                c.ColumnName.Equals(
-                                    column.ColumnName,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
                             )
                         );
                 }
@@ -156,10 +135,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        if (
-            !await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (!await DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
@@ -185,11 +161,9 @@ public partial class SqliteMethods
             return false;
         }
 
-        await DropTableIfExistsAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        await DropTableIfExistsAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
-        await ExecuteAsync(db, createTableSql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, createTableSql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -213,12 +187,8 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
-        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter)
-            ? null
-            : ToLikeString(indexNameFilter);
+        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
+        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter) ? null : ToLikeString(indexNameFilter);
 
         var sql = $"""
 
@@ -249,13 +219,7 @@ public partial class SqliteMethods
             bool is_unique,
             string column_name,
             bool is_descending
-        )>(
-                db,
-                sql,
-                new { whereTableLike, whereIndexLike },
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        )>(db, sql, new { whereTableLike, whereIndexLike }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         var indexes = new List<DmIndex>();
@@ -309,8 +273,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken
     )
     {
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
@@ -380,12 +343,7 @@ public partial class SqliteMethods
         //     .ConfigureAwait(false);
 
         // disable foreign key constraints temporarily
-        await ExecuteAsync(
-                db,
-                "PRAGMA foreign_keys = 0",
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        await ExecuteAsync(db, "PRAGMA foreign_keys = 0", tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
         // Only create a new transaction if one wasn't provided
@@ -416,20 +374,10 @@ public partial class SqliteMethods
                 .ConfigureAwait(false);
 
             // drop the old table
-            await ExecuteAsync(
-                    db,
-                    $"DROP TABLE {tableName}",
-                    tx: innerTx,
-                    cancellationToken: cancellationToken
-                )
+            await ExecuteAsync(db, $"DROP TABLE {tableName}", tx: innerTx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
-            var created = await CreateTableIfNotExistsAsync(
-                    db,
-                    updatedTable,
-                    innerTx,
-                    cancellationToken
-                )
+            var created = await CreateTableIfNotExistsAsync(db, updatedTable, innerTx, cancellationToken)
                 .ConfigureAwait(false);
 
             if (created)
@@ -440,9 +388,7 @@ public partial class SqliteMethods
                 // make sure to only copy columns that exist in both tables
                 var columnNamesInBothTables = previousColumnNames
                     .Where(c =>
-                        updatedTable.Columns.Any(x =>
-                            x.ColumnName.Equals(c, StringComparison.OrdinalIgnoreCase)
-                        )
+                        updatedTable.Columns.Any(x => x.ColumnName.Equals(c, StringComparison.OrdinalIgnoreCase))
                     )
                     .ToArray();
 
@@ -459,12 +405,7 @@ public partial class SqliteMethods
                 }
 
                 // drop the temp table
-                await ExecuteAsync(
-                        db,
-                        $"DROP TABLE {tempTableName}",
-                        tx: innerTx,
-                        cancellationToken: cancellationToken
-                    )
+                await ExecuteAsync(db, $"DROP TABLE {tempTableName}", tx: innerTx, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
                 // commit the transaction only if we created it
@@ -491,12 +432,7 @@ public partial class SqliteMethods
                 await innerTx.DisposeAsync().ConfigureAwait(false);
             }
             // re-enable foreign key constraints
-            await ExecuteAsync(
-                    db,
-                    "PRAGMA foreign_keys = 1",
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            await ExecuteAsync(db, "PRAGMA foreign_keys = 1", tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
     }

@@ -32,14 +32,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesForeignKeyConstraintExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesForeignKeyConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -63,14 +56,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesForeignKeyConstraintExistAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DoesForeignKeyConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -160,14 +146,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetForeignKeyConstraintOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -191,14 +170,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetForeignKeyConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -222,14 +194,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetForeignKeyConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -253,14 +218,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetForeignKeyConstraintNameOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -284,14 +242,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetForeignKeyConstraintNamesAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetForeignKeyConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -315,14 +266,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropForeignKeyConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropForeignKeyConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -346,14 +290,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropForeignKeyConstraintIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DropForeignKeyConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
     #endregion // IDatabaseForeignKeyConstraintMethods

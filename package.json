@@ -10,7 +10,7 @@
     "test:aspnet": "dotnet test tests/MJCZone.DapperMatic.AspNetCore.Tests",
     "test:core": "dotnet test tests/MJCZone.DapperMatic.Tests",
     "website": "cd tests/MJCZone.DapperMatic.AspNetCore.TestWebsite && dotnet watch run",
-    "format": "dotnet tool install -g csharpier && dotnet csharpier format ./src/ && dotnet csharpier format ./tests/"
+    "format": "dotnet tool install -g csharpier && csharpier format ./src/ && csharpier format ./tests/"
   },
   "keywords": [],
   "author": "",

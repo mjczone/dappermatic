@@ -83,10 +83,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     )
     {
         var sqlTypeDescriptor = GetSqlTypeDescriptor(sqlTypeName);
-        return TryGetDotnetTypeDescriptorMatchingFullSqlTypeName(
-            sqlTypeDescriptor,
-            out dotnetTypeDescriptor
-        );
+        return TryGetDotnetTypeDescriptorMatchingFullSqlTypeName(sqlTypeDescriptor, out dotnetTypeDescriptor);
     }
 
     /// <summary>
@@ -101,10 +98,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     )
     {
         if (
-            !SqlTypeToDotnetTypeConverters.TryGetValue(
-                sqlTypeDescriptor.BaseTypeName,
-                out var converters
-            )
+            !SqlTypeToDotnetTypeConverters.TryGetValue(sqlTypeDescriptor.BaseTypeName, out var converters)
             || converters == null
         )
         {
@@ -134,10 +128,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <param name="type">The .NET type.</param>
     /// <param name="sqlTypeDescriptor">The SQL type descriptor, if found.</param>
     /// <returns>True if a matching SQL type descriptor is found; otherwise, false.</returns>
-    public bool TryGetProviderSqlTypeMatchingDotnetType(
-        Type type,
-        out SqlTypeDescriptor? sqlTypeDescriptor
-    )
+    public bool TryGetProviderSqlTypeMatchingDotnetType(Type type, out SqlTypeDescriptor? sqlTypeDescriptor)
     {
         var dotnetTypeDescriptor = GetDotnetTypeDescriptor(type);
         return TryGetProviderSqlTypeMatchingDotnetType(dotnetTypeDescriptor, out sqlTypeDescriptor);
@@ -155,10 +146,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     )
     {
         if (
-            !DotnetTypeToSqlTypeConverters.TryGetValue(
-                dotnetTypeDescriptor.DotnetType,
-                out var converters
-            )
+            !DotnetTypeToSqlTypeConverters.TryGetValue(dotnetTypeDescriptor.DotnetType, out var converters)
             || converters == null
         )
         {
@@ -172,19 +160,13 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
             // if the type is an enum type, try to find the Enum placeholder type
             if (converters == null && dotnetTypeDescriptor.DotnetType.IsEnum)
             {
-                DotnetTypeToSqlTypeConverters.TryGetValue(
-                    typeof(InternalEnumTypePlaceholder),
-                    out converters
-                );
+                DotnetTypeToSqlTypeConverters.TryGetValue(typeof(InternalEnumTypePlaceholder), out converters);
             }
 
             // if the type is an array type, try to find the Array placeholder type
             if (converters == null && dotnetTypeDescriptor.DotnetType.IsArray)
             {
-                DotnetTypeToSqlTypeConverters.TryGetValue(
-                    typeof(InternalArrayTypePlaceholder),
-                    out converters
-                );
+                DotnetTypeToSqlTypeConverters.TryGetValue(typeof(InternalArrayTypePlaceholder), out converters);
             }
 
             // if the type is an poco type, try first to see if there's a registration
@@ -218,10 +200,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
                 if (converters == null)
                 {
-                    DotnetTypeToSqlTypeConverters.TryGetValue(
-                        typeof(InternalPocoTypePlaceholder),
-                        out converters
-                    );
+                    DotnetTypeToSqlTypeConverters.TryGetValue(typeof(InternalPocoTypePlaceholder), out converters);
                 }
             }
         }
@@ -627,12 +606,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <returns>Array of text types.</returns>
     protected static Type[] GetStandardTextTypes()
     {
-        return new[]
-        {
-            typeof(string),
-            typeof(char[]),
-            typeof(TextReader),
-        };
+        return new[] { typeof(string), typeof(char[]), typeof(TextReader) };
     }
 
     /// <summary>
@@ -641,14 +615,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <returns>Array of DateTime types.</returns>
     protected static Type[] GetStandardDateTimeTypes()
     {
-        return new[]
-        {
-            typeof(DateTime),
-            typeof(DateTimeOffset),
-            typeof(TimeSpan),
-            typeof(DateOnly),
-            typeof(TimeOnly),
-        };
+        return new[] { typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(DateOnly), typeof(TimeOnly) };
     }
 
     /// <summary>
@@ -712,11 +679,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <param name="type">The .NET type to convert to a SQL type.</param>
     /// <param name="converter">The converter to register.</param>
     /// <param name="prepend">Whether to prepend the converter to the list of converters.</param>
-    public static void RegisterConverter(
-        Type type,
-        DotnetTypeToSqlTypeConverter converter,
-        bool prepend = false
-    )
+    public static void RegisterConverter(Type type, DotnetTypeToSqlTypeConverter converter, bool prepend = false)
     {
         if (converter == null)
         {
@@ -787,10 +750,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// </summary>
     /// <param name="converter">The converter to register.</param>
     /// <param name="types">The .NET types to convert to a SQL type.</param>
-    protected static void RegisterConverterForTypes(
-        DotnetTypeToSqlTypeConverter converter,
-        params Type?[] types
-    )
+    protected static void RegisterConverterForTypes(DotnetTypeToSqlTypeConverter converter, params Type?[] types)
     {
         foreach (var type in types)
         {

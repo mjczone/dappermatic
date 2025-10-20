@@ -49,9 +49,7 @@ internal static class DtoExtensions
     /// </summary>
     /// <param name="dataTypeInfos">The collection of internal data type infos.</param>
     /// <returns>A collection of data type DTOs.</returns>
-    public static IEnumerable<DataTypeDto> ToDataTypeDtos(
-        this IEnumerable<DataTypeInfo> dataTypeInfos
-    )
+    public static IEnumerable<DataTypeDto> ToDataTypeDtos(this IEnumerable<DataTypeInfo> dataTypeInfos)
     {
         return dataTypeInfos.Select(ToDataTypeDto);
     }
@@ -66,10 +64,7 @@ internal static class DtoExtensions
         if (type.IsGenericType)
         {
             var genericTypeName = type.Name.Split('`')[0];
-            var genericArgs = string.Join(
-                ", ",
-                type.GetGenericArguments().Select(ToFriendlyTypeName)
-            );
+            var genericArgs = string.Join(", ", type.GetGenericArguments().Select(ToFriendlyTypeName));
             return $"{genericTypeName}<{genericArgs}>";
         }
 
@@ -163,9 +158,7 @@ internal static class DtoExtensions
     /// </summary>
     /// <param name="primaryKey">The internal primary key constraint.</param>
     /// <returns>The primary key constraint DTO.</returns>
-    public static PrimaryKeyConstraintDto ToPrimaryKeyConstraintDto(
-        this DmPrimaryKeyConstraint primaryKey
-    )
+    public static PrimaryKeyConstraintDto ToPrimaryKeyConstraintDto(this DmPrimaryKeyConstraint primaryKey)
     {
         return new PrimaryKeyConstraintDto
         {
@@ -179,9 +172,7 @@ internal static class DtoExtensions
     /// </summary>
     /// <param name="foreignKey">The internal foreign key constraint.</param>
     /// <returns>The foreign key constraint DTO.</returns>
-    public static ForeignKeyConstraintDto ToForeignKeyConstraintDto(
-        this DmForeignKeyConstraint foreignKey
-    )
+    public static ForeignKeyConstraintDto ToForeignKeyConstraintDto(this DmForeignKeyConstraint foreignKey)
     {
         return new ForeignKeyConstraintDto
         {
@@ -238,9 +229,7 @@ internal static class DtoExtensions
     /// </summary>
     /// <param name="uniqueConstraint">The internal unique constraint.</param>
     /// <returns>The unique constraint DTO.</returns>
-    public static UniqueConstraintDto ToUniqueConstraintDto(
-        this DmUniqueConstraint uniqueConstraint
-    )
+    public static UniqueConstraintDto ToUniqueConstraintDto(this DmUniqueConstraint uniqueConstraint)
     {
         return new UniqueConstraintDto
         {
@@ -266,9 +255,7 @@ internal static class DtoExtensions
     /// </summary>
     /// <param name="defaultConstraint">The internal default constraint.</param>
     /// <returns>The default constraint DTO.</returns>
-    public static DefaultConstraintDto ToDefaultConstraintDto(
-        this DmDefaultConstraint defaultConstraint
-    )
+    public static DefaultConstraintDto ToDefaultConstraintDto(this DmDefaultConstraint defaultConstraint)
     {
         return new DefaultConstraintDto
         {
@@ -344,9 +331,7 @@ internal static class DtoExtensions
                 tableDto.PrimaryKeyConstraint = new PrimaryKeyConstraintDto
                 {
                     ConstraintName = table.PrimaryKeyConstraint.ConstraintName,
-                    ColumnNames = table
-                        .PrimaryKeyConstraint.Columns.Select(c => c.ColumnName)
-                        .ToList(),
+                    ColumnNames = table.PrimaryKeyConstraint.Columns.Select(c => c.ColumnName).ToList(),
                 };
             }
 
@@ -458,7 +443,8 @@ internal static class DtoExtensions
         }
 
         // Convert columns
-        var columns = tableDto.Columns?.Select(c => c.ToDmColumn(tableDto.SchemaName, tableDto.TableName)).ToArray() ?? [];
+        var columns =
+            tableDto.Columns?.Select(c => c.ToDmColumn(tableDto.SchemaName, tableDto.TableName)).ToArray() ?? [];
 
         // Convert primary key constraint
         DmPrimaryKeyConstraint? primaryKey = null;
@@ -472,30 +458,20 @@ internal static class DtoExtensions
 
         // Convert constraints
         var checkConstraints = tableDto
-            .CheckConstraints?.Select(c =>
-                c.ToDmCheckConstraint(tableDto.SchemaName, tableDto.TableName)
-            )
+            .CheckConstraints?.Select(c => c.ToDmCheckConstraint(tableDto.SchemaName, tableDto.TableName))
             .ToArray();
         var defaultConstraints = tableDto
-            .DefaultConstraints?.Select(c =>
-                c.ToDmDefaultConstraint(tableDto.SchemaName, tableDto.TableName)
-            )
+            .DefaultConstraints?.Select(c => c.ToDmDefaultConstraint(tableDto.SchemaName, tableDto.TableName))
             .ToArray();
         var uniqueConstraints = tableDto
-            .UniqueConstraints?.Select(c =>
-                c.ToDmUniqueConstraint(tableDto.SchemaName, tableDto.TableName)
-            )
+            .UniqueConstraints?.Select(c => c.ToDmUniqueConstraint(tableDto.SchemaName, tableDto.TableName))
             .ToArray();
         var foreignKeyConstraints = tableDto
-            .ForeignKeyConstraints?.Select(c =>
-                c.ToDmForeignKeyConstraint(tableDto.SchemaName, tableDto.TableName)
-            )
+            .ForeignKeyConstraints?.Select(c => c.ToDmForeignKeyConstraint(tableDto.SchemaName, tableDto.TableName))
             .ToArray();
 
         // Convert indexes
-        var indexes = tableDto
-            .Indexes?.Select(i => i.ToDmIndex(tableDto.SchemaName, tableDto.TableName))
-            .ToArray();
+        var indexes = tableDto.Indexes?.Select(i => i.ToDmIndex(tableDto.SchemaName, tableDto.TableName)).ToArray();
 
         return new DmTable(
             tableDto.SchemaName,
@@ -518,11 +494,7 @@ internal static class DtoExtensions
     /// <param name="tableName">The table name.</param>
     /// <returns>The internal column.</returns>
     /// <exception cref="ArgumentException">Thrown when required properties are null or empty.</exception>
-    public static DmColumn ToDmColumn(
-        this ColumnDto columnDto,
-        string? schemaName,
-        string tableName
-    )
+    public static DmColumn ToDmColumn(this ColumnDto columnDto, string? schemaName, string tableName)
     {
         if (string.IsNullOrWhiteSpace(columnDto.ColumnName))
         {
@@ -578,12 +550,7 @@ internal static class DtoExtensions
     )
     {
         var columns = pkDto.ColumnNames.Select(name => DmOrderedColumn.Parse(name)).ToArray();
-        return new DmPrimaryKeyConstraint(
-            schemaName,
-            tableName,
-            pkDto.ConstraintName ?? string.Empty,
-            columns
-        );
+        return new DmPrimaryKeyConstraint(schemaName, tableName, pkDto.ConstraintName ?? string.Empty, columns);
     }
 
     /// <summary>
@@ -644,12 +611,7 @@ internal static class DtoExtensions
     )
     {
         var columns = uniqueDto.ColumnNames.Select(name => DmOrderedColumn.Parse(name)).ToArray();
-        return new DmUniqueConstraint(
-            schemaName,
-            tableName,
-            uniqueDto.ConstraintName ?? string.Empty,
-            columns
-        );
+        return new DmUniqueConstraint(schemaName, tableName, uniqueDto.ConstraintName ?? string.Empty, columns);
     }
 
     /// <summary>
@@ -666,9 +628,7 @@ internal static class DtoExtensions
     )
     {
         var sourceColumns = fkDto.ColumnNames.Select(name => DmOrderedColumn.Parse(name)).ToArray();
-        var referencedColumns = fkDto
-            .ReferencedColumnNames.Select(name => DmOrderedColumn.Parse(name))
-            .ToArray();
+        var referencedColumns = fkDto.ReferencedColumnNames.Select(name => DmOrderedColumn.Parse(name)).ToArray();
 
         var onUpdate = Enum.TryParse<DmForeignKeyAction>(fkDto.OnUpdate, true, out var updateAction)
             ? updateAction

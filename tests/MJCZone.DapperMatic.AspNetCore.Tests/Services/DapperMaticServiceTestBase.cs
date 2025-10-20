@@ -10,10 +10,7 @@ public class DapperMaticServiceTestBase : IClassFixture<TestcontainersAssemblyFi
     private readonly TestcontainersAssemblyFixture _fixture;
     protected ITestOutputHelper Log { get; }
 
-    public DapperMaticServiceTestBase(
-        TestcontainersAssemblyFixture fixture,
-        ITestOutputHelper outputHelper
-    )
+    public DapperMaticServiceTestBase(TestcontainersAssemblyFixture fixture, ITestOutputHelper outputHelper)
     {
         _fixture = fixture;
         Log = outputHelper;

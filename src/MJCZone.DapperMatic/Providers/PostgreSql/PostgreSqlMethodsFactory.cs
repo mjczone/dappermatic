@@ -27,14 +27,8 @@ public class PostgreSqlMethodsFactory : DatabaseMethodsFactoryBase
     /// <returns><c>true</c> if the connection is a PostgreSQL connection; otherwise, <c>false</c>.</returns>
     public override bool SupportsConnection(IDbConnection db) =>
         SupportsConnectionCustom(db)
-        || (db.GetType().FullName ?? string.Empty).Contains(
-            "pg",
-            StringComparison.OrdinalIgnoreCase
-        )
-        || (db.GetType().FullName ?? string.Empty).Contains(
-            "postgres",
-            StringComparison.OrdinalIgnoreCase
-        );
+        || (db.GetType().FullName ?? string.Empty).Contains("pg", StringComparison.OrdinalIgnoreCase)
+        || (db.GetType().FullName ?? string.Empty).Contains("postgres", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Creates the core PostgreSQL database methods.

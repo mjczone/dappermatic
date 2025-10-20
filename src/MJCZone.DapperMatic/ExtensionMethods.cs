@@ -86,10 +86,7 @@ internal static partial class ExtensionMethods
             }
 
             return type.GetProperties()
-                .ToDictionary(
-                    propInfo => propInfo.Name,
-                    propInfo => propInfo.GetValue(source, null)
-                );
+                .ToDictionary(propInfo => propInfo.Name, propInfo => propInfo.GetValue(source, null));
         }
     }
 
@@ -130,12 +127,9 @@ internal static partial class ExtensionMethods
     public static TValue? GetFieldValue<TValue>(this object instance, string name)
     {
         var type = instance.GetType();
-        var field = type.GetFields(
-                BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance
-            )
+        var field = type.GetFields(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)
             .FirstOrDefault(e =>
-                typeof(TValue).IsAssignableFrom(e.FieldType)
-                && e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
+                typeof(TValue).IsAssignableFrom(e.FieldType) && e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
             );
         return (TValue?)field?.GetValue(instance) ?? default;
     }
@@ -150,9 +144,7 @@ internal static partial class ExtensionMethods
     public static TValue? GetPropertyValue<TValue>(this object instance, string name)
     {
         var type = instance.GetType();
-        var property = type.GetProperties(
-                BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance
-            )
+        var property = type.GetProperties(BindingFlags.NonPublic | BindingFlags.Static | BindingFlags.Instance)
             .FirstOrDefault(e =>
                 typeof(TValue).IsAssignableFrom(e.PropertyType)
                 && e.Name.Equals(name, StringComparison.OrdinalIgnoreCase)
@@ -168,11 +160,7 @@ internal static partial class ExtensionMethods
     /// <param name="name">The name of the field.</param>
     /// <param name="value">The value of the field if found; otherwise, the default value.</param>
     /// <returns>True if the field value was found; otherwise, false.</returns>
-    public static bool TryGetFieldValue<TValue>(
-        this object instance,
-        string name,
-        out TValue? value
-    )
+    public static bool TryGetFieldValue<TValue>(this object instance, string name, out TValue? value)
     {
         value = instance.GetFieldValue<TValue>(name);
         return value != null;
@@ -186,11 +174,7 @@ internal static partial class ExtensionMethods
     /// <param name="name">The name of the property.</param>
     /// <param name="value">The value of the property if found; otherwise, the default value.</param>
     /// <returns>True if the property value was found; otherwise, false.</returns>
-    public static bool TryGetPropertyValue<TValue>(
-        this object instance,
-        string name,
-        out TValue? value
-    )
+    public static bool TryGetPropertyValue<TValue>(this object instance, string name, out TValue? value)
     {
         value = instance.GetPropertyValue<TValue>(name);
         return value != null;
@@ -234,9 +218,7 @@ internal static partial class ExtensionMethods
         var openIndex = sqlTypeName.IndexOf('(', StringComparison.OrdinalIgnoreCase);
         var closeIndex = sqlTypeName.IndexOf(')', StringComparison.OrdinalIgnoreCase);
         var txt = (
-            openIndex > 0 && closeIndex > 0
-                ? sqlTypeName.Remove(openIndex, closeIndex - openIndex + 1)
-                : sqlTypeName
+            openIndex > 0 && closeIndex > 0 ? sqlTypeName.Remove(openIndex, closeIndex - openIndex + 1) : sqlTypeName
         ).Trim();
         while (txt.Contains("  ", StringComparison.OrdinalIgnoreCase))
         {
@@ -253,17 +235,13 @@ internal static partial class ExtensionMethods
     /// <param name="quoteChar">The quote characters.</param>
     /// <param name="identifierSegments">The identifier segments.</param>
     /// <returns>The quoted SQL identifier.</returns>
-    public static string ToQuotedIdentifier(
-        this string prefix,
-        char[] quoteChar,
-        params string[] identifierSegments
-    )
+    public static string ToQuotedIdentifier(this string prefix, char[] quoteChar, params string[] identifierSegments)
     {
         return quoteChar.Length switch
         {
             0 => prefix.ToRawIdentifier(identifierSegments),
             1 => quoteChar[0] + prefix.ToRawIdentifier(identifierSegments) + quoteChar[0],
-            _ => quoteChar[0] + prefix.ToRawIdentifier(identifierSegments) + quoteChar[1]
+            _ => quoteChar[0] + prefix.ToRawIdentifier(identifierSegments) + quoteChar[1],
         };
     }
 
@@ -332,9 +310,7 @@ internal static partial class ExtensionMethods
         return string.Concat(
             Array.FindAll(
                 text.ToCharArray(),
-                c =>
-                    c.IsAlphaNumeric()
-                    || additionalAllowedCharacters.Contains(c, StringComparison.OrdinalIgnoreCase)
+                c => c.IsAlphaNumeric() || additionalAllowedCharacters.Contains(c, StringComparison.OrdinalIgnoreCase)
             )
         );
     }
@@ -350,9 +326,7 @@ internal static partial class ExtensionMethods
         return string.Concat(
             Array.FindAll(
                 text.ToCharArray(),
-                c =>
-                    c.IsAlpha()
-                    || additionalAllowedCharacters.Contains(c, StringComparison.OrdinalIgnoreCase)
+                c => c.IsAlpha() || additionalAllowedCharacters.Contains(c, StringComparison.OrdinalIgnoreCase)
             )
         );
     }
@@ -433,11 +407,7 @@ internal static partial class ExtensionMethods
     /// <param name="wildcardPattern">Wildcard pattern string.</param>
     /// <param name="ignoreCase">Ignore the case of the string when evaluating a match.</param>
     /// <returns>True if the string matches the wildcard pattern; otherwise, false.</returns>
-    public static bool IsWildcardPatternMatch(
-        this string text,
-        string wildcardPattern,
-        bool ignoreCase = true
-    )
+    public static bool IsWildcardPatternMatch(this string text, string wildcardPattern, bool ignoreCase = true)
     {
         if (string.IsNullOrWhiteSpace(text) || string.IsNullOrWhiteSpace(wildcardPattern))
         {
@@ -461,10 +431,7 @@ internal static partial class ExtensionMethods
         {
             if (
                 patternIndex < patternLength
-                && (
-                    wildcardPattern[patternIndex] == '?'
-                    || wildcardPattern[patternIndex] == text[inputIndex]
-                )
+                && (wildcardPattern[patternIndex] == '?' || wildcardPattern[patternIndex] == text[inputIndex])
             )
             {
                 patternIndex++;

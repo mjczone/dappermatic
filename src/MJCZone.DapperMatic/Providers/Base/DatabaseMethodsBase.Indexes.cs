@@ -29,8 +29,8 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetIndexAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
-                .ConfigureAwait(false) != null;
+        return await GetIndexAsync(db, schemaName, tableName, indexName, tx, cancellationToken).ConfigureAwait(false)
+            != null;
     }
 
     /// <summary>
@@ -53,14 +53,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         return (
-                await GetIndexesOnColumnAsync(
-                        db,
-                        schemaName,
-                        tableName,
-                        columnName,
-                        tx,
-                        cancellationToken
-                    )
+                await GetIndexesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                     .ConfigureAwait(false)
             ).Count > 0;
     }
@@ -122,8 +115,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesIndexExistAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
-                .ConfigureAwait(false)
+            await DoesIndexExistAsync(db, schemaName, tableName, indexName, tx, cancellationToken).ConfigureAwait(false)
         )
         {
             return false;
@@ -131,8 +123,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlCreateIndex(schemaName, tableName, indexName, columns, isUnique);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -161,14 +152,7 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Index name is required.", nameof(indexName));
         }
 
-        var indexes = await GetIndexesAsync(
-                db,
-                schemaName,
-                tableName,
-                indexName,
-                tx,
-                cancellationToken
-            )
+        var indexes = await GetIndexesAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
             .ConfigureAwait(false);
         return indexes.SingleOrDefault();
     }
@@ -230,14 +214,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         return (
-            await GetIndexesOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            await GetIndexesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
             .Select(x => x.IndexName)
@@ -299,11 +276,7 @@ public abstract partial class DatabaseMethodsBase
             .ConfigureAwait(false);
 
         return indexes
-            .Where(c =>
-                c.Columns.Any(x =>
-                    x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-                )
-            )
+            .Where(c => c.Columns.Any(x => x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)))
             .ToList();
     }
 
@@ -336,8 +309,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropIndex(schemaName, tableName, indexName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -361,14 +333,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var indexNames = await GetIndexNamesOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+        var indexNames = await GetIndexNamesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
 
         if (indexNames.Count == 0)
@@ -379,8 +344,7 @@ public abstract partial class DatabaseMethodsBase
         foreach (var indexName in indexNames)
         {
             var sql = SqlDropIndex(schemaName, tableName, indexName);
-            await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-                .ConfigureAwait(false);
+            await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         return true;

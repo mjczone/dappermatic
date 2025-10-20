@@ -11,7 +11,7 @@ using Akov.NetDocsProcessor.Processors;
 namespace Akov.NetDocsProcessor.Api;
 
 /// <summary>
-/// The docs generator. 
+/// The docs generator.
 /// </summary>
 public class DocsProcessorApi
 {
@@ -30,7 +30,8 @@ public class DocsProcessorApi
     /// <returns></returns>
     public virtual IEnumerable<NamespaceDescription> ObtainDocumentation(
         AssemblyPaths assemblyPaths,
-        GenerationSettings? settings = null)
+        GenerationSettings? settings = null
+    )
     {
         var assembly = FileReader.ReadAssembly(assemblyPaths.DllPath);
         var xmlDoc = FileReader.ReadXml(assemblyPaths.XmlPath);

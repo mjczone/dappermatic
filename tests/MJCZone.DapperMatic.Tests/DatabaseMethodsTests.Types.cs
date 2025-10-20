@@ -4,7 +4,6 @@
 // See LICENSE in the project root for license information.
 
 using Dapper;
-
 using MJCZone.DapperMatic.Models;
 using MJCZone.DapperMatic.Providers;
 

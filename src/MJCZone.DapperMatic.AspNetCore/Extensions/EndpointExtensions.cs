@@ -38,9 +38,7 @@ internal static class EndpointExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
 
         basePath ??= "/api/dm";
-        return endpoints
-            .MapGroup($"/{basePath.Trim('/')}/{prefix.TrimStart('/')}")
-            .WithDapperMaticConventions(tag);
+        return endpoints.MapGroup($"/{basePath.Trim('/')}/{prefix.TrimStart('/')}").WithDapperMaticConventions(tag);
     }
 
     /// <summary>
@@ -49,10 +47,7 @@ internal static class EndpointExtensions
     /// <param name="group">The route group to configure.</param>
     /// <param name="tag">The OpenAPI tag to associate with the group.</param>
     /// <returns>The configured route group.</returns>
-    private static RouteGroupBuilder WithDapperMaticConventions(
-        this RouteGroupBuilder group,
-        string tag
-    )
+    private static RouteGroupBuilder WithDapperMaticConventions(this RouteGroupBuilder group, string tag)
     {
         return group.WithTags(tag).AddEndpointFilter<DapperMaticExceptionFilter>().WithOpenApi();
     }
@@ -74,16 +69,12 @@ internal static class EndpointExtensions
             }
             catch (Exception ex)
             {
-                var operationContext =
-                    context.HttpContext.RequestServices.GetService<IOperationContext>();
-                var auditLogger =
-                    context.HttpContext.RequestServices.GetService<IDapperMaticAuditLogger>();
+                var operationContext = context.HttpContext.RequestServices.GetService<IOperationContext>();
+                var auditLogger = context.HttpContext.RequestServices.GetService<IDapperMaticAuditLogger>();
                 if (auditLogger != null && operationContext != null)
                 {
                     await auditLogger
-                        .LogOperationAsync(
-                            operationContext.ToAuditEvent(success: false, message: ex.Message)
-                        )
+                        .LogOperationAsync(operationContext.ToAuditEvent(success: false, message: ex.Message))
                         .ConfigureAwait(false);
                 }
                 return ErrorHandler.HandleError(ex);

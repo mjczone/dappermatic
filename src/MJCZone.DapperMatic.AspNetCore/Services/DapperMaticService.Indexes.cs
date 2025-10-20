@@ -49,22 +49,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             indexes = await connection
@@ -72,8 +61,7 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
         }
 
-        await LogAuditEventAsync(context, true, $"Retrieved indexes for table '{tableName}'")
-            .ConfigureAwait(false);
+        await LogAuditEventAsync(context, true, $"Retrieved indexes for table '{tableName}'").ConfigureAwait(false);
         return indexes.ToIndexDtos();
     }
 
@@ -112,22 +100,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var index = await connection
@@ -136,16 +113,10 @@ public partial class DapperMaticService
 
             if (index == null)
             {
-                throw new KeyNotFoundException(
-                    $"Index '{indexName}' not found on table '{tableName}'"
-                );
+                throw new KeyNotFoundException($"Index '{indexName}' not found on table '{tableName}'");
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved index '{indexName}' from table '{tableName}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved index '{indexName}' from table '{tableName}'")
                 .ConfigureAwait(false);
             return index.ToIndexDto();
         }
@@ -211,35 +182,18 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check if index with the same name already exists
             if (
                 !string.IsNullOrWhiteSpace(index.IndexName)
                 && await connection
-                    .DoesIndexExistAsync(
-                        schemaName,
-                        tableName,
-                        index.IndexName,
-                        null,
-                        cancellationToken
-                    )
+                    .DoesIndexExistAsync(schemaName, tableName, index.IndexName, null, cancellationToken)
                     .ConfigureAwait(false)
             )
             {
@@ -279,9 +233,7 @@ public partial class DapperMaticService
 
                 createdIndex = indexes.FirstOrDefault(idx =>
                     idx.Columns.Count == dmIndex.Columns.Count
-                    && !idx.Columns.All(c =>
-                        !dmColumnNames.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase)
-                    )
+                    && !idx.Columns.All(c => !dmColumnNames.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase))
                 );
 
                 if (createdIndex == null)
@@ -290,11 +242,7 @@ public partial class DapperMaticService
                 }
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Index '{createdIndex.IndexName}' created successfully."
-                )
+            await LogAuditEventAsync(context, true, $"Index '{createdIndex.IndexName}' created successfully.")
                 .ConfigureAwait(false);
 
             return createdIndex.ToIndexDto();
@@ -336,22 +284,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check index exists
@@ -361,9 +298,7 @@ public partial class DapperMaticService
 
             if (!existingIndex)
             {
-                throw new KeyNotFoundException(
-                    $"Index '{indexName}' not found on table '{tableName}'"
-                );
+                throw new KeyNotFoundException($"Index '{indexName}' not found on table '{tableName}'");
             }
 
             var dropped = await connection

@@ -50,24 +50,13 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         providerDataTypesResponse.Result.Should().HaveCountGreaterThan(10);
 
         // Verify common data types are present
-        providerDataTypesResponse
-            .Result.Should()
-            .Contain(dt => dt.DataType == "varchar" && dt.IsCommon);
-        providerDataTypesResponse
-            .Result.Should()
-            .Contain(dt => dt.DataType == "int" && dt.IsCommon);
-        providerDataTypesResponse
-            .Result.Should()
-            .Contain(dt => dt.DataType == "datetime" && dt.IsCommon);
-        providerDataTypesResponse
-            .Result.Should()
-            .Contain(dt => dt.DataType == "decimal" && dt.IsCommon);
+        providerDataTypesResponse.Result.Should().Contain(dt => dt.DataType == "varchar" && dt.IsCommon);
+        providerDataTypesResponse.Result.Should().Contain(dt => dt.DataType == "int" && dt.IsCommon);
+        providerDataTypesResponse.Result.Should().Contain(dt => dt.DataType == "datetime" && dt.IsCommon);
+        providerDataTypesResponse.Result.Should().Contain(dt => dt.DataType == "decimal" && dt.IsCommon);
 
         // Verify categories are properly assigned
-        var categories = providerDataTypesResponse
-            .Result!.Select(dt => dt.Category)
-            .Distinct()
-            .ToList();
+        var categories = providerDataTypesResponse.Result!.Select(dt => dt.Category).Distinct().ToList();
         categories.Should().Contain("Text");
         categories.Should().Contain("Integer");
         categories.Should().Contain("DateTime");
@@ -84,9 +73,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
-        var response = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/datatypes?include=customTypes"
-        );
+        var response = await client.GetAsync($"/api/dm/d/{datasourceId}/datatypes?include=customTypes");
         var content = await response.Content.ReadAsStringAsync();
 
         // Assert
@@ -135,10 +122,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         );
 
         providerDataTypesResponse.Should().NotBeNull();
-        providerDataTypesResponse!
-            .ProviderName.ToLowerInvariant()
-            .Should()
-            .Be(expectedProvider.ToLowerInvariant());
+        providerDataTypesResponse!.ProviderName.ToLowerInvariant().Should().Be(expectedProvider.ToLowerInvariant());
         providerDataTypesResponse.Result.Should().NotBeEmpty();
 
         // Each provider should have at least some common types
@@ -319,9 +303,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
             .ThenBy(dt => dt.DataType)
             .ToList();
 
-        providerDataTypesResponse
-            .Result.Should()
-            .BeEquivalentTo(sortedTypes, options => options.WithStrictOrdering());
+        providerDataTypesResponse.Result.Should().BeEquivalentTo(sortedTypes, options => options.WithStrictOrdering());
     }
 
     [Theory]
@@ -340,9 +322,7 @@ public class DataTypeEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Act
-        var response = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/datatypes?include={includeValue}"
-        );
+        var response = await client.GetAsync($"/api/dm/d/{datasourceId}/datatypes?include={includeValue}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);

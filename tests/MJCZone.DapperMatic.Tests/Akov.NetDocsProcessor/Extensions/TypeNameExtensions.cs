@@ -15,11 +15,11 @@ internal static partial class TypeNameExtensions
     {
         if (constructor.IsStatic)
             return "cctor";
-        
+
         var parameters = constructor.GetParameters();
-        
-        return parameters.Length == 0 
-            ? "ctor" 
+
+        return parameters.Length == 0
+            ? "ctor"
             : $"ctor-{string.Join("-", parameters.Select(p => NormalizeTypeName(p.ParameterType.Name)?.ToLower()))}";
     }
 
@@ -42,8 +42,9 @@ internal static partial class TypeNameExtensions
 
     public static string? GetTypeAliasOrName(this string? typeName)
     {
-        if (typeName is null) return null;
-        
+        if (typeName is null)
+            return null;
+
         switch (typeName)
         {
             case "System.Boolean":
@@ -94,7 +95,7 @@ internal static partial class TypeNameExtensions
                 return typeName;
         }
     }
-    
+
     public static string GetNullableTypeName(this string nullableTypeName)
     {
         if (string.IsNullOrEmpty(nullableTypeName))
@@ -102,12 +103,13 @@ internal static partial class TypeNameExtensions
 
         var nullableRegex = new Regex(@"^Nullable<(.+)>");
         Match match = nullableRegex.Match(nullableTypeName);
-        if (!match.Success) return nullableTypeName;
-        
+        if (!match.Success)
+            return nullableTypeName;
+
         string innerTypeName = match.Groups[1].Value;
         return innerTypeName.EndsWith("?") ? innerTypeName : $"{innerTypeName}?";
     }
-    
+
     private static string NormalizeTypeName(string? typeName)
     {
         char[] charsToReplace = { '(', ')', '[', ']', '`' };

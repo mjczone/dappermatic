@@ -39,10 +39,7 @@ public class TypeMappingConsistencyTests : TestBase
             var providerName = provider.GetType().Name;
 
             // Act - Test default decimal mapping
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(decimal),
-                out var decimalType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(decimal), out var decimalType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle decimal types");
@@ -56,11 +53,7 @@ public class TypeMappingConsistencyTests : TestBase
         }
 
         // Test precise decimal mapping using DotnetTypeDescriptor
-        var preciseDecimalDescriptor = new DotnetTypeDescriptor(typeof(decimal))
-        {
-            Precision = 10,
-            Scale = 2,
-        };
+        var preciseDecimalDescriptor = new DotnetTypeDescriptor(typeof(decimal)) { Precision = 10, Scale = 2 };
 
         var sqlServerProvider = new SqlServerProviderTypeMap();
         var mysqlProvider = new MySqlProviderTypeMap();
@@ -101,10 +94,7 @@ public class TypeMappingConsistencyTests : TestBase
             var providerName = provider.GetType().Name;
 
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(string),
-                out var stringType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(string), out var stringType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle string types");
@@ -136,10 +126,7 @@ public class TypeMappingConsistencyTests : TestBase
         foreach (var (providerName, provider) in providers)
         {
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(bool),
-                out var booleanType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(bool), out var booleanType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle boolean types");
@@ -181,10 +168,7 @@ public class TypeMappingConsistencyTests : TestBase
         foreach (var (providerName, provider) in providers)
         {
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(Guid),
-                out var guidType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(Guid), out var guidType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle GUID types");
@@ -230,10 +214,7 @@ public class TypeMappingConsistencyTests : TestBase
             var providerName = provider.GetType().Name;
 
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(DateTime),
-                out var dateTimeType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(DateTime), out var dateTimeType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle DateTime types");
@@ -281,10 +262,7 @@ public class TypeMappingConsistencyTests : TestBase
             foreach (var numericType in numericTypes)
             {
                 // Act
-                var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                    numericType,
-                    out var sqlType
-                );
+                var success = provider.TryGetProviderSqlTypeMatchingDotnetType(numericType, out var sqlType);
 
                 // Assert
                 Assert.True(success, $"{providerName} should handle {numericType.Name}");
@@ -324,10 +302,7 @@ public class TypeMappingConsistencyTests : TestBase
         foreach (var (providerName, provider) in providers)
         {
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(int[]),
-                out var arrayType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(int[]), out var arrayType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle array types");
@@ -340,9 +315,7 @@ public class TypeMappingConsistencyTests : TestBase
             {
                 // PostgreSQL should support native arrays or JSON
                 Assert.True(
-                    typeLower.Contains("integer[]")
-                        || typeLower.Contains("jsonb")
-                        || typeLower.Contains("json"),
+                    typeLower.Contains("integer[]") || typeLower.Contains("jsonb") || typeLower.Contains("json"),
                     $"PostgreSQL should use native arrays or JSON: {arrayType.SqlTypeName}"
                 );
             }
@@ -416,10 +389,7 @@ public class TypeMappingConsistencyTests : TestBase
             var providerName = provider.GetType().Name;
 
             // Act
-            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                typeof(DayOfWeek),
-                out var enumType
-            );
+            var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(DayOfWeek), out var enumType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle enum types");
@@ -428,9 +398,7 @@ public class TypeMappingConsistencyTests : TestBase
             // Enums should map to string types with reasonable length
             var typeLower = enumType.BaseTypeName.ToLowerInvariant();
             Assert.True(
-                typeLower.Contains("varchar")
-                    || typeLower.Contains("text")
-                    || typeLower.Contains("char"),
+                typeLower.Contains("varchar") || typeLower.Contains("text") || typeLower.Contains("char"),
                 $"{providerName} enum type should be string-based: {enumType.SqlTypeName}"
             );
         }
@@ -497,16 +465,10 @@ public class TypeMappingConsistencyTests : TestBase
             foreach (var type in commonTypes)
             {
                 // Act
-                var success = provider.TryGetProviderSqlTypeMatchingDotnetType(
-                    type,
-                    out var sqlType
-                );
+                var success = provider.TryGetProviderSqlTypeMatchingDotnetType(type, out var sqlType);
 
                 // Assert
-                Assert.True(
-                    success,
-                    $"{providerName} should handle {type.Name} using standard converters"
-                );
+                Assert.True(success, $"{providerName} should handle {type.Name} using standard converters");
                 Assert.NotNull(sqlType);
                 Assert.NotEmpty(sqlType.SqlTypeName);
             }

@@ -101,10 +101,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
         // 7. UPDATE - Update the datasource
         var updateRequest = new DatasourceDto { DisplayName = "Updated Permission Test" };
-        var updateResponse = await client.PutAsJsonAsync(
-            $"/api/dm/d/{testDatasourceId}",
-            updateRequest
-        );
+        var updateResponse = await client.PutAsJsonAsync($"/api/dm/d/{testDatasourceId}", updateRequest);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updateResult = await updateResponse.ReadAsJsonAsync<DatasourceResponse>();
         updateResult.Should().NotBeNull();
@@ -152,11 +149,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         testPermissions.RequireRoleForOperation("datasources/delete", "DataAdmin");
 
         // Test with DataReader role (read operations only)
-        var readerClaims = new[]
-        {
-            new Claim(ClaimTypes.Name, "reader"),
-            new Claim(ClaimTypes.Role, "DataReader"),
-        };
+        var readerClaims = new[] { new Claim(ClaimTypes.Name, "reader"), new Claim(ClaimTypes.Role, "DataReader") };
 
         using var readerClient = CreateClientWithPermissionsAndAuth(testPermissions, readerClaims);
 
@@ -225,10 +218,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
             ConnectionString = "Data Source=:memory:",
             DisplayName = "Private Database",
         };
-        var createPrivateResponse = await client.PostAsJsonAsync(
-            "/api/dm/d/",
-            createPrivateRequest
-        );
+        var createPrivateResponse = await client.PostAsJsonAsync("/api/dm/d/", createPrivateRequest);
         createPrivateResponse.StatusCode.Should().Be(HttpStatusCode.Created);
 
         try
@@ -301,11 +291,7 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
         testPermissions.RequireRoleForOperation("datasources/post", "DataAdmin");
 
         // Create user with insufficient roles
-        var userClaims = new[]
-        {
-            new Claim(ClaimTypes.Name, "basicuser"),
-            new Claim(ClaimTypes.Role, "User"),
-        };
+        var userClaims = new[] { new Claim(ClaimTypes.Name, "basicuser"), new Claim(ClaimTypes.Role, "User") };
 
         using var client = CreateClientWithPermissionsAndAuth(testPermissions, userClaims);
 
@@ -387,35 +373,32 @@ public class DatasourcePermissionsTests : IClassFixture<TestcontainersAssemblyFi
 
     private HttpClient CreateClientWithPermissions(TestDapperMaticPermissions permissions)
     {
-        var factory = new WafWithInMemoryDatasourceRepository(
-            _fixture.GetTestDatasources()
-        ).WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
+        var factory = new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources()).WithWebHostBuilder(
+            builder =>
             {
-                // Add authentication for testing
-                services
-                    .AddAuthentication("Test")
-                    .AddScheme<
-                        Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
-                        TestAuthenticationHandler
-                    >("Test", options => { });
-                // Add empty test user for unauthenticated tests
-                services.AddSingleton(new TestAuthenticationHandler.TestUser([]));
+                builder.ConfigureServices(services =>
+                {
+                    // Add authentication for testing
+                    services
+                        .AddAuthentication("Test")
+                        .AddScheme<
+                            Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions,
+                            TestAuthenticationHandler
+                        >("Test", options => { });
+                    // Add empty test user for unauthenticated tests
+                    services.AddSingleton(new TestAuthenticationHandler.TestUser([]));
 
-                // Replace the default permissions with our test permissions
-                services.RemoveAll<IDapperMaticPermissions>();
-                services.AddSingleton<IDapperMaticPermissions>(permissions);
-            });
-        });
+                    // Replace the default permissions with our test permissions
+                    services.RemoveAll<IDapperMaticPermissions>();
+                    services.AddSingleton<IDapperMaticPermissions>(permissions);
+                });
+            }
+        );
 
         return factory.CreateClient();
     }
 
-    private HttpClient CreateClientWithPermissionsAndAuth(
-        TestDapperMaticPermissions permissions,
-        Claim[] claims
-    )
+    private HttpClient CreateClientWithPermissionsAndAuth(TestDapperMaticPermissions permissions, Claim[] claims)
     {
         return new WafWithInMemoryDatasourceRepository(_fixture.GetTestDatasources())
             .WithWebHostBuilder(builder =>

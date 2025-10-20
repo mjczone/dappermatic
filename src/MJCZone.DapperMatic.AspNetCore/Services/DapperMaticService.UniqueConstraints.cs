@@ -49,22 +49,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             uniqueConstraints = await connection
@@ -116,32 +105,15 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var uniqueConstraint = await connection
-                .GetUniqueConstraintAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .GetUniqueConstraintAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (uniqueConstraint == null)
@@ -221,22 +193,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             if (
@@ -273,9 +234,7 @@ public partial class DapperMaticService
                 );
             }
 
-            var createdUniqueConstraint = !string.IsNullOrWhiteSpace(
-                uniqueConstraint.ConstraintName
-            )
+            var createdUniqueConstraint = !string.IsNullOrWhiteSpace(uniqueConstraint.ConstraintName)
                 ? await connection
                     .GetUniqueConstraintAsync(
                         schemaName,
@@ -296,16 +255,12 @@ public partial class DapperMaticService
 
                 createdUniqueConstraint = uniqueConstraints.FirstOrDefault(uc =>
                     uc.Columns.Count == dmUniqueConstraint.Columns.Count
-                    && !uc.Columns.All(c =>
-                        !dmColumnNames.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase)
-                    )
+                    && !uc.Columns.All(c => !dmColumnNames.Contains(c.ColumnName, StringComparer.OrdinalIgnoreCase))
                 );
 
                 if (createdUniqueConstraint == null)
                 {
-                    throw new InvalidOperationException(
-                        $"Failed to retrieve the created unique constraint."
-                    );
+                    throw new InvalidOperationException($"Failed to retrieve the created unique constraint.");
                 }
             }
 
@@ -355,33 +310,16 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check unique constraint exists
             var existingConstraint = await connection
-                .DoesUniqueConstraintExistAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DoesUniqueConstraintExistAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!existingConstraint)
@@ -392,13 +330,7 @@ public partial class DapperMaticService
             }
 
             var dropped = await connection
-                .DropUniqueConstraintIfExistsAsync(
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    null,
-                    cancellationToken
-                )
+                .DropUniqueConstraintIfExistsAsync(schemaName, tableName, constraintName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!dropped)
@@ -408,11 +340,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    dropped,
-                    $"Unique constraint '{constraintName}' dropped successfully."
-                )
+            await LogAuditEventAsync(context, dropped, $"Unique constraint '{constraintName}' dropped successfully.")
                 .ConfigureAwait(false);
         }
     }

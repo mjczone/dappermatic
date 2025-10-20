@@ -4,7 +4,6 @@
 // See LICENSE in the project root for license information.
 
 using System.ComponentModel.DataAnnotations;
-
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 
 namespace MJCZone.DapperMatic.AspNetCore.Models.Dtos;

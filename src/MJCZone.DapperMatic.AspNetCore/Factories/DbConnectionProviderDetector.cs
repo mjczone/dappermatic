@@ -22,18 +22,12 @@ public static class DbConnectionProviderDetector
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new ArgumentException(
-                "Connection string cannot be null or empty.",
-                nameof(connectionString)
-            );
+            throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
         }
 
         // --- Explicit override ---connectionString.Contains("Provider=MySqlConnector", StringComparison.OrdinalIgnoreCase)
         if (
-            connectionString.Contains(
-                "Microsoft.Data.SqlClient",
-                StringComparison.OrdinalIgnoreCase
-            )
+            connectionString.Contains("Microsoft.Data.SqlClient", StringComparison.OrdinalIgnoreCase)
             || connectionString.Contains("MsDataSqlClient", StringComparison.OrdinalIgnoreCase)
             || connectionString.Contains("MicrosoftSqlClient", StringComparison.OrdinalIgnoreCase)
         )
@@ -69,11 +63,7 @@ public static class DbConnectionProviderDetector
             "attestation protocol",
         };
 
-        if (
-            microsoftHints.Any(h =>
-                connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)
-            )
-        )
+        if (microsoftHints.Any(h => connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)))
         {
             return new Microsoft.Data.SqlClient.SqlConnection(connectionString);
         }
@@ -116,10 +106,7 @@ public static class DbConnectionProviderDetector
             // ignore
         }
 
-        throw new ArgumentException(
-            "Unsupported or ambiguous SQL Server connection string.",
-            nameof(connectionString)
-        );
+        throw new ArgumentException("Unsupported or ambiguous SQL Server connection string.", nameof(connectionString));
     }
 
     /// <summary>
@@ -133,16 +120,11 @@ public static class DbConnectionProviderDetector
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new ArgumentException(
-                "Connection string cannot be null or empty.",
-                nameof(connectionString)
-            );
+            throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
         }
 
         // --- Explicit override ---
-        if (
-            connectionString.Contains("Provider=MySqlConnector", StringComparison.OrdinalIgnoreCase)
-        )
+        if (connectionString.Contains("Provider=MySqlConnector", StringComparison.OrdinalIgnoreCase))
         {
             var cleaned = RemoveProviderKeyword(connectionString);
             return new MySqlConnector.MySqlConnection(cleaned);
@@ -170,11 +152,7 @@ public static class DbConnectionProviderDetector
             "useprocedurebodies",
         };
 
-        if (
-            mysqlDataHeuristics.Any(h =>
-                connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)
-            )
-        )
+        if (mysqlDataHeuristics.Any(h => connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)))
         {
             return new MySql.Data.MySqlClient.MySqlConnection(connectionString);
         }
@@ -201,10 +179,7 @@ public static class DbConnectionProviderDetector
             // ignore
         }
 
-        throw new ArgumentException(
-            "Unsupported or ambiguous MySQL connection string.",
-            nameof(connectionString)
-        );
+        throw new ArgumentException("Unsupported or ambiguous MySQL connection string.", nameof(connectionString));
     }
 
     /// <summary>
@@ -216,22 +191,13 @@ public static class DbConnectionProviderDetector
     {
         if (string.IsNullOrWhiteSpace(connectionString))
         {
-            throw new ArgumentException(
-                "Connection string cannot be null or empty.",
-                nameof(connectionString)
-            );
+            throw new ArgumentException("Connection string cannot be null or empty.", nameof(connectionString));
         }
 
         // Explicit override
         if (
-            connectionString.Contains(
-                "Provider=MicrosoftDataSqlite",
-                StringComparison.OrdinalIgnoreCase
-            )
-            || connectionString.Contains(
-                "Provider=Microsoft.Data.Sqlite",
-                StringComparison.OrdinalIgnoreCase
-            )
+            connectionString.Contains("Provider=MicrosoftDataSqlite", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains("Provider=Microsoft.Data.Sqlite", StringComparison.OrdinalIgnoreCase)
         )
         {
             var cleaned = RemoveProviderKeyword(connectionString);
@@ -239,14 +205,8 @@ public static class DbConnectionProviderDetector
         }
 
         if (
-            connectionString.Contains(
-                "Provider=SystemDataSqlite",
-                StringComparison.OrdinalIgnoreCase
-            )
-            || connectionString.Contains(
-                "Provider=System.Data.SQLite",
-                StringComparison.OrdinalIgnoreCase
-            )
+            connectionString.Contains("Provider=SystemDataSqlite", StringComparison.OrdinalIgnoreCase)
+            || connectionString.Contains("Provider=System.Data.SQLite", StringComparison.OrdinalIgnoreCase)
         )
         {
             var cleaned = RemoveProviderKeyword(connectionString);
@@ -286,11 +246,7 @@ public static class DbConnectionProviderDetector
             "waittimeout",
             "zipvfsversion",
         };
-        if (
-            systemDataSQLiteHeuristics.Any(h =>
-                connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)
-            )
-        )
+        if (systemDataSQLiteHeuristics.Any(h => connectionString.Contains(h, StringComparison.OrdinalIgnoreCase)))
         {
             // More likely System.Data.SQLite
             return new System.Data.SQLite.SQLiteConnection(connectionString);
@@ -316,10 +272,7 @@ public static class DbConnectionProviderDetector
             // Ignore exceptions
         }
 
-        throw new ArgumentException(
-            "Unsupported or ambiguous SQLite connection string.",
-            nameof(connectionString)
-        );
+        throw new ArgumentException("Unsupported or ambiguous SQLite connection string.", nameof(connectionString));
     }
 
     /// <summary>
@@ -349,10 +302,7 @@ public static class DbConnectionProviderDetector
         var parts = connectionString.Split(';', StringSplitOptions.RemoveEmptyEntries);
         return string.Join(
             ";",
-            Array.FindAll(
-                parts,
-                p => !p.TrimStart().StartsWith("Provider=", StringComparison.OrdinalIgnoreCase)
-            )
+            Array.FindAll(parts, p => !p.TrimStart().StartsWith("Provider=", StringComparison.OrdinalIgnoreCase))
         );
     }
 }

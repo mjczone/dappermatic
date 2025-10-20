@@ -22,21 +22,22 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     public bool IsUnicodeProvider => false; // SQL Server can use both Unicode and non-Unicode
 
     /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } = new()
-    {
-        { typeof(byte), SqlServerTypes.sql_tinyint },
-        { typeof(sbyte), SqlServerTypes.sql_tinyint },
-        { typeof(short), SqlServerTypes.sql_smallint },
-        { typeof(ushort), SqlServerTypes.sql_smallint },
-        { typeof(int), SqlServerTypes.sql_int },
-        { typeof(uint), SqlServerTypes.sql_int },
-        { typeof(System.Numerics.BigInteger), SqlServerTypes.sql_bigint },
-        { typeof(long), SqlServerTypes.sql_bigint },
-        { typeof(ulong), SqlServerTypes.sql_bigint },
-        { typeof(float), SqlServerTypes.sql_real },
-        { typeof(double), SqlServerTypes.sql_float },
-        { typeof(decimal), SqlServerTypes.sql_decimal },
-    };
+    public Dictionary<Type, string> NumericTypeMap { get; } =
+        new()
+        {
+            { typeof(byte), SqlServerTypes.sql_tinyint },
+            { typeof(sbyte), SqlServerTypes.sql_tinyint },
+            { typeof(short), SqlServerTypes.sql_smallint },
+            { typeof(ushort), SqlServerTypes.sql_smallint },
+            { typeof(int), SqlServerTypes.sql_int },
+            { typeof(uint), SqlServerTypes.sql_int },
+            { typeof(System.Numerics.BigInteger), SqlServerTypes.sql_bigint },
+            { typeof(long), SqlServerTypes.sql_bigint },
+            { typeof(ulong), SqlServerTypes.sql_bigint },
+            { typeof(float), SqlServerTypes.sql_real },
+            { typeof(double), SqlServerTypes.sql_float },
+            { typeof(decimal), SqlServerTypes.sql_decimal },
+        };
 
     /// <inheritdoc />
     public SqlTypeDescriptor CreateGuidType()
@@ -48,14 +49,20 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
     {
         var sqlType = descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char;
-        return TypeMappingHelpers.CreateStringType(sqlType, length: 1, descriptor.IsUnicode.GetValueOrDefault(false), isFixedLength: true);
+        return TypeMappingHelpers.CreateStringType(
+            sqlType,
+            length: 1,
+            descriptor.IsUnicode.GetValueOrDefault(false),
+            isFixedLength: true
+        );
     }
 
     /// <inheritdoc />
     public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         // Objects are stored as JSON strings - use VARCHAR(MAX) or NVARCHAR(MAX) based on unicode flag
-        var sqlType = descriptor.IsUnicode == true ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
+        var sqlType =
+            descriptor.IsUnicode == true ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
         return TypeMappingHelpers.CreateLobType(sqlType, descriptor.IsUnicode.GetValueOrDefault(false));
     }
 
@@ -65,19 +72,24 @@ public class SqlServerTypeMapping : IProviderTypeMapping
         // Support both -1 and int.MaxValue for backward compatibility
         if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
         {
-            var sqlType = descriptor.IsUnicode == true ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
+            var sqlType =
+                descriptor.IsUnicode == true
+                    ? $"{SqlServerTypes.sql_nvarchar}(max)"
+                    : $"{SqlServerTypes.sql_varchar}(max)";
             return TypeMappingHelpers.CreateLobType(sqlType, descriptor.IsUnicode.GetValueOrDefault(false));
         }
 
-        var baseType = descriptor.IsFixedLength == true
-            ? (descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char)
-            : (descriptor.IsUnicode == true ? SqlServerTypes.sql_nvarchar : SqlServerTypes.sql_varchar);
+        var baseType =
+            descriptor.IsFixedLength == true
+                ? (descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char)
+                : (descriptor.IsUnicode == true ? SqlServerTypes.sql_nvarchar : SqlServerTypes.sql_varchar);
 
         return TypeMappingHelpers.CreateStringType(
             baseType,
             descriptor.Length,
             descriptor.IsUnicode.GetValueOrDefault(false),
-            descriptor.IsFixedLength.GetValueOrDefault(false));
+            descriptor.IsFixedLength.GetValueOrDefault(false)
+        );
     }
 
     /// <inheritdoc />
@@ -85,8 +97,14 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     {
         return descriptor.DotnetType switch
         {
-            Type t when t == typeof(DateTime) => TypeMappingHelpers.CreateDateTimeType(SqlServerTypes.sql_datetime2, descriptor.Precision),
-            Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateDateTimeType(SqlServerTypes.sql_datetimeoffset, descriptor.Precision),
+            Type t when t == typeof(DateTime) => TypeMappingHelpers.CreateDateTimeType(
+                SqlServerTypes.sql_datetime2,
+                descriptor.Precision
+            ),
+            Type t when t == typeof(DateTimeOffset) => TypeMappingHelpers.CreateDateTimeType(
+                SqlServerTypes.sql_datetimeoffset,
+                descriptor.Precision
+            ),
             Type t when t == typeof(TimeSpan) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_time),
             Type t when t == typeof(DateOnly) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_date),
             Type t when t == typeof(TimeOnly) => TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_time),
@@ -102,9 +120,10 @@ public class SqlServerTypeMapping : IProviderTypeMapping
         if (actualLength == null)
         {
             // Stream types should default to MAX, others to 255
-            actualLength = (descriptor.DotnetType == typeof(Stream) || descriptor.DotnetType == typeof(MemoryStream))
-                ? TypeMappingDefaults.MaxLength
-                : TypeMappingDefaults.DefaultBinaryLength;
+            actualLength =
+                (descriptor.DotnetType == typeof(Stream) || descriptor.DotnetType == typeof(MemoryStream))
+                    ? TypeMappingDefaults.MaxLength
+                    : TypeMappingDefaults.DefaultBinaryLength;
         }
 
         // Support both -1 and int.MaxValue for backward compatibility
@@ -117,7 +136,8 @@ public class SqlServerTypeMapping : IProviderTypeMapping
         return TypeMappingHelpers.CreateBinaryType(
             sqlType,
             actualLength,
-            descriptor.IsFixedLength.GetValueOrDefault(false));
+            descriptor.IsFixedLength.GetValueOrDefault(false)
+        );
     }
 
     /// <inheritdoc />

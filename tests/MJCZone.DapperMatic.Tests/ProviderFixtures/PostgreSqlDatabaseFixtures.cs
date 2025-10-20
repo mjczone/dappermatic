@@ -43,8 +43,7 @@ public class PostgreSql_Postgis17_DatabaseFixture : PostgreSqlDatabaseFixture
         : base("postgis/postgis:17-3.5") { }
 }
 
-public abstract class PostgreSqlDatabaseFixture(string imageName)
-    : DatabaseFixtureBase<PostgreSqlContainer>
+public abstract class PostgreSqlDatabaseFixture(string imageName) : DatabaseFixtureBase<PostgreSqlContainer>
 {
     private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
         .WithImage(imageName)

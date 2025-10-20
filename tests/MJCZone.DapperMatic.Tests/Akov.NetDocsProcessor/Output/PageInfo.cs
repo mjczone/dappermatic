@@ -12,7 +12,6 @@ namespace Akov.NetDocsProcessor.Output;
 /// </summary>
 public class PageInfo
 {
-    
 #if NET7_0_OR_GREATER
 
     /// <summary>
@@ -24,7 +23,6 @@ public class PageInfo
     /// The page relative url.
     /// </summary>
     public required string Url { get; set; }
-    
 #else
 
     /// <summary>
@@ -36,9 +34,7 @@ public class PageInfo
     /// The page relative url.
     /// </summary>
     public string Url { get; set; } = default!;
-    
 #endif
-    
     /// <summary>
     /// Class or Interface or Delegate etc
     /// </summary>

@@ -41,10 +41,7 @@ public interface IDbProviderTypeMap
     /// <param name="type">The .NET type to convert to a SQL type.</param>
     /// <param name="sqlTypeDescriptor">A corresponding SQL type descriptor object, or null.</param>
     /// <returns>true/false.</returns>
-    bool TryGetProviderSqlTypeMatchingDotnetType(
-        Type type,
-        out SqlTypeDescriptor? sqlTypeDescriptor
-    );
+    bool TryGetProviderSqlTypeMatchingDotnetType(Type type, out SqlTypeDescriptor? sqlTypeDescriptor);
 
     /// <summary>
     /// Converts the .NET type descriptor to a SQL type with appropriate type property

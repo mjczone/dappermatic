@@ -23,17 +23,17 @@ public class TypeDescription : IXmlMemberBaseElement
     }
 
 #if NET7_0_OR_GREATER
-    
+
     /// <summary>
     /// The type name.
     /// </summary>
     public required string Name { get; set; }
-    
+
     /// <summary>
     /// The type fullname.
     /// </summary>
     public required string FullName { get; set; }
-    
+
     /// <summary>
     /// The type fullname.
     /// </summary>
@@ -43,34 +43,33 @@ public class TypeDescription : IXmlMemberBaseElement
     /// The reference to the page info.
     /// </summary>
     public required PageInfo Self { get; set; }
-    
+
     /// <summary>
     /// The reference to the namespace page info.
     /// </summary>
     public required PageInfo Namespace { get; set; }
-    
+
     /// <summary>
     /// The payload.
     /// </summary>
     public required PayloadInfo PayloadInfo { get; set; }
-
 #else
-    
+
     /// <summary>
     /// The type name.
     /// </summary>
     public string Name { get; set; } = default!;
-    
+
     /// <summary>
     /// The type fullname.
     /// </summary>
     public string FullName { get; set; } = default!;
-    
+
     /// <summary>
     /// The type fullname.
     /// </summary>
     public string CommentId { get; set; } = default!;
-    
+
     /// <summary>
     /// The reference to the page info.
     /// </summary>
@@ -80,34 +79,32 @@ public class TypeDescription : IXmlMemberBaseElement
     /// The reference to the namespace page info.
     /// </summary>
     public PageInfo Namespace { get; set; } = default!;
-    
+
     /// <summary>
     /// The payload.
     /// </summary>
     public PayloadInfo PayloadInfo { get; set; } = default!;
-
 #endif
-    
     /// <summary>
-    /// The main page element e.g. `Class`, `Interface`, `Record` etc. 
+    /// The main page element e.g. `Class`, `Interface`, `Record` etc.
     /// </summary>
     public ElementType ElementType { get; set; }
-    
+
     /// <summary>
     /// The title for the type.
     /// </summary>
     public string? Title { get; set; }
-    
+
     /// <summary>
     /// The xml summary for the type.
     /// </summary>
     public string? Summary { get; set; }
-    
+
     /// <summary>
     /// The xml example for the type.
     /// </summary>
     public string? Example { get; set; }
-    
+
     /// <summary>
     /// The remarks for the type.
     /// </summary>
@@ -122,42 +119,42 @@ public class TypeDescription : IXmlMemberBaseElement
     /// The list of constructors.
     /// </summary>
     public List<MemberDescription> Fields { get; }
-    
+
     /// <summary>
     /// The list of constructors.
     /// </summary>
     public List<MemberDescription> Constructors { get; }
-    
+
     /// <summary>
     /// The list of methods.
     /// </summary>
     public List<MemberDescription> Methods { get; }
-    
+
     /// <summary>
     /// The list of properties.
     /// </summary>
     public List<MemberDescription> Properties { get; }
-    
+
     /// <summary>
     /// The list of events.
     /// </summary>
     public List<MemberDescription> Events { get; }
-    
+
     /// <summary>
     /// The list of enums members if type is enumeration.
     /// </summary>
     public List<EnumMemberDescription> EnumMembers { get; }
-    
+
     /// <summary>
     /// The list of the related references.
     /// </summary>
     public List<PageInfo>? SeeAlso { get; set; }
-    
+
     /// <summary>
     /// The base type (for classes) or null if inherits from System.Object.
     /// </summary>
     public PageInfo? BaseType { get; set; }
-    
+
     /// <summary>
     /// The list of implemented interfaces.
     /// </summary>

@@ -62,8 +62,7 @@ public abstract class DapperMaticDatasourceRepositoryBase : IDapperMaticDatasour
     {
         return CryptoUtils.EncryptToBase64(
             connectionString,
-            _encryptionKey
-                ?? throw new InvalidOperationException("Encryption key is not configured.")
+            _encryptionKey ?? throw new InvalidOperationException("Encryption key is not configured.")
         );
     }
 
@@ -76,8 +75,7 @@ public abstract class DapperMaticDatasourceRepositoryBase : IDapperMaticDatasour
     {
         return CryptoUtils.DecryptFromBase64(
             encryptedConnectionString,
-            _encryptionKey
-                ?? throw new InvalidOperationException("Encryption key is not configured.")
+            _encryptionKey ?? throw new InvalidOperationException("Encryption key is not configured.")
         );
     }
 }

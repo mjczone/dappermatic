@@ -46,9 +46,7 @@ public static class WebApplicationExtensions
     /// <returns>The route builder for method chaining.</returns>
     public static IEndpointRouteBuilder MapDapperMaticEndpoints(this IEndpointRouteBuilder app)
     {
-        var options =
-            app.ServiceProvider.GetService<IOptions<DapperMaticOptions>>()?.Value
-            ?? new DapperMaticOptions();
+        var options = app.ServiceProvider.GetService<IOptions<DapperMaticOptions>>()?.Value ?? new DapperMaticOptions();
         app.MapDapperMaticDatasourceEndpoints(options.BasePath);
         app.MapDapperMaticDataTypeEndpoints(options.BasePath);
         app.MapDapperMaticSchemaEndpoints(options.BasePath);

@@ -32,14 +32,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesUniqueConstraintExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesUniqueConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -63,14 +56,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesUniqueConstraintExistAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -148,14 +134,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -179,14 +158,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -210,14 +182,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -241,14 +206,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintNameOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -272,14 +230,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintNamesAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -303,14 +254,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropUniqueConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropUniqueConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -334,14 +278,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropUniqueConstraintIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DropUniqueConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
     #endregion // IDatabaseUniqueConstraintMethods

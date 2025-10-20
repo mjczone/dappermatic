@@ -52,12 +52,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             IEnumerable<DmTable> tables;
@@ -102,11 +97,7 @@ public partial class DapperMaticService
                 tables = tableNames.Select(name => new DmTable(schemaName, name));
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved tables for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved tables for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return tables.ToTableDtos(includeColumns, includeIndexes, includeConstraints);
         }
@@ -152,12 +143,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var table = await connection
@@ -192,11 +178,7 @@ public partial class DapperMaticService
                 table.DefaultConstraints = [];
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Retrieved table '{tableName}' for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Retrieved table '{tableName}' for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return table.ToTableDto(includeColumns, includeIndexes, includeConstraints);
         }
@@ -235,12 +217,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view does not already exist
@@ -265,11 +242,7 @@ public partial class DapperMaticService
                 );
             }
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Table '{dmTable.TableName}' created successfully."
-                )
+            await LogAuditEventAsync(context, true, $"Table '{dmTable.TableName}' created successfully.")
                 .ConfigureAwait(false);
 
             var createdTable = await connection
@@ -318,22 +291,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var changesMade = false;
@@ -391,20 +353,13 @@ public partial class DapperMaticService
 
                     foreach (var constraintDto in updates.ForeignKeyConstraints ?? [])
                     {
-                        var constraint = constraintDto.ToDmForeignKeyConstraint(
-                            schemaName,
-                            tableName
-                        );
+                        var constraint = constraintDto.ToDmForeignKeyConstraint(schemaName, tableName);
                         constraint.SchemaName = schemaName;
                         constraint.TableName = tableName;
 
                         // Add new foreign key constraint
                         var added = await connection
-                            .CreateForeignKeyConstraintIfNotExistsAsync(
-                                constraint,
-                                transaction,
-                                cancellationToken
-                            )
+                            .CreateForeignKeyConstraintIfNotExistsAsync(constraint, transaction, cancellationToken)
                             .ConfigureAwait(false);
 
                         if (added)
@@ -425,11 +380,7 @@ public partial class DapperMaticService
 
                         // Add new unique constraint
                         var added = await connection
-                            .CreateUniqueConstraintIfNotExistsAsync(
-                                constraint,
-                                transaction,
-                                cancellationToken
-                            )
+                            .CreateUniqueConstraintIfNotExistsAsync(constraint, transaction, cancellationToken)
                             .ConfigureAwait(false);
 
                         if (added)
@@ -452,11 +403,7 @@ public partial class DapperMaticService
 
                         // Add new check constraint
                         var added = await connection
-                            .CreateCheckConstraintIfNotExistsAsync(
-                                constraint,
-                                transaction,
-                                cancellationToken
-                            )
+                            .CreateCheckConstraintIfNotExistsAsync(constraint, transaction, cancellationToken)
                             .ConfigureAwait(false);
 
                         if (added)
@@ -479,11 +426,7 @@ public partial class DapperMaticService
 
                         // Add new default constraint
                         var added = await connection
-                            .CreateDefaultConstraintIfNotExistsAsync(
-                                constraint,
-                                transaction,
-                                cancellationToken
-                            )
+                            .CreateDefaultConstraintIfNotExistsAsync(constraint, transaction, cancellationToken)
                             .ConfigureAwait(false);
 
                         if (added)
@@ -514,15 +457,9 @@ public partial class DapperMaticService
 
             if (!changesMade)
             {
-                await LogAuditEventAsync(
-                        context,
-                        false,
-                        "No changes made - no valid definition provided"
-                    )
+                await LogAuditEventAsync(context, false, "No changes made - no valid definition provided")
                     .ConfigureAwait(false);
-                throw new InvalidOperationException(
-                    "No changes made - no valid definition provided"
-                );
+                throw new InvalidOperationException("No changes made - no valid definition provided");
             }
 
             // Get the updated table
@@ -532,9 +469,7 @@ public partial class DapperMaticService
 
             return (
                 updatedTable
-                ?? throw new InvalidOperationException(
-                    $"Table '{tableName}' was updated but could not be retrieved."
-                )
+                ?? throw new InvalidOperationException($"Table '{tableName}' was updated but could not be retrieved.")
             ).ToTableDto();
         }
     }
@@ -579,43 +514,20 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    currentTableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, currentTableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check new table name does not already exist
-            await AssertTableDoesNotExistAsync(
-                    datasourceId,
-                    newTableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableDoesNotExistAsync(datasourceId, newTableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Rename the table
             var renamed = await connection
-                .RenameTableIfExistsAsync(
-                    schemaName,
-                    currentTableName,
-                    newTableName,
-                    null,
-                    cancellationToken
-                )
+                .RenameTableIfExistsAsync(schemaName, currentTableName, newTableName, null, cancellationToken)
                 .ConfigureAwait(false);
 
             if (!renamed)
@@ -680,22 +592,11 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             var dropped = await connection
@@ -704,9 +605,7 @@ public partial class DapperMaticService
 
             if (!dropped)
             {
-                throw new InvalidOperationException(
-                    $"Failed to drop table '{tableName}' for an unknown reason."
-                );
+                throw new InvalidOperationException($"Failed to drop table '{tableName}' for an unknown reason.");
             }
 
             await LogAuditEventAsync(context, dropped, $"Table '{tableName}' dropped successfully.")
@@ -747,12 +646,7 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check if the table exists
@@ -763,9 +657,7 @@ public partial class DapperMaticService
             await LogAuditEventAsync(
                     context,
                     true,
-                    exists == true
-                        ? $"Table '{tableName}' exists."
-                        : $"Table '{tableName}' does not exist."
+                    exists == true ? $"Table '{tableName}' exists." : $"Table '{tableName}' does not exist."
                 )
                 .ConfigureAwait(false);
             return exists;
@@ -811,11 +703,7 @@ public partial class DapperMaticService
                             nameof(request.Take),
                             "Take must be greater than 0 and less than or equal to 1000."
                         )
-                        .Custom(
-                            r => r.Skip >= 0,
-                            nameof(request.Skip),
-                            "Skip must be greater than or equal to 0."
-                        )
+                        .Custom(r => r.Skip >= 0, nameof(request.Skip), "Skip must be greater than or equal to 0.")
             )
             .Assert();
 
@@ -824,41 +712,20 @@ public partial class DapperMaticService
         using (connection)
         {
             // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(
-                    datasourceId,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    tableName,
-                    schemaName,
-                    connection,
-                    cancellationToken
-                )
+            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
             // Build the query using provider-specific identifier naming
             var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, tableName);
 
-            var result = await ExecuteDataQueryAsync(
-                    connection,
-                    qualifiedFromName,
-                    request,
-                    schemaName,
-                    tableName
-                )
+            var result = await ExecuteDataQueryAsync(connection, qualifiedFromName, request, schemaName, tableName)
                 .ConfigureAwait(false);
 
-            await LogAuditEventAsync(
-                    context,
-                    true,
-                    $"Queried table '{tableName}' for datasource '{datasourceId}'"
-                )
+            await LogAuditEventAsync(context, true, $"Queried table '{tableName}' for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return result;
         }

@@ -29,27 +29,14 @@ public partial class DapperMaticServiceTests
         await CheckInvalidSchemaHandlingFetchingTables(service, datasourceId, "NonExistentSchema");
 
         // Non-existent table throws NotFound
-        var invalidTableContext = OperationIdentifiers.ForTableGet(
-            datasourceId,
-            "NonExistentTable",
-            schemaName
-        );
+        var invalidTableContext = OperationIdentifiers.ForTableGet(datasourceId, "NonExistentTable", schemaName);
         var invalidTableAct = async () =>
-            await service.GetTableAsync(
-                invalidTableContext,
-                datasourceId,
-                "NonExistentTable",
-                schemaName
-            );
+            await service.GetTableAsync(invalidTableContext, datasourceId, "NonExistentTable", schemaName);
         await invalidTableAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Retrieve Tables (should have initial count, may include system tables)
         var listContext = OperationIdentifiers.ForTableList(datasourceId, schemaName);
-        var initialTables = await service.GetTablesAsync(
-            listContext,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var initialTables = await service.GetTablesAsync(listContext, datasourceId, schemaName: schemaName);
         initialTables.Should().NotBeNull();
         var initialTableCount = initialTables.Count();
 
@@ -80,10 +67,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },
@@ -95,11 +80,7 @@ public partial class DapperMaticServiceTests
             },
         };
         var createContext = OperationIdentifiers.ForTableCreate(datasourceId, createTableRequest);
-        var createdTable = await service.CreateTableAsync(
-            createContext,
-            datasourceId,
-            createTableRequest
-        );
+        var createdTable = await service.CreateTableAsync(createContext, datasourceId, createTableRequest);
 
         var createTableRequest2 = new TableDto
         {
@@ -125,26 +106,14 @@ public partial class DapperMaticServiceTests
             ],
         };
         var createContext2 = OperationIdentifiers.ForTableCreate(datasourceId, createTableRequest2);
-        var createdTable2 = await service.CreateTableAsync(
-            createContext2,
-            datasourceId,
-            createTableRequest2
-        );
+        var createdTable2 = await service.CreateTableAsync(createContext2, datasourceId, createTableRequest2);
 
         // Verify Tables added
-        var tablesAfterCreation = await service.GetTablesAsync(
-            listContext,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var tablesAfterCreation = await service.GetTablesAsync(listContext, datasourceId, schemaName: schemaName);
         tablesAfterCreation.Should().HaveCount(initialTableCount + 2);
 
         // Verify single Table exists
-        var tableContext = OperationIdentifiers.ForTableGet(
-            datasourceId,
-            createdTable.TableName!,
-            schemaName
-        );
+        var tableContext = OperationIdentifiers.ForTableGet(datasourceId, createdTable.TableName!, schemaName);
         var retrievedTable = await service.GetTableAsync(
             tableContext,
             datasourceId,
@@ -156,8 +125,7 @@ public partial class DapperMaticServiceTests
         retrievedTable.Columns.Should().HaveCount(3);
 
         // Attempt to add duplicate Table (should fail)
-        var duplicateAct = async () =>
-            await service.CreateTableAsync(createContext, datasourceId, createTableRequest);
+        var duplicateAct = async () => await service.CreateTableAsync(createContext, datasourceId, createTableRequest);
         await duplicateAct.Should().ThrowAsync<DuplicateKeyException>();
 
         // Rename Table
@@ -179,17 +147,8 @@ public partial class DapperMaticServiceTests
         renamedTable.TableName.Should().BeEquivalentTo(newTableName);
 
         // Verify Table renamed
-        var renamedTableContext = OperationIdentifiers.ForTableGet(
-            datasourceId,
-            newTableName,
-            schemaName
-        );
-        renamedTable = await service.GetTableAsync(
-            renamedTableContext,
-            datasourceId,
-            newTableName,
-            schemaName
-        );
+        var renamedTableContext = OperationIdentifiers.ForTableGet(datasourceId, newTableName, schemaName);
+        renamedTable = await service.GetTableAsync(renamedTableContext, datasourceId, newTableName, schemaName);
         renamedTable.Should().NotBeNull();
         renamedTable.TableName.Should().BeEquivalentTo(newTableName);
 
@@ -211,12 +170,7 @@ public partial class DapperMaticServiceTests
             Skip = 0,
             Filters = new Dictionary<string, string> { { "Name.eq", "Test Name" } },
         };
-        var queryContext = OperationIdentifiers.ForTableQuery(
-            datasourceId,
-            newTableName,
-            queryRequest,
-            schemaName
-        );
+        var queryContext = OperationIdentifiers.ForTableQuery(datasourceId, newTableName, queryRequest, schemaName);
         var queryResult = await service.QueryTableAsync(
             queryContext,
             datasourceId,
@@ -233,11 +187,7 @@ public partial class DapperMaticServiceTests
         await service.DropTableAsync(dropContext, datasourceId, newTableName, schemaName);
 
         // Verify Table dropped using both GetTables and GetTable
-        var tablesAfterDrop = await service.GetTablesAsync(
-            listContext,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var tablesAfterDrop = await service.GetTablesAsync(listContext, datasourceId, schemaName: schemaName);
         tablesAfterDrop.Should().HaveCount(initialTableCount + 1);
 
         var getDroppedAct = async () =>
@@ -250,12 +200,7 @@ public partial class DapperMaticServiceTests
             createTableRequest2.TableName!,
             schemaName
         );
-        await service.DropTableAsync(
-            dropTableContext2,
-            datasourceId,
-            createTableRequest2.TableName!,
-            schemaName
-        );
+        await service.DropTableAsync(dropTableContext2, datasourceId, createTableRequest2.TableName!, schemaName);
     }
 
     [Theory]
@@ -270,11 +215,7 @@ public partial class DapperMaticServiceTests
 
         // Verify initial state - get initial table count
         var context = OperationIdentifiers.ForTableList(datasourceId, schemaName);
-        var initialTables = await service.GetTablesAsync(
-            context,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var initialTables = await service.GetTablesAsync(context, datasourceId, schemaName: schemaName);
         initialTables.Should().NotBeNull();
         var initialTableCount = initialTables.Count();
 
@@ -283,18 +224,8 @@ public partial class DapperMaticServiceTests
         // ***********************************************
 
         // Create multiple test tables with different structures
-        var simpleTable = await CreateSimpleTestTable(
-            service,
-            datasourceId,
-            "WorkflowTest_SimpleTable",
-            schemaName
-        );
-        var complexTable = await CreateComplexTestTable(
-            service,
-            datasourceId,
-            "WorkflowTest_ComplexTable",
-            schemaName
-        );
+        var simpleTable = await CreateSimpleTestTable(service, datasourceId, "WorkflowTest_SimpleTable", schemaName);
+        var complexTable = await CreateComplexTestTable(service, datasourceId, "WorkflowTest_ComplexTable", schemaName);
         var dataTable = await CreateTestTableWithConstraints(
             service,
             datasourceId,
@@ -307,46 +238,20 @@ public partial class DapperMaticServiceTests
         dataTable.Should().NotBeNull();
 
         // Verify table creation - should now have 3 more tables
-        var tablesAfterCreation = await service.GetTablesAsync(
-            context,
-            datasourceId,
-            schemaName: schemaName
-        );
+        var tablesAfterCreation = await service.GetTablesAsync(context, datasourceId, schemaName: schemaName);
         tablesAfterCreation.Should().HaveCount(initialTableCount + 3);
         tablesAfterCreation
             .Should()
-            .Contain(t =>
-                string.Equals(
-                    t.TableName,
-                    "WorkflowTest_SimpleTable",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(t => string.Equals(t.TableName, "WorkflowTest_SimpleTable", StringComparison.OrdinalIgnoreCase));
         tablesAfterCreation
             .Should()
-            .Contain(t =>
-                string.Equals(
-                    t.TableName,
-                    "WorkflowTest_ComplexTable",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(t => string.Equals(t.TableName, "WorkflowTest_ComplexTable", StringComparison.OrdinalIgnoreCase));
         tablesAfterCreation
             .Should()
-            .Contain(t =>
-                string.Equals(
-                    t.TableName,
-                    "WorkflowTest_DataTable",
-                    StringComparison.OrdinalIgnoreCase
-                )
-            );
+            .Contain(t => string.Equals(t.TableName, "WorkflowTest_DataTable", StringComparison.OrdinalIgnoreCase));
 
         // Step 4: Get specific table with full details
-        var getContext = OperationIdentifiers.ForTableGet(
-            datasourceId,
-            "WorkflowTest_ComplexTable",
-            schemaName
-        );
+        var getContext = OperationIdentifiers.ForTableGet(datasourceId, "WorkflowTest_ComplexTable", schemaName);
         var specificTable = await service.GetTableAsync(
             getContext,
             datasourceId,
@@ -354,11 +259,7 @@ public partial class DapperMaticServiceTests
             schemaName: schemaName
         );
         specificTable.Should().NotBeNull();
-        string.Equals(
-                specificTable!.TableName,
-                "WorkflowTest_ComplexTable",
-                StringComparison.OrdinalIgnoreCase
-            )
+        string.Equals(specificTable!.TableName, "WorkflowTest_ComplexTable", StringComparison.OrdinalIgnoreCase)
             .Should()
             .BeTrue();
         specificTable.Columns.Should().NotBeEmpty();
@@ -386,11 +287,7 @@ public partial class DapperMaticServiceTests
             "WorkflowTest_ComplexTable",
             schemaName: schemaName
         );
-        var dataExistsContext = OperationIdentifiers.ForTableExists(
-            datasourceId,
-            "WorkflowTest_DataTable",
-            schemaName
-        );
+        var dataExistsContext = OperationIdentifiers.ForTableExists(datasourceId, "WorkflowTest_DataTable", schemaName);
         var dataExists = await service.TableExistsAsync(
             dataExistsContext,
             datasourceId,
@@ -450,12 +347,7 @@ public partial class DapperMaticServiceTests
             Filters = new Dictionary<string, string> { { "Status.eq", "Active" } },
         };
 
-        queryContext = OperationIdentifiers.ForTableQuery(
-            datasourceId,
-            "WorkflowTest_DataTable",
-            request,
-            schemaName
-        );
+        queryContext = OperationIdentifiers.ForTableQuery(datasourceId, "WorkflowTest_DataTable", request, schemaName);
         result = await service.QueryTableAsync(
             queryContext,
             datasourceId,
@@ -501,12 +393,7 @@ public partial class DapperMaticServiceTests
             OrderBy = "Email.desc",
         };
 
-        queryContext = OperationIdentifiers.ForTableQuery(
-            datasourceId,
-            "WorkflowTest_DataTable",
-            request,
-            schemaName
-        );
+        queryContext = OperationIdentifiers.ForTableQuery(datasourceId, "WorkflowTest_DataTable", request, schemaName);
         result = await service.QueryTableAsync(
             queryContext,
             datasourceId,
@@ -519,19 +406,12 @@ public partial class DapperMaticServiceTests
         result.Data.Should().NotBeNull();
     }
 
-    private async Task CheckInvalidDatasourceHandlingFetchingTables(
-        IDapperMaticService service,
-        string? schemaName
-    )
+    private async Task CheckInvalidDatasourceHandlingFetchingTables(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";
         var invalidContext = OperationIdentifiers.ForTableList(invalidDatasourceId, schemaName);
         var invalidAct = async () =>
-            await service.GetTablesAsync(
-                invalidContext,
-                invalidDatasourceId,
-                schemaName: schemaName
-            );
+            await service.GetTablesAsync(invalidContext, invalidDatasourceId, schemaName: schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -551,8 +431,7 @@ public partial class DapperMaticServiceTests
         }
 
         var invalidContext = OperationIdentifiers.ForTableList(datasourceId, schemaName);
-        var invalidAct = async () =>
-            await service.GetTablesAsync(invalidContext, datasourceId, schemaName);
+        var invalidAct = async () => await service.GetTablesAsync(invalidContext, datasourceId, schemaName);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 
@@ -641,10 +520,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },
@@ -711,11 +588,7 @@ public partial class DapperMaticServiceTests
             },
             UniqueConstraints =
             [
-                new UniqueConstraintDto
-                {
-                    ConstraintName = $"UQ_{tableName}_Email",
-                    ColumnNames = ["Email"],
-                },
+                new UniqueConstraintDto { ConstraintName = $"UQ_{tableName}_Email", ColumnNames = ["Email"] },
             ],
             CheckConstraints =
                 datasourceId != TestcontainersAssemblyFixture.DatasourceId_MySql

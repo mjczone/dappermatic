@@ -98,14 +98,11 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
         _postgreSqlContainer?.GetConnectionString()
         ?? throw new InvalidOperationException("PostgreSQL container not initialized");
     public virtual string SqlServerContainerId =>
-        _sqlServerContainer?.Id
-        ?? throw new InvalidOperationException("SQL Server container not initialized");
+        _sqlServerContainer?.Id ?? throw new InvalidOperationException("SQL Server container not initialized");
     public virtual string MySqlContainerId =>
-        _mySqlContainer?.Id
-        ?? throw new InvalidOperationException("MySQL container not initialized");
+        _mySqlContainer?.Id ?? throw new InvalidOperationException("MySQL container not initialized");
     public virtual string PostgreSqlContainerId =>
-        _postgreSqlContainer?.Id
-        ?? throw new InvalidOperationException("PostgreSQL container not initialized");
+        _postgreSqlContainer?.Id ?? throw new InvalidOperationException("PostgreSQL container not initialized");
 
     public virtual string TempFilePath => _tempFilePath;
 
@@ -184,9 +181,7 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
                 Provider = "Sqlite",
                 ConnectionString = new System.Data.SQLite.SQLiteConnectionStringBuilder
                 {
-                    DataSource = string.IsNullOrWhiteSpace(sqliteFile)
-                        ? _sqliteFilePath
-                        : sqliteFile,
+                    DataSource = string.IsNullOrWhiteSpace(sqliteFile) ? _sqliteFilePath : sqliteFile,
                     ForeignKeys = true,
                     BinaryGUID = false,
                     FailIfMissing = false,

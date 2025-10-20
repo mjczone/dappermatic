@@ -53,11 +53,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         getResponse1.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // 3. CREATE - Create a new view
-        var createRequest = new ViewDto
-        {
-            ViewName = viewName,
-            Definition = "SELECT 1 AS Id, 'Initial' AS Name",
-        };
+        var createRequest = new ViewDto { ViewName = viewName, Definition = "SELECT 1 AS Id, 'Initial' AS Name" };
         var createContent = new StringContent(
             JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
@@ -71,9 +67,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createResult.Result!.ViewName.Should().Be(viewName);
 
         // 4. EXISTS - Check if view exists (should return true)
-        var existsResponse1 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}/exists"
-        );
+        var existsResponse1 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}/exists");
         existsResponse1.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult1 = await existsResponse1.ReadAsJsonAsync<ViewExistsResponse>();
         existsResult1.Should().NotBeNull();
@@ -89,9 +83,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         listResult2.Result.Should().Contain(v => v.ViewName == viewName);
 
         // 6. GET SINGLE - Get the created view (should return view details)
-        var getResponse2 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}?include=definition"
-        );
+        var getResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}?include=definition");
         getResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         // var responseText = await getResponse2.Content.ReadAsStringAsync();
         var getResult2 = await getResponse2.ReadAsJsonAsync<ViewResponse>();
@@ -101,28 +93,20 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         getResult2.Result.Definition.Should().Contain("Initial");
 
         // 7. UPDATE - Update the view definition
-        var updateRequest = new ViewDto
-        {
-            Definition = "SELECT 2 AS Id, 'Updated' AS Name, 'Modified' AS Description",
-        };
+        var updateRequest = new ViewDto { Definition = "SELECT 2 AS Id, 'Updated' AS Name, 'Modified' AS Description" };
         var updateContent = new StringContent(
             JsonSerializer.Serialize(updateRequest),
             Encoding.UTF8,
             "application/json"
         );
-        var updateResponse = await client.PutAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}",
-            updateContent
-        );
+        var updateResponse = await client.PutAsync($"/api/dm/d/{datasourceId}/v/{viewName}", updateContent);
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var updateResult = await updateResponse.ReadAsJsonAsync<ViewResponse>();
         updateResult.Should().NotBeNull();
         updateResult!.Result.Should().NotBeNull();
 
         // 8. GET SINGLE - Get updated view (should show changes)
-        var getResponse3 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}?include=definition"
-        );
+        var getResponse3 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}?include=definition");
         getResponse3.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult3 = await getResponse3.ReadAsJsonAsync<ViewResponse>();
         getResult3.Should().NotBeNull();
@@ -136,9 +120,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 10. EXISTS - Check if view exists (should return false)
-        var existsResponse2 = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/v/{viewName}/exists"
-        );
+        var existsResponse2 = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}/exists");
         existsResponse2.StatusCode.Should().Be(HttpStatusCode.OK);
         var existsResult2 = await existsResponse2.ReadAsJsonAsync<ViewExistsResponse>();
         existsResult2.Should().NotBeNull();
@@ -201,9 +183,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             postQueryResult.Pagination.Take.Should().Be(10);
 
             // Test GET query with parameters
-            var getQueryResponse = await client.GetAsync(
-                $"/api/dm/d/{datasourceId}/v/{viewName}/query?take=5&skip=0"
-            );
+            var getQueryResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/v/{viewName}/query?take=5&skip=0");
             getQueryResponse.StatusCode.Should().Be(HttpStatusCode.OK);
             var getQueryResult = await getQueryResponse.ReadAsJsonAsync<QueryResponse>();
             getQueryResult.Should().NotBeNull();
@@ -254,10 +234,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var invalidCreateResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/v/",
-            invalidCreateContent
-        );
+        var invalidCreateResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", invalidCreateContent);
         invalidCreateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var invalidCreateResult = await invalidCreateResponse.ReadAsJsonAsync<ViewResponse>();
         invalidCreateResult.Should().NotBeNull();
@@ -284,8 +261,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
                 duplicateCreateContent
             );
             duplicateCreateResponse.StatusCode.Should().Be(HttpStatusCode.Conflict);
-            var duplicateCreateResult =
-                await duplicateCreateResponse.ReadAsJsonAsync<ViewResponse>();
+            var duplicateCreateResult = await duplicateCreateResponse.ReadAsJsonAsync<ViewResponse>();
             duplicateCreateResult.Should().NotBeNull();
             // Note: Specific error message may vary based on validation implementation
         }
@@ -312,9 +288,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         updateNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Delete non-existent view
-        var deleteNonExistentResponse = await client.DeleteAsync(
-            $"/api/dm/d/{datasourceId}/v/{nonExistentView}"
-        );
+        var deleteNonExistentResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/v/{nonExistentView}");
         deleteNonExistentResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
 
         // Test invalid update (empty definition)
@@ -327,10 +301,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
             Encoding.UTF8,
             "application/json"
         );
-        var invalidUpdateResponse = await client.PutAsync(
-            $"/api/dm/d/{datasourceId}/v/SomeView",
-            invalidUpdateContent
-        );
+        var invalidUpdateResponse = await client.PutAsync($"/api/dm/d/{datasourceId}/v/SomeView", invalidUpdateContent);
         invalidUpdateResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var invalidUpdateResult = await invalidUpdateResponse.ReadAsJsonAsync<ViewResponse>();
         invalidUpdateResult.Should().NotBeNull();
@@ -360,20 +331,13 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         var initialViewCount = listResult1!.Result?.Count() ?? 0;
 
         // 2. CREATE - Create a new view in schema
-        var createRequest = new ViewDto
-        {
-            ViewName = viewName,
-            Definition = "SELECT 1 AS Id, 'Schema Test' AS Name",
-        };
+        var createRequest = new ViewDto { ViewName = viewName, Definition = "SELECT 1 AS Id, 'Schema Test' AS Name" };
         var createContent = new StringContent(
             JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
             "application/json"
         );
-        var createResponse = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/",
-            createContent
-        );
+        var createResponse = await client.PostAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/", createContent);
         createResponse.StatusCode.Should().Be(HttpStatusCode.Created);
         var createResult = await createResponse.ReadAsJsonAsync<ViewResponse>();
         createResult.Should().NotBeNull();
@@ -382,9 +346,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         createResult.Result.SchemaName.Should().Be(schemaName);
 
         // 3. GET SINGLE - Get the created view from schema
-        var getResponse = await client.GetAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}"
-        );
+        var getResponse = await client.GetAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}");
         getResponse.StatusCode.Should().Be(HttpStatusCode.OK);
         var getResult = await getResponse.ReadAsJsonAsync<ViewResponse>();
         getResult.Should().NotBeNull();
@@ -393,10 +355,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         getResult.Result.SchemaName.Should().Be(schemaName);
 
         // 4. UPDATE - Update the view in schema
-        var updateRequest = new ViewDto
-        {
-            Definition = "SELECT 2 AS Id, 'Updated Schema Test' AS Name",
-        };
+        var updateRequest = new ViewDto { Definition = "SELECT 2 AS Id, 'Updated Schema Test' AS Name" };
         var updateContent = new StringContent(
             JsonSerializer.Serialize(updateRequest),
             Encoding.UTF8,
@@ -409,9 +368,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // 5. DELETE - Delete the view from schema
-        var deleteResponse = await client.DeleteAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}"
-        );
+        var deleteResponse = await client.DeleteAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}");
         deleteResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // 6. GET MULTI - List views again (should be back to initial count)
@@ -440,11 +397,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_Sqlite;
 
         // Create view
-        var createRequest = new ViewDto
-        {
-            ViewName = viewName,
-            Definition = "SELECT 1 AS TestColumn",
-        };
+        var createRequest = new ViewDto { ViewName = viewName, Definition = "SELECT 1 AS TestColumn" };
         var createContent = new StringContent(
             JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
@@ -486,11 +439,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
         const string datasourceId = TestcontainersAssemblyFixture.DatasourceId_SqlServer;
 
         // Create view
-        var createRequest = new ViewDto
-        {
-            ViewName = viewName,
-            Definition = "SELECT 1 AS TestColumn",
-        };
+        var createRequest = new ViewDto { ViewName = viewName, Definition = "SELECT 1 AS TestColumn" };
         var createContent = new StringContent(
             JsonSerializer.Serialize(createRequest),
             Encoding.UTF8,
@@ -527,11 +476,7 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     )
     {
         var request = new ViewDto { ViewName = viewName, Definition = viewDefinition };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
 
         var response = await client.PostAsync($"/api/dm/d/{datasourceId}/v/", content);
         response.EnsureSuccessStatusCode();
@@ -546,16 +491,9 @@ public class ViewEndpointsTests : IClassFixture<TestcontainersAssemblyFixture>
     )
     {
         var request = new ViewDto { ViewName = viewName, Definition = viewDefinition };
-        var content = new StringContent(
-            JsonSerializer.Serialize(request),
-            Encoding.UTF8,
-            "application/json"
-        );
+        var content = new StringContent(JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
 
-        var response = await client.PostAsync(
-            $"/api/dm/d/{datasourceId}/s/{schemaName}/v/",
-            content
-        );
+        var response = await client.PostAsync($"/api/dm/d/{datasourceId}/s/{schemaName}/v/", content);
         response.EnsureSuccessStatusCode();
     }
 

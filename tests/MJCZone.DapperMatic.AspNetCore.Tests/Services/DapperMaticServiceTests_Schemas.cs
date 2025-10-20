@@ -33,16 +33,9 @@ public partial class DapperMaticServiceTests
         // Non-existent schema throws NotFound (only for providers that support schemas)
         if (supportsSchemas)
         {
-            var invalidSchemaContext = OperationIdentifiers.ForSchemaGet(
-                datasourceId,
-                "NonExistentSchema"
-            );
+            var invalidSchemaContext = OperationIdentifiers.ForSchemaGet(datasourceId, "NonExistentSchema");
             var invalidSchemaAct = async () =>
-                await service.GetSchemaAsync(
-                    invalidSchemaContext,
-                    datasourceId,
-                    "NonExistentSchema"
-                );
+                await service.GetSchemaAsync(invalidSchemaContext, datasourceId, "NonExistentSchema");
             await invalidSchemaAct.Should().ThrowAsync<KeyNotFoundException>();
         }
 
@@ -67,13 +60,11 @@ public partial class DapperMaticServiceTests
             // Test that unsupported providers throw InvalidOperationException
             var testSchema = new SchemaDto { SchemaName = "TestSchema" };
             var createContext = OperationIdentifiers.ForSchemaCreate(datasourceId, testSchema);
-            var createAct = async () =>
-                await service.CreateSchemaAsync(createContext, datasourceId, testSchema);
+            var createAct = async () => await service.CreateSchemaAsync(createContext, datasourceId, testSchema);
             await createAct.Should().ThrowAsync<InvalidOperationException>();
 
             var dropContext = OperationIdentifiers.ForSchemaDrop(datasourceId, "TestSchema");
-            var dropAct = async () =>
-                await service.DropSchemaAsync(dropContext, datasourceId, "TestSchema");
+            var dropAct = async () => await service.DropSchemaAsync(dropContext, datasourceId, "TestSchema");
             await dropAct.Should().ThrowAsync<InvalidOperationException>();
 
             return; // Skip remaining tests for unsupported providers
@@ -82,30 +73,16 @@ public partial class DapperMaticServiceTests
         // Add test schema
         var newSchemaName = "TestSchema_" + Guid.NewGuid().ToString("N")[..8];
         var createSchemaRequest = new SchemaDto { SchemaName = newSchemaName };
-        var createSchemaContext = OperationIdentifiers.ForSchemaCreate(
-            datasourceId,
-            createSchemaRequest
-        );
-        var createdSchema = await service.CreateSchemaAsync(
-            createSchemaContext,
-            datasourceId,
-            createSchemaRequest
-        );
+        var createSchemaContext = OperationIdentifiers.ForSchemaCreate(datasourceId, createSchemaRequest);
+        var createdSchema = await service.CreateSchemaAsync(createSchemaContext, datasourceId, createSchemaRequest);
         createdSchema.Should().NotBeNull();
         createdSchema!.SchemaName.Should().Be(newSchemaName);
 
         // Add second test schema
         var newSchemaName2 = "TestSchema2_" + Guid.NewGuid().ToString("N")[..8];
         var createSchemaRequest2 = new SchemaDto { SchemaName = newSchemaName2 };
-        var createSchemaContext2 = OperationIdentifiers.ForSchemaCreate(
-            datasourceId,
-            createSchemaRequest2
-        );
-        var createdSchema2 = await service.CreateSchemaAsync(
-            createSchemaContext2,
-            datasourceId,
-            createSchemaRequest2
-        );
+        var createSchemaContext2 = OperationIdentifiers.ForSchemaCreate(datasourceId, createSchemaRequest2);
+        var createdSchema2 = await service.CreateSchemaAsync(createSchemaContext2, datasourceId, createSchemaRequest2);
         createdSchema2.Should().NotBeNull();
 
         // Retrieve schemas again
@@ -119,11 +96,7 @@ public partial class DapperMaticServiceTests
 
         // Verify single schema exists
         var schemaContext = OperationIdentifiers.ForSchemaGet(datasourceId, newSchemaName);
-        var retrievedSchema = await service.GetSchemaAsync(
-            schemaContext,
-            datasourceId,
-            newSchemaName
-        );
+        var retrievedSchema = await service.GetSchemaAsync(schemaContext, datasourceId, newSchemaName);
         retrievedSchema.Should().NotBeNull();
         retrievedSchema!.SchemaName.Should().Be(newSchemaName);
 
@@ -132,10 +105,7 @@ public partial class DapperMaticServiceTests
         var exists = await service.SchemaExistsAsync(existsContext, datasourceId, newSchemaName);
         exists.Should().BeTrue();
 
-        var nonExistentExistsContext = OperationIdentifiers.ForSchemaExists(
-            datasourceId,
-            "NonExistentSchema"
-        );
+        var nonExistentExistsContext = OperationIdentifiers.ForSchemaExists(datasourceId, "NonExistentSchema");
         var nonExistentExists = await service.SchemaExistsAsync(
             nonExistentExistsContext,
             datasourceId,
@@ -155,15 +125,10 @@ public partial class DapperMaticServiceTests
         await service.DropSchemaAsync(dropSchemaContext, datasourceId, newSchemaName);
 
         // Verify schema dropped
-        var existsAfterDrop = await service.SchemaExistsAsync(
-            existsContext,
-            datasourceId,
-            newSchemaName
-        );
+        var existsAfterDrop = await service.SchemaExistsAsync(existsContext, datasourceId, newSchemaName);
         existsAfterDrop.Should().BeFalse();
 
-        var getDroppedAct = async () =>
-            await service.GetSchemaAsync(schemaContext, datasourceId, newSchemaName);
+        var getDroppedAct = async () => await service.GetSchemaAsync(schemaContext, datasourceId, newSchemaName);
         await getDroppedAct.Should().ThrowAsync<KeyNotFoundException>();
 
         // Cleanup - drop second test schema
@@ -175,8 +140,7 @@ public partial class DapperMaticServiceTests
     {
         var invalidDatasourceId = "NonExistent";
         var invalidContext = OperationIdentifiers.ForSchemaList(invalidDatasourceId);
-        var invalidAct = async () =>
-            await service.GetSchemasAsync(invalidContext, invalidDatasourceId);
+        var invalidAct = async () => await service.GetSchemasAsync(invalidContext, invalidDatasourceId);
         await invalidAct.Should().ThrowAsync<KeyNotFoundException>();
     }
 }

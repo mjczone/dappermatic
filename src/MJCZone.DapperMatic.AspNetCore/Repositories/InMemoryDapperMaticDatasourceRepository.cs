@@ -65,10 +65,7 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
 
         if (string.IsNullOrWhiteSpace(datasource.ConnectionString))
         {
-            throw new ArgumentException(
-                "Datasource connection string is required.",
-                nameof(datasource)
-            );
+            throw new ArgumentException("Datasource connection string is required.", nameof(datasource));
         }
 
         if (await DatasourceExistsAsync(datasource.Id).ConfigureAwait(false))
@@ -104,12 +101,7 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
         }
 
         // Get the current stored datasource for comparison
-        if (
-            !_datasources.TryGetValue(
-                datasource.Id.ToLowerInvariant(),
-                out DatasourceDto? storedDatasource
-            )
-        )
+        if (!_datasources.TryGetValue(datasource.Id.ToLowerInvariant(), out DatasourceDto? storedDatasource))
         {
             return Task.FromResult(false); // Doesn't exist
         }
@@ -137,11 +129,7 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
             UpdatedAt = DateTimeOffset.UtcNow,
         };
 
-        bool result = _datasources.TryUpdate(
-            datasource.Id.ToLowerInvariant(),
-            updatedDatasource,
-            storedDatasource
-        );
+        bool result = _datasources.TryUpdate(datasource.Id.ToLowerInvariant(), updatedDatasource, storedDatasource);
         return Task.FromResult(result);
     }
 
@@ -165,9 +153,7 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
             :
             [
                 .. collection
-                    .Where(d =>
-                        d.Tags != null && d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase)
-                    )
+                    .Where(d => d.Tags != null && d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
                     .OrderBy(d => d.DisplayName),
             ];
 
@@ -195,10 +181,7 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        if (
-            !_datasources.TryGetValue(id.ToLowerInvariant(), out DatasourceDto? datasource)
-            || datasource == null
-        )
+        if (!_datasources.TryGetValue(id.ToLowerInvariant(), out DatasourceDto? datasource) || datasource == null)
         {
             return Task.FromResult<DatasourceDto?>(null);
         }
@@ -240,18 +223,12 @@ internal sealed class InMemoryDapperMaticDatasourceRepository : DapperMaticDatas
         try
         {
             return Task.FromResult(
-                encryptedConnectionString != null
-                    ? DecryptConnectionString(encryptedConnectionString)
-                    : null
+                encryptedConnectionString != null ? DecryptConnectionString(encryptedConnectionString) : null
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to decrypt connection string for datasource ID {DatasourceId}",
-                id
-            );
+            _logger.LogError(ex, "Failed to decrypt connection string for datasource ID {DatasourceId}", id);
             return Task.FromResult<string?>(null);
         }
     }

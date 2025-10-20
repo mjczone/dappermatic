@@ -22,10 +22,7 @@ public partial class DapperMaticServiceTests
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
     [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
-    public async Task Can_manage_primary_key_constraint_Async(
-        string datasourceId,
-        string? schemaName
-    )
+    public async Task Can_manage_primary_key_constraint_Async(string datasourceId, string? schemaName)
     {
         using var factory = GetDefaultWebApplicationFactory();
         var service = GetDapperMaticService(factory);
@@ -50,18 +47,9 @@ public partial class DapperMaticServiceTests
         pk.Should().BeNull();
 
         // Add Primary Key
-        var pkRequest = new PrimaryKeyConstraintDto
-        {
-            ConstraintName = $"PK_{tableName}_Id",
-            ColumnNames = ["Id"],
-        };
+        var pkRequest = new PrimaryKeyConstraintDto { ConstraintName = $"PK_{tableName}_Id", ColumnNames = ["Id"] };
         var createdPk = await service.CreatePrimaryKeyConstraintAsync(
-            context: OperationIdentifiers.ForPrimaryKeyCreate(
-                datasourceId,
-                tableName,
-                pkRequest,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForPrimaryKeyCreate(datasourceId, tableName, pkRequest, schemaName),
             datasourceId,
             tableName,
             pkRequest,
@@ -69,9 +57,7 @@ public partial class DapperMaticServiceTests
         );
         createdPk.Should().NotBeNull();
         createdPk!.ConstraintName.Should().BeEquivalentTo(pkRequest.ConstraintName);
-        createdPk
-            .ColumnNames.Should()
-            .BeEquivalentTo(pkRequest.ColumnNames, (_) => _.IgnoringCase());
+        createdPk.ColumnNames.Should().BeEquivalentTo(pkRequest.ColumnNames, (_) => _.IgnoringCase());
 
         // Verify Primary Key was added
         pk = await service.GetPrimaryKeyConstraintAsync(
@@ -85,12 +71,7 @@ public partial class DapperMaticServiceTests
         // Attempt to add duplicate Primary Key throws DuplicateKeyException
         var duplicatePkAct = async () =>
             await service.CreatePrimaryKeyConstraintAsync(
-                context: OperationIdentifiers.ForPrimaryKeyCreate(
-                    datasourceId,
-                    tableName,
-                    pkRequest,
-                    schemaName
-                ),
+                context: OperationIdentifiers.ForPrimaryKeyCreate(datasourceId, tableName, pkRequest, schemaName),
                 datasourceId,
                 tableName,
                 pkRequest,
@@ -116,18 +97,9 @@ public partial class DapperMaticServiceTests
         pk.Should().BeNull();
 
         // Create primary key with two columns, and without a constraint name (should auto-generate)
-        var multiColPkRequest = new PrimaryKeyConstraintDto
-        {
-            ConstraintName = null,
-            ColumnNames = ["Id", "Name"],
-        };
+        var multiColPkRequest = new PrimaryKeyConstraintDto { ConstraintName = null, ColumnNames = ["Id", "Name"] };
         var multiColPk = await service.CreatePrimaryKeyConstraintAsync(
-            context: OperationIdentifiers.ForPrimaryKeyCreate(
-                datasourceId,
-                tableName,
-                multiColPkRequest,
-                schemaName
-            ),
+            context: OperationIdentifiers.ForPrimaryKeyCreate(datasourceId, tableName, multiColPkRequest, schemaName),
             datasourceId,
             tableName,
             multiColPkRequest,
@@ -177,10 +149,8 @@ public partial class DapperMaticServiceTests
                 {
                     ColumnName = "CreatedAt",
                     ProviderDataType =
-                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer
-                            ? "datetime2"
-                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql
-                            ? "timestamp"
+                        datasourceId == TestcontainersAssemblyFixture.DatasourceId_SqlServer ? "datetime2"
+                        : datasourceId == TestcontainersAssemblyFixture.DatasourceId_PostgreSql ? "timestamp"
                         : "datetime",
                     IsNullable = false,
                 },
@@ -191,17 +161,10 @@ public partial class DapperMaticServiceTests
         await service.CreateTableAsync(context, datasourceId, request);
     }
 
-    private async Task CheckInvalidDatasourceHandlingFetchingPrimaryKey(
-        IDapperMaticService service,
-        string? schemaName
-    )
+    private async Task CheckInvalidDatasourceHandlingFetchingPrimaryKey(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";
-        var invalidContext = OperationIdentifiers.ForPrimaryKeyGet(
-            invalidDatasourceId,
-            "AnyTable",
-            schemaName
-        );
+        var invalidContext = OperationIdentifiers.ForPrimaryKeyGet(invalidDatasourceId, "AnyTable", schemaName);
         var invalidAct = async () =>
             await service.GetPrimaryKeyConstraintAsync(
                 invalidContext,
@@ -218,11 +181,7 @@ public partial class DapperMaticServiceTests
         string? schemaName
     )
     {
-        var invalidTableContext = OperationIdentifiers.ForPrimaryKeyGet(
-            datasourceId,
-            "NonExistentTable",
-            schemaName
-        );
+        var invalidTableContext = OperationIdentifiers.ForPrimaryKeyGet(datasourceId, "NonExistentTable", schemaName);
         var invalidTableAct = async () =>
             await service.GetPrimaryKeyConstraintAsync(
                 invalidTableContext,
