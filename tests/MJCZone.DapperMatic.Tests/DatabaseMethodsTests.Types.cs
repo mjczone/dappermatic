@@ -3,14 +3,10 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.ComponentModel;
-using System.ComponentModel.Design.Serialization;
-using System.Data.Common;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Xml.Linq;
 using Dapper;
-using Docker.DotNet.Models;
 using MJCZone.DapperMatic.Models;
 using MJCZone.DapperMatic.Providers;
 using NpgsqlTypes;
@@ -616,7 +612,7 @@ public abstract partial class DatabaseMethodsTests
                         case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPath)); break;
                         case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPoint)); break;
                         case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPolygon)); break;
-                        case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
                         case "real[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
                         case "regclass": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
                         case "regconfig": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;

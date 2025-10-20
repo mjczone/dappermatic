@@ -802,6 +802,252 @@ public decimal Price { get; set; }
 public decimal Amount { get; set; }
 ```
 
+## Reverse Type Mapping (Database → .NET)
+
+This section shows how database-specific types are mapped back to .NET types when reading schema information. This is critical for understanding how DapperMatic reverse-engineers database columns into .NET types with full fidelity including length, precision, and scale.
+
+::: tip Round-Trip Fidelity
+These mappings ensure that when you:
+1. Create a column from a .NET type → Database type
+2. Read the column back → Database type → .NET type
+
+You get the same .NET type with the same metadata (length/precision/scale).
+:::
+
+### SQL Server Types → .NET Types
+
+| SQL Server Type | .NET Type | Length | Precision | Scale | Unicode | Notes |
+| --------------- | --------- | ------ | --------- | ----- | ------- | ----- |
+| `bigint` | `long` | | | | | 64-bit integer |
+| `binary` | `byte[]` | 1 | | | | Fixed-length binary |
+| `bit` | `bool` | | | | | Boolean (0 or 1) |
+| `char` | `string` | 1 | | | Yes | Fixed-length char |
+| `date` | `DateOnly` | | | | | Date only (no time) |
+| `datetime` | `DateTime` | | | | | Date and time |
+| `datetime2` | `DateTime` | | | | | Date and time (higher precision) |
+| `datetimeoffset` | `DateTimeOffset` | | | | | Date, time, and timezone offset |
+| `decimal` | `decimal` | | 18 | 2 | | Fixed-point decimal |
+| `float` | `double` | | | | | 64-bit floating point |
+| `geography` | `object` | | | | | Spatial geography type |
+| `geometry` | `object` | | | | | Spatial geometry type |
+| `hierarchyid` | `object` | | | | | Hierarchical data type |
+| `image` | `byte[]` | | | | | Legacy binary type (deprecated) |
+| `int` | `int` | | | | | 32-bit integer |
+| `money` | `decimal` | | | | | Currency type |
+| `nchar` | `string` | 1 | | | Yes | Fixed-length Unicode char |
+| `ntext` | `string` | | | | Yes | Legacy Unicode text (deprecated) |
+| `numeric` | `decimal` | | 18 | 2 | | Fixed-point numeric (same as decimal) |
+| `nvarchar` | `string` | 255 | | | Yes | Variable-length Unicode string |
+| `nvarchar(max)` | `string` | -1 | | | Yes | Unlimited Unicode string |
+| `real` | `float` | | | | | 32-bit floating point |
+| `rowversion` | `DateTime` | | | | | Row version timestamp |
+| `smalldatetime` | `DateTime` | | | | | Date and time (lower precision) |
+| `smallint` | `short` | | | | | 16-bit integer |
+| `smallmoney` | `decimal` | | | | | Small currency type |
+| `sql_variant` | `object` | | | | | Variable type container |
+| `text` | `string` | | | | Yes | Legacy text type (deprecated) |
+| `time` | `TimeOnly` | | | | | Time of day only |
+| `timestamp` | `DateTime` | | | | | Alias for rowversion |
+| `tinyint` | `byte` | | | | | 8-bit unsigned integer |
+| `uniqueidentifier` | `Guid` | | | | | GUID/UUID |
+| `varbinary` | `byte[]` | 1 | | | | Variable-length binary |
+| `varbinary(max)` | `byte[]` | -1 | | | | Unlimited binary data |
+| `varchar` | `string` | 255 | | | Yes | Variable-length string |
+| `varchar(max)` | `string` | -1 | | | Yes | Unlimited string |
+| `xml` | `XDocument` | | | | | XML data type |
+
+### MySQL Types → .NET Types
+
+| MySQL Type | .NET Type | Length | Precision | Scale | Unicode | Notes |
+| ---------- | --------- | ------ | --------- | ----- | ------- | ----- |
+| `bigint` | `long` | | | | | 64-bit integer |
+| `binary` | `byte[]` | 1 | | | | Fixed-length binary |
+| `bit` | `bool` | | | | | Boolean/bit field |
+| `blob` | `byte[]` | | | | Yes | Binary large object |
+| `boolean` | `bool` | | | | | Alias for TINYINT(1) |
+| `char` | `string` | 1 | | | Yes | Fixed-length char |
+| `date` | `DateOnly` | | | | | Date only |
+| `datetime` | `DateTime` | | | | | Date and time |
+| `decimal` | `decimal` | | 10 | 2 | | Fixed-point decimal |
+| `double` | `double` | | | | | 64-bit floating point |
+| `enum` | `string` | | | | Yes | Enumeration type |
+| `float` | `float` | | | | | 32-bit floating point |
+| `geometry` | `MySqlGeometry` | | | | | Spatial geometry type |
+| `geometrycollection` | `object` | | | | | Spatial collection |
+| `int` | `int` | | | | | 32-bit integer |
+| `json` | MySQL: `JsonDocument`<br/>MariaDB: `string` | | | | Yes | JSON type (MySQL 5.7+) / TEXT with validation (MariaDB 10.x) |
+| `linestring` | `object` | | | | | Spatial linestring |
+| `longblob` | `byte[]` | | | | Yes | Large binary object (up to 4GB) |
+| `longtext` | `string` | | | | Yes | Large text (up to 4GB) |
+| `mediumblob` | `byte[]` | | | | Yes | Medium binary object |
+| `mediumint` | `int` | | | | | 24-bit integer |
+| `mediumtext` | `string` | | | | Yes | Medium text |
+| `multilinestring` | `object` | | | | | Spatial multi-linestring |
+| `multipoint` | `object` | | | | | Spatial multi-point |
+| `multipolygon` | `object` | | | | | Spatial multi-polygon |
+| `point` | `object` | | | | | Spatial point |
+| `polygon` | `object` | | | | | Spatial polygon |
+| `set` | `string` | | | | Yes | SET enumeration type |
+| `smallint` | `short` | | | | | 16-bit integer |
+| `text` | `string` | | | | Yes | Text |
+| `time` | `TimeOnly` | | | | | Time of day |
+| `timestamp` | `DateTimeOffset` | | | | | Timestamp with timezone |
+| `tinyblob` | `byte[]` | | | | Yes | Tiny binary object |
+| `tinyint` | `sbyte` | | | | | 8-bit signed integer |
+| `tinytext` | `string` | | | | Yes | Tiny text |
+| `varbinary` | `byte[]` | 255 | | | Yes | Variable-length binary |
+| `varchar` | `string` | 255 | | | Yes | Variable-length string |
+| `year` | `int` | | | | | Year (2 or 4 digit) |
+
+::: info MySQL vs MariaDB
+- **MySQL 5.7+**: `JSON` type is true binary JSON (`JsonDocument`)
+- **MariaDB 10.x**: `JSON` is an alias for `LONGTEXT` with JSON validation constraints (maps to `string`)
+:::
+
+### PostgreSQL Types → .NET Types
+
+PostgreSQL has the richest type system with native arrays, ranges, network types, and more.
+
+#### Core Data Types
+
+| PostgreSQL Type | .NET Type | Length | Precision | Scale | Unicode | Notes |
+| --------------- | --------- | ------ | --------- | ----- | ------- | ----- |
+| `bigint` | `long` | | | | | 64-bit integer |
+| `bigserial` | `long` | | | | | Auto-incrementing bigint |
+| `bit` | `string` | | | | Yes | Bit string |
+| `bit varying` | `string` | | | | Yes | Variable-length bit string |
+| `boolean` | `bool` | | | | | Boolean |
+| `box` | `NpgsqlBox` | | | | | Rectangular box |
+| `bytea` | `byte[]` | | | | | Binary data |
+| `character` | `string` | 1 | | | Yes | Fixed-length char |
+| `character varying` | `string` | 255 | | | Yes | Variable-length string (VARCHAR) |
+| `cidr` | `NpgsqlCidr` | | | | | CIDR network address |
+| `circle` | `NpgsqlCircle` | | | | | Circle |
+| `date` | `DateOnly` | | | | | Date only |
+| `daterange` | `NpgsqlRange<DateOnly>` | | | | | Range of dates |
+| `double precision` | `double` | | | | | 64-bit floating point |
+| `geography` | `object` | | | | | PostGIS geography type |
+| `geometry` | `object` | | | | | PostGIS geometry type |
+| `hstore` | `Dictionary<string,string>` | | | | | Key-value store |
+| `inet` | `IPAddress` | | | | | IP address |
+| `int4range` | `NpgsqlRange<int>` | | | | | Range of integers |
+| `int8range` | `NpgsqlRange<long>` | | | | | Range of bigints |
+| `integer` | `int` | | | | | 32-bit integer |
+| `interval` | `TimeSpan` | | | | | Time interval/duration |
+| `json` | `JsonDocument` | | | | | JSON text |
+| `jsonb` | `JsonDocument` | | | | | Binary JSON (preferred) |
+| `line` | `NpgsqlLine` | | | | | Infinite line |
+| `lseg` | `NpgsqlLSeg` | | | | | Line segment |
+| `ltree` | `object` | | | | | Label tree (requires extension) |
+| `macaddr` | `PhysicalAddress` | | | | | MAC address |
+| `macaddr8` | `PhysicalAddress` | | | | | MAC address (EUI-64) |
+| `money` | `decimal` | | | | | Currency |
+| `numeric` | `decimal` | | 18 | 2 | | Fixed-point numeric |
+| `numrange` | `NpgsqlRange<double>` | | | | | Range of numeric values |
+| `oid` | `uint` | | | | | Object identifier |
+| `path` | `NpgsqlPath` | | | | | Geometric path |
+| `point` | `NpgsqlPoint` | | | | | Geometric point |
+| `polygon` | `NpgsqlPolygon` | | | | | Geometric polygon |
+| `real` | `float` | | | | | 32-bit floating point |
+| `regclass` | `object` | | | | | Registered class |
+| `regconfig` | `object` | | | | | Text search configuration |
+| `regdictionary` | `object` | | | | | Text search dictionary |
+| `regoper` | `object` | | | | | Registered operator |
+| `regoperator` | `object` | | | | | Registered operator with signature |
+| `regproc` | `object` | | | | | Registered procedure |
+| `regprocedure` | `object` | | | | | Registered procedure with signature |
+| `regtype` | `object` | | | | | Registered type |
+| `serial` | `int` | | | | | Auto-incrementing integer |
+| `smallint` | `short` | | | | | 16-bit integer |
+| `smallserial` | `short` | | | | | Auto-incrementing smallint |
+| `text` | `string` | | | | Yes | Variable-length text |
+| `time` | `TimeOnly` | | | | | Time of day |
+| `time with time zone` | `TimeOnly` | | | | | Time with timezone |
+| `timestamp` | `DateTime` | | | | | Timestamp without timezone |
+| `timestamp with time zone` | `DateTimeOffset` | | | | | Timestamp with timezone |
+| `tsquery` | `NpgsqlTsQuery` | | | | | Text search query |
+| `tsrange` | `NpgsqlRange<DateTime>` | | | | | Range of timestamps |
+| `tstzrange` | `NpgsqlRange<DateTimeOffset>` | | | | | Range of timestamps with timezone |
+| `tsvector` | `NpgsqlTsVector` | | | | | Text search vector |
+| `uuid` | `Guid` | | | | | UUID |
+| `xml` | `XDocument` | | | | | XML data |
+
+#### PostgreSQL Array Types
+
+PostgreSQL supports native typed arrays. Both notations are recognized:
+
+| PostgreSQL Type (Standard) | PostgreSQL Type (Internal) | .NET Type | Notes |
+| -------------------------- | -------------------------- | --------- | ----- |
+| `bigint[]` | `_int8` | `long[]` | Array of 64-bit integers |
+| `boolean[]` | `_bool` | `bool[]` | Array of booleans |
+| `bytea[]` | `_bytea` | `byte[][]` | Array of byte arrays |
+| `character[]` | `_bpchar` | `char[]` | Array of characters |
+| `character varying[]` | `_varchar` | `string[]` | Array of strings |
+| `date[]` | `_date` | `DateOnly[]` | Array of dates |
+| `double precision[]` | `_float8` | `double[]` | Array of 64-bit floats |
+| `integer[]` | `_int4` | `int[]` | Array of 32-bit integers |
+| `interval[]` | `_interval` | `TimeSpan[]` | Array of time intervals |
+| `json[]` | `_json` | `JsonDocument[]` | Array of JSON documents |
+| `jsonb[]` | `_jsonb` | `JsonDocument[]` | Array of binary JSON |
+| `numeric[]` | `_numeric` | `decimal[]` | Array of decimals |
+| `real[]` | `_float4` | `float[]` | Array of 32-bit floats |
+| `smallint[]` | `_int2` | `short[]` | Array of 16-bit integers |
+| `text[]` | `_text` | `string[]` | Array of text strings |
+| `time[]` | `_time` | `TimeOnly[]` | Array of times |
+| `time with time zone[]` | `_timetz` | `TimeOnly[]` | Array of times with timezone |
+| `timestamp[]` | `_timestamp` | `DateTime[]` | Array of timestamps |
+| `timestamp with time zone[]` | `_timestamptz` | `DateTimeOffset[]` | Array of timestamps with timezone |
+| `uuid[]` | `_uuid` | `Guid[]` | Array of UUIDs |
+
+::: info PostgreSQL Array Notation
+- **Standard notation**: `text[]`, `integer[]`, etc. (used in CREATE TABLE)
+- **Internal notation**: `_text`, `_int4`, etc. (returned by system catalogs)
+- DapperMatic recognizes **both** notations when reading schema
+:::
+
+### SQLite Types → .NET Types
+
+SQLite has only 5 storage classes but accepts many type names for compatibility.
+
+| SQLite Type | .NET Type | Length | Precision | Scale | Notes |
+| ----------- | --------- | ------ | --------- | ----- | ----- |
+| `blob` | `byte[]` | | | | Binary data (BLOB storage class) |
+| `boolean` | `bool` | | | | Stored as INTEGER 0/1 |
+| `char` | `string` | 1 | | | Fixed-length char (TEXT storage class) |
+| `date` | `DateOnly` | | | | Date (TEXT/INTEGER/REAL storage) |
+| `datetime` | `DateTime` | | | | Date and time (TEXT/INTEGER/REAL storage) |
+| `decimal` | `decimal` | | 18 | 2 | Fixed-point decimal (TEXT/REAL storage) |
+| `integer` | `int` | | | | Integer (INTEGER storage class) |
+| `numeric` | `decimal` | | | | Numeric (any storage class with numeric affinity) |
+| `real` | `double` | | | | 64-bit float (REAL storage class - 8 bytes) |
+| `text` | `string` | | | | Text (TEXT storage class) |
+| `time` | `TimeOnly` | | | | Time (TEXT/INTEGER/REAL storage) |
+| `timestamp` | `DateTime` | | | | Timestamp (TEXT/INTEGER/REAL storage) |
+| `varchar` | `string` | 255 | | | Variable-length string (TEXT storage class) |
+
+::: info SQLite Type Affinity
+- **Storage Classes**: NULL, INTEGER, REAL, TEXT, BLOB (only 5 fundamental types)
+- **Type Affinity**: SQLite determines storage class based on declared type name
+- **Flexibility**: Accepts many type names (varchar, decimal, datetime, etc.) for compatibility
+- **Precision/Scale**: SQLite accepts but doesn't enforce precision/scale - DapperMatic preserves these in schema for round-tripping
+- **REAL is 8-byte**: SQLite's REAL type stores 8-byte IEEE floating point (maps to .NET `double`, not `float`)
+:::
+
+### Precision and Scale Defaults
+
+When database types support precision and scale, these are the defaults used:
+
+| Provider | Type | Default Precision | Default Scale | Max Precision | Max Scale |
+| -------- | ---- | ----------------- | ------------- | ------------- | --------- |
+| **SQL Server** | `decimal`/`numeric` | 18 | 2 | 38 | 38 |
+| **MySQL** | `decimal` | 10 | 2 | 65 | 30 |
+| **PostgreSQL** | `numeric`/`decimal` | 18 | 2 | 1000 | 1000 |
+| **SQLite** | `decimal`/`numeric` | 18 | 2 | 1000 | 1000 |
+
+::: warning Precision Differences
+Note that **MySQL defaults to precision=10** while other providers default to precision=18. This matches each database's actual defaults but means a `decimal` property will have different precision across databases unless explicitly specified.
+:::
+
 ## Getting Help
 
 If you encounter provider-specific issues:

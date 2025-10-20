@@ -377,6 +377,14 @@
   --vp-c-caution-2: var(--vp-c-red-2);
   --vp-c-caution-3: var(--vp-c-red-3);
   --vp-c-caution-soft: var(--vp-c-red-soft);
+  /* --vp-custom-block-tip-bg: var(--vp-c-tip-soft); */
+  --vp-custom-block-tip-bg: var(--q-blue-4);
+  /* --vp-custom-block-note-bg: var(--vp-c-note-soft);
+  --vp-custom-block-success-bg: var(--vp-c-success-soft);
+  --vp-custom-block-important-bg: var(--vp-c-important-soft);
+  --vp-custom-block-warning-bg: var(--vp-c-warning-soft);
+  --vp-custom-block-danger-bg: var(--vp-c-danger-soft);
+  --vp-custom-block-caution-bg: var(--vp-c-caution-soft); */
 }
 
 .dark {
@@ -409,6 +417,7 @@
   --vp-c-red-2: #f14158;
   --vp-c-red-3: #b62a3c;
   --vp-c-red-soft: rgba(244, 63, 94, 0.16);
+  --vp-custom-block-tip-bg: var(--q-blue-10);
 }
 
 :root {
@@ -650,4 +659,10 @@
   background: var(--vp-c-bg-soft);
   border-color: var(--vp-c-brand-1);
   color: var(--vp-c-text-1) !important;
+}
+
+.custom-block.tip a, 
+.custom-block.tip a:hover, 
+.custom-block.tip code {
+    color: var(--q-blue-1) !important;
 }

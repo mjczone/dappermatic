@@ -404,12 +404,12 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_serial8:
                     return new DotnetTypeDescriptor(typeof(long), isAutoIncrementing: true);
                 case PostgreSqlTypes.sql_real:
-                    return new DotnetTypeDescriptor(typeof(float));
                 case PostgreSqlTypes.sql_float4:
+                    return new DotnetTypeDescriptor(typeof(float));
                 case PostgreSqlTypes.sql_double_precision:
+                case PostgreSqlTypes.sql_float8:
                     return new DotnetTypeDescriptor(typeof(double));
                 case PostgreSqlTypes.sql_decimal:
-                case PostgreSqlTypes.sql_float8:
                 case PostgreSqlTypes.sql_money:
                 case PostgreSqlTypes.sql_numeric:
                     return new DotnetTypeDescriptor(typeof(decimal))
