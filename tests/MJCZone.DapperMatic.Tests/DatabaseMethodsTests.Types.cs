@@ -3,9 +3,17 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.ComponentModel;
+using System.ComponentModel.Design.Serialization;
+using System.Data.Common;
+using System.Net;
+using System.Net.NetworkInformation;
+using System.Xml.Linq;
 using Dapper;
+using Docker.DotNet.Models;
 using MJCZone.DapperMatic.Models;
 using MJCZone.DapperMatic.Providers;
+using NpgsqlTypes;
 
 namespace MJCZone.DapperMatic.Tests;
 
@@ -431,52 +439,309 @@ public abstract partial class DatabaseMethodsTests
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
         var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
 
-        var file = @"/mnt/c/Temp/provider_datatypes_" + dbType.ToString() + "_" + dbVersion.ToString() + ".csv";
-        using var writer = new StreamWriter(file, append: false);
-        writer.WriteLine("Provider,Data Type,Category,Supports Length,Supports Precision,Supports Scale,Aliases,DotNetType,DotNetTypeUnicode");
+        // We do this so that we can review the results easily, and so that everything is explicitly documented
 
         foreach (var providerDataType in providerDataTypes)
         {
-            // Disregard postgis types if postgis extension is not installed
-            if (dbType == DbProviderType.PostgreSql && postgisTypes.Contains(providerDataType.DataType, StringComparer.OrdinalIgnoreCase) && !hasPostgisExtension)
-            {
-                continue;
-            }
-
             // Print out all provider data types for debugging, along with aliases
-            var aliases = providerDataType.Aliases != null
-                ? string.Join(", ", providerDataType.Aliases)
-                : "None";
+            string[] aliases = providerDataType.Aliases != null
+                ? [.. providerDataType.Aliases]
+                : [];
 
-            Output.WriteLine(
-                "Provider: {0} Data Type: {1}, Category: {2}, SupportsLength: {3}, SupportsPrecision: {4}, SupportsScale: {5}, Aliases: {6}",
-                $"{dbType} ({dbVersion})",
-                providerDataType.DataType,
-                providerDataType.Category,
-                providerDataType.SupportsLength,
-                providerDataType.SupportsPrecision,
-                providerDataType.SupportsScale,
-                aliases
-            );
+            string[] providerDataTypeNames = [.. aliases, providerDataType.DataType];
 
-            // Create a table with a column of that type to verify it can be created
-            const string tableName = "testTableWithAllProviderTypes";
-            const string columnName = "testColumnWithProviderType";
-            const string tableNameUnicode = "testTableWithAllProviderTypesUnicode";
-            const string columnNameUnicode = "testColumnWithProviderTypeUnicode";
-            await db.DropTableIfExistsAsync(null, tableName);
-
-            var actualProviderTypeName = providerDataType.DataType;
-            if (dbType == DbProviderType.MySql && (providerDataType.DataType.Equals("enum", StringComparison.OrdinalIgnoreCase) || providerDataType.DataType.Equals("set", StringComparison.OrdinalIgnoreCase)))
+            foreach (var providerDataTypeName in providerDataTypeNames)
             {
-                // Enums need a length
-                actualProviderTypeName += "( 'Value1', 'Value2' )";
+                // Create a table with this type to verify it can be created, and return the column definition as DapperMatic sees it
+                DmColumn? column = await CreateTableWithProviderDataTypeAndGetColumnAsync(db, dbType, providerDataTypeName, providerDataType, hasPostgisExtension, postgisTypes);
+                // Some types can't be created directly, like POSTGIS geometry types without the postgis extension installed, so we skip those
+                if (column == null) continue;
+
+                void AssertValues(string pType, DataTypeCategory pTypeCategory, Type dotnetType, int? length = null, int? precision = null, int? scale = null, bool unicode = false, bool fixedLength = false, bool autoIncrement = false)
+                {
+                    // Print out the parameters for debugging
+                    base.Output.WriteLine(
+                        "Asserting provider type '{0}' maps to .NET type '{1}' (Category: {2}, Length: {3}, Precision: {4}, Scale: {5}, IsUnicode: {6}, IsFixedLength: {7}, IsAutoIncrement: {8})",
+                        pType,
+                        dotnetType.FullName,
+                        pTypeCategory,
+                        length.HasValue ? length.Value.ToString() : "null",
+                        precision.HasValue ? precision.Value.ToString() : "null",
+                        scale.HasValue ? scale.Value.ToString() : "null",
+                        unicode,
+                        fixedLength,
+                        autoIncrement
+                    );
+                    try
+                    {
+                        Assert.NotEmpty(pType);
+                        Assert.Equal(dotnetType, column.DotnetType);
+                        if (length != null) Assert.Equal(length, column.Length);
+                        if (precision != null) Assert.Equal(precision, column.Precision);
+                        if (scale != null) Assert.Equal(scale, column.Scale);
+                        Assert.Equal(unicode, column.IsUnicode);
+                        Assert.Equal(fixedLength, column.IsFixedLength);
+                        Assert.Equal(autoIncrement, column.IsAutoIncrement);
+                        base.Output.WriteLine("Assertion passed.");
+                    }
+                    catch (Exception ex)
+                    {
+                        base.Output.WriteLine("Exception during assertion: " + ex.ToString());
+                        throw;
+                    }
+                }
+
+                if (dbType == DbProviderType.MySql)
+                {
+                    switch (providerDataTypeName.ToLowerInvariant())
+                    {
+                        case "bigint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(long)); break;
+                        case "binary": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), 1); break;
+                        case "bit": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(bool)); break;
+                        case "blob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
+                        case "boolean": AssertValues(providerDataTypeName, DataTypeCategory.Boolean, typeof(bool)); break;
+                        case "char": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
+                        case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
+                        case "datetime": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "decimal": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 10, 2); break;
+                        case "double": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "enum": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string), unicode: true); break;
+                        case "float": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(MySql.Data.Types.MySqlGeometry)); break;
+                        case "geometrycollection": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "int": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "json":
+                            if (dbVersion.Major < 10)
+                                // MySQL
+                                AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument));
+                            else
+                                // MariaDB
+                                AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(string), unicode: true);
+                            break;
+                        case "linestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "longblob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
+                        case "longtext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "mediumblob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
+                        case "mediumint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "mediumtext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "multilinestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "multipoint": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "multipolygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "set": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string), unicode: true); break;
+                        case "smallint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
+                        case "text": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "time": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeOnly)); break;
+                        case "timestamp": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
+                        case "tinyblob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
+                        case "tinyint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(sbyte)); break;
+                        case "tinytext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "varbinary": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), 255, unicode: true); break;
+                        case "varchar": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 255, unicode: true); break;
+                        case "year": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(int)); break;
+                    }
+                }
+                else if (dbType == DbProviderType.PostgreSql)
+                {
+                    switch (providerDataTypeName.ToLowerInvariant())
+                    {
+                        case "_bool": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(bool[])); break;
+                        case "_bpchar": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(char[])); break;
+                        case "_bytea": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(byte[][])); break;
+                        case "_char": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
+                        case "_date": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateOnly[])); break;
+                        case "_float4": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
+                        case "_float8": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
+                        case "_int2": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(short[])); break;
+                        case "_int4": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(int[])); break;
+                        case "_int8": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(long[])); break;
+                        case "_interval": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeSpan[])); break;
+                        case "_json": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "_jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "_numeric": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(decimal[])); break;
+                        case "_text": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
+                        case "_time": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
+                        case "_timestamp": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTime[])); break;
+                        case "_timestamptz": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTimeOffset[])); break;
+                        case "_timetz": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
+                        case "_uuid": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(Guid[])); break;
+                        case "_varchar": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
+                        case "bigint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(long)); break;
+                        case "bigint[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(long[])); break;
+                        case "bigserial": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(long)); break;
+                        case "bit varying": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "bit": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "boolean": AssertValues(providerDataTypeName, DataTypeCategory.Boolean, typeof(bool)); break;
+                        case "boolean[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(bool[])); break;
+                        case "box": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlBox)); break;
+                        case "bytea": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
+                        case "bytea[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(byte[][])); break;
+                        case "char": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "character varying": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 255, unicode: true); break;
+                        case "character varying[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
+                        case "character": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
+                        case "character[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(char[])); break;
+                        case "cidr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(NpgsqlCidr)); break;
+                        case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
+                        case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
+                        case "date[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateOnly[])); break;
+                        case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
+                        case "double precision": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "double precision[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
+                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "hstore": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(Dictionary<string, string>)); break;
+                        case "inet": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(IPAddress)); break;
+                        case "int4range": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<int>)); break;
+                        case "int8range": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<long>)); break;
+                        case "integer": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "integer[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(int[])); break;
+                        case "interval": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeSpan)); break;
+                        case "interval[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeSpan[])); break;
+                        case "json": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument)); break;
+                        case "json[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument)); break;
+                        case "jsonb[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLine)); break;
+                        case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLSeg)); break;
+                        case "ltree": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "macaddr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
+                        case "macaddr8": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
+                        case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
+                        case "numeric": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
+                        case "numeric[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(decimal[])); break;
+                        case "numrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<double>)); break;
+                        case "oid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPath)); break;
+                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPoint)); break;
+                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPolygon)); break;
+                        case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "real[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
+                        case "regclass": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regconfig": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regdictionary": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regoper": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regoperator": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regproc": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regprocedure": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regtype": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "serial": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "smallint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
+                        case "smallint[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(short[])); break;
+                        case "smallserial": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
+                        case "text": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "text[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
+                        case "time with time zone": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeOnly)); break;
+                        case "time with time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
+                        case "time without time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
+                        case "time": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeOnly)); break;
+                        case "time[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
+                        case "timestamp with time zone": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
+                        case "timestamp with time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTimeOffset[])); break;
+                        case "timestamp without time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTime[])); break;
+                        case "timestamp": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "timestamp[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTime[])); break;
+                        case "tsquery": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(NpgsqlTsQuery)); break;
+                        case "tsrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateTime>)); break;
+                        case "tstzrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateTimeOffset>)); break;
+                        case "tsvector": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(NpgsqlTsVector)); break;
+                        case "uuid": AssertValues(providerDataTypeName, DataTypeCategory.Identifier, typeof(Guid)); break;
+                        case "uuid[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(Guid[])); break;
+                        case "xml": AssertValues(providerDataTypeName, DataTypeCategory.Xml, typeof(XDocument)); break;
+                    }
+                }
+                else if (dbType == DbProviderType.Sqlite)
+                {
+                    switch (providerDataTypeName.ToLowerInvariant())
+                    {
+                        case "blob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
+                        case "boolean": AssertValues(providerDataTypeName, DataTypeCategory.Boolean, typeof(bool)); break;
+                        case "char": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1); break;
+                        case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
+                        case "datetime": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "decimal": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
+                        case "integer": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "numeric": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal)); break;
+                        case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "text": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string)); break;
+                        case "time": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeOnly)); break;
+                        case "timestamp": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "varchar": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 255); break;
+                    }
+                }
+                else if (dbType == DbProviderType.SqlServer)
+                {
+                    switch (providerDataTypeName.ToLowerInvariant())
+                    {
+                        case "bigint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(long)); break;
+                        case "binary": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), 1); break;
+                        case "bit": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(bool)); break;
+                        case "char": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
+                        case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
+                        case "datetime": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "datetime2": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "datetimeoffset": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
+                        case "decimal": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
+                        case "float": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "hierarchyid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "image": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
+                        case "int": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
+                        case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
+                        case "nchar": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
+                        case "ntext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "numeric": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
+                        case "nvarchar": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 255, unicode: true); break;
+                        case "nvarchar(max)": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), -1, unicode: true); break;
+                        case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
+                        case "rowversion": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(DateTime)); break;
+                        case "smalldatetime": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
+                        case "smallint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
+                        case "smallmoney": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
+                        case "sql_variant": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "text": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
+                        case "time": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeOnly)); break;
+                        case "timestamp": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(DateTime)); break;
+                        case "tinyint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(byte)); break;
+                        case "uniqueidentifier": AssertValues(providerDataTypeName, DataTypeCategory.Identifier, typeof(Guid)); break;
+                        case "varbinary": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), 1); break;
+                        case "varbinary(max)": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), -1); break;
+                        case "varchar": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 255, unicode: true); break;
+                        case "varchar(max)": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), -1, unicode: true); break;
+                        case "xml": AssertValues(providerDataTypeName, DataTypeCategory.Xml, typeof(XDocument)); break;
+                    }
+                }
             }
-            var tableCreated = await db.CreateTableIfNotExistsAsync(
-                null,
-                tableName,
-                [
-                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+        }
+    }
+
+    private async Task<DmColumn?> CreateTableWithProviderDataTypeAndGetColumnAsync(System.Data.IDbConnection db, DbProviderType dbType, string providerDataTypeName, DataTypeInfo providerDataType, bool hasPostgisExtension, string[] postgisTypes)
+    {
+        // Disregard postgis types if postgis extension is not installed
+        if (dbType == DbProviderType.PostgreSql && postgisTypes.Contains(providerDataTypeName, StringComparer.OrdinalIgnoreCase) && !hasPostgisExtension)
+        {
+            return null;
+        }
+        // Create a table with a column of that type to verify it can be created
+        const string tableName = "testTableWithAllProviderTypes";
+        const string columnName = "testColumnWithProviderType";
+        await db.DropTableIfExistsAsync(null, tableName);
+
+        var actualProviderTypeName = providerDataTypeName;
+
+        if (dbType == DbProviderType.MySql && (actualProviderTypeName.Equals("enum", StringComparison.OrdinalIgnoreCase) || actualProviderTypeName.Equals("set", StringComparison.OrdinalIgnoreCase)))
+        {
+            // Enums need a length
+            actualProviderTypeName += "( 'Value1', 'Value2' )";
+        }
+
+        var tableCreated = await db.CreateTableIfNotExistsAsync(
+            null,
+            tableName,
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
                     new DmColumn(
                         columnName: columnName,
                         providerDataTypes: new Dictionary<DbProviderType, string>
@@ -487,53 +752,16 @@ public abstract partial class DatabaseMethodsTests
                         precision: providerDataType.SupportsPrecision ? (providerDataType.DefaultPrecision ?? 10) : null,
                         scale: providerDataType.SupportsScale ? (providerDataType.DefaultScale ?? 2) : null
                     ),
-                ]
-            );
-            var tableCreatedUnicode = await db.CreateTableIfNotExistsAsync(
-                null,
-                tableNameUnicode,
-                [
-                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
-                    new DmColumn(
-                        columnName: columnNameUnicode,
-                        providerDataTypes: new Dictionary<DbProviderType, string>
-                        {
-                            { dbType, actualProviderTypeName }
-                        },
-                        length: providerDataType.SupportsLength ? (providerDataType.DefaultLength ?? 50) : null,
-                        precision: providerDataType.SupportsPrecision ? (providerDataType.DefaultPrecision ?? 10) : null,
-                        scale: providerDataType.SupportsScale ? (providerDataType.DefaultScale ?? 2) : null,
-                        isUnicode: true
-                    ),
-                ]
-            );
-            Assert.True(tableCreated, "Failed to create table with provider data type " + providerDataType.DataType);
+            ]
+        );
+        Assert.True(tableCreated, "Failed to create table with provider data type " + actualProviderTypeName);
 
-            var column = await db.GetColumnAsync(null, tableName, columnName);
-            Assert.NotNull(column);
-            var columnUnicode = await db.GetColumnAsync(null, tableNameUnicode, columnNameUnicode);
-            Assert.NotNull(columnUnicode);
+        var column = await db.GetColumnAsync(null, tableName, columnName);
+        Assert.NotNull(column);
 
-            // Clean up table
-            await db.DropTableIfExistsAsync(null, tableName);
-            await db.DropTableIfExistsAsync(null, tableNameUnicode);
+        // Clean up table
+        await db.DropTableIfExistsAsync(null, tableName);
 
-            // Write the data to the CSV file
-            writer.WriteLine(
-                "{0},{1},{2},{3},{4},{5},{6},{7},{8}",
-                $"{dbType} ({dbVersion})",
-                providerDataType.DataType,
-                providerDataType.Category,
-                providerDataType.SupportsLength,
-                providerDataType.SupportsPrecision,
-                providerDataType.SupportsScale,
-                aliases,
-                column!.DotnetType?.FullName ?? "Unknown",
-                columnUnicode!.DotnetType?.FullName ?? "Unknown"
-            );
-        }
-
-        writer.Flush();
-        writer.Close();
+        return column;
     }
 }

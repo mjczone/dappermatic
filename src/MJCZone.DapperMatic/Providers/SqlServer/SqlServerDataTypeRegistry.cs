@@ -67,9 +67,11 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
         RegisterDataType(CreateStringType("char", 8000, 1, isCommon: false, "Fixed-length non-Unicode string"));
         RegisterDataType(CreateStringType("varchar", 8000, 255, isCommon: true, "Variable-length non-Unicode string"));
         RegisterDataType(
-            CreateSimpleType(
+            CreateStringType(
                 "varchar(max)",
-                DataTypeCategory.Text,
+                int.MaxValue,
+                -1,
+                // DataTypeCategory.Text,
                 isCommon: true,
                 "Variable-length non-Unicode string up to 2GB"
             )
@@ -77,9 +79,11 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
         RegisterDataType(CreateStringType("nchar", 4000, 1, isCommon: false, "Fixed-length Unicode string"));
         RegisterDataType(CreateStringType("nvarchar", 4000, 255, isCommon: true, "Variable-length Unicode string"));
         RegisterDataType(
-            CreateSimpleType(
+            CreateStringType(
                 "nvarchar(max)",
-                DataTypeCategory.Text,
+                int.MaxValue / 2,
+                -1,
+                // DataTypeCategory.Text,
                 isCommon: true,
                 "Variable-length Unicode string up to 2GB"
             )
@@ -142,9 +146,11 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
         RegisterDataType(CreateBinaryType("binary", 8000, 1, isCommon: false, "Fixed-length binary data"));
         RegisterDataType(CreateBinaryType("varbinary", 8000, 1, isCommon: true, "Variable-length binary data"));
         RegisterDataType(
-            CreateSimpleType(
+            CreateBinaryType(
                 "varbinary(max)",
-                DataTypeCategory.Binary,
+                int.MaxValue,
+                -1,
+                // DataTypeCategory.Binary,
                 isCommon: true,
                 "Variable-length binary data up to 2GB"
             )

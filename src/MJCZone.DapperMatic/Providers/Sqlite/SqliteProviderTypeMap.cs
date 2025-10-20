@@ -166,7 +166,7 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
                 case SqliteTypes.sql_int8:
                     return new DotnetTypeDescriptor(typeof(long));
                 case SqliteTypes.sql_real:
-                    return new DotnetTypeDescriptor(typeof(float));
+                    return new DotnetTypeDescriptor(typeof(double));
                 case SqliteTypes.sql_float:
                 case SqliteTypes.sql_double:
                 case SqliteTypes.sql_double_precision:

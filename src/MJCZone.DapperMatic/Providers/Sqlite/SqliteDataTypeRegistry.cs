@@ -55,7 +55,6 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
                 isCommon: true,
                 "Text string (UTF-8 or UTF-16)",
                 "character",
-                "varchar",
                 "varying character",
                 "nchar",
                 "native character",
@@ -81,7 +80,6 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
                 DataTypeCategory.Decimal,
                 isCommon: false,
                 "Can store INTEGER, REAL, or TEXT",
-                "decimal",
                 "boolean",
                 "date",
                 "datetime"
