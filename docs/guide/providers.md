@@ -512,78 +512,221 @@ Custom providers ensure DapperMatic can work with virtually any `IDbConnection` 
 
 ## Data Type Mapping
 
-DapperMatic automatically maps .NET types to appropriate database-specific types. Below is a comprehensive mapping table showing how each .NET type is represented across all supported database providers.
+DapperMatic automatically maps .NET types to appropriate database-specific types. The tables below show how each .NET type is represented across all supported database providers based on the comprehensive test suite in `DatabaseMethodsTests.Types.cs`.
 
-### Primitive & Common Types
+::: tip Source of Truth
+These mappings are verified by automated tests. For the most up-to-date and detailed type mappings, see [`tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Types.cs`](https://github.com/mjczone/MJCZone.DapperMatic/blob/develop/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Types.cs).
+:::
 
-| .NET Type        | SQL Server         | MySQL             | PostgreSQL   | SQLite    | Notes |
-| ---------------- | ------------------ | ----------------- | ------------ | --------- | ----- |
-| `byte`           | `TINYINT`          | `TINYINT`         | `SMALLINT`   | `INTEGER` | |
-| `short`          | `SMALLINT`         | `SMALLINT`        | `SMALLINT`   | `INTEGER` | |
-| `int`            | `INT`              | `INT`             | `INTEGER`    | `INTEGER` | |
-| `long`           | `BIGINT`           | `BIGINT`          | `BIGINT`     | `INTEGER` | |
-| `float`          | `REAL`             | `FLOAT`           | `REAL`       | `REAL`    | |
-| `double`         | `FLOAT`            | `DOUBLE`          | `DOUBLE PRECISION` | `REAL` | |
-| `decimal`        | `DECIMAL(16,4)`    | `DECIMAL(16,4)`   | `NUMERIC(16,4)` | `TEXT` | Default precision/scale |
-| `bool`           | `BIT`              | `BOOLEAN`         | `BOOLEAN`    | `INTEGER` | |
-| `char`           | `NCHAR(1)`         | `CHAR(1)`         | `CHAR(1)`    | `TEXT`    | |
-| `string`         | `NVARCHAR(255)`    | `VARCHAR(255)`    | `TEXT`       | `TEXT`    | Default length 255 |
-| `Guid`           | `UNIQUEIDENTIFIER` | `CHAR(36)`        | `UUID`       | `TEXT`    | |
+### Integer Types (Default Mappings)
+
+| .NET Type | SQL Server    | MySQL        | PostgreSQL | SQLite     | Notes |
+| --------- | ------------- | ------------ | ---------- | ---------- | ----- |
+| `byte`    | `TINYINT(3)`  | `TINYINT(3)` | `INT2`     | `TINYINT`  | PostgreSQL: SMALLINT alias |
+| `sbyte`   | `TINYINT(3)`  | `TINYINT(3)` | `INT2`     | `TINYINT`  | PostgreSQL: SMALLINT alias |
+| `short`   | `SMALLINT(5)` | `SMALLINT(5)` | `INT2`    | `SMALLINT` | PostgreSQL: SMALLINT alias |
+| `int`     | `INT(10)`     | `INT(10)`    | `INT4`     | `INT`      | PostgreSQL: INTEGER alias |
+| `long`    | `BIGINT(19)`  | `BIGINT(19)` | `INT8`     | `BIGINT`   | PostgreSQL: BIGINT alias |
+
+::: info Integer Type Notes
+- **PostgreSQL Internal Names**: `INT2`, `INT4`, `INT8` are internal PostgreSQL type names (aliases for `SMALLINT`, `INTEGER`, `BIGINT`)
+- **Display Width**: MySQL 8.0.19+ deprecated display widths except for `TINYINT(1)` (boolean). Older versions may show different widths.
+- **SQLite Type Affinity**: SQLite maps all integer types to INTEGER storage class but preserves type names for compatibility
+:::
+
+### Floating Point Types
+
+| .NET Type | SQL Server  | MySQL        | PostgreSQL | SQLite  | Notes |
+| --------- | ----------- | ------------ | ---------- | ------- | ----- |
+| `float`   | `REAL(24)`  | `DOUBLE(22)` | `FLOAT4`   | `REAL`  | MySQL uses DOUBLE; PostgreSQL: REAL alias |
+| `double`  | `FLOAT(53)` | `FLOAT(12)`  | `FLOAT8`   | `DOUBLE` | PostgreSQL: DOUBLE PRECISION alias |
+
+::: info Floating Point Notes
+- **PostgreSQL Internal Names**: `FLOAT4`, `FLOAT8` are internal names for `REAL` and `DOUBLE PRECISION`
+- **MySQL Behavior**: Maps `float` to DOUBLE instead of FLOAT for better precision
+:::
+
+### Decimal Types
+
+| .NET Type | SQL Server       | MySQL           | PostgreSQL      | SQLite          | Precision | Scale | Notes |
+| --------- | ---------------- | --------------- | --------------- | --------------- | --------- | ----- | ----- |
+| `decimal` | `DECIMAL(16,4)`  | `DECIMAL(16,4)` | `NUMERIC(16,4)` | `NUMERIC(16,4)` | Default   | Default | **Default precision/scale** |
+| `decimal` | `DECIMAL(12,8)`  | `DECIMAL(12,8)` | `NUMERIC(12,8)` | `NUMERIC(12,8)` | 12        | 8     | Custom precision/scale |
+| `decimal` | `DECIMAL(12)`    | `DECIMAL(12)`   | `NUMERIC(12)`   | `NUMERIC(12)`   | 12        | 0     | Precision only (scale=0) |
+
+::: tip Decimal Configuration
+Default precision is **16**, default scale is **4**. Customize using `DmColumn` attribute:
+```csharp
+[DmColumn("Price", precision: 18, scale: 2)]
+public decimal Price { get; set; }
+```
+:::
+
+### Boolean Type
+
+| .NET Type | SQL Server | MySQL        | PostgreSQL | SQLite    | Notes |
+| --------- | ---------- | ------------ | ---------- | --------- | ----- |
+| `bool`    | `BIT`      | `TINYINT(1)` | `BOOL`     | `BOOLEAN` | MySQL: TINYINT(1) convention |
+
+::: info Boolean Notes
+- **MySQL**: Uses `TINYINT(1)` as boolean convention (0=false, 1=true). `BOOLEAN` is an alias that becomes `TINYINT(1)`.
+- **PostgreSQL**: `BOOL` is an alias for `BOOLEAN`
+:::
+
+### Character Type
+
+| .NET Type | SQL Server | MySQL     | PostgreSQL | SQLite | Unicode | Notes |
+| --------- | ---------- | --------- | ---------- | ------ | ------- | ----- |
+| `char`    | `CHAR(1)`  | `CHAR(1)` | `BPCHAR(1)` | `TEXT` | No      | Default (non-unicode) |
+| `char`    | `NCHAR(1)` | `CHAR(1)` | `BPCHAR(1)` | `TEXT` | Yes     | Unicode (SQL Server only) |
+
+::: info Character Type Notes
+- **PostgreSQL**: `BPCHAR` = "blank-padded char" (internal name for CHAR type)
+- **Unicode**: Only SQL Server differentiates CHAR (ASCII) vs NCHAR (Unicode). Other providers ignore the unicode flag.
+:::
+
+### String Types (Variable Length)
+
+| .NET Type | SQL Server      | MySQL          | PostgreSQL    | SQLite        | Unicode | Length | Notes |
+| --------- | --------------- | -------------- | ------------- | ------------- | ------- | ------ | ----- |
+| `string`  | `NVARCHAR(255)` | `VARCHAR(255)` | `VARCHAR(255)` | `VARCHAR(255)` | Yes     | Default | **Default: 255 characters** |
+| `string`  | `VARCHAR(255)`  | `VARCHAR(255)` | `VARCHAR(255)` | `VARCHAR(255)` | No      | Default | Non-unicode |
+| `string`  | `NVARCHAR(234)` | `VARCHAR(234)` | `VARCHAR(234)` | `NVARCHAR(234)` | Yes    | 234    | Custom length |
+| `string`  | `VARCHAR(234)`  | `VARCHAR(234)` | `VARCHAR(234)` | `VARCHAR(234)` | No     | 234    | Custom length, non-unicode |
+| `string`  | `NVARCHAR(MAX)` | `TEXT(65535)`  | `TEXT`        | `NVARCHAR`    | Yes     | -1 or `int.MaxValue` | **Unlimited length** |
+
+### String Types (Fixed Length)
+
+| .NET Type | SQL Server   | MySQL       | PostgreSQL  | SQLite      | Unicode | Length | IsFixedLength | Notes |
+| --------- | ------------ | ----------- | ----------- | ----------- | ------- | ------ | ------------- | ----- |
+| `string`  | `CHAR(234)`  | `CHAR(234)` | `BPCHAR(234)` | `CHAR(234)` | No    | 234    | Yes           | Fixed-length CHAR |
+| `string`  | `NCHAR(234)` | `CHAR(234)` | `BPCHAR(234)` | `NCHAR(234)` | Yes  | 234    | Yes           | Fixed-length NCHAR |
+
+::: tip String Type Configuration
+```csharp
+// Default (variable length, unicode, 255 chars)
+public string Name { get; set; }
+
+// Custom length
+[DmColumn(length: 100)]
+public string ShortName { get; set; }
+
+// Unlimited length
+[DmColumn(length: -1)]  // or int.MaxValue
+public string LongText { get; set; }
+
+// Fixed length (for codes, etc)
+[DmColumn(length: 10, isFixedLength: true)]
+public string Code { get; set; }
+
+// Non-unicode (SQL Server only)
+[DmColumn(isUnicode: false)]
+public string AsciiOnly { get; set; }
+```
+:::
+
+### GUID Type
+
+| .NET Type | SQL Server         | MySQL      | PostgreSQL | SQLite       | Notes |
+| --------- | ------------------ | ---------- | ---------- | ------------ | ----- |
+| `Guid`    | `UNIQUEIDENTIFIER` | `CHAR(36)` | `UUID`     | `VARCHAR(36)` | |
 
 ### Date & Time Types
 
-| .NET Type        | SQL Server    | MySQL              | PostgreSQL        | SQLite | Notes |
-| ---------------- | ------------- | ------------------ | ----------------- | ------ | ----- |
-| `DateTime`       | `DATETIME2`   | `DATETIME(6)`      | `TIMESTAMP`       | `TEXT` | MySQL uses precision 6 |
-| `DateTimeOffset` | `DATETIMEOFFSET` | `DATETIME(6)`   | `TIMESTAMPTZ`     | `TEXT` | |
-| `TimeSpan`       | `TIME`        | `TIME(6)`          | `TIME`            | `TEXT` | |
-| `DateOnly`       | `DATE`        | `DATE`             | `DATE`            | `TEXT` | .NET 6+ |
-| `TimeOnly`       | `TIME`        | `TIME(6)`          | `TIME`            | `TEXT` | .NET 6+ |
+| .NET Type        | SQL Server       | MySQL       | PostgreSQL   | SQLite     | Notes |
+| ---------------- | ---------------- | ----------- | ------------ | ---------- | ----- |
+| `DateTime`       | `DATETIME`       | `DATETIME`  | `TIMESTAMP`  | `DATETIME` | |
+| `DateTimeOffset` | `DATETIMEOFFSET` | `TIMESTAMP` | `TIMESTAMPTZ` | `DATETIME` | MySQL: TIMESTAMP type |
+| `TimeSpan`       | `TIME`           | `TIME`      | `INTERVAL`   | `TIME`     | PostgreSQL: INTERVAL for durations |
+| `DateOnly`       | `DATE`           | `DATE`      | `DATE`       | `DATE`     | .NET 6+ |
+| `TimeOnly`       | `TIME`           | `TIME`      | `TIME`       | `TIME`     | .NET 6+ |
+
+::: info Date & Time Notes
+- **PostgreSQL**: `TIMESTAMPTZ` = timestamp with time zone, `INTERVAL` for time spans/durations
+- **MySQL**: DateTime precision defaults can vary by version. Modern MySQL supports fractional seconds.
+- **SQLite**: Stores date/time as TEXT, INTEGER, or REAL. DapperMatic uses TEXT format for compatibility.
+:::
 
 ### Binary Types
 
-| .NET Type            | SQL Server      | MySQL       | PostgreSQL | SQLite | Notes |
-| -------------------- | --------------- | ----------- | ---------- | ------ | ----- |
-| `byte[]`             | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | Default length 255 |
-| `Memory<byte>`       | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | |
-| `ReadOnlyMemory<byte>` | `VARBINARY(255)` | `VARBINARY(255)` | `BYTEA` | `BLOB` | |
-| `Stream`             | `VARBINARY(MAX)` | `LONGBLOB`  | `BYTEA`    | `BLOB` | |
+| .NET Type              | SQL Server        | MySQL            | PostgreSQL | SQLite | Notes |
+| ---------------------- | ----------------- | ---------------- | ---------- | ------ | ----- |
+| `byte[]`               | `VARBINARY(255)`  | `VARBINARY(255)` | `BYTEA`    | `BLOB` | **Default: 255 bytes** |
+| `Memory<byte>`         | `VARBINARY(255)`  | `VARBINARY(255)` | `BYTEA`    | `BLOB` | |
+| `ReadOnlyMemory<byte>` | `VARBINARY(255)`  | `VARBINARY(255)` | `BYTEA`    | `BLOB` | |
+| `Stream`               | `VARBINARY(MAX)`  | `LONGBLOB`       | `BYTEA`    | `BLOB` | **Unlimited (large binary)** |
+| `MemoryStream`         | `VARBINARY(MAX)`  | `LONGBLOB`       | `BYTEA`    | `BLOB` | **Unlimited (large binary)** |
+
+::: info Binary Type Notes
+- **Default Length**: Binary types default to 255 bytes. Streams default to unlimited (MAX/LONGBLOB).
+- **PostgreSQL**: `BYTEA` has no length limit - it's variable-length by nature
+- **MySQL**: `LONGBLOB` can store up to 4GB
+- **Custom Length**: Use `length` parameter for custom sizes: `[DmColumn(length: 1024)]`
+:::
 
 ### JSON & Complex Types
 
-| .NET Type       | SQL Server       | MySQL   | PostgreSQL | SQLite | Notes |
-| --------------- | ---------------- | ------- | ---------- | ------ | ----- |
-| `JsonDocument`  | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | |
-| `JsonElement`   | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | |
-| `object`        | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
-| Custom classes  | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
-| Custom structs  | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
-| Interfaces      | `NVARCHAR(MAX)`  | `TEXT`  | `TEXT`     | `TEXT` | Serialized as JSON |
-| Enums           | `VARCHAR(128)`   | `VARCHAR(128)` | `TEXT` | `TEXT` | Stored as string |
+| .NET Type                          | SQL Server      | MySQL  | PostgreSQL | SQLite | Unicode | Notes |
+| ---------------------------------- | --------------- | ------ | ---------- | ------ | ------- | ----- |
+| `System.Text.Json.JsonDocument`    | `VARCHAR(MAX)`  | `JSON` | `JSONB`    | `TEXT` | No      | Non-unicode |
+| `System.Text.Json.JsonDocument`    | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | Unicode (default) |
+| `System.Text.Json.JsonElement`     | `VARCHAR(MAX)`  | `JSON` | `JSONB`    | `TEXT` | No      | Non-unicode |
+| `System.Text.Json.JsonElement`     | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | Unicode (default) |
+| `System.Text.Json.Nodes.JsonArray` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | |
+| `System.Text.Json.Nodes.JsonObject` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes    | |
+| `System.Text.Json.Nodes.JsonValue` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | |
+| `object`                           | `sql_variant`   | `JSON` | `JSONB`    | `CLOB` | N/A     | SQL Server: variant type |
+| `DayOfWeek` (Enum example)         | `VARCHAR(128)`  | `VARCHAR(128)` | `VARCHAR(128)` | `VARCHAR(128)` | No | Enums as strings |
+
+::: info JSON & Complex Type Notes
+- **PostgreSQL**: `JSONB` = binary JSON (preferred over JSON for performance)
+- **MySQL**: Native `JSON` type (MySQL 5.7+). **MariaDB 10.x**: `JSON` is an alias for `LONGTEXT` with JSON validation
+- **SQL Server**: No native JSON type. Uses `VARCHAR(MAX)`/`NVARCHAR(MAX)` for JSON text. `sql_variant` for generic objects.
+- **Enum Handling**: Enums are stored as strings by default (enum name, not value)
+:::
 
 ### Array Types
 
-| .NET Type     | SQL Server       | MySQL            | PostgreSQL   | SQLite | Notes |
-| ------------- | ---------------- | ---------------- | ------------ | ------ | ----- |
-| `string[]`    | `NVARCHAR(MAX)`  | `TEXT`           | `text[]`     | `TEXT` | PostgreSQL: native arrays |
-| `int[]`       | `NVARCHAR(MAX)`  | `TEXT`           | `integer[]`  | `TEXT` | PostgreSQL: native arrays |
-| `long[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `bigint[]`   | `TEXT` | PostgreSQL: native arrays |
-| `Guid[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `uuid[]`     | `TEXT` | PostgreSQL: native arrays |
-| `char[]`      | `NVARCHAR(MAX)`  | `TEXT`           | `text`       | `TEXT` | Treated as string |
+| .NET Type  | SQL Server      | MySQL  | PostgreSQL | SQLite | Unicode | Length | Notes |
+| ---------- | --------------- | ------ | ---------- | ------ | ------- | ------ | ----- |
+| `string[]` | `VARCHAR(MAX)`  | `JSON` | `_TEXT`    | `TEXT` | No      | -1     | PostgreSQL: native array (internal notation) |
+| `int[]`    | `VARCHAR(MAX)`  | `JSON` | `_INT4`    | `TEXT` | No      | -1     | PostgreSQL: native array (internal notation) |
+| `long[]`   | `VARCHAR(MAX)`  | `JSON` | `_INT8`    | `TEXT` | No      | -1     | PostgreSQL: native array (internal notation) |
+| `Guid[]`   | `VARCHAR(MAX)`  | `JSON` | `_UUID`    | `TEXT` | No      | -1     | PostgreSQL: native array (internal notation) |
+| `char[]`   | `VARCHAR(255)`  | `VARCHAR(255)` | `VARCHAR(255)` | `VARCHAR(255)` | No | Default | Treated as string, not array |
+| `char[]`   | `NVARCHAR(MAX)` | `TEXT(65535)` | `TEXT`    | `NVARCHAR` | Yes    | -1     | Unlimited (treated as string) |
+
+::: info Array Type Notes
+- **PostgreSQL Native Arrays**:
+  - PostgreSQL has true native array support for primitive types
+  - Internal notation uses underscore prefix: `_TEXT`, `_INT4`, `_INT8`, `_UUID`
+  - Standard notation uses suffix: `text[]`, `integer[]`, `bigint[]`, `uuid[]`
+  - DapperMatic recognizes both notations when reading schema
+- **SQL Server, MySQL, SQLite**: No native array support. Arrays are serialized as JSON or TEXT.
+- **char[]** is special: treated as a string (character array), not a typed array
+- **MariaDB 10.x**: `JSON` is actually `LONGTEXT` with validation
+:::
 
 ### Collection Types
 
 All collection types are serialized as JSON:
 
-| .NET Type                  | SQL Server       | MySQL   | PostgreSQL | SQLite | Notes |
-| -------------------------- | ---------------- | ------- | ---------- | ------ | ----- |
-| `IList<T>`                 | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
-| `List<T>`                  | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
-| `ICollection<T>`           | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
-| `Collection<T>`            | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
-| `IEnumerable<T>`           | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON array |
-| `IDictionary<K,V>`         | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON object |
-| `Dictionary<K,V>`          | `NVARCHAR(MAX)`  | `JSON`  | `JSONB`    | `TEXT` | Serialized as JSON object |
+| .NET Type                         | SQL Server     | MySQL  | PostgreSQL | SQLite | Notes |
+| --------------------------------- | -------------- | ------ | ---------- | ------ | ----- |
+| `List<string>`                    | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
+| `IList<string>`                   | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
+| `ICollection<string>`             | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
+| `IEnumerable<string>`             | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
+| `Dictionary<string, string>`      | `VARCHAR(MAX)` | `JSON` | `HSTORE`   | `TEXT` | PostgreSQL: HSTORE for string-string maps |
+| `IDictionary<string, string>`     | `VARCHAR(MAX)` | `JSON` | `HSTORE`   | `TEXT` | PostgreSQL: HSTORE for string-string maps |
+
+::: info Collection Type Notes
+- All collections are serialized as JSON for storage
+- **PostgreSQL HSTORE**: Special type for `Dictionary<string, string>` - efficient key-value storage
+- **PostgreSQL JSONB**: Binary JSON format for other collections (faster indexing than JSON)
+- **MariaDB 10.x**: `JSON` is actually `LONGTEXT` with JSON validation
+- Generic types work the same: `List<T>`, `Dictionary<K,V>`, etc.
+:::
 
 ### Auto-Increment Configuration
 
@@ -623,14 +766,39 @@ new DmColumn("Id", typeof(int))
 
 :::
 
-### Type Mapping Notes
+### General Type Mapping Notes
 
-- **PostgreSQL Arrays**: PostgreSQL has native array support. DapperMatic uses native arrays for `string[]`, `int[]`, `long[]`, and `Guid[]` types.
-- **JSON Types**: MySQL 5.7+ and PostgreSQL 9.4+ have native JSON support. SQLite stores JSON as TEXT.
-- **Binary Types**: Maximum lengths can be customized using the `DmColumn` attribute's `length` parameter.
-- **String Types**: Default length is 255 characters. Use `length: int.MaxValue` or explicit types like `NVARCHAR(MAX)` for unlimited length.
-- **Decimal Precision**: Default is `DECIMAL(16,4)`. Customize using `precision` and `scale` parameters.
-- **Custom Type Mapping**: Use the `providerDataType` parameter on `DmColumn` attribute to specify exact database types.
+::: tip Key Takeaways
+- **Defaults are sensible**: String length defaults to 255, binary to 255, decimal to (16,4)
+- **Unlimited values**: Use `length: -1` or `int.MaxValue` for VARCHAR(MAX), TEXT, LONGBLOB, etc.
+- **PostgreSQL specifics**: Uses internal notation (INT2, INT4, FLOAT8, _TEXT, etc.) when reading schema
+- **MariaDB 10.x JSON**: `JSON` type is actually `LONGTEXT` with validation (not binary JSON like MySQL 5.7+)
+- **Source of truth**: See [`DatabaseMethodsTests.Types.cs`](https://github.com/mjczone/MJCZone.DapperMatic/blob/develop/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Types.cs) for complete test coverage
+:::
+
+**Customizing Type Mappings:**
+
+```csharp
+// Custom length
+[DmColumn(length: 500)]
+public string LongName { get; set; }
+
+// Custom precision and scale
+[DmColumn(precision: 18, scale: 6)]
+public decimal HighPrecisionValue { get; set; }
+
+// Fixed-length strings
+[DmColumn(length: 10, isFixedLength: true)]
+public string CountryCode { get; set; }
+
+// Explicit provider-specific types (multi-database support)
+[DmColumn(providerDataType: "{sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}")]
+public decimal Price { get; set; }
+
+// Simple provider type (single database)
+[DmColumn(providerDataType: "money")]
+public decimal Amount { get; set; }
+```
 
 ## Getting Help
 
