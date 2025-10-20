@@ -47,14 +47,16 @@ public class SqliteTypeMapping : IProviderTypeMapping
     /// <inheritdoc />
     public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
     {
-        // SQLite doesn't have fixed-length types, so we use TEXT
-        return TypeMappingHelpers.CreateSimpleType(SqliteTypes.sql_text);
+        // SQLite doesn't enforce fixed-length types but preserves type names in schema
+        // Using CHAR(1)/NCHAR(1) for consistency with other providers and to enable proper round-tripping
+        var sqlType = descriptor.IsUnicode == true ? SqliteTypes.sql_nchar : SqliteTypes.sql_char;
+        return TypeMappingHelpers.CreateStringType(sqlType, length: 1, descriptor.IsUnicode.GetValueOrDefault(false), isFixedLength: true);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType()
+    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
-        return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_clob, isUnicode: false);
+        return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false);
     }
 
     /// <inheritdoc />

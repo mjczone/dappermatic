@@ -575,14 +575,15 @@ public decimal Price { get; set; }
 
 ### Character Type
 
-| .NET Type | SQL Server | MySQL     | PostgreSQL | SQLite | Unicode | Notes |
-| --------- | ---------- | --------- | ---------- | ------ | ------- | ----- |
-| `char`    | `CHAR(1)`  | `CHAR(1)` | `BPCHAR(1)` | `TEXT` | No      | Default (non-unicode) |
-| `char`    | `NCHAR(1)` | `CHAR(1)` | `BPCHAR(1)` | `TEXT` | Yes     | Unicode (SQL Server only) |
+| .NET Type | SQL Server | MySQL     | PostgreSQL  | SQLite    | Unicode | Notes |
+| --------- | ---------- | --------- | ----------- | --------- | ------- | ----- |
+| `char`    | `CHAR(1)`  | `CHAR(1)` | `BPCHAR(1)` | `CHAR(1)` | No      | Default (non-unicode) |
+| `char`    | `NCHAR(1)` | `CHAR(1)` | `BPCHAR(1)` | `NCHAR(1)` | Yes    | Unicode |
 
 ::: info Character Type Notes
 - **PostgreSQL**: `BPCHAR` = "blank-padded char" (internal name for CHAR type)
-- **Unicode**: Only SQL Server differentiates CHAR (ASCII) vs NCHAR (Unicode). Other providers ignore the unicode flag.
+- **SQLite**: Uses CHAR(1)/NCHAR(1) for consistency and round-tripping, even though it stores as TEXT internally
+- **Unicode**: SQL Server and SQLite differentiate CHAR (ASCII) vs NCHAR (Unicode). MySQL and PostgreSQL ignore the unicode flag.
 :::
 
 ### String Types (Variable Length)
@@ -675,13 +676,14 @@ public string AsciiOnly { get; set; }
 | `System.Text.Json.Nodes.JsonArray` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | |
 | `System.Text.Json.Nodes.JsonObject` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes    | |
 | `System.Text.Json.Nodes.JsonValue` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | |
-| `object`                           | `sql_variant`   | `JSON` | `JSONB`    | `CLOB` | N/A     | SQL Server: variant type |
+| `object`                           | `VARCHAR(MAX)`  | `JSON` | `JSONB`    | `TEXT` | No      | Non-unicode |
+| `object`                           | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | Unicode |
 | `DayOfWeek` (Enum example)         | `VARCHAR(128)`  | `VARCHAR(128)` | `VARCHAR(128)` | `VARCHAR(128)` | No | Enums as strings |
 
 ::: info JSON & Complex Type Notes
 - **PostgreSQL**: `JSONB` = binary JSON (preferred over JSON for performance)
 - **MySQL**: Native `JSON` type (MySQL 5.7+). **MariaDB 10.x**: `JSON` is an alias for `LONGTEXT` with JSON validation
-- **SQL Server**: No native JSON type. Uses `VARCHAR(MAX)`/`NVARCHAR(MAX)` for JSON text. `sql_variant` for generic objects.
+- **SQL Server**: No native JSON type. Uses `VARCHAR(MAX)`/`NVARCHAR(MAX)` for JSON text and object storage
 - **Enum Handling**: Enums are stored as strings by default (enum name, not value)
 :::
 

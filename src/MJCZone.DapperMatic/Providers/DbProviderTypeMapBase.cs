@@ -407,7 +407,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var mapping = GetProviderTypeMapping();
         return new DotnetTypeToSqlTypeConverter(d =>
         {
-            return mapping.CreateObjectType();
+            return mapping.CreateObjectType(d);
         });
     }
 

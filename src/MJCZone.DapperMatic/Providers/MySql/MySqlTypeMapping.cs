@@ -57,7 +57,7 @@ public class MySqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType()
+    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false);
     }

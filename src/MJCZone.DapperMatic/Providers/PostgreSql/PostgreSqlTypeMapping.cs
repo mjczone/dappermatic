@@ -51,7 +51,7 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType()
+    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false);
     }

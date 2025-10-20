@@ -52,9 +52,11 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType()
+    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
-        return TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_variant);
+        // Objects are stored as JSON strings - use VARCHAR(MAX) or NVARCHAR(MAX) based on unicode flag
+        var sqlType = descriptor.IsUnicode == true ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
+        return TypeMappingHelpers.CreateLobType(sqlType, descriptor.IsUnicode.GetValueOrDefault(false));
     }
 
     /// <inheritdoc />

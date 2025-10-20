@@ -47,8 +47,9 @@ public interface IProviderTypeMapping
     /// <summary>
     /// Creates a provider-specific object type descriptor.
     /// </summary>
+    /// <param name="descriptor">The .NET type descriptor with unicode information.</param>
     /// <returns>SQL type descriptor for object storage.</returns>
-    SqlTypeDescriptor CreateObjectType();
+    SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor);
 
     /// <summary>
     /// Creates a provider-specific text type descriptor.

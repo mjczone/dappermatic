@@ -184,11 +184,12 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(decimal), "DECIMAL(12,8)", "DECIMAL(12,8)", "NUMERIC(12,8)", "NUMERIC(12,8)", false, null, 12, 8)]
     [InlineData(typeof(decimal), "DECIMAL(12)", "DECIMAL(12)", "NUMERIC(12)", "NUMERIC(12)", false, null, 12, 0)]
     [InlineData(typeof(bool), "BIT", "TINYINT(1)", "BOOL", "BOOLEAN")]
-    [InlineData(typeof(char), "CHAR(1)", "CHAR(1)", "BPCHAR(1)", "TEXT")]
-    [InlineData(typeof(char), "NCHAR(1)", "CHAR(1)", "BPCHAR(1)", "TEXT", true)]
+    [InlineData(typeof(char), "CHAR(1)", "CHAR(1)", "BPCHAR(1)", "CHAR(1)")]
+    [InlineData(typeof(char), "NCHAR(1)", "CHAR(1)", "BPCHAR(1)", "NCHAR(1)", true)]
     [InlineData(typeof(string), "CHAR(234)", "CHAR(234)", "BPCHAR(234)", "CHAR(234)", false, 234, null, null, true)]
     [InlineData(typeof(string), "NCHAR(234)", "CHAR(234)", "BPCHAR(234)", "NCHAR(234)", true, 234, null, null, true)]
     [InlineData(typeof(string), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
+    [InlineData(typeof(string), "NVARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "NVARCHAR(255)", true)]
     [InlineData(typeof(string), "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", false, 234)]
     [InlineData(typeof(string), "NVARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "NVARCHAR(234)", true, 234)]
     [InlineData(typeof(string), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
@@ -214,8 +215,8 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(System.Text.Json.Nodes.JsonArray), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
     [InlineData(typeof(System.Text.Json.Nodes.JsonObject), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
     [InlineData(typeof(System.Text.Json.Nodes.JsonValue), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    // is this correct to use sql_variant for object?
-    [InlineData(typeof(object), "sql_variant", "JSON", "JSONB", "CLOB")]
+    [InlineData(typeof(object), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(object), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
     [InlineData(typeof(DayOfWeek), "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)")] // Enum example
     // Array Types (PostgreSQL native, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(string[]), "VARCHAR(MAX)", "JSON", "_TEXT", "TEXT")]
@@ -226,6 +227,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
     // Collection Types (all serialized as JSON, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(List<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
+    [InlineData(typeof(List<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
     [InlineData(typeof(IList<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(ICollection<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(IEnumerable<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
