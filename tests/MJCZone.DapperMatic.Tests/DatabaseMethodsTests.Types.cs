@@ -224,6 +224,8 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(long[]), "VARCHAR(MAX)", "JSON", "_INT8", "TEXT")]
     [InlineData(typeof(Guid[]), "VARCHAR(MAX)", "JSON", "_UUID", "TEXT")]
     [InlineData(typeof(char[]), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
+    [InlineData(typeof(char[]), "NVARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "NVARCHAR(255)", true)]
+    [InlineData(typeof(char[]), "VARCHAR(MAX)", "TEXT(65535)", "TEXT", "VARCHAR", false, -1)]
     [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
     // Collection Types (all serialized as JSON, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(List<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
@@ -233,6 +235,8 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(IEnumerable<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(Dictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
     [InlineData(typeof(IDictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
+    [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
+    [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     // csharpier-ignore-end
     protected virtual async Task Should_map_common_column_types_exactly_as_expected(
         Type type,
