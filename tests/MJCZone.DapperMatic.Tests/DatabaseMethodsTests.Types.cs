@@ -173,11 +173,11 @@ public abstract partial class DatabaseMethodsTests
     // csharpier-ignore-start
     [Theory]
     // Primitive & Common Types
-    [InlineData(typeof(byte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT")]
-    [InlineData(typeof(sbyte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT")]
-    [InlineData(typeof(short), "SMALLINT(5)", "SMALLINT(5)", "INT2", "SMALLINT")]
-    [InlineData(typeof(int), "INT(10)", "INT(10)", "INT4", "INT")] // int4 is PostgreSQL name for 4-byte integer
-    [InlineData(typeof(long), "BIGINT(19)", "BIGINT(19)", "INT8", "BIGINT")]
+    [InlineData(typeof(byte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT", false, null, null, null, false, "TINYINT(4)", "TINYINT(4)")]
+    [InlineData(typeof(sbyte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT", false, null, null, null, false, "TINYINT(4)", "TINYINT(4)")]
+    [InlineData(typeof(short), "SMALLINT(5)", "SMALLINT(5)", "INT2", "SMALLINT", false, null, null, null, false, "SMALLINT(6)", "SMALLINT(6)")]
+    [InlineData(typeof(int), "INT(10)", "INT(10)", "INT4", "INT", false, null, null, null, false, "INT(11)", "INT(11)")]// int4 is PostgreSQL name for 4-byte integer
+    [InlineData(typeof(long), "BIGINT(19)", "BIGINT(19)", "INT8", "BIGINT", false, null, null, null, false, "BIGINT(20)", "BIGINT(20)")]
     [InlineData(typeof(float), "REAL(24)", "DOUBLE(22)", "FLOAT4", "REAL")]
     [InlineData(typeof(double), "FLOAT(53)", "FLOAT(12)", "FLOAT8", "DOUBLE")]
     [InlineData(typeof(decimal), "DECIMAL(16,4)", "DECIMAL(16,4)", "NUMERIC(16,4)", "NUMERIC(16,4)")]
@@ -206,7 +206,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(ReadOnlyMemory<byte>), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
     [InlineData(typeof(Stream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
     [InlineData(typeof(MemoryStream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
-    // JSON & Complex Types
+    // JSON & Complex Types (MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(System.Text.Json.JsonDocument), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(System.Text.Json.JsonElement), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(System.Text.Json.JsonDocument), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
@@ -217,14 +217,14 @@ public abstract partial class DatabaseMethodsTests
     // is this correct to use sql_variant for object?
     [InlineData(typeof(object), "sql_variant", "JSON", "JSONB", "CLOB")]
     [InlineData(typeof(DayOfWeek), "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)")] // Enum example
-    // Array Types (PostgreSQL native, others JSON/TEXT)
+    // Array Types (PostgreSQL native, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(string[]), "VARCHAR(MAX)", "JSON", "_TEXT", "TEXT")]
     [InlineData(typeof(int[]), "VARCHAR(MAX)", "JSON", "_INT4", "TEXT")]
     [InlineData(typeof(long[]), "VARCHAR(MAX)", "JSON", "_INT8", "TEXT")]
     [InlineData(typeof(Guid[]), "VARCHAR(MAX)", "JSON", "_UUID", "TEXT")]
     [InlineData(typeof(char[]), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
     [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
-    // Collection Types (all serialized as JSON)
+    // Collection Types (all serialized as JSON, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(List<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(IList<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(ICollection<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
@@ -242,7 +242,9 @@ public abstract partial class DatabaseMethodsTests
         int? length = null,
         int? precision = null,
         int? scale = null,
-        bool isFixedLength = false
+        bool isFixedLength = false,
+        string? mySql5TypeName = null,
+        string? mariaDb10TypeName = null
     )
     {
         using var db = await OpenConnectionAsync();
@@ -251,10 +253,29 @@ public abstract partial class DatabaseMethodsTests
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
         var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
 
+        Func<DbProviderType, Task<string>> getExpectedMySqlTypeName = async dbType =>
+        {
+            var dbVersion = await databaseMethods.GetDatabaseVersionAsync(db);
+            if (dbVersion.Major == 5)
+            {
+                return mySql5TypeName ?? mySqlTypeName;
+            }
+            else if (dbVersion.Major >= 10)
+            {
+                if (mySqlTypeName.Equals("JSON", StringComparison.OrdinalIgnoreCase))
+                {
+                    // MySQL 5.x and MariaDB 10.x do not have a native JSON type, so we map to LONGTEXT
+                    return "LONGTEXT";
+                }
+                return mariaDb10TypeName ?? mySqlTypeName;
+            }
+            return mySqlTypeName;
+        };
+
         string expectedTypeName = dbType switch
         {
             DbProviderType.SqlServer => sqlServerTypeName,
-            DbProviderType.MySql => mySqlTypeName,
+            DbProviderType.MySql => await getExpectedMySqlTypeName(dbType),
             DbProviderType.PostgreSql => postgreSqlTypeName,
             DbProviderType.Sqlite => sqliteTypeName,
             _ => throw new NotSupportedException($"Database type {dbType} is not supported."),

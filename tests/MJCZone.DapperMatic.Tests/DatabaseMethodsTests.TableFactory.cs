@@ -47,21 +47,14 @@ public abstract partial class DatabaseMethodsTests
         if (
             db is SqliteConnection
             || db is SQLiteConnection
-            || (
-                db is LoggedDbConnection ldb
-                && (ldb.Inner is SqliteConnection || ldb.Inner is SQLiteConnection)
-            )
+            || (db is LoggedDbConnection ldb && (ldb.Inner is SqliteConnection || ldb.Inner is SQLiteConnection))
         )
         {
             // For SQLite, we can retrieve the table definition using PRAGMA
             // Note: This will not return column data types, only names and nullability
-            var tableDefAsSql = await db.QueryAsync(
-                $"PRAGMA table_info('{dbTableDef.TableName}');"
-            );
+            var tableDefAsSql = await db.QueryAsync($"PRAGMA table_info('{dbTableDef.TableName}');");
             Assert.NotNull(tableDefAsSql);
-            Output.WriteLine(
-                $"Table definition for {tableDef.TableName}:\n{JsonSerializer.Serialize(tableDefAsSql)}"
-            );
+            Output.WriteLine($"Table definition for {tableDef.TableName}:\n{JsonSerializer.Serialize(tableDefAsSql)}");
         }
 
         // Verify the table definition matches the model
@@ -93,10 +86,7 @@ public abstract partial class DatabaseMethodsTests
             }
             else
             {
-                Assert.False(
-                    dbColumn.IsNullable,
-                    $"Column {column.ColumnName} should not be nullable."
-                );
+                Assert.False(dbColumn.IsNullable, $"Column {column.ColumnName} should not be nullable.");
             }
         }
 
@@ -340,22 +330,10 @@ public class TestTable5
     public string? NonUnicodeString { get; set; }
 
     // Decimal type variations with different precision/scale
-    [DmColumn(
-        "CurrencyDecimal",
-        providerDataType: "decimal",
-        precision: 18,
-        scale: 2,
-        isNullable: false
-    )]
+    [DmColumn("CurrencyDecimal", providerDataType: "decimal", precision: 18, scale: 2, isNullable: false)]
     public decimal CurrencyDecimal { get; set; }
 
-    [DmColumn(
-        "HighPrecisionDecimal",
-        providerDataType: "decimal",
-        precision: 10,
-        scale: 4,
-        isNullable: false
-    )]
+    [DmColumn("HighPrecisionDecimal", providerDataType: "decimal", precision: 10, scale: 4, isNullable: false)]
     public decimal HighPrecisionDecimal { get; set; }
 
     [DmColumn("MoneyType", providerDataType: "money", isNullable: false)]
