@@ -116,7 +116,10 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         RegisterConverter(SqlServerTypes.sql_xml, xmlConverter);
 
         // Json affinity (only for very latest versions of SQL Server)
-        RegisterConverter(SqlServerTypes.sql_json, jsonConverter);
+        // See: https://learn.microsoft.com/en-us/sql/t-sql/data-types/json-data-type?view=sql-server-ver17
+        // Introduced in Azure SQL Database and Azure SQL Managed Instance, and is also available
+        // in SQL Server 2025 (17.x) Preview.
+        // RegisterConverter(SqlServerTypes.sql_json, jsonConverter);
 
         // DateTime affinity
         RegisterConverterForTypes(

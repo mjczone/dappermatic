@@ -642,9 +642,11 @@ public static class TypeMappingHelpers
             "numeric[]",
             "text[]",
             "char[]",
+            "\"char\"[]",
             "varchar[]",
             "character varying[]",
             "character[]",
+            "bpchar[]",
             "bytea[]",
             "timestamp[]",
             "timestamp without time zone[]",
@@ -715,8 +717,15 @@ public static class TypeMappingHelpers
                 return null; // Not an array type
             }
 
+            // Strip any parameters from the element type name (e.g., "character(1)" → "character")
+            // This allows matching parameterized types in the switch statement
+            var parenIndex = elementTypeName.IndexOf('(', StringComparison.Ordinal);
+            var baseElementTypeName = parenIndex > 0
+                ? elementTypeName[..parenIndex]
+                : elementTypeName;
+
             // Map element type to .NET array type
-            return elementTypeName switch
+            return baseElementTypeName switch
             {
                 "boolean" or "bool" => new DotnetTypeDescriptor(typeof(bool[])),
                 "smallint" or "int2" => new DotnetTypeDescriptor(typeof(short[])),
@@ -727,6 +736,7 @@ public static class TypeMappingHelpers
                 "numeric" => new DotnetTypeDescriptor(typeof(decimal[])),
                 "text" => new DotnetTypeDescriptor(typeof(string[])),
                 "char" or "bpchar" => new DotnetTypeDescriptor(typeof(char[])),
+                "\"char\"" => new DotnetTypeDescriptor(typeof(string[])),
                 "varchar" => new DotnetTypeDescriptor(typeof(string[])),
                 "character varying" => new DotnetTypeDescriptor(typeof(string[])),
                 "character" => new DotnetTypeDescriptor(typeof(char[])),

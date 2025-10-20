@@ -3,6 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using Dapper;
+
 using MJCZone.DapperMatic.Models;
 using MJCZone.DapperMatic.Providers;
 
@@ -238,7 +240,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     // csharpier-ignore-end
-    protected virtual async Task Should_map_common_column_types_exactly_as_expected(
+    protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,
         string sqlServerTypeName,
         string mySqlTypeName,
@@ -387,5 +389,152 @@ public abstract partial class DatabaseMethodsTests
             expectedTypeName
         );
         Assert.Equal(expectedTypeName, providerTypeName, StringComparer.OrdinalIgnoreCase);
+    }
+
+
+    [Fact]
+    protected virtual async Task Should_map_provider_data_types_to_expected_dotnet_types()
+    {
+        using var db = await OpenConnectionAsync();
+        var dbType = db.GetDbProviderType();
+        var dbVersion = await db.GetDatabaseVersionAsync();
+
+        string[] postgisTypes = [
+            "geometry",
+            "geography",
+            "box2d",
+            "box3d",
+            "circle",
+            "line",
+            "lseg",
+            "path",
+            "point",
+            "polygon",
+        ];
+        var hasPostgisExtension = false;
+        if (dbType == DbProviderType.PostgreSql)
+        {
+            // Add required extension for HSTORE support
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS hstore;");
+
+            // Add required extension for LTREE support
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS ltree;");
+
+            // Add required extension for UUID support
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+
+            // Add required extension for postgis support
+            hasPostgisExtension = await db.QueryFirstOrDefaultAsync<bool>(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis');"
+            );
+        }
+
+        var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
+        var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
+
+        var file = @"/mnt/c/Temp/provider_datatypes_" + dbType.ToString() + "_" + dbVersion.ToString() + ".csv";
+        using var writer = new StreamWriter(file, append: false);
+        writer.WriteLine("Provider,Data Type,Category,Supports Length,Supports Precision,Supports Scale,Aliases,DotNetType,DotNetTypeUnicode");
+
+        foreach (var providerDataType in providerDataTypes)
+        {
+            // Disregard postgis types if postgis extension is not installed
+            if (dbType == DbProviderType.PostgreSql && postgisTypes.Contains(providerDataType.DataType, StringComparer.OrdinalIgnoreCase) && !hasPostgisExtension)
+            {
+                continue;
+            }
+
+            // Print out all provider data types for debugging, along with aliases
+            var aliases = providerDataType.Aliases != null
+                ? string.Join(", ", providerDataType.Aliases)
+                : "None";
+
+            Output.WriteLine(
+                "Provider: {0} Data Type: {1}, Category: {2}, SupportsLength: {3}, SupportsPrecision: {4}, SupportsScale: {5}, Aliases: {6}",
+                $"{dbType} ({dbVersion})",
+                providerDataType.DataType,
+                providerDataType.Category,
+                providerDataType.SupportsLength,
+                providerDataType.SupportsPrecision,
+                providerDataType.SupportsScale,
+                aliases
+            );
+
+            // Create a table with a column of that type to verify it can be created
+            const string tableName = "testTableWithAllProviderTypes";
+            const string columnName = "testColumnWithProviderType";
+            const string tableNameUnicode = "testTableWithAllProviderTypesUnicode";
+            const string columnNameUnicode = "testColumnWithProviderTypeUnicode";
+            await db.DropTableIfExistsAsync(null, tableName);
+
+            var actualProviderTypeName = providerDataType.DataType;
+            if (dbType == DbProviderType.MySql && (providerDataType.DataType.Equals("enum", StringComparison.OrdinalIgnoreCase) || providerDataType.DataType.Equals("set", StringComparison.OrdinalIgnoreCase)))
+            {
+                // Enums need a length
+                actualProviderTypeName += "( 'Value1', 'Value2' )";
+            }
+            var tableCreated = await db.CreateTableIfNotExistsAsync(
+                null,
+                tableName,
+                [
+                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                    new DmColumn(
+                        columnName: columnName,
+                        providerDataTypes: new Dictionary<DbProviderType, string>
+                        {
+                            { dbType, actualProviderTypeName }
+                        },
+                        length: providerDataType.SupportsLength ? (providerDataType.DefaultLength ?? 50) : null,
+                        precision: providerDataType.SupportsPrecision ? (providerDataType.DefaultPrecision ?? 10) : null,
+                        scale: providerDataType.SupportsScale ? (providerDataType.DefaultScale ?? 2) : null
+                    ),
+                ]
+            );
+            var tableCreatedUnicode = await db.CreateTableIfNotExistsAsync(
+                null,
+                tableNameUnicode,
+                [
+                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                    new DmColumn(
+                        columnName: columnNameUnicode,
+                        providerDataTypes: new Dictionary<DbProviderType, string>
+                        {
+                            { dbType, actualProviderTypeName }
+                        },
+                        length: providerDataType.SupportsLength ? (providerDataType.DefaultLength ?? 50) : null,
+                        precision: providerDataType.SupportsPrecision ? (providerDataType.DefaultPrecision ?? 10) : null,
+                        scale: providerDataType.SupportsScale ? (providerDataType.DefaultScale ?? 2) : null,
+                        isUnicode: true
+                    ),
+                ]
+            );
+            Assert.True(tableCreated, "Failed to create table with provider data type " + providerDataType.DataType);
+
+            var column = await db.GetColumnAsync(null, tableName, columnName);
+            Assert.NotNull(column);
+            var columnUnicode = await db.GetColumnAsync(null, tableNameUnicode, columnNameUnicode);
+            Assert.NotNull(columnUnicode);
+
+            // Clean up table
+            await db.DropTableIfExistsAsync(null, tableName);
+            await db.DropTableIfExistsAsync(null, tableNameUnicode);
+
+            // Write the data to the CSV file
+            writer.WriteLine(
+                "{0},{1},{2},{3},{4},{5},{6},{7},{8}",
+                $"{dbType} ({dbVersion})",
+                providerDataType.DataType,
+                providerDataType.Category,
+                providerDataType.SupportsLength,
+                providerDataType.SupportsPrecision,
+                providerDataType.SupportsScale,
+                aliases,
+                column!.DotnetType?.FullName ?? "Unknown",
+                columnUnicode!.DotnetType?.FullName ?? "Unknown"
+            );
+        }
+
+        writer.Flush();
+        writer.Close();
     }
 }

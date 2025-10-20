@@ -201,6 +201,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             PostgreSqlTypes.sql_character,
             PostgreSqlTypes.sql_char,
             PostgreSqlTypes.sql_bpchar,
+            PostgreSqlTypes.sql_quoted_char,
             PostgreSqlTypes.sql_text,
             PostgreSqlTypes.sql_name
         );
@@ -257,6 +258,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             PostgreSqlTypes.sql_regconfig,
             PostgreSqlTypes.sql_regdictionary,
             PostgreSqlTypes.sql_regnamespace,
+            PostgreSqlTypes.sql_regoper,
+            PostgreSqlTypes.sql_regoperator,
+            PostgreSqlTypes.sql_regproc,
+            PostgreSqlTypes.sql_regprocedure,
             PostgreSqlTypes.sql_regrole,
             PostgreSqlTypes.sql_regtype,
             PostgreSqlTypes.sql_tid,
@@ -473,6 +478,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             {
                 case PostgreSqlTypes.sql_char:
                 case PostgreSqlTypes.sql_character:
+                case PostgreSqlTypes.sql_quoted_char:
                     return new DotnetTypeDescriptor(
                         typeof(string),
                         d.Length,
@@ -734,6 +740,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_regconfig:
                 case PostgreSqlTypes.sql_regdictionary:
                 case PostgreSqlTypes.sql_regnamespace:
+                case PostgreSqlTypes.sql_regoper:
+                case PostgreSqlTypes.sql_regoperator:
+                case PostgreSqlTypes.sql_regproc:
+                case PostgreSqlTypes.sql_regprocedure:
                 case PostgreSqlTypes.sql_regrole:
                 case PostgreSqlTypes.sql_regtype:
                     return new DotnetTypeDescriptor(typeof(object));

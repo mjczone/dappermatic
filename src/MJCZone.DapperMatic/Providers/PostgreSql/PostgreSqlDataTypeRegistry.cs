@@ -111,6 +111,14 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         );
         RegisterDataType(
             CreateSimpleType(
+                "\"char\"",
+                DataTypeCategory.Text,
+                isCommon: false,
+                "Internal single-byte character type (fixed 1 byte, no modifiers)"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
                 "text",
                 DataTypeCategory.Text,
                 isCommon: true,

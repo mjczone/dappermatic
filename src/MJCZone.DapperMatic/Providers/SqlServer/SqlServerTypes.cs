@@ -128,7 +128,4 @@ public static class SqlServerTypes
 
     /// <summary>SQL Server table type.</summary>
     public const string sql_table = "table";
-
-    /// <summary>SQL Server json type.</summary>
-    public const string sql_json = "json";
 }

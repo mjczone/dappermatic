@@ -448,6 +448,73 @@ public abstract partial class DatabaseMethodsBase
             );
             columnType = GetSqlTypeFromDotnetType(descriptor);
         }
+        else
+        {
+            // If provider type is set but doesn't already include parameters (no parentheses),
+            // append length/precision/scale if they're specified on the column
+            if (!columnType.Contains('(', StringComparison.Ordinal))
+            {
+                // Check if the type supports parameters by looking it up in the registry
+                var typeInfo = GetDataTypeRegistry().GetDataTypeByName(columnType);
+                string? parametersString = null;
+
+                // Determine what parameters to add, but only if the type supports them
+                if (
+                    column.Precision.HasValue
+                    && column.Scale.HasValue
+                    && typeInfo?.SupportsPrecision == true
+                    && typeInfo?.SupportsScale == true
+                )
+                {
+                    parametersString = $"({column.Precision},{column.Scale})";
+                }
+                else if (column.Precision.HasValue && typeInfo?.SupportsPrecision == true)
+                {
+                    parametersString = $"({column.Precision})";
+                }
+                else if (column.Length.HasValue && typeInfo?.SupportsLength == true)
+                {
+                    parametersString = $"({column.Length})";
+                }
+
+                if (!string.IsNullOrEmpty(parametersString))
+                {
+                    // Check for multi-word type modifiers (e.g., PostgreSQL "time with time zone")
+                    // Parameters must be inserted BEFORE these modifiers, not at the end
+                    string[] modifiers =
+                    [
+                        " with time zone",
+                        " without time zone",
+                    ];
+
+                    var inserted = false;
+                    foreach (var modifier in modifiers)
+                    {
+                        var modifierIndex = columnType.IndexOf(
+                            modifier,
+                            StringComparison.OrdinalIgnoreCase
+                        );
+                        if (modifierIndex > 0)
+                        {
+                            // Insert parameters before the modifier
+                            columnType = string.Concat(
+                                columnType.AsSpan(0, modifierIndex),
+                                parametersString,
+                                columnType.AsSpan(modifierIndex)
+                            );
+                            inserted = true;
+                            break;
+                        }
+                    }
+
+                    if (!inserted)
+                    {
+                        // No modifier found, append to end
+                        columnType += parametersString;
+                    }
+                }
+            }
+        }
 
         if (string.IsNullOrWhiteSpace(columnType))
         {

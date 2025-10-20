@@ -142,6 +142,9 @@ public static class PostgreSqlTypes
     /// <summary>Represents the PostgreSQL bpchar type.</summary>
     public const string sql_bpchar = "bpchar";
 
+    /// <summary>Represents the PostgreSQL "char" type (internal single-byte character).</summary>
+    public const string sql_quoted_char = "\"char\"";
+
     /// <summary>Represents the PostgreSQL text type.</summary>
     public const string sql_text = "text";
 
@@ -296,6 +299,18 @@ public static class PostgreSqlTypes
 
     /// <summary>Represents the PostgreSQL regnamespace type.</summary>
     public const string sql_regnamespace = "regnamespace";
+
+    /// <summary>Represents the PostgreSQL regoper type.</summary>
+    public const string sql_regoper = "regoper";
+
+    /// <summary>Represents the PostgreSQL regoperator type.</summary>
+    public const string sql_regoperator = "regoperator";
+
+    /// <summary>Represents the PostgreSQL regproc type.</summary>
+    public const string sql_regproc = "regproc";
+
+    /// <summary>Represents the PostgreSQL regprocedure type.</summary>
+    public const string sql_regprocedure = "regprocedure";
 
     /// <summary>Represents the PostgreSQL regrole type.</summary>
     public const string sql_regrole = "regrole";

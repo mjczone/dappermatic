@@ -16,37 +16,17 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
     protected override void RegisterDataTypes()
     {
         // Integer types
+        RegisterDataType(CreateIntegerType("tinyint", "1-byte signed integer (-128 to 127)", isCommon: false));
+        RegisterDataType(CreateIntegerType("smallint", "2-byte signed integer (-32768 to 32767)", isCommon: false));
         RegisterDataType(
-            CreateIntegerType("tinyint", "1-byte signed integer (-128 to 127)", isCommon: false)
+            CreateIntegerType("mediumint", "3-byte signed integer (-8388608 to 8388607)", isCommon: false)
         );
-        RegisterDataType(
-            CreateIntegerType(
-                "smallint",
-                "2-byte signed integer (-32768 to 32767)",
-                isCommon: false
-            )
-        );
-        RegisterDataType(
-            CreateIntegerType(
-                "mediumint",
-                "3-byte signed integer (-8388608 to 8388607)",
-                isCommon: false
-            )
-        );
-        RegisterDataType(
-            CreateIntegerType("int", "4-byte signed integer", isCommon: true, "integer")
-        );
+        RegisterDataType(CreateIntegerType("int", "4-byte signed integer", isCommon: true, "integer"));
         RegisterDataType(CreateIntegerType("bigint", "8-byte signed integer", isCommon: true));
 
         // Boolean type
         RegisterDataType(
-            CreateSimpleType(
-                "boolean",
-                DataTypeCategory.Boolean,
-                isCommon: true,
-                "Synonym for TINYINT(1)",
-                "bool"
-            )
+            CreateSimpleType("boolean", DataTypeCategory.Boolean, isCommon: true, "Synonym for TINYINT(1)", "bool")
         );
 
         // Bit type
@@ -54,18 +34,7 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
 
         // Decimal types
         RegisterDataType(
-            CreateDecimalType(
-                "decimal",
-                65,
-                30,
-                10,
-                2,
-                isCommon: true,
-                "Fixed-point number",
-                "dec",
-                "numeric",
-                "fixed"
-            )
+            CreateDecimalType("decimal", 65, 30, 10, 2, isCommon: true, "Fixed-point number", "dec", "numeric", "fixed")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -86,24 +55,12 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // String types
-        RegisterDataType(
-            CreateStringType("char", 255, 1, isCommon: false, "Fixed-length string", "character")
-        );
-        RegisterDataType(
-            CreateStringType("varchar", 65535, 255, isCommon: true, "Variable-length string")
-        );
-        RegisterDataType(
-            CreateStringType("binary", 255, 1, isCommon: false, "Fixed-length binary string")
-        );
-        RegisterDataType(
-            CreateStringType(
-                "varbinary",
-                65535,
-                255,
-                isCommon: false,
-                "Variable-length binary string"
-            )
-        );
+        RegisterDataType(CreateStringType("char", 255, 1, isCommon: false, "Fixed-length string", "character"));
+        RegisterDataType(CreateStringType("varchar", 65535, 255, isCommon: true, "Variable-length string"));
+
+        // Binary types
+        RegisterDataType(CreateBinaryType("binary", 255, 1, isCommon: false, "Fixed-length binary data"));
+        RegisterDataType(CreateBinaryType("varbinary", 65535, 255, isCommon: false, "Variable-length binary data"));
 
         // Text types
         RegisterDataType(
@@ -139,7 +96,7 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
 
-        // Binary types
+        // Binary LOB types
         RegisterDataType(
             CreateSimpleType(
                 "tinyblob",
@@ -175,19 +132,10 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
 
         // Date/Time types
         RegisterDataType(
-            CreateSimpleType(
-                "date",
-                DataTypeCategory.DateTime,
-                isCommon: true,
-                "Date value (YYYY-MM-DD)"
-            )
+            CreateSimpleType("date", DataTypeCategory.DateTime, isCommon: true, "Date value (YYYY-MM-DD)")
         );
-        RegisterDataType(
-            CreateDateTimeType("time", true, 6, 0, isCommon: false, "Time value (HH:MM:SS)")
-        );
-        RegisterDataType(
-            CreateDateTimeType("datetime", true, 6, 0, isCommon: true, "Date and time value")
-        );
+        RegisterDataType(CreateDateTimeType("time", true, 6, 0, isCommon: false, "Time value (HH:MM:SS)"));
+        RegisterDataType(CreateDateTimeType("datetime", true, 6, 0, isCommon: true, "Date and time value"));
         RegisterDataType(
             CreateDateTimeType(
                 "timestamp",
@@ -199,36 +147,17 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "year",
-                DataTypeCategory.DateTime,
-                isCommon: false,
-                "Year in 4-digit format"
-            )
+            CreateSimpleType("year", DataTypeCategory.DateTime, isCommon: false, "Year in 4-digit format")
         );
 
         // JSON type (MySQL 5.7+)
-        RegisterDataType(
-            CreateSimpleType("json", DataTypeCategory.Json, isCommon: true, "Native JSON data type")
-        );
+        RegisterDataType(CreateSimpleType("json", DataTypeCategory.Json, isCommon: true, "Native JSON data type"));
 
         // Spatial types (MySQL with spatial extensions)
         RegisterDataType(
-            CreateSimpleType(
-                "geometry",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Spatial geometry data"
-            )
+            CreateSimpleType("geometry", DataTypeCategory.Spatial, isCommon: false, "Spatial geometry data")
         );
-        RegisterDataType(
-            CreateSimpleType(
-                "point",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Point in 2D space"
-            )
-        );
+        RegisterDataType(CreateSimpleType("point", DataTypeCategory.Spatial, isCommon: false, "Point in 2D space"));
         RegisterDataType(
             CreateSimpleType(
                 "linestring",
@@ -238,20 +167,10 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "polygon",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Polygon (closed surface)"
-            )
+            CreateSimpleType("polygon", DataTypeCategory.Spatial, isCommon: false, "Polygon (closed surface)")
         );
         RegisterDataType(
-            CreateSimpleType(
-                "multipoint",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Collection of Point values"
-            )
+            CreateSimpleType("multipoint", DataTypeCategory.Spatial, isCommon: false, "Collection of Point values")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -262,12 +181,7 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "multipolygon",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Collection of Polygon values"
-            )
+            CreateSimpleType("multipolygon", DataTypeCategory.Spatial, isCommon: false, "Collection of Polygon values")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -280,15 +194,8 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
 
         // Enum and Set types
         RegisterDataType(
-            CreateSimpleType(
-                "enum",
-                DataTypeCategory.Other,
-                isCommon: true,
-                "Enumeration of string values"
-            )
+            CreateSimpleType("enum", DataTypeCategory.Other, isCommon: true, "Enumeration of string values")
         );
-        RegisterDataType(
-            CreateSimpleType("set", DataTypeCategory.Other, isCommon: false, "Set of string values")
-        );
+        RegisterDataType(CreateSimpleType("set", DataTypeCategory.Other, isCommon: false, "Set of string values"));
     }
 }

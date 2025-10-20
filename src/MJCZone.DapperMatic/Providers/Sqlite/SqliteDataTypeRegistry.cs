@@ -151,14 +151,14 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // SQLite specific features
-        RegisterDataType(
-            CreateSimpleType(
-                "json",
-                DataTypeCategory.Json,
-                isCommon: false,
-                "JSON data (stored as TEXT with JSON functions available)"
-            )
-        );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "json",
+        //         DataTypeCategory.Json,
+        //         isCommon: false,
+        //         "JSON data (stored as TEXT with JSON functions available)"
+        //     )
+        // );
 
         // Note: SQLite doesn't have true constraints on these types - they're mainly for compatibility
         // The actual storage class is determined by the affinity rules
