@@ -545,11 +545,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             switch (d.BaseTypeName)
             {
                 case PostgreSqlTypes.sql_box:
-                    if (sqlNetTopologyGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
-                    }
-
                     if (sqlNpgsqlBox != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlBox);
@@ -560,19 +555,21 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_circle:
-                    if (sqlNetTopologyGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
-                    }
-
                     if (sqlNpgsqlCircle != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlCircle);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    if (sqlNetTopologyGeometryType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
+                    }
+
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_geography:
                     if (sqlNetTopologyGeometryType != null)
                     {
@@ -584,7 +581,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlGeometry);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT (Well-Known Text) format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_geometry:
                     if (sqlNetTopologyGeometryType != null)
                     {
@@ -596,57 +594,63 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlGeometry);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT (Well-Known Text) format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_line:
-                    if (sqlNetTopologyLineStringType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
-                    }
-
                     if (sqlNpgsqlLine != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlLine);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    if (sqlNetTopologyLineStringType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
+                    }
+
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_lseg:
                     if (sqlNpgsqlLSeg != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlLSeg);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_path:
                     if (sqlNpgsqlPath != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlPath);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_point:
-                    if (sqlNetTopologyPointType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyPointType);
-                    }
-
                     if (sqlNpgsqlPoint != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlPoint);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
-                case PostgreSqlTypes.sql_polygon:
-                    if (sqlNetTopologyPolygonType != null)
+                    if (sqlNetTopologyPointType != null)
                     {
-                        return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
+                        return new DotnetTypeDescriptor(sqlNetTopologyPointType);
                     }
 
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
+                case PostgreSqlTypes.sql_polygon:
                     if (sqlNpgsqlPolygon != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlPolygon);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    if (sqlNetTopologyPolygonType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
+                    }
+
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
             }
 
             return null;
@@ -677,7 +681,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlCidr);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: CIDR notation as string (e.g., "192.168.0.0/24")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_citext:
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_hstore:
@@ -687,7 +692,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_lquery:
                 case PostgreSqlTypes.sql_ltree:
                 case PostgreSqlTypes.sql_ltxtquery:
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // ltree types store hierarchical data as text (e.g., "Top.Science.Astronomy")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_macaddr:
                 case PostgreSqlTypes.sql_macaddr8:
                     return new DotnetTypeDescriptor(typeof(PhysicalAddress));
@@ -697,7 +703,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlInterval);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: PostgreSQL interval format as string (e.g., "1 day 02:03:04")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_int2vector:
                     return new DotnetTypeDescriptor(typeof(int[]));
                 case PostgreSqlTypes.sql_oid:
@@ -707,6 +714,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_pg_lsn:
                 case PostgreSqlTypes.sql_pg_snapshot:
                 case PostgreSqlTypes.sql_refcursor:
+                    return new DotnetTypeDescriptor(typeof(object));
                 case PostgreSqlTypes.sql_regclass:
                 case PostgreSqlTypes.sql_regcollation:
                 case PostgreSqlTypes.sql_regconfig:
@@ -718,28 +726,32 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_regprocedure:
                 case PostgreSqlTypes.sql_regrole:
                 case PostgreSqlTypes.sql_regtype:
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // OID (Object Identifier) types - internally they're unsigned integers
+                    return new DotnetTypeDescriptor(typeof(uint));
                 case PostgreSqlTypes.sql_tid:
                     if (sqlNpgsqlTid != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTid);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Tuple identifier as string (e.g., "(0,1)")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_tsquery:
                     if (sqlNpgsqlTsQuery != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTsQuery);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Text search query as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_tsvector:
                     if (sqlNpgsqlTsVector != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTsVector);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Text search vector as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_txid_snapshot:
                 case PostgreSqlTypes.sql_xid:
                 case PostgreSqlTypes.sql_xid8:

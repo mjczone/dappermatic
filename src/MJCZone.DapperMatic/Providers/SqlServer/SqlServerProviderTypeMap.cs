@@ -388,21 +388,24 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
                         return new DotnetTypeDescriptor(sqlGeometryType);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKB (Well-Known Binary) format as byte[]
+                    return new DotnetTypeDescriptor(typeof(byte[]));
                 case SqlServerTypes.sql_geography:
                     if (sqlGeographyType != null)
                     {
                         return new DotnetTypeDescriptor(sqlGeographyType);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKB (Well-Known Binary) format as byte[]
+                    return new DotnetTypeDescriptor(typeof(byte[]));
                 case SqlServerTypes.sql_hierarchyid:
                     if (sqlHierarchyIdType != null)
                     {
                         return new DotnetTypeDescriptor(sqlHierarchyIdType);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Hierarchical path as string (e.g., "/1/2/3/")
+                    return new DotnetTypeDescriptor(typeof(string));
             }
 
             return null;

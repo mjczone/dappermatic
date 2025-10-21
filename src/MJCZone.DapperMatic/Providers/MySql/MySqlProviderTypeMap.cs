@@ -496,49 +496,116 @@ namespace MJCZone.DapperMatic.Providers.MySql
                             return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        // Fallback: WKT (Well-Known Text) format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_point:
                         if (sqlNetTopologyPointType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyPointType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_linestring:
                         if (sqlNetTopologyLineStringType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_polygon:
                         if (sqlNetTopologyPolygonType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multipoint:
                         if (sqlNetTopologyMultiPointType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultiPointType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multilinestring:
                         if (sqlNetTopologyMultLineStringType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultLineStringType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multipolygon:
                         if (sqlNetTopologyMultiPolygonType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultiPolygonType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_geomcollection:
                     case MySqlTypes.sql_geometrycollection:
                         if (sqlNetTopologyGeometryCollectionType != null)
@@ -546,7 +613,18 @@ namespace MJCZone.DapperMatic.Providers.MySql
                             return new DotnetTypeDescriptor(sqlNetTopologyGeometryCollectionType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                 }
 
                 return null;

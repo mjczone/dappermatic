@@ -814,6 +814,54 @@ These mappings ensure that when you:
 You get the same .NET type with the same metadata (length/precision/scale).
 :::
 
+### Priority-Based Type Selection Strategy
+
+When reverse-engineering database schemas (DDL operations), DapperMatic uses a **priority-based type selection** strategy for advanced types like spatial data, hierarchical data, and specialized PostgreSQL types. This ensures the best possible .NET type is selected based on available assemblies:
+
+**Priority Order:**
+1. **Native provider types** (if assembly available) - e.g., `Microsoft.SqlServer.Types`, `MySql.Data.Types`
+2. **Cross-platform types** (if assembly available) - e.g., `NetTopologySuite.Geometries.*`
+3. **Fallback to primitives** - `string` (text serialization) or `byte[]` (binary serialization)
+
+**Optional Assembly Dependencies:**
+
+DapperMatic automatically detects these optional assemblies at runtime:
+
+- **NetTopologySuite** (`NetTopologySuite` NuGet package) - Cross-database spatial types
+- **Microsoft.SqlServer.Types** (`Microsoft.SqlServer.Types` NuGet package) - SQL Server spatial/hierarchical types
+- **MySql.Data** (`MySql.Data` NuGet package) - MySQL spatial types (alternative to MySqlConnector)
+
+**Examples:**
+
+| Database Type | Available Assemblies | Selected .NET Type | Fallback (if not available) |
+| ------------- | -------------------- | ------------------ | --------------------------- |
+| **SQL Server `geometry`** | NetTopologySuite | `NetTopologySuite.Geometries.Geometry` | `byte[]` (WKB format) |
+| **SQL Server `geometry`** | SqlServer.Types (no NTS) | `Microsoft.SqlServer.Types.SqlGeometry` | `byte[]` (WKB format) |
+| **SQL Server `geography`** | SqlServer.Types | `Microsoft.SqlServer.Types.SqlGeography` | `byte[]` (WKB format) |
+| **SQL Server `hierarchyid`** | SqlServer.Types | `Microsoft.SqlServer.Types.SqlHierarchyId` | `string` (e.g., "/1/2/3/") |
+| **MySQL `point`** | NetTopologySuite | `NetTopologySuite.Geometries.Point` | `string` (WKT format) |
+| **MySQL `geometry`** | MySql.Data (no NTS) | `MySql.Data.Types.MySqlGeometry` | `string` (WKT format) |
+| **PostgreSQL `geometry`** (PostGIS) | NetTopologySuite | `NetTopologySuite.Geometries.Geometry` | `string` (WKT format) |
+| **PostgreSQL `ltree`** | - | `string` | - |
+| **PostgreSQL `regclass`** (OID) | - | `uint` | - |
+
+::: info Assembly Detection
+DapperMatic uses the `AssemblyDetector` class to lazily detect optional assemblies at runtime. This means:
+- **No hard dependencies** - You only need to install the packages you actually use
+- **Zero configuration** - Detection happens automatically
+- **Performance optimized** - Results are cached after first detection
+:::
+
+::: tip Recommendation for Multi-Database Applications
+For applications that work with multiple database providers and need spatial types, we recommend installing **NetTopologySuite** as it provides consistent spatial type support across SQL Server, MySQL, and PostgreSQL.
+
+```bash
+dotnet add package NetTopologySuite
+```
+
+This gives you consistent `Geometry`, `Point`, `LineString`, etc. types regardless of which database you're using.
+:::
+
 ### SQL Server Types → .NET Types
 
 | SQL Server Type | .NET Type | Length | Precision | Scale | Unicode | Notes |
@@ -828,9 +876,9 @@ You get the same .NET type with the same metadata (length/precision/scale).
 | `datetimeoffset` | `DateTimeOffset` | | | | | Date, time, and timezone offset |
 | `decimal` | `decimal` | | 18 | 2 | | Fixed-point decimal |
 | `float` | `double` | | | | | 64-bit floating point |
-| `geography` | `object` | | | | | Spatial geography type |
-| `geometry` | `object` | | | | | Spatial geometry type |
-| `hierarchyid` | `object` | | | | | Hierarchical data type |
+| `geography` | `SqlGeography` or `byte[]` | | | | | Spatial geography type (requires Microsoft.SqlServer.Types) |
+| `geometry` | `Geometry` or `SqlGeometry` or `byte[]` | | | | | Spatial geometry type (NetTopologySuite or Microsoft.SqlServer.Types) |
+| `hierarchyid` | `SqlHierarchyId` or `string` | | | | | Hierarchical data type (requires Microsoft.SqlServer.Types) |
 | `image` | `byte[]` | | | | | Legacy binary type (deprecated) |
 | `int` | `int` | | | | | 32-bit integer |
 | `money` | `decimal` | | | | | Currency type |
@@ -872,21 +920,21 @@ You get the same .NET type with the same metadata (length/precision/scale).
 | `double` | `double` | | | | | 64-bit floating point |
 | `enum` | `string` | | | | Yes | Enumeration type |
 | `float` | `float` | | | | | 32-bit floating point |
-| `geometry` | `MySqlGeometry` | | | | | Spatial geometry type |
-| `geometrycollection` | `object` | | | | | Spatial collection |
+| `geometry` | `Geometry` or `MySqlGeometry` or `string` | | | | | Spatial geometry type (NetTopologySuite or MySql.Data) |
+| `geometrycollection` | `GeometryCollection` or `MySqlGeometry` or `string` | | | | | Spatial collection (NetTopologySuite or MySql.Data) |
 | `int` | `int` | | | | | 32-bit integer |
 | `json` | MySQL: `JsonDocument`<br/>MariaDB: `string` | | | | Yes | JSON type (MySQL 5.7+) / TEXT with validation (MariaDB 10.x) |
-| `linestring` | `object` | | | | | Spatial linestring |
+| `linestring` | `LineString` or `MySqlGeometry` or `string` | | | | | Spatial linestring (NetTopologySuite or MySql.Data) |
 | `longblob` | `byte[]` | | | | Yes | Large binary object (up to 4GB) |
 | `longtext` | `string` | | | | Yes | Large text (up to 4GB) |
 | `mediumblob` | `byte[]` | | | | Yes | Medium binary object |
 | `mediumint` | `int` | | | | | 24-bit integer |
 | `mediumtext` | `string` | | | | Yes | Medium text |
-| `multilinestring` | `object` | | | | | Spatial multi-linestring |
-| `multipoint` | `object` | | | | | Spatial multi-point |
-| `multipolygon` | `object` | | | | | Spatial multi-polygon |
-| `point` | `object` | | | | | Spatial point |
-| `polygon` | `object` | | | | | Spatial polygon |
+| `multilinestring` | `MultiLineString` or `MySqlGeometry` or `string` | | | | | Spatial multi-linestring (NetTopologySuite or MySql.Data) |
+| `multipoint` | `MultiPoint` or `MySqlGeometry` or `string` | | | | | Spatial multi-point (NetTopologySuite or MySql.Data) |
+| `multipolygon` | `MultiPolygon` or `MySqlGeometry` or `string` | | | | | Spatial multi-polygon (NetTopologySuite or MySql.Data) |
+| `point` | `Point` or `MySqlGeometry` or `string` | | | | | Spatial point (NetTopologySuite or MySql.Data) |
+| `polygon` | `Polygon` or `MySqlGeometry` or `string` | | | | | Spatial polygon (NetTopologySuite or MySql.Data) |
 | `set` | `string` | | | | Yes | SET enumeration type |
 | `smallint` | `short` | | | | | 16-bit integer |
 | `text` | `string` | | | | Yes | Text |
@@ -926,8 +974,8 @@ PostgreSQL has the richest type system with native arrays, ranges, network types
 | `date` | `DateOnly` | | | | | Date only |
 | `daterange` | `NpgsqlRange<DateOnly>` | | | | | Range of dates |
 | `double precision` | `double` | | | | | 64-bit floating point |
-| `geography` | `object` | | | | | PostGIS geography type |
-| `geometry` | `object` | | | | | PostGIS geometry type |
+| `geography` | `Geometry` or `string` | | | | | PostGIS geography type (NetTopologySuite) |
+| `geometry` | `Geometry` or `string` | | | | | PostGIS geometry type (NetTopologySuite) |
 | `hstore` | `Dictionary<string,string>` | | | | | Key-value store |
 | `inet` | `IPAddress` | | | | | IP address |
 | `int4range` | `NpgsqlRange<int>` | | | | | Range of integers |
@@ -938,7 +986,7 @@ PostgreSQL has the richest type system with native arrays, ranges, network types
 | `jsonb` | `JsonDocument` | | | | | Binary JSON (preferred) |
 | `line` | `NpgsqlLine` | | | | | Infinite line |
 | `lseg` | `NpgsqlLSeg` | | | | | Line segment |
-| `ltree` | `object` | | | | | Label tree (requires extension) |
+| `ltree` | `string` | | | | | Label tree (requires extension) - stored as hierarchical text path |
 | `macaddr` | `PhysicalAddress` | | | | | MAC address |
 | `macaddr8` | `PhysicalAddress` | | | | | MAC address (EUI-64) |
 | `money` | `decimal` | | | | | Currency |
@@ -949,14 +997,14 @@ PostgreSQL has the richest type system with native arrays, ranges, network types
 | `point` | `NpgsqlPoint` | | | | | Geometric point |
 | `polygon` | `NpgsqlPolygon` | | | | | Geometric polygon |
 | `real` | `float` | | | | | 32-bit floating point |
-| `regclass` | `object` | | | | | Registered class |
-| `regconfig` | `object` | | | | | Text search configuration |
-| `regdictionary` | `object` | | | | | Text search dictionary |
-| `regoper` | `object` | | | | | Registered operator |
-| `regoperator` | `object` | | | | | Registered operator with signature |
-| `regproc` | `object` | | | | | Registered procedure |
-| `regprocedure` | `object` | | | | | Registered procedure with signature |
-| `regtype` | `object` | | | | | Registered type |
+| `regclass` | `uint` | | | | | Registered class (OID reference) |
+| `regconfig` | `uint` | | | | | Text search configuration (OID reference) |
+| `regdictionary` | `uint` | | | | | Text search dictionary (OID reference) |
+| `regoper` | `uint` | | | | | Registered operator (OID reference) |
+| `regoperator` | `uint` | | | | | Registered operator with signature (OID reference) |
+| `regproc` | `uint` | | | | | Registered procedure (OID reference) |
+| `regprocedure` | `uint` | | | | | Registered procedure with signature (OID reference) |
+| `regtype` | `uint` | | | | | Registered type (OID reference) |
 | `serial` | `int` | | | | | Auto-incrementing integer |
 | `smallint` | `short` | | | | | 16-bit integer |
 | `smallserial` | `short` | | | | | Auto-incrementing smallint |
