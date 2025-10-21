@@ -503,8 +503,8 @@ public abstract partial class DatabaseMethodsTests
                         case "double": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
                         case "enum": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string), unicode: true); break;
                         case "float": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
-                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(MySql.Data.Types.MySqlGeometry)); break;
-                        case "geometrycollection": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
+                        case "geometrycollection": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.GeometryCollection)); break;
                         case "int": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
                         case "json":
                             if (dbVersion.Major < 10)
@@ -514,17 +514,17 @@ public abstract partial class DatabaseMethodsTests
                                 // MariaDB
                                 AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(string), unicode: true);
                             break;
-                        case "linestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "linestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
                         case "longblob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
                         case "longtext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
                         case "mediumblob": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[]), unicode: true); break;
                         case "mediumint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
                         case "mediumtext": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
-                        case "multilinestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "multipoint": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "multipolygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "multilinestring": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.MultiLineString)); break;
+                        case "multipoint": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.MultiPoint)); break;
+                        case "multipolygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.MultiPolygon)); break;
+                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Point)); break;
+                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Polygon)); break;
                         case "set": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string), unicode: true); break;
                         case "smallint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
                         case "text": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
@@ -585,8 +585,8 @@ public abstract partial class DatabaseMethodsTests
                         case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
                         case "double precision": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
                         case "double precision[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
-                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
+                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
                         case "hstore": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(Dictionary<string, string>)); break;
                         case "inet": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(IPAddress)); break;
                         case "int4range": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<int>)); break;
@@ -601,7 +601,7 @@ public abstract partial class DatabaseMethodsTests
                         case "jsonb[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
                         case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLine)); break;
                         case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLSeg)); break;
-                        case "ltree": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "ltree": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string)); break;
                         case "macaddr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
                         case "macaddr8": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
                         case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
@@ -614,14 +614,14 @@ public abstract partial class DatabaseMethodsTests
                         case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPolygon)); break;
                         case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
                         case "real[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
-                        case "regclass": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regconfig": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regdictionary": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regoper": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regoperator": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regproc": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regprocedure": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
-                        case "regtype": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "regclass": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regconfig": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regdictionary": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regoper": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regoperator": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regproc": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regprocedure": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
+                        case "regtype": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
                         case "serial": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
                         case "smallint": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(short)); break;
                         case "smallint[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(short[])); break;
@@ -680,9 +680,9 @@ public abstract partial class DatabaseMethodsTests
                         case "datetimeoffset": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
                         case "decimal": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
                         case "float": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
-                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(object)); break;
-                        case "hierarchyid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(object)); break;
+                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(Microsoft.SqlServer.Types.SqlGeography)); break;
+                        case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
+                        case "hierarchyid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(Microsoft.SqlServer.Types.SqlHierarchyId)); break;
                         case "image": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
                         case "int": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
                         case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
