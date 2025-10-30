@@ -5,7 +5,6 @@
 
 using System.Net;
 using System.Net.NetworkInformation;
-
 using MJCZone.DapperMatic.Providers.Base;
 
 namespace MJCZone.DapperMatic.Providers.Sqlite;

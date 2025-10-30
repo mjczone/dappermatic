@@ -461,13 +461,13 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     {
         return new DotnetTypeToSqlTypeConverter(d =>
         {
-            var shortName = TypeMappingHelpers.GetAssemblyQualifiedShortName(d.DotnetType);
-            if (string.IsNullOrWhiteSpace(shortName))
+            var fullName = d.DotnetType.GetFullTypeName();
+            if (string.IsNullOrWhiteSpace(fullName))
             {
                 return null;
             }
 
-            return CreateGeometryTypeForShortName(shortName);
+            return CreateGeometryTypeForShortName(fullName);
         });
     }
 

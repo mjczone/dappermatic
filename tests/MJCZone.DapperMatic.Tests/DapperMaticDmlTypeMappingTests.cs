@@ -1235,7 +1235,39 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
 
         Assert.Single(ipv6Documents);
         Assert.NotNull(ipv6Documents[0].Network);
+        Assert.IsType<string>(ipv6Documents[0].Network);
         Assert.Equal(testIPv6Cidr!.ToString(), ipv6Documents[0].Network!.ToString());
+
+        // Query IPv6 CIDR back
+        var ipv6DocumentsTyped = (
+            await db.QueryAsync<TestDocumentWithNpgsqlCidrTyped>(
+                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
+                new { title = "IPv6 Network" }
+            )
+        ).ToList();
+
+        Assert.Single(ipv6DocumentsTyped);
+        Assert.NotNull(ipv6DocumentsTyped[0].Network);
+        Assert.NotNull(testIPv6Cidr as NpgsqlTypes.NpgsqlCidr?);
+        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Address, ipv6DocumentsTyped[0].Network!.Value.Address);
+        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Netmask, ipv6DocumentsTyped[0].Network!.Value.Netmask);
+
+        // Query IPv6 CIDR back
+        var ipv6DocumentsProviderTyped = (
+            await db.QueryAsync<TestDocumentWithNpgsqlCidrProviderTyped>(
+                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
+                new { title = "IPv6 Network" }
+            )
+        ).ToList();
+
+        Assert.Single(ipv6DocumentsProviderTyped);
+        Assert.NotNull(ipv6DocumentsProviderTyped[0].Network);
+        Assert.IsType<NpgsqlTypes.NpgsqlCidr>(ipv6DocumentsProviderTyped[0].Network);
+        Assert.NotNull(testIPv6Cidr as NpgsqlTypes.NpgsqlCidr?);
+        Assert.NotNull(ipv6DocumentsProviderTyped[0].Network! as NpgsqlTypes.NpgsqlCidr?);
+        var npgsqlCidrObj = (NpgsqlTypes.NpgsqlCidr)ipv6DocumentsProviderTyped[0].Network!;
+        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Address, npgsqlCidrObj.Address);
+        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Netmask, npgsqlCidrObj.Netmask);
 
         // Query null CIDR back
         var documentsWithNull = (
@@ -1543,5 +1575,35 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         public object? Network { get; set; }
     }
 
-    #endregion
+    /// <summary>
+    /// Test class for NpgsqlCidr type handler (Phase 6).
+    /// </summary>
+    public class TestDocumentWithNpgsqlCidrTyped
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [DmColumn("network")]
+        public NpgsqlTypes.NpgsqlCidr? Network { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for NpgsqlCidr type handler (Phase 6).
+    /// </summary>
+    public class TestDocumentWithNpgsqlCidrProviderTyped
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [DmColumn("network", providerDataType: "{postgresql:cidr}")]
+        public object? Network { get; set; }
+    }
+
+    #endregion // #region Test Helper Classes
 }

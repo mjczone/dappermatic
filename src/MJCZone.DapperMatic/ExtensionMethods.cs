@@ -3,6 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using System.Text;
@@ -14,6 +15,12 @@ namespace MJCZone.DapperMatic;
 [SuppressMessage("ReSharper", "MemberCanBePrivate.Global", Justification = "Utility methods.")]
 internal static partial class ExtensionMethods
 {
+    // Cache for performance - GetFullTypeName can be called frequently
+    private static readonly ConcurrentDictionary<Type, string?> _fullTypeNameCache = new();
+
+    // Cache for performance - GetFriendlyName can be called frequently (especially recursively)
+    private static readonly ConcurrentDictionary<Type, string> _friendlyNameCache = new();
+
     /// <summary>
     /// Determines if the specified type is a struct.
     /// </summary>
@@ -92,6 +99,7 @@ internal static partial class ExtensionMethods
 
     /// <summary>
     /// Gets the friendly name of the specified type.
+    /// Results are cached for performance since this method is called recursively for generic types.
     /// </summary>
     /// <param name="type">The type to get the friendly name for.</param>
     /// <returns>The friendly name of the type.</returns>
@@ -99,22 +107,56 @@ internal static partial class ExtensionMethods
     {
         if (type == null)
         {
-            return "(Unknown Type)";
+            return "Object";
         }
 
-        if (!type.IsGenericType)
+        // Check cache first
+        if (_friendlyNameCache.TryGetValue(type, out var cachedName))
         {
-            return type.Name;
+            return cachedName;
         }
 
-        var genericTypeName = type.GetGenericTypeDefinition().Name;
-        var friendlyGenericTypeName = genericTypeName[..genericTypeName.LastIndexOf('`')];
+        // Build the friendly name
+        var friendlyName = BuildFriendlyName(type);
 
-        var genericArguments = type.GetGenericArguments();
-        var genericArgumentNames = genericArguments.Select(GetFriendlyName).ToArray();
-        var genericTypeArgumentsString = string.Join(", ", genericArgumentNames);
+        // Cache and return
+        _friendlyNameCache[type] = friendlyName;
+        return friendlyName;
+    }
 
-        return $"{friendlyGenericTypeName}<{genericTypeArgumentsString}>";
+    /// <summary>
+    /// Gets the full type name with namespace but without assembly information.
+    /// This recursively handles generic type parameters to produce clean type names.
+    /// Results are cached for performance since this can be called frequently during type mapping.
+    /// </summary>
+    /// <param name="type">The type to get the full name for.</param>
+    /// <returns>
+    /// The type name with namespace but no assembly info, or null if type is null.
+    /// Examples:
+    /// - int → "System.Int32"
+    /// - List&lt;string&gt; → "System.Collections.Generic.List&lt;System.String&gt;"
+    /// - NpgsqlRange&lt;int&gt; → "NpgsqlTypes.NpgsqlRange&lt;System.Int32&gt;"
+    /// - int[] → "System.Int32[]"
+    /// </returns>
+    public static string? GetFullTypeName(this Type? type)
+    {
+        if (type == null)
+        {
+            return null;
+        }
+
+        // Check cache first
+        if (_fullTypeNameCache.TryGetValue(type, out var cachedName))
+        {
+            return cachedName;
+        }
+
+        // Build the full name recursively
+        var fullName = BuildFullTypeName(type);
+
+        // Cache and return
+        _fullTypeNameCache[type] = fullName;
+        return fullName;
     }
 
     /// <summary>
@@ -178,6 +220,78 @@ internal static partial class ExtensionMethods
     {
         value = instance.GetPropertyValue<TValue>(name);
         return value != null;
+    }
+
+    /// <summary>
+    /// Builds a friendly type name recursively.
+    /// </summary>
+    private static string BuildFriendlyName(Type type)
+    {
+        // Non-generic types just use their simple name
+        if (!type.IsGenericType)
+        {
+            return type.Name;
+        }
+
+        // Generic types: format as "List<int>" instead of "List`1"
+        var genericTypeName = type.GetGenericTypeDefinition().Name;
+        var friendlyGenericTypeName = genericTypeName[..genericTypeName.LastIndexOf('`')];
+
+        var genericArguments = type.GetGenericArguments();
+        var genericArgumentNames = genericArguments.Select(GetFriendlyName).ToArray();
+        var genericTypeArgumentsString = string.Join(", ", genericArgumentNames);
+
+        return $"{friendlyGenericTypeName}<{genericTypeArgumentsString}>";
+    }
+
+    /// <summary>
+    /// Builds a full type name recursively without assembly information.
+    /// </summary>
+    private static string BuildFullTypeName(Type type)
+    {
+        // Handle arrays
+        if (type.IsArray)
+        {
+            var elementType = type.GetElementType()!;
+            var elementName = BuildFullTypeName(elementType);
+            var rank = type.GetArrayRank();
+            return rank == 1 ? $"{elementName}[]" : $"{elementName}[{new string(',', rank - 1)}]";
+        }
+
+        // Handle generic types
+        if (type.IsGenericType)
+        {
+            var genericTypeDefinition = type.GetGenericTypeDefinition();
+            var genericTypeName = genericTypeDefinition.FullName ?? genericTypeDefinition.Name;
+
+            // Remove the `N suffix (e.g., List`1 → List)
+            var backtickIndex = genericTypeName.IndexOf('`', StringComparison.Ordinal);
+            if (backtickIndex > 0)
+            {
+                genericTypeName = genericTypeName.Substring(0, backtickIndex);
+            }
+
+            // Build generic arguments recursively
+            var genericArgs = type.GetGenericArguments();
+            var sb = new StringBuilder(genericTypeName);
+            sb.Append('<');
+
+            for (var i = 0; i < genericArgs.Length; i++)
+            {
+                if (i > 0)
+                {
+                    sb.Append(", ");
+                }
+
+                sb.Append(BuildFullTypeName(genericArgs[i]));
+            }
+
+            sb.Append('>');
+            return sb.ToString();
+        }
+
+        // Handle simple types - use FullName which includes namespace but not assembly
+        return type.FullName ?? type.Name;
     }
 
     [GeneratedRegex(@"\d+")]

@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Text;
 using MJCZone.DapperMatic.Converters;
 
@@ -14,32 +15,6 @@ namespace MJCZone.DapperMatic.Providers;
 /// </summary>
 public static class TypeMappingHelpers
 {
-    /// <summary>
-    /// Gets the short form assembly qualified name for a type (Type, Assembly).
-    /// This is commonly used for geometry type identification.
-    /// </summary>
-    /// <param name="type">The type to get the short assembly qualified name for.</param>
-    /// <returns>The short assembly qualified name in format "FullTypeName, AssemblyName" or null if type is null.</returns>
-    public static string? GetAssemblyQualifiedShortName(Type? type)
-    {
-        var assemblyQualifiedName = type?.AssemblyQualifiedName;
-        if (string.IsNullOrWhiteSpace(assemblyQualifiedName))
-        {
-            return null;
-        }
-
-        var assemblyQualifiedNameParts = assemblyQualifiedName.Split(
-            ',',
-            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-        );
-        if (assemblyQualifiedNameParts.Length < 2)
-        {
-            return assemblyQualifiedName;
-        }
-
-        return assemblyQualifiedNameParts[0] + ", " + assemblyQualifiedNameParts[1];
-    }
-
     #region Standard Type Lookups
 
     /// <summary>
@@ -223,10 +198,10 @@ public static class TypeMappingHelpers
             return false;
         }
 
-        var shortName = GetAssemblyQualifiedShortName(type);
-        return !string.IsNullOrWhiteSpace(shortName)
-            && shortName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase)
-            && shortName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
+        var fullName = type.GetFullTypeName();
+        return !string.IsNullOrWhiteSpace(fullName)
+            && fullName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase)
+            && fullName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -241,28 +216,28 @@ public static class TypeMappingHelpers
             return null;
         }
 
-        var shortName = GetAssemblyQualifiedShortName(type);
-        if (string.IsNullOrWhiteSpace(shortName))
+        var fullName = type.GetFullTypeName();
+        if (string.IsNullOrWhiteSpace(fullName))
         {
             return null;
         }
 
         // Extract type name from "NetTopologySuite.Geometries.Point, NetTopologySuite"
         const string prefix = "NetTopologySuite.Geometries.";
-        var startIndex = shortName.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        var startIndex = fullName.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
         if (startIndex == -1)
         {
             return null;
         }
 
         var typeNameStart = startIndex + prefix.Length;
-        var commaIndex = shortName.IndexOf(',', typeNameStart);
+        var commaIndex = fullName.IndexOf(',', typeNameStart);
         if (commaIndex == -1)
         {
-            return shortName[typeNameStart..];
+            return fullName[typeNameStart..];
         }
 
-        return shortName[typeNameStart..commaIndex];
+        return fullName[typeNameStart..commaIndex];
     }
 
     /// <summary>

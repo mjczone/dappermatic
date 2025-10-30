@@ -56,8 +56,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     typeof(DateOnly),
                     typeof(int),
                     typeof(long),
-                    typeof(double),
-                    typeof(float),
                     typeof(decimal),
                     typeof(DateTime),
                     typeof(DateTimeOffset),
@@ -96,36 +94,33 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         return shortName switch
         {
             // NetTopologySuite types - PostgreSQL has specific geometry types
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+            "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
                 PostgreSqlTypes.sql_geometry
             ),
-            "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
-                PostgreSqlTypes.sql_point
-            ),
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+            "NetTopologySuite.Geometries.Point" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
+            "NetTopologySuite.Geometries.LineString" => TypeMappingHelpers.CreateGeometryType(
                 PostgreSqlTypes.sql_geometry
             ),
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
-                PostgreSqlTypes.sql_polygon
+            "NetTopologySuite.Geometries.Polygon" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
+            "NetTopologySuite.Geometries.MultiPoint"
+            or "NetTopologySuite.Geometries.MultiLineString"
+            or "NetTopologySuite.Geometries.MultiPolygon"
+            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
+                PostgreSqlTypes.sql_geometry
             ),
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-            or "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
-            or "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
-            or "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" =>
-                TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry),
-            "NpgsqlTypes.NpgsqlInet, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
-            "NpgsqlTypes.NpgsqlCidr, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
-            "NpgsqlTypes.NpgsqlPoint, Npgsql" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
-            "NpgsqlTypes.NpgsqlLSeg, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg),
-            "NpgsqlTypes.NpgsqlPath, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path),
-            "NpgsqlTypes.NpgsqlPolygon, Npgsql" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
-            "NpgsqlTypes.NpgsqlLine, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line),
-            "NpgsqlTypes.NpgsqlCircle, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle),
-            "NpgsqlTypes.NpgsqlBox, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box),
-            "NpgsqlTypes.NpgsqlInterval, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
-            "NpgsqlTypes.NpgsqlTid, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid),
-            "NpgsqlTypes.NpgsqlTsQuery, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery),
-            "NpgsqlTypes.NpgsqlTsVector, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector),
+            "NpgsqlTypes.NpgsqlInet" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
+            "NpgsqlTypes.NpgsqlCidr" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
+            "NpgsqlTypes.NpgsqlPoint" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
+            "NpgsqlTypes.NpgsqlLSeg" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg),
+            "NpgsqlTypes.NpgsqlPath" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path),
+            "NpgsqlTypes.NpgsqlPolygon" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
+            "NpgsqlTypes.NpgsqlLine" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line),
+            "NpgsqlTypes.NpgsqlCircle" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle),
+            "NpgsqlTypes.NpgsqlBox" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box),
+            "NpgsqlTypes.NpgsqlInterval" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
+            "NpgsqlTypes.NpgsqlTid" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid),
+            "NpgsqlTypes.NpgsqlTsQuery" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery),
+            "NpgsqlTypes.NpgsqlTsVector" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector),
             _ => null,
         };
     }
@@ -309,15 +304,17 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 return null;
             }
 
-            var shortName = TypeMappingHelpers.GetAssemblyQualifiedShortName(d.DotnetType);
-            if (string.IsNullOrWhiteSpace(shortName))
+            var fullName = d.DotnetType.GetFullTypeName();
+            if (string.IsNullOrWhiteSpace(fullName))
             {
                 return null;
             }
 
-            switch (shortName)
+            switch (fullName)
             {
-                case "NpgsqlTypes.NpgsqlRange`1, Npgsql":
+                // Match any NpgsqlRange<T> type using StartsWith pattern
+                // New format: "NpgsqlTypes.NpgsqlRange<System.Int32>" (no assembly info)
+                case var s when s?.StartsWith("NpgsqlTypes.NpgsqlRange<", StringComparison.Ordinal) == true:
                     var genericType = dotnetType.GetGenericArguments()[0];
                     if (genericType == typeof(DateOnly))
                     {
@@ -330,14 +327,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     if (genericType == typeof(long))
                     {
                         return isArray ? new(PostgreSqlTypes.sql_int8multirange) : new(PostgreSqlTypes.sql_int8range);
-                    }
-                    if (genericType == typeof(double))
-                    {
-                        return isArray ? new(PostgreSqlTypes.sql_nummultirange) : new(PostgreSqlTypes.sql_numrange);
-                    }
-                    if (genericType == typeof(float))
-                    {
-                        return isArray ? new(PostgreSqlTypes.sql_nummultirange) : new(PostgreSqlTypes.sql_numrange);
                     }
                     if (genericType == typeof(decimal))
                     {
@@ -781,9 +770,9 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_int8range:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(long)));
                 case PostgreSqlTypes.sql_nummultirange:
-                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(double)).MakeArrayType());
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(decimal)).MakeArrayType());
                 case PostgreSqlTypes.sql_numrange:
-                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(double)));
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(decimal)));
                 case PostgreSqlTypes.sql_tsrange:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTime)));
                 case PostgreSqlTypes.sql_tsmultirange:

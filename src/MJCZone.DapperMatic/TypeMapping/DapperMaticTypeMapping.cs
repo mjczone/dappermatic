@@ -131,10 +131,57 @@ public static class DapperMaticTypeMapping
         TryAddTypeHandler(new SmartNpgsqlCidrTypeHandler());
 
         // Range types - smart handlers (PostgreSQL native, others as JSON)
-        // TryAddTypeHandler(new SmartNpgsqlRangeTypeHandler<int>());
+        RegisterNpgsqlRangeHandler<int>();
+        RegisterNpgsqlRangeHandler<long>();
+        RegisterNpgsqlRangeHandler<decimal>();
+        RegisterNpgsqlRangeHandler<DateTime>();
+        RegisterNpgsqlRangeHandler<DateOnly>();
+        RegisterNpgsqlRangeHandler<DateTimeOffset>();
 
-        // Npgsql spatial types - smart handlers (PostgreSQL native, others as WKT/JSON)
-        // TryAddTypeHandler(new SmartNpgsqlBoxTypeHandler());
+        // Npgsql geometric types - smart handlers (PostgreSQL native, others as WKT)
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlPointTypeHandler>("NpgsqlTypes.NpgsqlPoint");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlBoxTypeHandler>("NpgsqlTypes.NpgsqlBox");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlCircleTypeHandler>("NpgsqlTypes.NpgsqlCircle");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlLineTypeHandler>("NpgsqlTypes.NpgsqlLine");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlLSegTypeHandler>("NpgsqlTypes.NpgsqlLSeg");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlPathTypeHandler>("NpgsqlTypes.NpgsqlPath");
+        RegisterNpgsqlGeometricHandler<SmartNpgsqlPolygonTypeHandler>("NpgsqlTypes.NpgsqlPolygon");
+    }
+
+    /// <summary>
+    /// Registers a NpgsqlRange&lt;T&gt; type handler using reflection to avoid direct Npgsql dependency.
+    /// </summary>
+    private static void RegisterNpgsqlRangeHandler<T>()
+        where T : struct
+    {
+        var rangeType = Type.GetType($"NpgsqlTypes.NpgsqlRange`1[[{typeof(T).AssemblyQualifiedName}]], Npgsql");
+        if (rangeType != null)
+        {
+            // Create the generic handler type: SmartNpgsqlRangeTypeHandler<T>
+            var handlerGenericType = typeof(SmartNpgsqlRangeTypeHandler<>);
+            var handlerType = handlerGenericType.MakeGenericType(typeof(T));
+
+            // Create an instance of the handler
+            var handler = Activator.CreateInstance(handlerType) as SqlMapper.ITypeHandler;
+            if (handler != null)
+            {
+                TryAddTypeHandler(handler, rangeType);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Registers a Npgsql geometric type handler using reflection to avoid direct Npgsql dependency.
+    /// </summary>
+    private static void RegisterNpgsqlGeometricHandler<THandler>(string npgsqlTypeName)
+        where THandler : SqlMapper.ITypeHandler, new()
+    {
+        var geometricType = Type.GetType($"{npgsqlTypeName}, Npgsql");
+        if (geometricType != null)
+        {
+            var handler = new THandler();
+            TryAddTypeHandler(handler, geometricType);
+        }
     }
 
     /// <summary>

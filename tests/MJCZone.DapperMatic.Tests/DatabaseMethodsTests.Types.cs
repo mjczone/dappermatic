@@ -607,7 +607,7 @@ public abstract partial class DatabaseMethodsTests
                         case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;
                         case "numeric": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
                         case "numeric[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(decimal[])); break;
-                        case "numrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<double>)); break;
+                        case "numrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<decimal>)); break;
                         case "oid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
                         case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPath)); break;
                         case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPoint)); break;

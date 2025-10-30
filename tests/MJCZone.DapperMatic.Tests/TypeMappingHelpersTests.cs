@@ -14,28 +14,89 @@ public class TypeMappingHelpersTests : TestBase
     public TypeMappingHelpersTests(ITestOutputHelper output)
         : base(output) { }
 
-    [Fact]
-    public void Should_expect_get_assembly_qualified_short_name_with_valid_type_returns_short_name()
+    [Theory]
+    // Simple types - should include namespace but no assembly info
+    [InlineData(typeof(int), "System.Int32")]
+    [InlineData(typeof(string), "System.String")]
+    [InlineData(typeof(bool), "System.Boolean")]
+    [InlineData(typeof(decimal), "System.Decimal")]
+    [InlineData(typeof(DateTime), "System.DateTime")]
+    [InlineData(typeof(DateTimeOffset), "System.DateTimeOffset")]
+    [InlineData(typeof(TimeSpan), "System.TimeSpan")]
+    [InlineData(typeof(Guid), "System.Guid")]
+    [InlineData(typeof(byte), "System.Byte")]
+    [InlineData(typeof(short), "System.Int16")]
+    [InlineData(typeof(long), "System.Int64")]
+    [InlineData(typeof(float), "System.Single")]
+    [InlineData(typeof(double), "System.Double")]
+    // Arrays - should show element type with [] notation
+    [InlineData(typeof(int[]), "System.Int32[]")]
+    [InlineData(typeof(string[]), "System.String[]")]
+    [InlineData(typeof(byte[]), "System.Byte[]")]
+    // Multi-dimensional arrays
+    [InlineData(typeof(int[,]), "System.Int32[,]")]
+    [InlineData(typeof(string[,,]), "System.String[,,]")]
+    // Nullable types - generic with one parameter
+    [InlineData(typeof(int?), "System.Nullable<System.Int32>")]
+    [InlineData(typeof(bool?), "System.Nullable<System.Boolean>")]
+    [InlineData(typeof(DateTime?), "System.Nullable<System.DateTime>")]
+    [InlineData(typeof(Guid?), "System.Nullable<System.Guid>")]
+    // Generic collections - single type parameter
+    [InlineData(typeof(List<int>), "System.Collections.Generic.List<System.Int32>")]
+    [InlineData(typeof(List<string>), "System.Collections.Generic.List<System.String>")]
+    [InlineData(typeof(HashSet<int>), "System.Collections.Generic.HashSet<System.Int32>")]
+    [InlineData(typeof(IEnumerable<string>), "System.Collections.Generic.IEnumerable<System.String>")]
+    [InlineData(typeof(IList<int>), "System.Collections.Generic.IList<System.Int32>")]
+    [InlineData(typeof(ICollection<string>), "System.Collections.Generic.ICollection<System.String>")]
+    // Generic collections - two type parameters
+    [InlineData(typeof(Dictionary<string, int>), "System.Collections.Generic.Dictionary<System.String, System.Int32>")]
+    [InlineData(typeof(Dictionary<int, string>), "System.Collections.Generic.Dictionary<System.Int32, System.String>")]
+    [InlineData(
+        typeof(KeyValuePair<string, int>),
+        "System.Collections.Generic.KeyValuePair<System.String, System.Int32>"
+    )]
+    // Nested generics
+    [InlineData(
+        typeof(List<List<int>>),
+        "System.Collections.Generic.List<System.Collections.Generic.List<System.Int32>>"
+    )]
+    [InlineData(
+        typeof(Dictionary<string, List<int>>),
+        "System.Collections.Generic.Dictionary<System.String, System.Collections.Generic.List<System.Int32>>"
+    )]
+    [InlineData(typeof(List<int?>), "System.Collections.Generic.List<System.Nullable<System.Int32>>")]
+    // Arrays of generics
+    [InlineData(typeof(List<int>[]), "System.Collections.Generic.List<System.Int32>[]")]
+    [InlineData(
+        typeof(Dictionary<string, int>[]),
+        "System.Collections.Generic.Dictionary<System.String, System.Int32>[]"
+    )]
+    public void Should_expect_get_full_type_name_returns_type_name_without_assembly_info(
+        Type type,
+        string expectedFullName
+    )
     {
-        // Arrange
-        var type = typeof(string);
-
         // Act
-        var result = TypeMappingHelpers.GetAssemblyQualifiedShortName(type);
+        var result = type.GetFullTypeName();
 
         // Assert
         Assert.NotNull(result);
-        Assert.Contains("System.String", result);
-        Assert.Contains("System.Private.CoreLib", result);
+        Assert.Equal(expectedFullName, result);
+
+        // Verify no assembly information is included
+        // Check for actual assembly info markers (Version=, Culture=, PublicKeyToken=)
+        // Don't check for assembly names with commas as they could be part of generic type parameters
         Assert.DoesNotContain("Version=", result);
         Assert.DoesNotContain("Culture=", result);
+        Assert.DoesNotContain("PublicKeyToken=", result);
     }
 
     [Fact]
-    public void Should_expect_get_assembly_qualified_short_name_with_null_type_returns_null()
+    public void Should_expect_get_full_type_name_with_null_type_returns_null()
     {
         // Act
-        var result = TypeMappingHelpers.GetAssemblyQualifiedShortName(null);
+        Type? nullType = null;
+        var result = nullType.GetFullTypeName();
 
         // Assert
         Assert.Null(result);

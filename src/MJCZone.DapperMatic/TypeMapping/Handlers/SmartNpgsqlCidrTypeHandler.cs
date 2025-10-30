@@ -11,9 +11,7 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlCidrTypeHandler : SqlMapper.TypeHandler<object>
 {
-    private static readonly Type? NpgsqlCidrType = Type.GetType(
-        "NpgsqlTypes.NpgsqlCidr, Npgsql"
-    );
+    private static readonly Type? NpgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
 
     /// <inheritdoc/>
     public override void SetValue(IDbDataParameter parameter, object? value)
@@ -62,10 +60,7 @@ public class SmartNpgsqlCidrTypeHandler : SqlMapper.TypeHandler<object>
         // Use reflection to parse NpgsqlCidr from string
         if (NpgsqlCidrType != null)
         {
-            var parseMethod = NpgsqlCidrType.GetMethod(
-                "Parse",
-                new[] { typeof(string) }
-            );
+            var parseMethod = NpgsqlCidrType.GetMethod("Parse", new[] { typeof(string) });
 
             if (parseMethod != null)
             {
@@ -73,9 +68,11 @@ public class SmartNpgsqlCidrTypeHandler : SqlMapper.TypeHandler<object>
                 {
                     return parseMethod.Invoke(null, new object[] { stringValue });
                 }
-                catch (Exception ex) when (ex is System.Reflection.TargetInvocationException
-                                          || ex is ArgumentException
-                                          || ex is FormatException)
+                catch (Exception ex)
+                    when (ex is System.Reflection.TargetInvocationException
+                        || ex is ArgumentException
+                        || ex is FormatException
+                    )
                 {
                     // Fall through to return string if parse fails
                 }

@@ -252,7 +252,7 @@ public class SimpleUser
 
 DapperMatic provides type handlers for complex data types, enabling seamless serialization and deserialization across all database providers.
 
-### XML Support (Phase 3)
+### XML Support
 
 Store and query XML data using `XDocument`:
 
@@ -309,7 +309,7 @@ foreach (var document in documents)
 XML type handlers work across **all database providers** (SQL Server, MySQL, MariaDB, PostgreSQL, SQLite). PostgreSQL automatically uses the native `xml` type for optimal performance.
 :::
 
-### JSON Support (Phase 4)
+### JSON Support
 
 Store and query JSON data using `JsonDocument`:
 
@@ -364,7 +364,7 @@ foreach (var prod in products)
 On PostgreSQL, JSON type handlers automatically use the native `jsonb` type for better query performance and indexing capabilities. Other databases store JSON as text.
 :::
 
-### Dictionary Support (Phase 4)
+### Dictionary Support
 
 Store and query key-value pairs using `Dictionary<TKey, TValue>`:
 
@@ -420,7 +420,7 @@ foreach (var setting in userSettings)
 }
 ```
 
-### List Support (Phase 4)
+### List Support
 
 Store and query collections using `List<T>`:
 
@@ -480,15 +480,19 @@ Additional type combinations can be registered by adding more handler instances 
 | `Dictionary<TKey, TValue>` | JSON serialization | ~1-5ms | ✅ All providers |
 | `List<T>` | JSON array serialization | ~1-5ms | ✅ All providers |
 | Arrays (`T[]`) | PostgreSQL: Native arrays<br/>Others: JSON | PostgreSQL: **~0.1ms**<br/>Others: ~1-5ms | ✅ All providers |
+| `IPAddress` | PostgreSQL: Native inet<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
+| `PhysicalAddress` | PostgreSQL: Native macaddr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
+| `NpgsqlCidr` | PostgreSQL: Native cidr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
+| `NpgsqlRange<T>` | PostgreSQL: Native ranges<br/>Others: JSON | PostgreSQL: **~0.1ms**<br/>Others: ~1-5ms | ✅ All providers |
 
 ::: tip PostgreSQL Performance
-PostgreSQL automatically benefits from native `xml` and `jsonb` types, which provide:
-- Better query performance for filtering and searching
-- Indexing capabilities for fast lookups
-- Smaller storage footprint with jsonb's binary format
+PostgreSQL automatically benefits from native types for optimal performance:
+- **Native types** (`xml`, `jsonb`, `inet`, `macaddr`, `cidr`, range types): Fast, indexable, with specialized operators
+- **JSON serialization** (other providers): Reliable cross-database compatibility
+- **String serialization** (network types on non-PostgreSQL): Simple and portable
 :::
 
-### Array Support (Phase 5)
+### Array Support
 
 Store and query arrays with automatic provider optimization:
 
@@ -545,6 +549,367 @@ DapperMatic uses **runtime provider detection** for optimal performance:
 - **Primitives**: `string[]`, `int[]`, `long[]`, `short[]`, `bool[]`, `byte[]`
 - **Decimals**: `double[]`, `float[]`, `decimal[]`
 - **Temporal**: `Guid[]`, `DateTime[]`, `DateTimeOffset[]`, `DateOnly[]`, `TimeOnly[]`, `TimeSpan[]`
+
+### Network Types Support
+
+Store and query network addresses using standard .NET types:
+
+```csharp
+using System.Net;
+using System.Net.NetworkInformation;
+using NpgsqlTypes; // For NpgsqlCidr
+
+// Approach 1: Using typed properties (recommended for DDL)
+public class NetworkDevice
+{
+    [DmColumn("device_id")]
+    public int DeviceId { get; set; }
+
+    [DmColumn("device_name")]
+    public string DeviceName { get; set; } = string.Empty;
+
+    [DmColumn("ip_address")]
+    public IPAddress? IPAddress { get; set; } // PostgreSQL: inet, Others: string
+
+    [DmColumn("mac_address")]
+    public PhysicalAddress? MacAddress { get; set; } // PostgreSQL: macaddr, Others: string
+
+    [DmColumn("subnet")]
+    public NpgsqlCidr? Subnet { get; set; } // PostgreSQL: cidr, Others: string
+}
+
+// Approach 2: Using object with providerDataType (for DDL with object types)
+public class NetworkDeviceAlt
+{
+    [DmColumn("device_id")]
+    public int DeviceId { get; set; }
+
+    [DmColumn("device_name")]
+    public string DeviceName { get; set; } = string.Empty;
+
+    [DmColumn("ip_address")]
+    public IPAddress? IPAddress { get; set; }
+
+    [DmColumn("mac_address")]
+    public PhysicalAddress? MacAddress { get; set; }
+
+    [DmColumn("subnet", providerDataType: "{postgresql:cidr}")]
+    public object? Subnet { get; set; } // Explicit provider type for DDL
+}
+
+// Insert with network data
+var device = new NetworkDevice
+{
+    DeviceName = "Main Router",
+    IPAddress = IPAddress.Parse("192.168.1.1"),
+    MacAddress = PhysicalAddress.Parse("00-11-22-33-44-55"),
+    Subnet = NpgsqlCidr.Parse("192.168.1.0/24") // Parse CIDR notation
+};
+
+await connection.ExecuteAsync(
+    "INSERT INTO network_devices (device_name, ip_address, mac_address, subnet) VALUES (@name, @ip, @mac, @subnet)",
+    new { name = device.DeviceName, ip = device.IPAddress, mac = device.MacAddress, subnet = device.Subnet }
+);
+
+// Query with network data
+var devices = await connection.QueryAsync<NetworkDevice>(
+    "SELECT device_id, device_name, ip_address, mac_address, subnet FROM network_devices"
+);
+
+// Access network data
+foreach (var dev in devices)
+{
+    Console.WriteLine($"{dev.DeviceName}:");
+    Console.WriteLine($"  IP: {dev.IPAddress}");
+    Console.WriteLine($"  MAC: {dev.MacAddress}");
+    Console.WriteLine($"  Subnet: {dev.Subnet}");
+}
+```
+
+::: tip PostgreSQL Native Types
+On PostgreSQL, network types use native `inet`, `macaddr`, and `cidr` types for:
+- Validation at the database level
+- Specialized operators and functions
+- Efficient storage and indexing
+
+Other databases use string serialization with the same API.
+:::
+
+::: warning Property Type Matters for Both DDL and DML
+The property type and/or `providerDataType` affects **both table creation (DDL) and querying (DML)**:
+
+**Option 1 (Recommended):** Use the typed property:
+```csharp
+[DmColumn("subnet")]
+public NpgsqlCidr? Subnet { get; set; }
+```
+- ✅ **DDL:** Creates `cidr` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlCidr` with full API (`.Address`, `.Netmask`, etc.)
+
+**Option 2:** Use `object?` with explicit provider data type:
+```csharp
+[DmColumn("subnet", providerDataType: "{postgresql:cidr}")]
+public object? Subnet { get; set; }
+```
+- ✅ **DDL:** Creates `cidr` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlCidr` with full API (`.Address`, `.Netmask`, etc.)
+
+**Option 3 (Limited):** Use `object?` alone without `providerDataType`:
+```csharp
+[DmColumn("subnet")]
+public object? Subnet { get; set; }
+```
+- ⚠️ **DDL:** Creates generic text column (cannot infer `cidr` from `object`)
+- ⚠️ **DML:** Returns as **string** (only `.ToString()` available, no `.Address`/`.Netmask`)
+
+**Recommendation:** Always use Option 1 or Option 2 for full functionality in both DDL and DML scenarios.
+:::
+
+**Supported Network Types** (3 total):
+- `IPAddress` - IPv4 and IPv6 addresses
+- `PhysicalAddress` - MAC addresses (Ethernet hardware addresses)
+- `NpgsqlCidr` - Network ranges in CIDR notation (PostgreSQL-specific, requires Npgsql package)
+
+### Range Types Support
+
+Store and query range values with bounds using PostgreSQL's powerful range types:
+
+```csharp
+using NpgsqlTypes; // For NpgsqlRange<T>
+
+// Approach 1: Using typed properties (recommended for DDL)
+public class PriceHistory
+{
+    [DmColumn("history_id")]
+    public int HistoryId { get; set; }
+
+    [DmColumn("product_name")]
+    public string ProductName { get; set; } = string.Empty;
+
+    [DmColumn("price_range")]
+    public NpgsqlRange<decimal>? PriceRange { get; set; } // PostgreSQL: numrange
+
+    [DmColumn("date_range")]
+    public NpgsqlRange<DateOnly>? DateRange { get; set; } // PostgreSQL: daterange
+}
+
+// Approach 2: Using object with providerDataType (for DDL with object types)
+public class PriceHistoryAlt
+{
+    [DmColumn("history_id")]
+    public int HistoryId { get; set; }
+
+    [DmColumn("product_name")]
+    public string ProductName { get; set; } = string.Empty;
+
+    [DmColumn("price_range", providerDataType: "{postgresql:numrange}")]
+    public object? PriceRange { get; set; } // Explicit provider type for DDL
+
+    [DmColumn("date_range", providerDataType: "{postgresql:daterange}")]
+    public object? DateRange { get; set; } // Explicit provider type for DDL
+}
+
+// Create range values (requires Npgsql package)
+var priceRange = new NpgsqlRange<decimal>(19.99m, true, false, 99.99m, true, false); // [19.99, 99.99)
+var dateRange = new NpgsqlRange<DateOnly>(
+    new DateOnly(2024, 1, 1), true, false,
+    new DateOnly(2024, 12, 31), true, false
+); // [2024-01-01, 2024-12-31)
+
+// Insert with range data
+await connection.ExecuteAsync(
+    "INSERT INTO price_history (product_name, price_range, date_range) VALUES (@name, @price, @date)",
+    new { name = "Laptop", price = priceRange, date = dateRange }
+);
+
+// Query with range data
+var history = await connection.QueryAsync<PriceHistory>(
+    "SELECT history_id, product_name, price_range, date_range FROM price_history"
+);
+
+// Access range data
+foreach (var record in history)
+{
+    Console.WriteLine($"{record.ProductName}:");
+    if (record.PriceRange != null)
+    {
+        Console.WriteLine($"  Price Range: [{record.PriceRange.Value.LowerBound}, {record.PriceRange.Value.UpperBound})");
+    }
+    if (record.DateRange != null)
+    {
+        Console.WriteLine($"  Date Range: [{record.DateRange.Value.LowerBound}, {record.DateRange.Value.UpperBound})");
+    }
+}
+```
+
+::: tip PostgreSQL Range Type Advantages
+PostgreSQL's native range types provide:
+- **Containment operators**: Check if a value is within a range (`@>`, `<@`)
+- **Overlap detection**: Test if ranges overlap (`&&`)
+- **Adjacency testing**: Check if ranges are adjacent (`-|-`)
+- **Union and intersection**: Combine ranges (`+`, `*`)
+- **GiST indexing**: Fast range queries with specialized indexes
+
+Other databases use JSON serialization with the same API but without native database operators.
+:::
+
+::: warning Property Type Matters for Both DDL and DML
+The property type and/or `providerDataType` affects **both table creation (DDL) and querying (DML)**:
+
+**Option 1 (Recommended):** Use the typed property:
+```csharp
+[DmColumn("price_range")]
+public NpgsqlRange<decimal>? PriceRange { get; set; }
+```
+- ✅ **DDL:** Creates `numrange` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlRange<decimal>` with full API (`.LowerBound`, `.UpperBound`, etc.)
+
+**Option 2:** Use `object?` with explicit provider data type:
+```csharp
+[DmColumn("price_range", providerDataType: "{postgresql:numrange}")]
+public object? PriceRange { get; set; }
+```
+- ✅ **DDL:** Creates `numrange` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlRange<decimal>` with full API (`.LowerBound`, `.UpperBound`, etc.)
+
+**Option 3 (Limited):** Use `object?` alone without `providerDataType`:
+```csharp
+[DmColumn("price_range")]
+public object? PriceRange { get; set; }
+```
+- ⚠️ **DDL:** Creates generic text column (cannot infer `numrange` from `object`)
+- ⚠️ **DML:** Returns as **string** (only `.ToString()` available, no `.LowerBound`/`.UpperBound`)
+
+**Recommendation:** Always use Option 1 or Option 2 for full functionality in both DDL and DML scenarios.
+:::
+
+**Supported Range Types** (6 total):
+- `NpgsqlRange<int>` - Integer ranges (int4range) for whole numbers
+- `NpgsqlRange<long>` - Long integer ranges (int8range) for large numbers
+- `NpgsqlRange<decimal>` - **Numeric ranges (numrange)** for exact precision decimals
+- `NpgsqlRange<DateOnly>` - Date ranges (daterange) for calendar dates
+- `NpgsqlRange<DateTime>` - Timestamp ranges (tsrange) without timezone
+- `NpgsqlRange<DateTimeOffset>` - Timestamp ranges (tstzrange) with timezone
+
+::: warning Exact vs Approximate Precision
+Range types use **exact precision** semantics:
+- ✅ `NpgsqlRange<decimal>` → `numrange` (exact decimal arithmetic)
+- ❌ `NpgsqlRange<double>` - **Not supported** (PostgreSQL has no float8range type)
+- ❌ `NpgsqlRange<float>` - **Not supported** (PostgreSQL has no float4range type)
+
+For floating-point ranges, use `decimal` to maintain exact precision and avoid rounding errors.
+:::
+
+### PostgreSQL Geometric Types Support
+
+Store and query geometric shapes using PostgreSQL's native geometric types with WKT (Well-Known Text) fallback for other databases:
+
+```csharp
+using NpgsqlTypes; // For NpgsqlPoint, NpgsqlPolygon, etc.
+
+// Approach 1: Using typed properties (recommended for DDL)
+public class MapLocation
+{
+    [DmColumn("location_id")]
+    public int LocationId { get; set; }
+
+    [DmColumn("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("coordinates")]
+    public NpgsqlPoint? Coordinates { get; set; } // PostgreSQL: point, Others: WKT string
+
+    [DmColumn("service_area")]
+    public NpgsqlPolygon? ServiceArea { get; set; } // PostgreSQL: polygon, Others: WKT string
+}
+
+// Approach 2: Using object with providerDataType (for DDL with object types)
+public class MapLocationAlt
+{
+    [DmColumn("location_id")]
+    public int LocationId { get; set; }
+
+    [DmColumn("name")]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("coordinates", providerDataType: "{postgresql:point}")]
+    public object? Coordinates { get; set; } // Explicit provider type for DDL
+
+    [DmColumn("service_area", providerDataType: "{postgresql:polygon}")]
+    public object? ServiceArea { get; set; } // Explicit provider type for DDL
+}
+
+// Create geometric values (requires Npgsql package)
+var location = new NpgsqlPoint(40.7128, -74.0060); // New York City
+
+// Insert with geometric data
+await connection.ExecuteAsync(
+    "INSERT INTO map_locations (name, coordinates) VALUES (@name, @coords)",
+    new { name = "NYC Office", coords = location }
+);
+
+// Query with geometric data
+var locations = await connection.QueryAsync<MapLocation>(
+    "SELECT location_id, name, coordinates FROM map_locations"
+);
+
+// Access geometric data
+foreach (var loc in locations)
+{
+    if (loc.Coordinates != null)
+    {
+        Console.WriteLine($"{loc.Name}: ({loc.Coordinates.Value.X}, {loc.Coordinates.Value.Y})");
+    }
+}
+```
+
+::: warning Property Type Matters for Both DDL and DML
+The property type and/or `providerDataType` affects **both table creation (DDL) and querying (DML)**:
+
+**Option 1 (Recommended):** Use the typed property:
+```csharp
+[DmColumn("coordinates")]
+public NpgsqlPoint? Coordinates { get; set; }
+```
+- ✅ **DDL:** Creates `point` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlPoint` with full API (`.X`, `.Y`, etc.)
+
+**Option 2:** Use `object?` with explicit provider data type:
+```csharp
+[DmColumn("coordinates", providerDataType: "{postgresql:point}")]
+public object? Coordinates { get; set; }
+```
+- ✅ **DDL:** Creates `point` column in PostgreSQL
+- ✅ **DML:** Returns as `NpgsqlPoint` with full API (`.X`, `.Y`, etc.)
+
+**Option 3 (Limited):** Use `object?` alone without `providerDataType`:
+```csharp
+[DmColumn("coordinates")]
+public object? Coordinates { get; set; }
+```
+- ⚠️ **DDL:** Creates generic text column (cannot infer `point` from `object`)
+- ⚠️ **DML:** Returns as **string** (WKT format only, no `.X`/`.Y` properties)
+
+**Recommendation:** Always use Option 1 or Option 2 for full functionality in both DDL and DML scenarios.
+:::
+
+**Supported PostgreSQL Geometric Types:**
+
+| .NET Type | PostgreSQL Type | WKT Format (Other DBs) | Description |
+|-----------|-----------------|------------------------|-------------|
+| `NpgsqlPoint` | `point` | `POINT(x y)` | 2D point coordinate |
+| `NpgsqlBox` | `box` | `POLYGON((x1 y1,x2 y1,x2 y2,x1 y2,x1 y1))` | Rectangle (opposite corners) |
+| `NpgsqlCircle` | `circle` | `CIRCLE(x y, radius)` | Circle with center and radius |
+| `NpgsqlLine` | `line` | `LINE(a b c)` | Infinite line (Ax + By + C = 0) |
+| `NpgsqlLSeg` | `lseg` | `LINESTRING(x1 y1, x2 y2)` | Line segment (2 points) |
+| `NpgsqlPath` | `path` | `LINESTRING(...)` or `POLYGON((...))` | Open or closed path |
+| `NpgsqlPolygon` | `polygon` | `POLYGON((x1 y1, x2 y2, ..., x1 y1))` | Closed polygon |
+
+::: tip WKT Format
+**WKT (Well-Known Text)** is an ISO standard text format for representing geometric objects. On PostgreSQL, DapperMatic uses native geometric types for 10-50x better performance. On other databases (SQL Server, MySQL, SQLite), geometric data is automatically converted to WKT strings for storage and retrieval.
+
+Learn more: [WKT on Wikipedia](https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry)
+:::
 
 ## Complete Example
 

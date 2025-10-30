@@ -1005,7 +1005,7 @@ PostgreSQL has the richest type system with native arrays, ranges, network types
 | `macaddr8` | `PhysicalAddress` | | | | | MAC address (EUI-64) |
 | `money` | `decimal` | | | | | Currency |
 | `numeric` | `decimal` | | 18 | 2 | | Fixed-point numeric |
-| `numrange` | `NpgsqlRange<double>` | | | | | Range of numeric values |
+| `numrange` | `NpgsqlRange<decimal>` | | | | | Range of numeric values (exact precision) |
 | `oid` | `uint` | | | | | Object identifier |
 | `path` | `NpgsqlPath` | | | | | Geometric path |
 | `point` | `NpgsqlPoint` | | | | | Geometric point |

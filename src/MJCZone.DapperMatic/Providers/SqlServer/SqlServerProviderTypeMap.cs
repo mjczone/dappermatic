@@ -50,27 +50,29 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         return shortName switch
         {
             // NetTopologySuite types
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+            "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
                 SqlServerTypes.sql_geometry
             ),
-            "NetTopologySuite.Geometries.Point, NetTopologySuite"
-            or "NetTopologySuite.Geometries.LineString, NetTopologySuite"
-            or "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
-            or "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-            or "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
-            or "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
-            or "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType(
+            "NetTopologySuite.Geometries.Point"
+            or "NetTopologySuite.Geometries.LineString"
+            or "NetTopologySuite.Geometries.Polygon"
+            or "NetTopologySuite.Geometries.MultiPoint"
+            or "NetTopologySuite.Geometries.MultiLineString"
+            or "NetTopologySuite.Geometries.MultiPolygon"
+            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateLobType(
                 "nvarchar(max)",
                 isUnicode: true
             ),
             // SQL Server types
-            "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types" => TypeMappingHelpers.CreateGeometryType(
+            "Microsoft.SqlServer.Types.SqlGeometry" => TypeMappingHelpers.CreateGeometryType(
                 SqlServerTypes.sql_geometry
             ),
-            "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types" =>
-                TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography),
-            "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types" =>
-                TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid),
+            "Microsoft.SqlServer.Types.SqlGeography" => TypeMappingHelpers.CreateGeometryType(
+                SqlServerTypes.sql_geography
+            ),
+            "Microsoft.SqlServer.Types.SqlHierarchyId" => TypeMappingHelpers.CreateSimpleType(
+                SqlServerTypes.sql_hierarchyid
+            ),
             _ => null, // Unsupported geometry type
         };
     }

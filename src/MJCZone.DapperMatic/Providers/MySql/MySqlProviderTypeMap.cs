@@ -54,35 +54,29 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return shortName switch
             {
                 // NetTopologySuite types - MySQL supports specific geometry types
-                "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
                     MySqlTypes.sql_geometry
                 ),
-                "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_point
-                ),
-                "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                "NetTopologySuite.Geometries.Point" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point),
+                "NetTopologySuite.Geometries.LineString" => TypeMappingHelpers.CreateGeometryType(
                     MySqlTypes.sql_linestring
                 ),
-                "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_polygon
-                ),
-                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                "NetTopologySuite.Geometries.Polygon" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon),
+                "NetTopologySuite.Geometries.MultiPoint" => TypeMappingHelpers.CreateGeometryType(
                     MySqlTypes.sql_multipoint
                 ),
-                "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" =>
-                    TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multilinestring),
-                "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(
+                "NetTopologySuite.Geometries.MultiLineString" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_multilinestring
+                ),
+                "NetTopologySuite.Geometries.MultiPolygon" => TypeMappingHelpers.CreateGeometryType(
                     MySqlTypes.sql_multipolygon
                 ),
-                "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" =>
-                    TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometrycollection),
+                "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
+                    MySqlTypes.sql_geometrycollection
+                ),
                 // MySQL types
-                "MySql.Data.Types.MySqlGeometry, MySql.Data" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_geometry
-                ),
-                "MySqlConnector.MySqlGeometry, MySqlConnector" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_geometry
-                ),
+                "MySql.Data.Types.MySqlGeometry" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
+                "MySqlConnector.MySqlGeometry" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
                 _ => null,
             };
         }
