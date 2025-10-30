@@ -118,18 +118,13 @@ internal static partial class SqlExpressionValidator
         // Allow trailing semicolons as they're valid SQL
         if (viewDefinition.Contains(';', StringComparison.Ordinal))
         {
-            var statements = viewDefinition.Split(';', StringSplitOptions.RemoveEmptyEntries);
+            var statements = viewDefinition.Split(
+                ';',
+                StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
+            );
             if (statements.Length > 1)
             {
-                // Check if there are multiple non-empty statements
-                var nonEmptyStatements = statements.Where(s => !string.IsNullOrWhiteSpace(s)).Count();
-                if (nonEmptyStatements > 1)
-                {
-                    throw new ArgumentException(
-                        "View definition cannot contain multiple SQL statements",
-                        parameterName
-                    );
-                }
+                throw new ArgumentException("View definition cannot contain multiple SQL statements", parameterName);
             }
         }
     }

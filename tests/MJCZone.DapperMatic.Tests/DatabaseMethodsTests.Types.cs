@@ -222,7 +222,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(System.Text.Json.Nodes.JsonValue), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
     [InlineData(typeof(object), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
     [InlineData(typeof(object), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(DayOfWeek), "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)", "VARCHAR(128)")] // Enum example
+    [InlineData(typeof(DayOfWeek), "INT(10)", "INT(10)", "INT4", "INT", false, null, null, null, false, "INT(11)", "INT(11)")] // Enum example - stored as underlying integer type (int32)
     // Array Types (PostgreSQL native, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
     [InlineData(typeof(string[]), "VARCHAR(MAX)", "JSON", "_TEXT", "TEXT")]
     [InlineData(typeof(int[]), "VARCHAR(MAX)", "JSON", "_INT4", "TEXT")]

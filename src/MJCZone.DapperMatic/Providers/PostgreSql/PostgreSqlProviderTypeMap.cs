@@ -113,12 +113,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             or "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
             or "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" =>
                 TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry),
-            // PostgreSQL specific types
-            "System.Net.NetworkInformation.PhysicalAddress, System.Net.NetworkInformation" =>
-                TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_macaddr8),
-            "System.Net.IPAddress, System.Net.Primitives" => TypeMappingHelpers.CreateSimpleType(
-                PostgreSqlTypes.sql_inet
-            ),
             "NpgsqlTypes.NpgsqlInet, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
             "NpgsqlTypes.NpgsqlCidr, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
             "NpgsqlTypes.NpgsqlPoint, Npgsql" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
@@ -310,18 +304,18 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             var isArray = d.DotnetType != null && d.DotnetType.IsArray;
 
             var dotnetType = isArray ? d.DotnetType!.GetElementType() : d.DotnetType;
-
             if (dotnetType == null)
             {
                 return null;
             }
 
-            var assemblyQualifiedName = dotnetType.AssemblyQualifiedName!;
+            var shortName = TypeMappingHelpers.GetAssemblyQualifiedShortName(d.DotnetType);
+            if (string.IsNullOrWhiteSpace(shortName))
+            {
+                return null;
+            }
 
-            var assemblyQualifiedNameParts = assemblyQualifiedName.Split(',');
-            var fullNameWithAssemblyName = assemblyQualifiedNameParts[0] + ", " + assemblyQualifiedNameParts[1];
-
-            switch (fullNameWithAssemblyName)
+            switch (shortName)
             {
                 case "NpgsqlTypes.NpgsqlRange`1, Npgsql":
                     var genericType = dotnetType.GetGenericArguments()[0];

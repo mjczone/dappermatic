@@ -81,7 +81,7 @@ public abstract class PostgreSqlDatabaseMethodsTests<TDatabaseFixture>(
 
     public override async Task<IDbConnection> OpenConnectionAsync()
     {
-        var db = new DbQueryLogging.LoggedDbConnection(
+        var db = new Logging.DbLoggingConnection(
             new NpgsqlConnection(fixture.ConnectionString),
             new Logging.TestLogger(Output, nameof(NpgsqlConnection))
         );
@@ -138,5 +138,5 @@ public abstract class PostgreSqlDatabaseMethodsTests<TDatabaseFixture>(
 public class ProfiledPostgreSqlMethodsFactory : Providers.PostgreSql.PostgreSqlMethodsFactory
 {
     public override bool SupportsConnectionCustom(IDbConnection db) =>
-        db is DbQueryLogging.LoggedDbConnection loggedDb && loggedDb.Inner is NpgsqlConnection;
+        db is Logging.DbLoggingConnection loggedDb && loggedDb.Inner is NpgsqlConnection;
 }

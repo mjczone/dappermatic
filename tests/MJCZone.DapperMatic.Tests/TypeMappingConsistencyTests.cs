@@ -373,7 +373,7 @@ public class TypeMappingConsistencyTests : TestBase
     }
 
     [Fact]
-    public void Should_require_enum_types_map_to_string_types_consistently()
+    public void Should_require_enum_types_map_to_integer_types_consistently()
     {
         // Arrange
         var providers = new IDbProviderTypeMap[]
@@ -388,18 +388,19 @@ public class TypeMappingConsistencyTests : TestBase
         {
             var providerName = provider.GetType().Name;
 
-            // Act
+            // Act - DayOfWeek is an int-based enum (underlying type = int)
             var success = provider.TryGetProviderSqlTypeMatchingDotnetType(typeof(DayOfWeek), out var enumType);
 
             // Assert
             Assert.True(success, $"{providerName} should handle enum types");
             Assert.NotNull(enumType);
 
-            // Enums should map to string types with reasonable length
+            // Enums should map to their underlying integer type
+            // DayOfWeek is int-based, so should map to INT/INTEGER
             var typeLower = enumType.BaseTypeName.ToLowerInvariant();
             Assert.True(
-                typeLower.Contains("varchar") || typeLower.Contains("text") || typeLower.Contains("char"),
-                $"{providerName} enum type should be string-based: {enumType.SqlTypeName}"
+                typeLower.Contains("int") || typeLower == "int4", // int4 is PostgreSQL's internal name for INTEGER
+                $"{providerName} enum type should be integer-based (underlying type): {enumType.SqlTypeName}"
             );
         }
     }

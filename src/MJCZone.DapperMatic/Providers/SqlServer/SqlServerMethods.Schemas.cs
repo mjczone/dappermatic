@@ -35,10 +35,33 @@ public partial class SqlServerMethods
         // Ensure connection is open before beginning transaction
         if (db.State != ConnectionState.Open)
         {
-            await (db as DbConnection)!.OpenAsync(cancellationToken).ConfigureAwait(false);
+            if (db is DbConnection dbc)
+            {
+                await dbc.OpenAsync(cancellationToken).ConfigureAwait(false);
+            }
+            else
+            {
+                db.Open();
+            }
         }
 
-        var innerTx = tx ?? await (db as DbConnection)!.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        // Only create a new transaction if one wasn't provided
+        IDbTransaction? innerTx = null;
+        if (tx != null)
+        {
+            // Use the existing transaction
+            innerTx = (DbTransaction)tx;
+        }
+        else if (db is DbConnection dbcc)
+        {
+            // Create a new transaction only if none exists
+            innerTx = await dbcc.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            innerTx = db.BeginTransaction();
+        }
+
         try
         {
             // drop all objects in the schemaName (except tables, which will be handled separately)
@@ -153,14 +176,28 @@ public partial class SqlServerMethods
 
             if (tx == null)
             {
-                innerTx.Commit();
+                if (innerTx is DbTransaction dbTransaction)
+                {
+                    await dbTransaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    innerTx.Commit();
+                }
             }
         }
         catch
         {
             if (tx == null)
             {
-                innerTx.Rollback();
+                if (innerTx is DbTransaction dbTransaction)
+                {
+                    await dbTransaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    innerTx.Rollback();
+                }
             }
 
             throw;
@@ -169,7 +206,14 @@ public partial class SqlServerMethods
         {
             if (tx == null)
             {
-                innerTx.Dispose();
+                if (innerTx is DbTransaction dbTransaction)
+                {
+                    await dbTransaction.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    innerTx.Dispose();
+                }
             }
         }
 

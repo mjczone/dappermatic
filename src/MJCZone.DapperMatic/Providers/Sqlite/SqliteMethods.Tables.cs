@@ -331,6 +331,13 @@ public partial class SqliteMethods
                 await dbc.OpenAsync(cancellationToken).ConfigureAwait(false);
             }
         }
+        else
+        {
+            if (db.State != ConnectionState.Open)
+            {
+                db.Open();
+            }
+        }
 
         // get the create index sql statements for the existing table
         // var createIndexStatements = await GetCreateIndexSqlStatementsForTable(
@@ -347,7 +354,7 @@ public partial class SqliteMethods
             .ConfigureAwait(false);
 
         // Only create a new transaction if one wasn't provided
-        DbTransaction? innerTx = null;
+        IDbTransaction? innerTx = null;
         bool shouldCommit = false;
 
         if (tx != null)
@@ -359,6 +366,11 @@ public partial class SqliteMethods
         {
             // Create a new transaction only if none exists
             innerTx = await dbcc.BeginTransactionAsync(cancellationToken).ConfigureAwait(false);
+            shouldCommit = true;
+        }
+        else
+        {
+            innerTx = db.BeginTransaction();
             shouldCommit = true;
         }
 
@@ -411,7 +423,14 @@ public partial class SqliteMethods
                 // commit the transaction only if we created it
                 if (shouldCommit)
                 {
-                    await innerTx!.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    if (innerTx is DbTransaction dbTransaction)
+                    {
+                        await dbTransaction.CommitAsync(cancellationToken).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        innerTx.Commit();
+                    }
                 }
             }
         }
@@ -420,7 +439,14 @@ public partial class SqliteMethods
             // rollback only if we created the transaction
             if (shouldCommit && innerTx != null)
             {
-                await innerTx.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                if (innerTx is DbTransaction dbTransaction)
+                {
+                    await dbTransaction.RollbackAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else
+                {
+                    innerTx.Rollback();
+                }
             }
             throw;
         }
@@ -429,8 +455,16 @@ public partial class SqliteMethods
             // dispose only if we created the transaction
             if (shouldCommit && innerTx != null)
             {
-                await innerTx.DisposeAsync().ConfigureAwait(false);
+                if (innerTx is DbTransaction dbTransaction)
+                {
+                    await dbTransaction.DisposeAsync().ConfigureAwait(false);
+                }
+                else
+                {
+                    innerTx.Dispose();
+                }
             }
+
             // re-enable foreign key constraints
             await ExecuteAsync(db, "PRAGMA foreign_keys = 1", tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);

@@ -31,11 +31,6 @@ public static class TypeMappingDefaults
     public const int DefaultDecimalScale = 4;
 
     /// <summary>
-    /// Default length for enum columns stored as varchar.
-    /// </summary>
-    public const int DefaultEnumLength = 128;
-
-    /// <summary>
     /// String length required to store a GUID as a string.
     /// </summary>
     public const int GuidStringLength = 36;

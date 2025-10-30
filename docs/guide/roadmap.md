@@ -34,6 +34,19 @@ A comprehensive command-line tool for:
 - **Schema Versioning** - Track and manage schema evolution
 - **Documentation Generation** - Automated schema diagrams and docs
 
+### ✅ DML Query Support (Completed - MVP Achieved)
+
+**Full Dapper query compatibility** is now available, enabling attribute-based mapping for QueryAsync/ExecuteAsync operations:
+- ✅ **Attribute Mapping** - `DmColumn`, `DmIgnore`, EF Core, and ServiceStack.OrmLite attributes work in Dapper queries
+- ✅ **Modern C# Records** - Full support for records with parameterized constructors
+- ✅ **XML Support** - `XDocument` serialization across all database providers
+- ✅ **JSON Support** - `JsonDocument` with PostgreSQL jsonb optimization
+- ✅ **Collection Support** - `Dictionary<TKey, TValue>` and `List<T>` with JSON serialization
+- ✅ **Smart Array Support** - 15 array types with PostgreSQL native arrays (10-50x faster) and JSON fallback
+- ✅ **Enum Support** - Native integer handling via Dapper
+
+See the [DML Query Support Guide](/guide/dml-query-support) for complete documentation.
+
 ### ✅ ASP.NET Core Integration (Completed)
 
 The **MJCZone.DapperMatic.AspNetCore** package is now available with:

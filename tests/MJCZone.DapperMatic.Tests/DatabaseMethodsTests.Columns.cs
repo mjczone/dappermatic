@@ -3,9 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using DbQueryLogging;
 using MJCZone.DapperMatic.Models;
-using MJCZone.DapperMatic.Providers;
 using Npgsql;
 
 namespace MJCZone.DapperMatic.Tests;
@@ -103,7 +101,7 @@ public abstract partial class DatabaseMethodsTests
 
         if (
             db is NpgsqlConnection
-            || db is LoggedDbConnection loggedDbConnection && loggedDbConnection.Inner is NpgsqlConnection
+            || db is Logging.DbLoggingConnection loggedDbConnection && loggedDbConnection.Inner is NpgsqlConnection
         )
         {
             columnCreated = await db.CreateColumnIfNotExistsAsync(

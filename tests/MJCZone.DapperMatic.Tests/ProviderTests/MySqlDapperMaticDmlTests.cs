@@ -11,34 +11,34 @@ using Xunit.Abstractions;
 namespace MJCZone.DapperMatic.Tests.ProviderTests;
 
 /// <summary>
-/// Testing MySql 90
+/// DapperMatic DML type mapping tests for MySql 9.0 (9.4).
 /// </summary>
-public class MySql_90_DatabaseMethodsTests(MySql_94_DatabaseFixture fixture, ITestOutputHelper output)
-    : MySqlDatabaseMethodsTests<MySql_94_DatabaseFixture>(fixture, output) { }
+public class MySql_90_DapperMaticDmlTests(MySql_94_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDapperMaticDmlTests<MySql_94_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
-/// Testing MySql 84
+/// DapperMatic DML type mapping tests for MySql 8.4.
 /// </summary>
-public class MySql_84_DatabaseMethodsTests(MySql_84_DatabaseFixture fixture, ITestOutputHelper output)
-    : MySqlDatabaseMethodsTests<MySql_84_DatabaseFixture>(fixture, output) { }
+public class MySql_84_DapperMaticDmlTests(MySql_84_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDapperMaticDmlTests<MySql_84_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
-/// Testing MySql 57
+/// DapperMatic DML type mapping tests for MySql 5.7.
 /// </summary>
-public class MySql_57_DatabaseMethodsTests(MySql_57_DatabaseFixture fixture, ITestOutputHelper output)
-    : MySqlDatabaseMethodsTests<MySql_57_DatabaseFixture>(fixture, output) { }
+public class MySql_57_DapperMaticDmlTests(MySql_57_DatabaseFixture fixture, ITestOutputHelper output)
+    : MySqlDapperMaticDmlTests<MySql_57_DatabaseFixture>(fixture, output) { }
 
 /// <summary>
-/// Abstract class for MySql database tests
+/// Abstract base class for MySQL DML type mapping tests.
 /// </summary>
-/// <typeparam name="TDatabaseFixture"></typeparam>
-public abstract class MySqlDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
-    : DatabaseMethodsTests(output),
+/// <typeparam name="TDatabaseFixture">The database fixture type.</typeparam>
+public abstract class MySqlDapperMaticDmlTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
+    : DapperMaticDmlTypeMappingTests(output),
         IClassFixture<TDatabaseFixture>,
         IDisposable
     where TDatabaseFixture : MySqlDatabaseFixture
 {
-    static MySqlDatabaseMethodsTests()
+    static MySqlDapperMaticDmlTests()
     {
         Providers.DatabaseMethodsProvider.RegisterFactory(
             nameof(ProfiledMySqlMethodsFactory),
@@ -61,15 +61,4 @@ public abstract class MySqlDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFixtu
         await db.OpenAsync();
         return db;
     }
-
-    public override bool IgnoreSqlType(string sqlType)
-    {
-        return fixture.IgnoreSqlType(sqlType);
-    }
-}
-
-public class ProfiledMySqlMethodsFactory : Providers.MySql.MySqlMethodsFactory
-{
-    public override bool SupportsConnectionCustom(IDbConnection db) =>
-        db is Logging.DbLoggingConnection loggedDb && loggedDb.Inner is MySqlConnection;
 }

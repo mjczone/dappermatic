@@ -9,9 +9,14 @@ using Xunit.Abstractions;
 
 namespace MJCZone.DapperMatic.Tests.ProviderTests;
 
-public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseMethodsTests(output), IDisposable
+/// <summary>
+/// DapperMatic DML type mapping tests for SQLite 3.
+/// </summary>
+public class SQLite_3_DapperMaticDmlTests(ITestOutputHelper output)
+    : DapperMaticDmlTypeMappingTests(output),
+        IDisposable
 {
-    static SQLite_3_DatabaseMethodsTests()
+    static SQLite_3_DapperMaticDmlTests()
     {
         Providers.DatabaseMethodsProvider.RegisterFactory(
             nameof(ProfiledSqLiteMethodsFactory),
@@ -19,15 +24,17 @@ public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseM
         );
     }
 
+    private const string DatabaseFileName = "sqlite_dml_tests.sqlite";
+
     public override async Task<IDbConnection> OpenConnectionAsync()
     {
-        if (File.Exists("sqlite_tests.sqlite"))
+        if (File.Exists(DatabaseFileName))
         {
-            File.Delete("sqlite_tests.sqlite");
+            File.Delete(DatabaseFileName);
         }
 
         var db = new Logging.DbLoggingConnection(
-            new SQLiteConnection("Data Source=sqlite_tests.sqlite;Version=3;BinaryGuid=False;"),
+            new SQLiteConnection($"Data Source={DatabaseFileName};Version=3;BinaryGuid=False;"),
             new Logging.TestLogger(Output, nameof(SQLiteConnection))
         );
         await db.OpenAsync();
@@ -36,17 +43,12 @@ public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseM
 
     public override void Dispose()
     {
-        if (File.Exists("sqlite_tests.sqlite"))
+        if (File.Exists(DatabaseFileName))
         {
-            File.Delete("sqlite_tests.sqlite");
+            File.Delete(DatabaseFileName);
         }
 
         base.Dispose();
+        GC.SuppressFinalize(this);
     }
-}
-
-public class ProfiledSqLiteMethodsFactory : Providers.Sqlite.SqliteMethodsFactory
-{
-    public override bool SupportsConnectionCustom(IDbConnection db) =>
-        db is Logging.DbLoggingConnection loggedDb && loggedDb.Inner is SQLiteConnection;
 }

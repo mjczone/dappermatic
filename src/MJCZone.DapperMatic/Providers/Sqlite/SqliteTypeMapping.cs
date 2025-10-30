@@ -3,6 +3,9 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Net;
+using System.Net.NetworkInformation;
+
 using MJCZone.DapperMatic.Providers.Base;
 
 namespace MJCZone.DapperMatic.Providers.Sqlite;
@@ -14,9 +17,6 @@ public class SqliteTypeMapping : IProviderTypeMapping
 {
     /// <inheritdoc />
     public string BooleanType => SqliteTypes.sql_boolean;
-
-    /// <inheritdoc />
-    public string EnumStringType => SqliteTypes.sql_varchar;
 
     /// <inheritdoc />
     public bool IsUnicodeProvider => false; // SQLite can handle both, but we default to non-Unicode
@@ -115,10 +115,36 @@ public class SqliteTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType()
+    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         // SQLite stores XML as text
         return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false);
+    }
+
+    /// <inheritdoc />
+    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    {
+        return descriptor.DotnetType switch
+        {
+            Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? SqliteTypes.sql_char : SqliteTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(45),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+            Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? SqliteTypes.sql_char : SqliteTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(17),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+            _ => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? SqliteTypes.sql_char : SqliteTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(50),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+        };
     }
 
     /// <inheritdoc />

@@ -678,13 +678,27 @@ public string AsciiOnly { get; set; }
 | `System.Text.Json.Nodes.JsonValue` | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | |
 | `object`                           | `VARCHAR(MAX)`  | `JSON` | `JSONB`    | `TEXT` | No      | Non-unicode |
 | `object`                           | `NVARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | Yes     | Unicode |
-| `DayOfWeek` (Enum example)         | `VARCHAR(128)`  | `VARCHAR(128)` | `VARCHAR(128)` | `VARCHAR(128)` | No | Enums as strings |
 
 ::: info JSON & Complex Type Notes
 - **PostgreSQL**: `JSONB` = binary JSON (preferred over JSON for performance)
 - **MySQL**: Native `JSON` type (MySQL 5.7+). **MariaDB 10.x**: `JSON` is an alias for `LONGTEXT` with JSON validation
 - **SQL Server**: No native JSON type. Uses `VARCHAR(MAX)`/`NVARCHAR(MAX)` for JSON text and object storage
-- **Enum Handling**: Enums are stored as strings by default (enum name, not value)
+:::
+
+### Enum Types
+
+| .NET Type | SQL Server    | MySQL        | PostgreSQL | SQLite     | Notes |
+| --------- | ------------- | ------------ | ---------- | ---------- | ----- |
+| `DayOfWeek` (enum) | `INT(10)` | `INT(10)` | `INT4` | `INT` | Stored as underlying integer type |
+| `CustomEnum` (byte) | `TINYINT(3)` | `TINYINT(3)` | `INT2` | `TINYINT` | byte-based enum |
+| `CustomEnum` (short) | `SMALLINT(5)` | `SMALLINT(5)` | `INT2` | `SMALLINT` | short-based enum |
+| `CustomEnum` (long) | `BIGINT(19)` | `BIGINT(19)` | `INT8` | `BIGINT` | long-based enum |
+
+::: info Enum Type Notes
+- **Storage**: Enums are stored as their underlying integer type (byte, short, int, or long)
+- **Default**: C# enums default to `int` unless explicitly specified otherwise
+- **Compatibility**: This aligns with Dapper's default enum handling, making DML queries work seamlessly
+- **DML Queries**: When using Dapper's QueryAsync/ExecuteAsync with DapperMatic-created tables, enums work naturally without custom type handlers
 :::
 
 ### Array Types

@@ -4,11 +4,13 @@
 [![.github/workflows/build-and-test.yml](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml)
 [![.github/workflows/release.yml](https://github.com/mjczone/dappermatic/actions/workflows/release.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/release.yml)
 
-**Model-first database schema management for .NET applications**
+**Model-first database schema management and query compatibility for .NET applications**
 
-DapperMatic extends `IDbConnection` with extension methods for DDL (Data Definition Language) operations. Define database schemas using strongly-typed C# models and execute them across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.
+DapperMatic extends `IDbConnection` with extension methods for:
+- **DDL operations** (Data Definition Language) - Create, modify, and inspect database schemas
+- **DML query compatibility** - Enhanced Dapper queries with attribute-based column mapping
 
-Built on Dapper, DapperMatic provides schema management capabilities for applications that need to create, modify, or inspect database structures at runtime.
+Define database schemas using strongly-typed C# models and execute them across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite. Your Dapper queries automatically work with the same attribute-based mappings used for schema management.
 
 ## Installation
 
@@ -57,6 +59,46 @@ bool exists = await connection.DoesTableExistAsync("dbo", "Users");
 var existingTable = await connection.GetTableAsync("dbo", "Users");
 ```
 
+### DML Query Compatibility
+
+```csharp
+using MJCZone.DapperMatic.TypeMapping;
+using MJCZone.DapperMatic.DataAnnotations;
+using Dapper;
+
+// Initialize once at application startup
+DapperMaticTypeMapping.Initialize();
+
+// Define a class with column mappings
+public class User
+{
+    [DmColumn("user_id")]
+    public int UserId { get; set; }
+
+    [DmColumn("full_name")]
+    public string FullName { get; set; } = string.Empty;
+
+    [DmColumn("email_address")]
+    public string EmailAddress { get; set; } = string.Empty;
+
+    [DmIgnore] // Not mapped from database
+    public string DisplayName { get; set; } = string.Empty;
+}
+
+// Dapper queries work automatically with attribute mappings
+var users = await connection.QueryAsync<User>(
+    "SELECT user_id, full_name, email_address FROM users WHERE user_id = @id",
+    new { id = 123 }
+);
+
+// Works with modern C# records too
+public record Product(int Id, string Name, decimal Price);
+
+var products = await connection.QueryAsync<Product>(
+    "SELECT id, name, price FROM products"
+);
+```
+
 ### Schema Inspection
 
 ```csharp
@@ -97,20 +139,30 @@ await sqlite.CreateTableIfNotExistsAsync(table);
 - Provider-specific SQL generation with consistent API
 - Automatic type mapping between .NET types and database-specific types
 
-**Schema Management**
+**Schema Management (DDL)**
 - Create, modify, and drop tables, columns, indexes, and constraints
 - Runtime schema inspection and validation
 - Support for complex column types including JSON, arrays (PostgreSQL), and spatial data
 
+**Query Compatibility (DML)**
+- Attribute-based column mapping for Dapper queries
+- Supports DapperMatic, EF Core, and ServiceStack.OrmLite attributes
+- Modern C# support: records with parameterized constructors
+- Advanced type handlers: XML (`XDocument`), JSON (`JsonDocument`), Collections (`Dictionary`, `List`)
+- Smart arrays: 15 array types with PostgreSQL native arrays (10-50x faster) and JSON fallback
+- Zero configuration after one-time initialization
+
 **Model-First Approach**
 - Define schemas using strongly-typed C# classes
-- Data annotations support (`[Table]`, `[Key]`, `[Column]` attributes)
+- Data annotations support (`[Table]`, `[Key]`, `[Column]`, `[DmColumn]` attributes)
 - Programmatic model building with `DmTable`, `DmColumn`, etc.
+- Same models work for both DDL and DML operations
 
 **Production-Ready**
 - SQL injection protection with expression validation
 - Comprehensive test coverage across all database providers
 - Transaction support for atomic schema changes
+- Performance-optimized type mapping with caching
 
 ## ASP.NET Core Integration
 
@@ -163,7 +215,9 @@ This creates REST endpoints for managing database schemas via HTTP API. Complete
 
 ## Documentation
 
-- **API Reference**: [Documentation site](https://mjczone.github.io/dappermatic/) (comprehensive guides and examples)
+- **[DML Query Support Guide](https://mjczone.github.io/dappermatic/guide/dml-query-support.html)** - Complete guide to using Dapper queries with attribute mapping
+- **[API Reference](https://mjczone.github.io/dappermatic/)** - Comprehensive guides and examples
+- **[Database Providers](https://mjczone.github.io/dappermatic/guide/providers.html)** - Supported databases and type mappings
 - **Source Code**: Browse the codebase for implementation details
 - **Test Examples**: The `tests/` directory contains extensive usage examples
 

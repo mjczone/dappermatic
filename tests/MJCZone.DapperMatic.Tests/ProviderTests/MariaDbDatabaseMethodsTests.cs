@@ -60,7 +60,7 @@ public abstract class MariaDbDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFix
         {
             connectionString += ";SSL Mode=None";
         }
-        var db = new DbQueryLogging.LoggedDbConnection(
+        var db = new Logging.DbLoggingConnection(
             new MySqlConnection(connectionString),
             new Logging.TestLogger(Output, nameof(MySqlConnection))
         );
@@ -77,5 +77,5 @@ public abstract class MariaDbDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFix
 public class ProfiledMariaDbMethodsFactory : Providers.MySql.MySqlMethodsFactory
 {
     public override bool SupportsConnectionCustom(IDbConnection db) =>
-        db is DbQueryLogging.LoggedDbConnection loggedDb && loggedDb.Inner is MySqlConnection;
+        db is Logging.DbLoggingConnection loggedDb && loggedDb.Inner is MySqlConnection;
 }

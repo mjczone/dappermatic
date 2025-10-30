@@ -3,6 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Net;
+using System.Net.NetworkInformation;
 using MJCZone.DapperMatic.Providers.Base;
 
 namespace MJCZone.DapperMatic.Providers.MySql;
@@ -14,9 +16,6 @@ public class MySqlTypeMapping : IProviderTypeMapping
 {
     /// <inheritdoc />
     public string BooleanType => MySqlTypes.sql_bool;
-
-    /// <inheritdoc />
-    public string EnumStringType => MySqlTypes.sql_varchar;
 
     /// <inheritdoc />
     public bool IsUnicodeProvider => false; // MySQL does not use Unicode by default
@@ -129,9 +128,35 @@ public class MySqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType()
+    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateLobType(MySqlTypes.sql_text, isUnicode: false);
+    }
+
+    /// <inheritdoc />
+    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    {
+        return descriptor.DotnetType switch
+        {
+            Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(45),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+            Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(17),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+            _ => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(50),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+        };
     }
 
     /// <inheritdoc />

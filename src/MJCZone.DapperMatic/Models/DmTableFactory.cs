@@ -287,47 +287,8 @@ public static class DmTableFactory
             });
 
             // Format of provider data types: {mysql:varchar(255),sqlserver:nvarchar(255)}
-            var providerDataTypes = new Dictionary<DbProviderType, string>();
-            if (!string.IsNullOrWhiteSpace(columnAttribute?.ProviderDataType))
-            {
-                var pdts = columnAttribute.ProviderDataType.Trim('{', '}', '[', ']', ' ').Split([',', ';']);
-                foreach (var pdt in pdts)
-                {
-                    var pdtParts = pdt.Split(':');
-                    if (
-                        pdtParts.Length == 2
-                        && !string.IsNullOrWhiteSpace(pdtParts[0])
-                        && !string.IsNullOrWhiteSpace(pdtParts[1])
-                    )
-                    {
-                        if (
-                            pdtParts[0].Contains("mysql", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("maria", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.MySql, pdtParts[1]);
-                        }
-                        else if (
-                            pdtParts[0].Contains("pg", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("postgres", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.PostgreSql, pdtParts[1]);
-                        }
-                        else if (pdtParts[0].Contains("sqlite", StringComparison.OrdinalIgnoreCase))
-                        {
-                            providerDataTypes.Add(DbProviderType.Sqlite, pdtParts[1]);
-                        }
-                        else if (
-                            pdtParts[0].Contains("sqlserver", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("mssql", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.SqlServer, pdtParts[1]);
-                        }
-                    }
-                }
-            }
+            // Parse using helper that properly handles parameterized types like decimal(10,2)
+            var providerDataTypes = TypeMappingHelpers.ParseProviderDataTypes(columnAttribute?.ProviderDataType);
 
             // If there is no DmColumnAttribute, the property is nullable by default, IF it's a reference type or a nullable type.
             var isNullable = columnAttribute == null ? property.PropertyType.IsNullable() : columnAttribute.IsNullable;

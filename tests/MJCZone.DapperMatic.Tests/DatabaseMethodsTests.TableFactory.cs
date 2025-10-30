@@ -9,7 +9,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.SQLite;
 using System.Text.Json;
 using Dapper;
-using DbQueryLogging;
 using Microsoft.Data.Sqlite;
 using MJCZone.DapperMatic.DataAnnotations;
 using MJCZone.DapperMatic.Models;
@@ -24,6 +23,7 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(TestDao3))]
     [InlineData(typeof(TestTable4))]
     [InlineData(typeof(TestTable5))]
+    [InlineData(typeof(TestTable6))]
     protected virtual async Task Can_create_tables_from_model_classes_Async(Type type)
     {
         var tableDef = DmTableFactory.GetTable(type);
@@ -47,7 +47,10 @@ public abstract partial class DatabaseMethodsTests
         if (
             db is SqliteConnection
             || db is SQLiteConnection
-            || (db is LoggedDbConnection ldb && (ldb.Inner is SqliteConnection || ldb.Inner is SQLiteConnection))
+            || (
+                db is Logging.DbLoggingConnection ldb
+                && (ldb.Inner is SqliteConnection || ldb.Inner is SQLiteConnection)
+            )
         )
         {
             // For SQLite, we can retrieve the table definition using PRAGMA
@@ -405,4 +408,63 @@ public class TestTable5
     // XML type (SQL Server specific)
     [DmColumn("XmlData", providerDataType: "xml", isNullable: false)]
     public string? XmlData { get; set; }
+}
+
+/// <summary>
+/// Test table specifically for testing parameterized types in multi-provider format.
+/// Tests the bug fix for parsing types like decimal(19,4) that contain commas.
+/// </summary>
+[Table("TestTable6")]
+public class TestTable6
+{
+    [DmColumn("Id", isAutoIncrement: true, isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    // Test case from documentation: {sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}
+    [DmColumn(
+        "Price",
+        providerDataType: "{sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Price { get; set; }
+
+    // Test parameterized decimal types across providers
+    [DmColumn(
+        "Amount",
+        providerDataType: "{mysql:decimal(10,2),sqlserver:decimal(12,4),postgresql:numeric(10,2),sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Amount { get; set; }
+
+    // Test parameterized numeric types with higher precision
+    [DmColumn(
+        "Quantity",
+        providerDataType: "{mysql:numeric(18,6),postgresql:numeric(18,6),sqlserver:decimal(18,6),sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Quantity { get; set; }
+
+    // Test varchar with length parameter (no comma inside parentheses)
+    [DmColumn(
+        "Description",
+        providerDataType: "{mysql:varchar(255),sqlserver:nvarchar(255),postgresql:varchar(255),sqlite:text}",
+        isNullable: false
+    )]
+    public string Description { get; set; } = null!;
+
+    // Test array types for PostgreSQL
+    [DmColumn(
+        "NullableTags",
+        providerDataType: "{postgresql:integer[],mysql:json,sqlserver:nvarchar(max),sqlite:text}",
+        isNullable: true
+    )]
+    public string? Tags { get; set; }
+
+    // Test mixed simple and parameterized types
+    [DmColumn(
+        "Status",
+        providerDataType: "{mysql:varchar(50),sqlserver:nvarchar(50),postgresql:varchar(50),sqlite:text}",
+        isNullable: false
+    )]
+    public string Status { get; set; } = null!;
 }

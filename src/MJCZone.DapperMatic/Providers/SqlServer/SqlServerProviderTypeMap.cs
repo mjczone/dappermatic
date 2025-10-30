@@ -71,7 +71,7 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
                 TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography),
             "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types" =>
                 TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid),
-            _ => null,
+            _ => null, // Unsupported geometry type
         };
     }
 

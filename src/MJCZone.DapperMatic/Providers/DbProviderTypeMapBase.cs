@@ -287,10 +287,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetBooleanToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return TypeMappingHelpers.CreateSimpleType(mapping.BooleanType);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(mapping.BooleanType));
     }
 
     /// <summary>
@@ -300,14 +297,13 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetGuidToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateGuidType();
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateGuidType());
     }
 
     /// <summary>
-    /// Gets the enum to SQL type converter using provider-specific string type.
+    /// Gets the enum to SQL type converter using provider-specific integer type.
+    /// Maps enums to their underlying integer type (byte, short, int, long, etc.)
+    /// to align with Dapper's default enum handling behavior.
     /// </summary>
     /// <returns>Enum to SQL type converter.</returns>
     protected virtual DotnetTypeToSqlTypeConverter GetEnumToSqlTypeConverter()
@@ -315,7 +311,17 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var mapping = GetProviderTypeMapping();
         return new DotnetTypeToSqlTypeConverter(d =>
         {
-            return TypeMappingHelpers.CreateEnumStringType(mapping.EnumStringType, mapping.IsUnicodeProvider);
+            // Get the underlying type of the enum (byte, short, int, long, etc.)
+            var underlyingType = Enum.GetUnderlyingType(d.DotnetType);
+
+            // Look up the SQL type for the underlying numeric type
+            if (mapping.NumericTypeMap.TryGetValue(underlyingType, out var sqlType))
+            {
+                return TypeMappingHelpers.CreateSimpleType(sqlType);
+            }
+
+            // Fallback to int if not found (default enum underlying type)
+            return TypeMappingHelpers.CreateSimpleType(mapping.NumericTypeMap[typeof(int)]);
         });
     }
 
@@ -384,10 +390,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetObjectToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateObjectType(d);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateObjectType(d));
     }
 
     /// <summary>
@@ -397,10 +400,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetCharToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateCharType(d);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateCharType(d));
     }
 
     /// <summary>
@@ -410,10 +410,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetTextToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateTextType(d);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateTextType(d));
     }
 
     /// <summary>
@@ -423,10 +420,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetDateTimeToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateDateTimeType(d);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateDateTimeType(d));
     }
 
     /// <summary>
@@ -436,10 +430,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetByteArrayToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateBinaryType(d);
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateBinaryType(d));
     }
 
     /// <summary>
@@ -449,10 +440,17 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual DotnetTypeToSqlTypeConverter GetXmlToSqlTypeConverter()
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            return mapping.CreateXmlType();
-        });
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateXmlType(d));
+    }
+
+    /// <summary>
+    /// Gets the network type to SQL type converter using provider-specific network type handling.
+    /// </summary>
+    /// <returns>Network type to SQL type converter.</returns>
+    protected virtual DotnetTypeToSqlTypeConverter GetNetworkTypeToSqlTypeConverter()
+    {
+        var mapping = GetProviderTypeMapping();
+        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateNetworkType(d));
     }
 
     /// <summary>
@@ -509,13 +507,14 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var enumConverter = GetEnumToSqlTypeConverter();
         var arrayConverter = GetArrayToSqlTypeConverter();
         var pocoConverter = GetPocoToSqlTypeConverter();
+        var networkTypeConverter = GetNetworkTypeToSqlTypeConverter();
         var geometricConverter = GetGeometricToSqlTypeConverter();
 
         // Boolean affinity
         RegisterConverter<bool>(booleanConverter);
 
         // Numeric affinity
-        RegisterConverterForTypes(numericConverter, GetStandardNumericTypes());
+        RegisterConverterForTypes(numericConverter, TypeMappingHelpers.GetStandardNumericTypes());
 
         // Guid affinity
         RegisterConverter<Guid>(guidConverter);
@@ -524,7 +523,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         RegisterConverter<char>(charConverter);
 
         // Text affinity
-        RegisterConverterForTypes(textConverter, GetStandardTextTypes());
+        RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetStandardTextTypes());
 
         // Xml affinity
         RegisterConverterForTypes(xmlConverter, typeof(System.Xml.Linq.XDocument), typeof(System.Xml.Linq.XElement));
@@ -533,16 +532,16 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         RegisterConverterForTypes(jsonConverter, TypeMappingHelpers.GetStandardJsonTypes());
 
         // DateTime affinity
-        RegisterConverterForTypes(dateTimeConverter, GetStandardDateTimeTypes());
+        RegisterConverterForTypes(dateTimeConverter, TypeMappingHelpers.GetStandardDateTimeTypes());
 
         // Binary affinity
-        RegisterConverterForTypes(byteArrayConverter, GetStandardBinaryTypes());
+        RegisterConverterForTypes(byteArrayConverter, TypeMappingHelpers.GetStandardBinaryTypes());
 
         // Object affinity
         RegisterConverter<object>(objectConverter);
 
         // Enumerable affinity
-        RegisterConverterForTypes(enumerableConverter, GetStandardEnumerableTypes());
+        RegisterConverterForTypes(enumerableConverter, TypeMappingHelpers.GetStandardEnumerableTypes());
 
         // Enums (uses a placeholder to easily locate it)
         RegisterConverter<InternalEnumTypePlaceholder>(enumConverter);
@@ -552,6 +551,9 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
         // Poco (uses a placeholder to easily locate it)
         RegisterConverter<InternalPocoTypePlaceholder>(pocoConverter);
+
+        // Network type affinity
+        RegisterConverterForTypes(networkTypeConverter, TypeMappingHelpers.GetStandardNetworkTypes());
 
         // Geometry types (support provider-specific geometry types)
         var geometryTypes = GetProviderTypeMapping().GetSupportedGeometryTypes();
@@ -571,100 +573,6 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     protected virtual void RegisterProviderSpecificConverters()
     {
         // Default implementation does nothing
-    }
-
-    #endregion
-
-    #region Standard Type Registration
-
-    /// <summary>
-    /// Gets the standard numeric types that should be registered for numeric conversion.
-    /// </summary>
-    /// <returns>Array of numeric types.</returns>
-    protected static Type[] GetStandardNumericTypes()
-    {
-        return new[]
-        {
-            typeof(byte),
-            typeof(short),
-            typeof(int),
-            typeof(System.Numerics.BigInteger),
-            typeof(long),
-            typeof(sbyte),
-            typeof(ushort),
-            typeof(uint),
-            typeof(ulong),
-            typeof(decimal),
-            typeof(float),
-            typeof(double),
-        };
-    }
-
-    /// <summary>
-    /// Gets the standard text types that should be registered for text conversion.
-    /// </summary>
-    /// <returns>Array of text types.</returns>
-    protected static Type[] GetStandardTextTypes()
-    {
-        return new[] { typeof(string), typeof(char[]), typeof(TextReader) };
-    }
-
-    /// <summary>
-    /// Gets the standard DateTime types that should be registered for DateTime conversion.
-    /// </summary>
-    /// <returns>Array of DateTime types.</returns>
-    protected static Type[] GetStandardDateTimeTypes()
-    {
-        return new[] { typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(DateOnly), typeof(TimeOnly) };
-    }
-
-    /// <summary>
-    /// Gets the standard binary types that should be registered for binary conversion.
-    /// </summary>
-    /// <returns>Array of binary types.</returns>
-    protected static Type[] GetStandardBinaryTypes()
-    {
-        return new[]
-        {
-            typeof(byte[]),
-            typeof(ReadOnlyMemory<byte>),
-            typeof(Memory<byte>),
-            typeof(Stream),
-            typeof(MemoryStream),
-            typeof(BinaryReader),
-            typeof(System.Collections.BitArray),
-            typeof(System.Collections.Specialized.BitVector32),
-        };
-    }
-
-    /// <summary>
-    /// Gets the standard enumerable types that should be registered for enumerable conversion.
-    /// </summary>
-    /// <returns>Array of enumerable types.</returns>
-    protected static Type[] GetStandardEnumerableTypes()
-    {
-        return new[]
-        {
-            typeof(System.Collections.Immutable.ImmutableDictionary<string, string>),
-            typeof(Dictionary<string, string>),
-            typeof(IDictionary<string, string>),
-            typeof(Dictionary<string, object>),
-            typeof(IDictionary<string, object>),
-            typeof(HashSet<string>),
-            typeof(List<string>),
-            typeof(IList<string>),
-            typeof(HashSet<>),
-            typeof(ISet<>),
-            typeof(Dictionary<,>),
-            typeof(IDictionary<,>),
-            typeof(List<>),
-            typeof(IList<>),
-            typeof(System.Collections.ObjectModel.Collection<>),
-            typeof(IReadOnlyCollection<>),
-            typeof(IReadOnlySet<>),
-            typeof(ICollection<>),
-            typeof(IEnumerable<>),
-        };
     }
 
     #endregion

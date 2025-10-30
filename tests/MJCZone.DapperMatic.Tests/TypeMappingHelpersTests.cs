@@ -117,19 +117,6 @@ public class TypeMappingHelpersTests : TestBase
         Assert.True(result.IsFixedLength);
     }
 
-    [Fact]
-    public void Should_create_enum_string_type_returns_correct_configuration()
-    {
-        // Act
-        var result = TypeMappingHelpers.CreateEnumStringType("varchar", isUnicode: true);
-
-        // Assert
-        Assert.Equal("varchar(128)", result.SqlTypeName);
-        Assert.Equal(128, result.Length);
-        Assert.True(result.IsUnicode);
-        Assert.False(result.IsFixedLength);
-    }
-
     [Theory]
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
@@ -485,14 +472,6 @@ public class TypeMappingHelpersTests : TestBase
 
         // All returned types should be non-null
         Assert.True(types.All(t => t != null));
-
-        // Should at least have some system types
-        if (types.Length > 0)
-        {
-            // Should have at least System.Net types
-            var hasNetworkTypes = types.Any(t => t.Namespace?.StartsWith("System.Net") == true);
-            Assert.True(hasNetworkTypes);
-        }
     }
 
     [Fact]
@@ -879,4 +858,389 @@ public class TypeMappingHelpersTests : TestBase
         // Assert
         Assert.Null(result);
     }
+
+    #region ParseProviderDataTypes Tests
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_simple_types()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int,sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_parameterized_types()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:decimal(10,2),sqlserver:decimal(12,4)}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("decimal(10,2)", result[DbProviderType.MySql]);
+        Assert.Equal("decimal(12,4)", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_mixed_parameterized_and_simple_types()
+    {
+        // This is the documented example from docs/guide/providers.md
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes(
+            "{sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}"
+        );
+
+        // Assert
+        Assert.Equal(4, result.Count);
+        Assert.Equal("money", result[DbProviderType.SqlServer]);
+        Assert.Equal("decimal(19,4)", result[DbProviderType.MySql]);
+        Assert.Equal("money", result[DbProviderType.PostgreSql]);
+        Assert.Equal("real", result[DbProviderType.Sqlite]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_array_types()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{postgresql:integer[],mysql:json}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("integer[]", result[DbProviderType.PostgreSql]);
+        Assert.Equal("json", result[DbProviderType.MySql]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_varchar_types()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:varchar(255),sqlserver:nvarchar(255)}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("varchar(255)", result[DbProviderType.MySql]);
+        Assert.Equal("nvarchar(255)", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_semicolon_delimiter()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int;sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_without_braces()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("mysql:int,sqlserver:int");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_extra_whitespace()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{ mysql : decimal(10,2) , sqlserver : decimal(12,4) }");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("decimal(10,2)", result[DbProviderType.MySql]);
+        Assert.Equal("decimal(12,4)", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_null_input_returns_empty_dictionary()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes(null);
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_empty_input_returns_empty_dictionary()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("");
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_whitespace_input_returns_empty_dictionary()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("   ");
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_skips_invalid_entries_without_colon()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int,invalid,sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_skips_invalid_entries_with_empty_provider_name()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int,:emptyProvider,sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_skips_invalid_entries_with_empty_type_name()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int,postgresql:,sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Theory]
+    [InlineData("mysql")]
+    [InlineData("MySQL")]
+    [InlineData("MYSQL")]
+    [InlineData("maria")]
+    [InlineData("mariadb")]
+    public void Should_parse_provider_data_types_recognizes_mysql_variants(string providerName)
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes($"{{{providerName}:int}}");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("int", result[DbProviderType.MySql]);
+    }
+
+    [Theory]
+    [InlineData("postgres")]
+    [InlineData("postgresql")]
+    [InlineData("PostgreSQL")]
+    [InlineData("pg")]
+    [InlineData("PG")]
+    public void Should_parse_provider_data_types_recognizes_postgresql_variants(string providerName)
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes($"{{{providerName}:int}}");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("int", result[DbProviderType.PostgreSql]);
+    }
+
+    [Theory]
+    [InlineData("sqlite")]
+    [InlineData("SQLite")]
+    [InlineData("SQLITE")]
+    public void Should_parse_provider_data_types_recognizes_sqlite_variants(string providerName)
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes($"{{{providerName}:int}}");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("int", result[DbProviderType.Sqlite]);
+    }
+
+    [Theory]
+    [InlineData("sqlserver")]
+    [InlineData("SQLServer")]
+    [InlineData("SQLSERVER")]
+    [InlineData("mssql")]
+    [InlineData("MSSQL")]
+    public void Should_parse_provider_data_types_recognizes_sqlserver_variants(string providerName)
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes($"{{{providerName}:int}}");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("int", result[DbProviderType.SqlServer]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_with_numeric_precision_and_scale()
+    {
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:numeric(18,6),postgresql:numeric(18,6)}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("numeric(18,6)", result[DbProviderType.MySql]);
+        Assert.Equal("numeric(18,6)", result[DbProviderType.PostgreSql]);
+    }
+
+    [Fact]
+    public void Should_parse_provider_data_types_from_existing_test_cases()
+    {
+        // This is from the actual test case in DatabaseMethodsTests.TableFactory.cs
+        // Act
+        var result = TypeMappingHelpers.ParseProviderDataTypes(
+            "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}"
+        );
+
+        // Assert
+        Assert.Equal(4, result.Count);
+        Assert.Equal("nvarchar(max)", result[DbProviderType.SqlServer]);
+        Assert.Equal("longtext", result[DbProviderType.MySql]);
+        Assert.Equal("text", result[DbProviderType.PostgreSql]);
+        Assert.Equal("text", result[DbProviderType.Sqlite]);
+    }
+
+    #endregion
+
+    #region SplitRespectingParentheses Tests
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_simple_string()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:int,sqlserver:int", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("mysql:int", result[0]);
+        Assert.Equal("sqlserver:int", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_preserves_commas_inside_parentheses()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:decimal(10,2),sqlserver:decimal(12,4)", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("mysql:decimal(10,2)", result[0]);
+        Assert.Equal("sqlserver:decimal(12,4)", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_preserves_brackets()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("postgresql:integer[],mysql:json", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("postgresql:integer[]", result[0]);
+        Assert.Equal("mysql:json", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_nested_parentheses()
+    {
+        // Act - hypothetical case with nested structure
+        var result = TypeMappingHelpers.SplitRespectingParentheses("type1(a,b(c,d)),type2(x,y)", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("type1(a,b(c,d))", result[0]);
+        Assert.Equal("type2(x,y)", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_multiple_delimiters()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:int,sqlserver:int;postgresql:int", ',', ';');
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal("mysql:int", result[0]);
+        Assert.Equal("sqlserver:int", result[1]);
+        Assert.Equal("postgresql:int", result[2]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_trims_whitespace()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:int , sqlserver:int", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("mysql:int", result[0]);
+        Assert.Equal("sqlserver:int", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_empty_input_returns_empty_list()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("", ',');
+
+        // Assert
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_no_delimiters_returns_single_item()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:int", ',');
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("mysql:int", result[0]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_handles_multiple_consecutive_delimiters()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("mysql:int,,sqlserver:int", ',');
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.Equal("mysql:int", result[0]);
+        Assert.Equal("sqlserver:int", result[1]);
+    }
+
+    [Fact]
+    public void Should_split_respecting_parentheses_with_mixed_brackets_and_parentheses()
+    {
+        // Act
+        var result = TypeMappingHelpers.SplitRespectingParentheses("type1(a,b),type2[x,y],type3", ',');
+
+        // Assert
+        Assert.Equal(3, result.Count);
+        Assert.Equal("type1(a,b)", result[0]);
+        Assert.Equal("type2[x,y]", result[1]);
+        Assert.Equal("type3", result[2]);
+    }
+
+    #endregion
 }

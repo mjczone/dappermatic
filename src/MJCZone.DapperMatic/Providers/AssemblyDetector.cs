@@ -43,9 +43,7 @@ public static class AssemblyDetector
         {
             if (!_hasSqlServerTypes.HasValue)
             {
-                _hasSqlServerTypes = DetectType(
-                    "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types"
-                );
+                _hasSqlServerTypes = DetectType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
             }
             return _hasSqlServerTypes.Value;
         }
@@ -61,9 +59,7 @@ public static class AssemblyDetector
         {
             if (!_hasNetTopologySuite.HasValue)
             {
-                _hasNetTopologySuite = DetectType(
-                    "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
-                );
+                _hasNetTopologySuite = DetectType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
             }
             return _hasNetTopologySuite.Value;
         }

@@ -17,11 +17,6 @@ public interface IProviderTypeMapping
     string BooleanType { get; }
 
     /// <summary>
-    /// Gets the provider-specific enum string SQL type.
-    /// </summary>
-    string EnumStringType { get; }
-
-    /// <summary>
     /// Gets a value indicating whether this provider supports Unicode by default.
     /// </summary>
     bool IsUnicodeProvider { get; }
@@ -75,8 +70,16 @@ public interface IProviderTypeMapping
     /// <summary>
     /// Creates a provider-specific XML type descriptor.
     /// </summary>
+    /// <param name="descriptor">The .NET type descriptor.</param>
     /// <returns>SQL type descriptor for XML storage.</returns>
-    SqlTypeDescriptor CreateXmlType();
+    SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor);
+
+    /// <summary>
+    /// Creates a provider-specific network type descriptor.
+    /// </summary>
+    /// <param name="descriptor">The .NET type descriptor.</param>
+    /// <returns>SQL type descriptor for network storage.</returns>
+    SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor);
 
     /// <summary>
     /// Gets the geometry types supported by this provider for registration.

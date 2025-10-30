@@ -3,6 +3,8 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Net;
+using System.Net.NetworkInformation;
 using MJCZone.DapperMatic.Providers.Base;
 
 namespace MJCZone.DapperMatic.Providers.PostgreSql;
@@ -14,9 +16,6 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
 {
     /// <inheritdoc />
     public string BooleanType => PostgreSqlTypes.sql_boolean;
-
-    /// <inheritdoc />
-    public string EnumStringType => PostgreSqlTypes.sql_varchar;
 
     /// <inheritdoc />
     public bool IsUnicodeProvider => true; // PostgreSQL uses Unicode by default
@@ -104,9 +103,27 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType()
+    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_xml);
+    }
+
+    /// <inheritdoc />
+    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    {
+        return descriptor.DotnetType switch
+        {
+            Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
+            Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateSimpleType(
+                PostgreSqlTypes.sql_macaddr
+            ),
+            _ => TypeMappingHelpers.CreateStringType(
+                descriptor.IsFixedLength == true ? PostgreSqlTypes.sql_char : PostgreSqlTypes.sql_varchar,
+                descriptor.Length.GetValueOrDefault(50),
+                isUnicode: false,
+                descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
+        };
     }
 
     /// <inheritdoc />
