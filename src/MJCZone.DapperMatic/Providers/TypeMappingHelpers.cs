@@ -511,25 +511,6 @@ public static class TypeMappingHelpers
     }
 
     /// <summary>
-    /// Gets the combined geometry types for a specific provider.
-    /// </summary>
-    /// <param name="provider">The database provider name.</param>
-    /// <returns>An array of all geometry types for the specified provider.</returns>
-    public static Type[] GetGeometryTypesForProvider(string provider)
-    {
-        var standardTypes = GetStandardGeometryTypes();
-
-        return provider.ToLowerInvariant() switch
-        {
-            "sqlserver" => standardTypes.Concat(GetSqlServerGeometryTypes()).ToArray(),
-            "mysql" => standardTypes.Concat(GetMySqlGeometryTypes()).ToArray(),
-            "postgresql" => standardTypes.Concat(GetPostgreSqlSpecialTypes()).ToArray(),
-            "sqlite" => [.. standardTypes],
-            _ => [.. standardTypes],
-        };
-    }
-
-    /// <summary>
     /// Gets the standard System.Text.Json types that should be registered for JSON handling.
     /// This provides a consistent set of JSON types across all providers.
     /// </summary>

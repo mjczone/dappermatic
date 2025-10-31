@@ -125,10 +125,4 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
             ),
         };
     }
-
-    /// <inheritdoc />
-    public Type[] GetSupportedGeometryTypes()
-    {
-        return TypeMappingHelpers.GetGeometryTypesForProvider("postgresql");
-    }
 }

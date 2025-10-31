@@ -208,7 +208,7 @@ public static class ForeignKeyConstraintEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(foreignKeyConstraint)
             .NotNull(v => v.ColumnNames, nameof(ForeignKeyConstraintDto.ColumnNames))
             .Custom(

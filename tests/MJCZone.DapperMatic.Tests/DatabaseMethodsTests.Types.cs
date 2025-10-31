@@ -243,16 +243,43 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     // Npgsql Types (work on all providers, but PostgreSQL has native types, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
-    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "JSON", "POINT", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "JSON", "LSEG", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "JSON", "PATH", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "JSON", "POLYGON", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "JSON", "LINE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "JSON", "CIRCLE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "JSON", "BOX", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlInet), "VARCHAR(MAX)", "JSON", "INET", "TEXT", false, 45, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT", false, 43, null, null, false, null, "LONGTEXT")]
-    // NeTopologySuite Geometry Types (work on all providers, but PostgreSQL has native types, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
+    // [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "JSON", "POINT", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "JSON", "LSEG", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "JSON", "PATH", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "JSON", "POLYGON", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "JSON", "LINE", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "JSON", "CIRCLE", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "JSON", "BOX", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlInet), "VARCHAR(MAX)", "JSON", "INET", "TEXT" /* WKT */, false, 45, null, null, false, null, "LONGTEXT")]
+    // [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT" /* WKT */, false, 43, null, null, false, null, "LONGTEXT")]
+    // Npgsql Types
+    // The specific WKT/WKB conversion logic needs to be handled in the provider-specific code
+    [InlineData(typeof(NpgsqlPoint), "GEOMETRY", "POINT", "POINT", "TEXT", false, null, null, null, false, null, "POINT")]
+    [InlineData(typeof(NpgsqlLSeg), "GEOMETRY", "LINESTRING", "LSEG", "TEXT", false, null, null, null, false, null, "LINESTRING")]
+    [InlineData(typeof(NpgsqlPath), "GEOMETRY", "GEOMETRY", "PATH", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(NpgsqlPolygon), "GEOMETRY", "POLYGON", "POLYGON", "TEXT", false, null, null, null, false, null, "POLYGON")]
+    [InlineData(typeof(NpgsqlLine), "GEOMETRY", "LINESTRING", "LINE", "TEXT", false, null, null, null, false, null, "LINESTRING")]
+    [InlineData(typeof(NpgsqlCircle), "GEOMETRY", "GEOMETRY", "CIRCLE", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(NpgsqlBox), "GEOMETRY", "POLYGON", "BOX", "TEXT", false, null, null, null, false, null, "POLYGON")]
+    [InlineData(typeof(NpgsqlInet), "VARCHAR(45)", "VARCHAR(45)", "INET", "VARCHAR(45)", false, 45, null, null, false, null, "VARCHAR(45)")] // Use standard VARCHAR for IPs
+    [InlineData(typeof(NpgsqlCidr), "VARCHAR(43)", "VARCHAR(43)", "CIDR", "VARCHAR(43)", false, 43, null, null, false, null, "VARCHAR(43)")] // Use standard VARCHAR for CIDRs
+    [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "JSON", "DATERANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<int>), "VARCHAR(MAX)", "JSON", "INT4RANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<long>), "VARCHAR(MAX)", "JSON", "INT8RANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<decimal>), "VARCHAR(MAX)", "JSON", "NUMRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTime>), "VARCHAR(MAX)", "JSON", "TSRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTimeOffset>), "VARCHAR(MAX)", "JSON", "TSTZRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateOnly>[]), "VARCHAR(MAX)", "JSON", "DATEMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<int>[]), "VARCHAR(MAX)", "JSON", "INT4MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<long>[]), "VARCHAR(MAX)", "JSON", "INT8MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<decimal>[]), "VARCHAR(MAX)", "JSON", "NUMMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTime>[]), "VARCHAR(MAX)", "JSON", "TSMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTimeOffset>[]), "VARCHAR(MAX)", "JSON", "TSTZMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlInterval), "VARCHAR(MAX)", "JSON", "INTERVAL", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlTid), "VARCHAR(MAX)", "JSON", "TID", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlTsQuery), "VARCHAR(MAX)", "JSON", "TSQUERY", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlTsVector), "VARCHAR(MAX)", "JSON", "TSVECTOR", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    // NetTopologySuite Geometry Types
     [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT")]
     [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "GEOMETRY", "GEOMETRYCOLLECTION", "GEOMETRY", "TEXT")]
     [InlineData(typeof(NetTopologySuite.Geometries.Point), "GEOMETRY", "POINT", "POINT", "TEXT")]
@@ -264,6 +291,13 @@ public abstract partial class DatabaseMethodsTests
     // Network Types
     [InlineData(typeof(IPAddress), "VARCHAR(17)", "VARCHAR(17)", "INET", "VARCHAR(17)", false, 17)]
     [InlineData(typeof(PhysicalAddress), "VARCHAR(43)", "VARCHAR(43)", "MACADDR", "VARCHAR(43)", false, 43)]
+    // MySqlConnector Spatial Types
+    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(MySqlConnector.MySqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    // SQL Server Spatial Types & HierarchyId
+    [InlineData(typeof(Microsoft.SqlServer.Types.SqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(Microsoft.SqlServer.Types.SqlGeography), "GEOGRAPHY", "GEOMETRY", "GEOGRAPHY", "TEXT")]
+    [InlineData(typeof(Microsoft.SqlServer.Types.SqlHierarchyId), "HIERARCHYID(892)", "TEXT(65535)", "LTREE", "TEXT", false, 892)]
     // csharpier-ignore-end
     protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,
@@ -283,9 +317,14 @@ public abstract partial class DatabaseMethodsTests
         using var db = await OpenConnectionAsync();
         var dbType = db.GetDbProviderType();
 
+        bool isPostGisInstalled = false;
         if (dbType == DbProviderType.PostgreSql)
         {
-            var isPostGisInstalled = await db.QueryFirstOrDefaultAsync<bool>(
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS hstore;");
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS ltree;");
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+
+            isPostGisInstalled = await db.QueryFirstOrDefaultAsync<bool>(
                 "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis');"
             );
             if (!isPostGisInstalled && postgreSqlTypeName == "GEOMETRY")
@@ -298,11 +337,6 @@ public abstract partial class DatabaseMethodsTests
 
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
         var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
-
-        Func<DbProviderType, Task<string>> getExpectedPostgreSqlTypeName = async dbType =>
-        {
-            return postgreSqlTypeName;
-        };
 
         Func<DbProviderType, Task<string>> getExpectedMySqlTypeName = async dbType =>
         {
@@ -327,10 +361,15 @@ public abstract partial class DatabaseMethodsTests
         {
             DbProviderType.SqlServer => sqlServerTypeName,
             DbProviderType.MySql => await getExpectedMySqlTypeName(dbType),
-            DbProviderType.PostgreSql => await getExpectedPostgreSqlTypeName(dbType),
+            DbProviderType.PostgreSql => postgreSqlTypeName,
             DbProviderType.Sqlite => sqliteTypeName,
             _ => throw new NotSupportedException($"Database type {dbType} is not supported."),
         };
+
+        if (expectedTypeName == "GEOGRAPHY" && dbType == DbProviderType.PostgreSql && !isPostGisInstalled)
+        {
+            return;
+        }
 
         // Create table with a column of that type
         const string tableName = "testTableWithSpecificType";
@@ -470,7 +509,7 @@ public abstract partial class DatabaseMethodsTests
             foreach (var providerDataTypeName in providerDataTypeNames)
             {
                 if (IgnoreSqlType(providerDataTypeName)) continue;
-                
+
                 // Create a table with this type to verify it can be created, and return the column definition as DapperMatic sees it
                 DmColumn? column = await CreateTableWithProviderDataTypeAndGetColumnAsync(db, dbType, providerDataTypeName, providerDataType, hasPostgisExtension, postgisTypes);
                 // Some types can't be created directly, like POSTGIS geometry types without the postgis extension installed, so we skip those
@@ -593,7 +632,9 @@ public abstract partial class DatabaseMethodsTests
                         case "bit": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
                         case "boolean": AssertValues(providerDataTypeName, DataTypeCategory.Boolean, typeof(bool)); break;
                         case "boolean[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(bool[])); break;
-                        case "box": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlBox)); break;
+                        // will return NetTopologySuite.Geometries.Polygon when PostGIS is installed
+                        case "box": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Polygon)); break;
+                        // case "box": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlBox)); break;
                         case "bytea": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
                         case "bytea[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(byte[][])); break;
                         case "char": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), unicode: true); break;
@@ -602,7 +643,8 @@ public abstract partial class DatabaseMethodsTests
                         case "character": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
                         case "character[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(char[])); break;
                         case "cidr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(NpgsqlCidr)); break;
-                        case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
+                        case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
+                        // case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
                         case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
                         case "date[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateOnly[])); break;
                         case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
@@ -622,8 +664,10 @@ public abstract partial class DatabaseMethodsTests
                         case "json[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
                         case "jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument)); break;
                         case "jsonb[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
-                        case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLine)); break;
-                        case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLSeg)); break;
+                        case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
+                        // case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLine)); break;
+                        case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
+                        // case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLSeg)); break;
                         case "ltree": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string)); break;
                         case "macaddr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
                         case "macaddr8": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(PhysicalAddress)); break;
@@ -632,9 +676,12 @@ public abstract partial class DatabaseMethodsTests
                         case "numeric[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(decimal[])); break;
                         case "numrange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<decimal>)); break;
                         case "oid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;
-                        case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPath)); break;
-                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPoint)); break;
-                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPolygon)); break;
+                        case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
+                        // case "path": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPath)); break;
+                        case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Point)); break;
+                        // case "point": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPoint)); break;
+                        case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Polygon)); break;
+                        // case "polygon": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlPolygon)); break;
                         case "real": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
                         case "real[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
                         case "regclass": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(uint)); break;

@@ -33,7 +33,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -81,7 +81,7 @@ public partial class DapperMaticService
         schemaName = NormalizeSchemaName(schemaName);
 
         // Validate inputs
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -138,7 +138,7 @@ public partial class DapperMaticService
         var dmView = view.ToDmView();
         var schemaName = NormalizeSchemaName(dmView.SchemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -211,7 +211,7 @@ public partial class DapperMaticService
 
         var schemaName = NormalizeSchemaName(updates.SchemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -299,7 +299,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -373,7 +373,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -427,7 +427,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -479,7 +479,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

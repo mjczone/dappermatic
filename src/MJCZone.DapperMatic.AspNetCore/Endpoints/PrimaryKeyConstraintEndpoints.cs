@@ -144,7 +144,7 @@ public static class PrimaryKeyConstraintEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(primaryKey)
             .NotNull(v => v.ColumnNames, nameof(PrimaryKeyConstraintDto.ColumnNames))
             .Custom(

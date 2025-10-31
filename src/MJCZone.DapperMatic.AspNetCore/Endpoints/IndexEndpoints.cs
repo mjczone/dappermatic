@@ -165,7 +165,7 @@ public static class IndexEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(index)
             .NotNull(v => v.ColumnNames, nameof(IndexDto.ColumnNames))
             .Custom(v => v.ColumnNames!.Count > 0, nameof(IndexDto.ColumnNames), $"At least one column is required")

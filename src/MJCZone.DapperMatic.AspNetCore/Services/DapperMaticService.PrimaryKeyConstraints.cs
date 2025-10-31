@@ -38,7 +38,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -106,7 +106,7 @@ public partial class DapperMaticService
                 : $"pk_{schemaName}_{tableName}";
         }
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -203,7 +203,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

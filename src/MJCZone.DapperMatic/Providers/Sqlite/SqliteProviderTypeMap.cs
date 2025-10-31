@@ -38,31 +38,117 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
     }
 
     /// <inheritdoc/>
-    protected override void RegisterDotnetTypeToSqlTypeConverters()
+    protected override void RegisterNetTopologySuiteTypes()
     {
-        // Use the standardized registration from base class
-        RegisterStandardDotnetTypeToSqlTypeConverters();
+        // SQLite stores all geometry types as TEXT (WKT format)
+        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        );
+
+        RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetStandardGeometryTypes());
     }
 
     /// <inheritdoc/>
-    protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
+    protected override void RegisterSqlServerTypes()
     {
-        return shortName switch
+        // SQLite stores all SQL Server types as TEXT
+        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        );
+
+        var sqlServerTypes = new[]
         {
-            // NetTopologySuite types - SQLite stores geometry as text (WKT format)
-            "NetTopologySuite.Geometries.Geometry"
-            or "NetTopologySuite.Geometries.Point"
-            or "NetTopologySuite.Geometries.LineString"
-            or "NetTopologySuite.Geometries.Polygon"
-            or "NetTopologySuite.Geometries.MultiPoint"
-            or "NetTopologySuite.Geometries.MultiLineString"
-            or "NetTopologySuite.Geometries.MultiPolygon"
-            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateLobType(
-                SqliteTypes.sql_text,
-                isUnicode: false
-            ),
-            _ => null,
-        };
+            Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types"),
+            Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types"),
+            Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types"),
+        }
+            .Where(t => t != null)
+            .ToArray();
+
+        RegisterConverterForTypes(textConverter, sqlServerTypes!);
+    }
+
+    /// <inheritdoc/>
+    protected override void RegisterMySqlTypes()
+    {
+        // SQLite stores all MySQL geometry types as TEXT
+        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        );
+
+        RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+    }
+
+    /// <inheritdoc/>
+    protected override void RegisterNpgsqlTypes()
+    {
+        // SQLite stores most Npgsql types as TEXT
+        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        );
+
+        // PostgreSQL geometric and special types → TEXT
+        var npgsqlTextTypes = new[]
+        {
+            Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
+        }
+            .Where(t => t != null)
+            .ToArray();
+
+        RegisterConverterForTypes(textConverter, npgsqlTextTypes!);
+
+        // PostgreSQL network types → VARCHAR with specific lengths
+        var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
+        var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
+
+        if (npgsqlInetType != null)
+        {
+            RegisterConverter(
+                npgsqlInetType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateStringType(SqliteTypes.sql_varchar, 45, isUnicode: false)
+                )
+            );
+        }
+
+        if (npgsqlCidrType != null)
+        {
+            RegisterConverter(
+                npgsqlCidrType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateStringType(SqliteTypes.sql_varchar, 43, isUnicode: false)
+                )
+            );
+        }
+
+        // PostgreSQL range arrays also map to TEXT
+        var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
+        if (rangeType != null)
+        {
+            var rangeArrayTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
+                .ToArray();
+
+            RegisterConverterForTypes(textConverter, rangeArrayTypes);
+        }
     }
 
     /// <inheritdoc/>

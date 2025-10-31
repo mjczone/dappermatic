@@ -170,10 +170,4 @@ public class SqlServerTypeMapping : IProviderTypeMapping
             ),
         };
     }
-
-    /// <inheritdoc />
-    public Type[] GetSupportedGeometryTypes()
-    {
-        return TypeMappingHelpers.GetGeometryTypesForProvider("sqlserver");
-    }
 }

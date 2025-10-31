@@ -74,11 +74,13 @@ public abstract class NativeSpatialTypeVerificationTests : TestBase
         // Reverse engineer to see what column type was created
         var tables = await db.GetTablesAsync(null);
         var createdTable = tables.FirstOrDefault(t =>
-            t.TableName.Equals("test_mysql_geometry", StringComparison.OrdinalIgnoreCase));
+            t.TableName.Equals("test_mysql_geometry", StringComparison.OrdinalIgnoreCase)
+        );
 
         Assert.NotNull(createdTable);
         var shapeColumn = createdTable.Columns.FirstOrDefault(c =>
-            c.ColumnName.Equals("shape", StringComparison.OrdinalIgnoreCase));
+            c.ColumnName.Equals("shape", StringComparison.OrdinalIgnoreCase)
+        );
 
         Assert.NotNull(shapeColumn);
 
@@ -102,9 +104,9 @@ public abstract class NativeSpatialTypeVerificationTests : TestBase
             case DbProviderType.PostgreSql:
                 // On PostgreSQL, object type maps to jsonb
                 Assert.True(
-                    providerDataType?.ToLowerInvariant() == "jsonb" ||
-                    providerDataType?.ToLowerInvariant() == "json",
-                    "Expected jsonb or json");
+                    providerDataType?.ToLowerInvariant() == "jsonb" || providerDataType?.ToLowerInvariant() == "json",
+                    "Expected jsonb or json"
+                );
                 Output.WriteLine("PostgreSQL: object type mapped to jsonb");
                 break;
 
@@ -118,9 +120,10 @@ public abstract class NativeSpatialTypeVerificationTests : TestBase
             case DbProviderType.Sqlite:
                 // On SQLite, expect TEXT or BLOB
                 Assert.True(
-                    providerDataType?.Equals("TEXT", StringComparison.OrdinalIgnoreCase) == true ||
-                    providerDataType?.Equals("BLOB", StringComparison.OrdinalIgnoreCase) == true,
-                    "Expected TEXT or BLOB");
+                    providerDataType?.Equals("TEXT", StringComparison.OrdinalIgnoreCase) == true
+                        || providerDataType?.Equals("BLOB", StringComparison.OrdinalIgnoreCase) == true,
+                    "Expected TEXT or BLOB"
+                );
                 Output.WriteLine("SQLite: Correctly created TEXT/BLOB column");
                 break;
         }
@@ -138,17 +141,21 @@ public abstract class NativeSpatialTypeVerificationTests : TestBase
         // Skip if not MySQL - MySqlGeometry only works on MySQL
         if (db.GetDbProviderType() != DbProviderType.MySql)
         {
-            Output.WriteLine($"Skipped: MySqlGeometry only supported on MySQL provider (current: {db.GetDbProviderType()})");
+            Output.WriteLine(
+                $"Skipped: MySqlGeometry only supported on MySQL provider (current: {db.GetDbProviderType()})"
+            );
             return;
         }
 
         // Create table manually with geometry column
-        await db.ExecuteAsync(@"
+        await db.ExecuteAsync(
+            @"
             CREATE TABLE IF NOT EXISTS test_mysql_geom_dml (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 name VARCHAR(100),
                 shape GEOMETRY
-            )");
+            )"
+        );
 
         try
         {
@@ -162,11 +169,13 @@ public abstract class NativeSpatialTypeVerificationTests : TestBase
             }
 
             // Create a POINT geometry using WKT
-            var fromTextMethod = mySqlGeometryType.GetMethod("Parse",
+            var fromTextMethod = mySqlGeometryType.GetMethod(
+                "Parse",
                 System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.Public,
                 null,
                 new[] { typeof(string) },
-                null);
+                null
+            );
 
             if (fromTextMethod == null)
             {
@@ -238,10 +247,10 @@ public class MySql_84_NativeSpatialTypeVerificationTests(MySql_84_DatabaseFixtur
 public class MySql_57_NativeSpatialTypeVerificationTests(MySql_57_DatabaseFixture fixture, ITestOutputHelper output)
     : MySqlNativeSpatialTypeVerificationTests<MySql_57_DatabaseFixture>(fixture, output) { }
 
-public abstract class MySqlNativeSpatialTypeVerificationTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
-    : NativeSpatialTypeVerificationTests(output),
-        IClassFixture<TDatabaseFixture>,
-        IDisposable
+public abstract class MySqlNativeSpatialTypeVerificationTests<TDatabaseFixture>(
+    TDatabaseFixture fixture,
+    ITestOutputHelper output
+) : NativeSpatialTypeVerificationTests(output), IClassFixture<TDatabaseFixture>, IDisposable
     where TDatabaseFixture : MySqlDatabaseFixture
 {
     static MySqlNativeSpatialTypeVerificationTests()
@@ -290,10 +299,7 @@ public class PostgreSql_Postgres17_NativeSpatialTypeVerificationTests(
 public abstract class PostgreSqlNativeSpatialTypeVerificationTests<TDatabaseFixture>(
     TDatabaseFixture fixture,
     ITestOutputHelper output
-)
-    : NativeSpatialTypeVerificationTests(output),
-        IClassFixture<TDatabaseFixture>,
-        IDisposable
+) : NativeSpatialTypeVerificationTests(output), IClassFixture<TDatabaseFixture>, IDisposable
     where TDatabaseFixture : PostgreSqlDatabaseFixture
 {
     static PostgreSqlNativeSpatialTypeVerificationTests()
@@ -319,19 +325,25 @@ public abstract class PostgreSqlNativeSpatialTypeVerificationTests<TDatabaseFixt
 }
 
 // SQL Server Tests
-public class SqlServer_2022_NativeSpatialTypeVerificationTests(SqlServer_2022_DatabaseFixture fixture, ITestOutputHelper output)
-    : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2022_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2022_NativeSpatialTypeVerificationTests(
+    SqlServer_2022_DatabaseFixture fixture,
+    ITestOutputHelper output
+) : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2022_DatabaseFixture>(fixture, output) { }
 
-public class SqlServer_2019_NativeSpatialTypeVerificationTests(SqlServer_2019_DatabaseFixture fixture, ITestOutputHelper output)
-    : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2019_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2019_NativeSpatialTypeVerificationTests(
+    SqlServer_2019_DatabaseFixture fixture,
+    ITestOutputHelper output
+) : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2019_DatabaseFixture>(fixture, output) { }
 
-public class SqlServer_2017_NativeSpatialTypeVerificationTests(SqlServer_2017_DatabaseFixture fixture, ITestOutputHelper output)
-    : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2017_DatabaseFixture>(fixture, output) { }
+public class SqlServer_2017_NativeSpatialTypeVerificationTests(
+    SqlServer_2017_DatabaseFixture fixture,
+    ITestOutputHelper output
+) : SqlServerNativeSpatialTypeVerificationTests<SqlServer_2017_DatabaseFixture>(fixture, output) { }
 
-public abstract class SqlServerNativeSpatialTypeVerificationTests<TDatabaseFixture>(TDatabaseFixture fixture, ITestOutputHelper output)
-    : NativeSpatialTypeVerificationTests(output),
-        IClassFixture<TDatabaseFixture>,
-        IDisposable
+public abstract class SqlServerNativeSpatialTypeVerificationTests<TDatabaseFixture>(
+    TDatabaseFixture fixture,
+    ITestOutputHelper output
+) : NativeSpatialTypeVerificationTests(output), IClassFixture<TDatabaseFixture>, IDisposable
     where TDatabaseFixture : SqlServerDatabaseFixture
 {
     static SqlServerNativeSpatialTypeVerificationTests()

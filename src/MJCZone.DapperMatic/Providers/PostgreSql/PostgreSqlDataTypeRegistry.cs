@@ -198,6 +198,7 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         // Text search types
         RegisterDataType(CreateSimpleType("tsvector", DataTypeCategory.Other, isCommon: false, "Text search vector"));
         RegisterDataType(CreateSimpleType("tsquery", DataTypeCategory.Other, isCommon: false, "Text search query"));
+        RegisterDataType(CreateSimpleType("tid", DataTypeCategory.Other, isCommon: false, "Tuple identifier"));
 
         // Range types (PostgreSQL specific)
         RegisterDataType(CreateSimpleType("int4range", DataTypeCategory.Range, isCommon: false, "Range of integer"));
@@ -210,6 +211,18 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
             CreateSimpleType("tstzrange", DataTypeCategory.Range, isCommon: false, "Range of timestamp with time zone")
         );
         RegisterDataType(CreateSimpleType("daterange", DataTypeCategory.Range, isCommon: false, "Range of date"));
+
+        // Multirange types (PostgreSQL 14+)
+        RegisterDataType(CreateSimpleType("int4multirange", DataTypeCategory.Range, isCommon: false, "Multirange of integer"));
+        RegisterDataType(CreateSimpleType("int8multirange", DataTypeCategory.Range, isCommon: false, "Multirange of bigint"));
+        RegisterDataType(CreateSimpleType("nummultirange", DataTypeCategory.Range, isCommon: false, "Multirange of numeric"));
+        RegisterDataType(
+            CreateSimpleType("tsmultirange", DataTypeCategory.Range, isCommon: false, "Multirange of timestamp without time zone")
+        );
+        RegisterDataType(
+            CreateSimpleType("tstzmultirange", DataTypeCategory.Range, isCommon: false, "Multirange of timestamp with time zone")
+        );
+        RegisterDataType(CreateSimpleType("datemultirange", DataTypeCategory.Range, isCommon: false, "Multirange of date"));
 
         // Array types - standard notation (suffix [])
         RegisterDataType(CreateSimpleType("boolean[]", DataTypeCategory.Array, isCommon: false, "Array of boolean"));

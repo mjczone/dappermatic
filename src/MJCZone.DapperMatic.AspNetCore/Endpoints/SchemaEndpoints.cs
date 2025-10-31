@@ -130,7 +130,7 @@ public static class SchemaEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(schema)
             .NotNullOrWhiteSpace(r => r.SchemaName, nameof(SchemaDto.SchemaName))
             .MaxLength(r => r.SchemaName, 128, nameof(SchemaDto.SchemaName), inclusive: true)

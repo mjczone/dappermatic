@@ -145,10 +145,4 @@ public class SqliteTypeMapping : IProviderTypeMapping
             ),
         };
     }
-
-    /// <inheritdoc />
-    public Type[] GetSupportedGeometryTypes()
-    {
-        return TypeMappingHelpers.GetGeometryTypesForProvider("sqlite");
-    }
 }

@@ -35,17 +35,275 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     protected override string GetProviderName() => "postgresql";
 
     /// <inheritdoc />
-    protected override void RegisterDotnetTypeToSqlTypeConverters()
+    protected override void RegisterNetTopologySuiteTypes()
     {
-        RegisterStandardDotnetTypeToSqlTypeConverters();
+        // NetTopologySuite types map to PostgreSQL/PostGIS geometry types
+        var geometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var pointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var lineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var polygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var multiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var multiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var multiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var geometryCollectionType = Type.GetType("NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite");
+
+        if (geometryType != null)
+        {
+            RegisterConverter(
+                geometryType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (pointType != null)
+        {
+            RegisterConverter(
+                pointType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point))
+            );
+        }
+
+        if (lineStringType != null)
+        {
+            RegisterConverter(
+                lineStringType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (polygonType != null)
+        {
+            RegisterConverter(
+                polygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon)
+                )
+            );
+        }
+
+        if (multiPointType != null)
+        {
+            RegisterConverter(
+                multiPointType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (multiLineStringType != null)
+        {
+            RegisterConverter(
+                multiLineStringType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (multiPolygonType != null)
+        {
+            RegisterConverter(
+                multiPolygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (geometryCollectionType != null)
+        {
+            RegisterConverter(
+                geometryCollectionType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
     }
 
     /// <inheritdoc />
-    protected override void RegisterProviderSpecificConverters()
+    protected override void RegisterSqlServerTypes()
     {
-        var rangeConverter = GetRangeToSqlTypeConverter();
+        // SQL Server types map to PostgreSQL equivalents
+        var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
+        var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
+        var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
 
-        // Range types (PostgreSQL is jacked up with range types)
+        if (sqlGeometryType != null)
+        {
+            RegisterConverter(
+                sqlGeometryType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (sqlGeographyType != null)
+        {
+            RegisterConverter(
+                sqlGeographyType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geography)
+                )
+            );
+        }
+
+        if (sqlHierarchyIdType != null)
+        {
+            RegisterConverter(
+                sqlHierarchyIdType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_ltree))
+            );
+        }
+    }
+
+    /// <inheritdoc />
+    protected override void RegisterMySqlTypes()
+    {
+        // MySQL geometry types map to PostgreSQL GEOMETRY
+        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+        );
+
+        RegisterConverterForTypes(mySqlGeometryConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+    }
+
+    /// <inheritdoc />
+    protected override void RegisterNpgsqlTypes()
+    {
+        // PostgreSQL native Npgsql geometric types
+        var npgsqlPointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");
+        var npgsqlLSegType = Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql");
+        var npgsqlPathType = Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql");
+        var npgsqlPolygonType = Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql");
+        var npgsqlLineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
+        var npgsqlCircleType = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
+        var npgsqlBoxType = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
+
+        if (npgsqlPointType != null)
+        {
+            RegisterConverter(
+                npgsqlPointType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point))
+            );
+        }
+
+        if (npgsqlLSegType != null)
+        {
+            RegisterConverter(
+                npgsqlLSegType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg))
+            );
+        }
+
+        if (npgsqlPathType != null)
+        {
+            RegisterConverter(
+                npgsqlPathType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path))
+            );
+        }
+
+        if (npgsqlPolygonType != null)
+        {
+            RegisterConverter(
+                npgsqlPolygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon)
+                )
+            );
+        }
+
+        if (npgsqlLineType != null)
+        {
+            RegisterConverter(
+                npgsqlLineType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line))
+            );
+        }
+
+        if (npgsqlCircleType != null)
+        {
+            RegisterConverter(
+                npgsqlCircleType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle))
+            );
+        }
+
+        if (npgsqlBoxType != null)
+        {
+            RegisterConverter(
+                npgsqlBoxType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box))
+            );
+        }
+
+        // PostgreSQL network types
+        var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
+        var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
+
+        if (npgsqlInetType != null)
+        {
+            RegisterConverter(
+                npgsqlInetType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet))
+            );
+        }
+
+        if (npgsqlCidrType != null)
+        {
+            RegisterConverter(
+                npgsqlCidrType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr))
+            );
+        }
+
+        // PostgreSQL special types
+        var npgsqlIntervalType = Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql");
+        var npgsqlTidType = Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql");
+        var npgsqlTsQueryType = Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql");
+        var npgsqlTsVectorType = Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql");
+
+        if (npgsqlIntervalType != null)
+        {
+            RegisterConverter(
+                npgsqlIntervalType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval))
+            );
+        }
+
+        if (npgsqlTidType != null)
+        {
+            RegisterConverter(
+                npgsqlTidType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid))
+            );
+        }
+
+        if (npgsqlTsQueryType != null)
+        {
+            RegisterConverter(
+                npgsqlTsQueryType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery))
+            );
+        }
+
+        if (npgsqlTsVectorType != null)
+        {
+            RegisterConverter(
+                npgsqlTsVectorType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector))
+            );
+        }
+
+        // PostgreSQL range types (both scalar and array)
+        var rangeConverter = GetRangeToSqlTypeConverter();
         var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
         if (rangeType != null)
         {
@@ -86,43 +344,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
 
             return TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false);
         });
-    }
-
-    /// <inheritdoc />
-    protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
-    {
-        return shortName switch
-        {
-            // NetTopologySuite types - PostgreSQL has specific geometry types
-            "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
-                PostgreSqlTypes.sql_geometry
-            ),
-            "NetTopologySuite.Geometries.Point" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
-            "NetTopologySuite.Geometries.LineString" => TypeMappingHelpers.CreateGeometryType(
-                PostgreSqlTypes.sql_geometry
-            ),
-            "NetTopologySuite.Geometries.Polygon" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
-            "NetTopologySuite.Geometries.MultiPoint"
-            or "NetTopologySuite.Geometries.MultiLineString"
-            or "NetTopologySuite.Geometries.MultiPolygon"
-            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
-                PostgreSqlTypes.sql_geometry
-            ),
-            "NpgsqlTypes.NpgsqlPoint" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
-            "NpgsqlTypes.NpgsqlLSeg" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg),
-            "NpgsqlTypes.NpgsqlPath" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path),
-            "NpgsqlTypes.NpgsqlPolygon" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
-            "NpgsqlTypes.NpgsqlLine" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line),
-            "NpgsqlTypes.NpgsqlCircle" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle),
-            "NpgsqlTypes.NpgsqlBox" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box),
-            "NpgsqlTypes.NpgsqlInet" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
-            "NpgsqlTypes.NpgsqlCidr" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
-            "NpgsqlTypes.NpgsqlInterval" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
-            "NpgsqlTypes.NpgsqlTid" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid),
-            "NpgsqlTypes.NpgsqlTsQuery" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery),
-            "NpgsqlTypes.NpgsqlTsVector" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector),
-            _ => null,
-        };
     }
 
     /// <inheritdoc />
@@ -528,27 +749,34 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             switch (d.BaseTypeName)
             {
                 case PostgreSqlTypes.sql_box:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyPolygonType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
+                    }
+
+                    if (sqlNetTopologyGeometryType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
+                    }
+
                     if (sqlNpgsqlBox != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlBox);
                     }
 
-                    if (sqlNetTopologyGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
-                    }
-
                     // Fallback: WKT format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_circle:
-                    if (sqlNpgsqlCircle != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNpgsqlCircle);
-                    }
-
+                    // Prefer NTS for portability
                     if (sqlNetTopologyGeometryType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
+                    }
+
+                    if (sqlNpgsqlCircle != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNpgsqlCircle);
                     }
 
                     // Fallback: WKT format as string
@@ -580,19 +808,26 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     // Fallback: WKT (Well-Known Text) format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_line:
-                    if (sqlNpgsqlLine != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNpgsqlLine);
-                    }
-
+                    // Prefer NTS for portability
                     if (sqlNetTopologyLineStringType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
                     }
 
+                    if (sqlNpgsqlLine != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNpgsqlLine);
+                    }
+
                     // Fallback: WKT format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_lseg:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyLineStringType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
+                    }
+
                     if (sqlNpgsqlLSeg != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlLSeg);
@@ -601,6 +836,12 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     // Fallback: WKT format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_path:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyLineStringType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
+                    }
+
                     if (sqlNpgsqlPath != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlPath);
@@ -609,27 +850,29 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     // Fallback: WKT format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_point:
-                    if (sqlNpgsqlPoint != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNpgsqlPoint);
-                    }
-
+                    // Prefer NTS for portability
                     if (sqlNetTopologyPointType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyPointType);
                     }
 
+                    if (sqlNpgsqlPoint != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNpgsqlPoint);
+                    }
+
                     // Fallback: WKT format as string
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_polygon:
-                    if (sqlNpgsqlPolygon != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNpgsqlPolygon);
-                    }
-
+                    // Prefer NTS for portability
                     if (sqlNetTopologyPolygonType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
+                    }
+
+                    if (sqlNpgsqlPolygon != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNpgsqlPolygon);
                     }
 
                     // Fallback: WKT format as string

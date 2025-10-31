@@ -38,7 +38,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -93,7 +93,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -171,7 +171,7 @@ public partial class DapperMaticService
             checkConstraint.ConstraintName = $"CK_{tableName}_{Guid.NewGuid().ToString("N")[..8]}";
         }
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -308,7 +308,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

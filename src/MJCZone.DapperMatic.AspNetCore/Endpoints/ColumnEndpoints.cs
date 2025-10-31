@@ -173,7 +173,7 @@ public static class ColumnEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(column)
             .NotNullOrWhiteSpace(c => c.ColumnName, nameof(ColumnDto.ColumnName))
             .NotNullOrWhiteSpace(c => c.ProviderDataType, nameof(ColumnDto.ProviderDataType))
@@ -229,7 +229,7 @@ public static class ColumnEndpoints
         }
 
         // API layer validation
-        Validate.Object(column).NotNullOrWhiteSpace(r => r.ColumnName, nameof(ColumnDto.ColumnName)).Assert();
+        ValidationFactory.Object(column).NotNullOrWhiteSpace(r => r.ColumnName, nameof(ColumnDto.ColumnName)).Assert();
 
         operationContext.RequestBody = column;
 

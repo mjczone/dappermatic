@@ -151,7 +151,7 @@ public static class DatasourceEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(datasource)
             .MaxLength(r => r.Id, 64, nameof(DatasourceDto.Id), inclusive: true)
             .NotNullOrWhiteSpace(r => r.Provider, nameof(DatasourceDto.Provider))
@@ -188,7 +188,7 @@ public static class DatasourceEndpoints
         datasource.Id = datasourceId;
 
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(datasource)
             .MaxLength(r => r.Provider, 10, nameof(DatasourceDto.Provider), inclusive: true) // pgsql
             .MinLength(r => r.Provider, 2, nameof(DatasourceDto.Provider), inclusive: true) // pg

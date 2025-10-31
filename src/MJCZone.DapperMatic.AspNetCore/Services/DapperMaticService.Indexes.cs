@@ -36,7 +36,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -88,7 +88,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -159,7 +159,7 @@ public partial class DapperMaticService
                 : $"ix_{schemaName}_{tableName}_{string.Join('_', index.ColumnNames)}";
         }
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -272,7 +272,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

@@ -80,10 +80,4 @@ public interface IProviderTypeMapping
     /// <param name="descriptor">The .NET type descriptor.</param>
     /// <returns>SQL type descriptor for network storage.</returns>
     SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor);
-
-    /// <summary>
-    /// Gets the geometry types supported by this provider for registration.
-    /// </summary>
-    /// <returns>Array of geometry types supported by this provider.</returns>
-    Type[] GetSupportedGeometryTypes();
 }

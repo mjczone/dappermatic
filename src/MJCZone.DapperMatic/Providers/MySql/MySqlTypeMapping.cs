@@ -158,10 +158,4 @@ public class MySqlTypeMapping : IProviderTypeMapping
             ),
         };
     }
-
-    /// <inheritdoc />
-    public Type[] GetSupportedGeometryTypes()
-    {
-        return TypeMappingHelpers.GetGeometryTypesForProvider("mysql");
-    }
 }

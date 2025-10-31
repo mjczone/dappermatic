@@ -38,53 +38,149 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
     }
 
     /// <inheritdoc/>
-    protected override void RegisterDotnetTypeToSqlTypeConverters()
+    protected override void RegisterNetTopologySuiteTypes()
     {
-        // Use the standardized registration from base class
-        RegisterStandardDotnetTypeToSqlTypeConverters();
+        // All NetTopologySuite geometry types map to SQL Server GEOMETRY type
+        var ntsConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+        );
+
+        RegisterConverterForTypes(ntsConverter, TypeMappingHelpers.GetStandardGeometryTypes());
     }
 
     /// <inheritdoc/>
-    protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
+    protected override void RegisterSqlServerTypes()
     {
-        return shortName switch
+        // SQL Server native types - use their specific types
+        var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
+        var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
+        var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
+
+        if (sqlGeometryType != null)
         {
-            // NetTopologySuite types
-            "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
-                SqlServerTypes.sql_geometry
-            ), // All NetTopologySuite types should map consistently
-            "NetTopologySuite.Geometries.Geometry"
-            or "NetTopologySuite.Geometries.Point"
-            or "NetTopologySuite.Geometries.LineString"
-            or "NetTopologySuite.Geometries.Polygon"
-            or "NetTopologySuite.Geometries.MultiPoint"
-            or "NetTopologySuite.Geometries.MultiLineString"
-            or "NetTopologySuite.Geometries.MultiPolygon"
-            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
-                SqlServerTypes.sql_geometry
-            ),
-            // "NetTopologySuite.Geometries.Point"
-            // or "NetTopologySuite.Geometries.LineString"
-            // or "NetTopologySuite.Geometries.Polygon"
-            // or "NetTopologySuite.Geometries.MultiPoint"
-            // or "NetTopologySuite.Geometries.MultiLineString"
-            // or "NetTopologySuite.Geometries.MultiPolygon"
-            // or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateLobType(
-            //     "nvarchar(max)",
-            //     isUnicode: true
-            // ),
-            // SQL Server types
-            "Microsoft.SqlServer.Types.SqlGeometry" => TypeMappingHelpers.CreateGeometryType(
-                SqlServerTypes.sql_geometry
-            ),
-            "Microsoft.SqlServer.Types.SqlGeography" => TypeMappingHelpers.CreateGeometryType(
-                SqlServerTypes.sql_geography
-            ),
-            "Microsoft.SqlServer.Types.SqlHierarchyId" => TypeMappingHelpers.CreateSimpleType(
-                SqlServerTypes.sql_hierarchyid
-            ),
-            _ => null, // Unsupported geometry type
-        };
+            RegisterConverter(
+                sqlGeometryType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (sqlGeographyType != null)
+        {
+            RegisterConverter(
+                sqlGeographyType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography)
+                )
+            );
+        }
+
+        if (sqlHierarchyIdType != null)
+        {
+            RegisterConverter(
+                sqlHierarchyIdType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid)
+                )
+            );
+        }
+    }
+
+    /// <inheritdoc/>
+    protected override void RegisterMySqlTypes()
+    {
+        // MySQL geometry types map to SQL Server GEOMETRY
+        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+        );
+
+        RegisterConverterForTypes(mySqlGeometryConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+    }
+
+    /// <inheritdoc/>
+    protected override void RegisterNpgsqlTypes()
+    {
+        // PostgreSQL geometric types map to SQL Server GEOMETRY
+        var npgsqlGeometryTypes = new[]
+        {
+            Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
+        }
+            .Where(t => t != null)
+            .ToArray();
+
+        var npgsqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+        );
+        RegisterConverterForTypes(npgsqlGeometryConverter, npgsqlGeometryTypes!);
+
+        // PostgreSQL network types map to VARCHAR
+        var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
+        var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
+
+        if (npgsqlInetType != null)
+        {
+            RegisterConverter(
+                npgsqlInetType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateStringType(SqlServerTypes.sql_varchar, 45, isUnicode: false)
+                )
+            );
+        }
+
+        if (npgsqlCidrType != null)
+        {
+            RegisterConverter(
+                npgsqlCidrType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateStringType(SqlServerTypes.sql_varchar, 43, isUnicode: false)
+                )
+            );
+        }
+
+        // PostgreSQL range and special types map to VARCHAR(MAX) for JSON serialization
+        var npgsqlSpecialTypes = new[]
+        {
+            Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
+        }
+            .Where(t => t != null)
+            .ToArray();
+
+        var npgsqlSpecialConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType($"{SqlServerTypes.sql_varchar}(max)", isUnicode: false)
+        );
+        RegisterConverterForTypes(npgsqlSpecialConverter, npgsqlSpecialTypes!);
+
+        // PostgreSQL range arrays
+        var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
+        if (rangeType != null)
+        {
+            var rangeArrayTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
+                .ToArray();
+
+            var rangeArrayConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateLobType($"{SqlServerTypes.sql_varchar}(max)", isUnicode: false)
+            );
+            RegisterConverterForTypes(rangeArrayConverter, rangeArrayTypes);
+        }
     }
 
     /// <inheritdoc/>

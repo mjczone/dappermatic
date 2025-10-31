@@ -261,7 +261,7 @@ public static class DefaultConstraintEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(defaultConstraint)
             .NotNullOrWhiteSpace(v => v.ColumnName, nameof(DefaultConstraintDto.ColumnName))
             .Assert();

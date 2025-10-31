@@ -536,52 +536,6 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void Should_expect_get_geometry_types_for_provider_returns_correct_types_for_each_provider()
-    {
-        // Test SQL Server
-        var sqlServerTypes = TypeMappingHelpers.GetGeometryTypesForProvider("sqlserver");
-        Assert.NotNull(sqlServerTypes);
-        Assert.True(sqlServerTypes.All(t => t != null));
-
-        // Test MySQL
-        var mysqlTypes = TypeMappingHelpers.GetGeometryTypesForProvider("mysql");
-        Assert.NotNull(mysqlTypes);
-        Assert.True(mysqlTypes.All(t => t != null));
-
-        // Test PostgreSQL
-        var postgresTypes = TypeMappingHelpers.GetGeometryTypesForProvider("postgresql");
-        Assert.NotNull(postgresTypes);
-        Assert.True(postgresTypes.All(t => t != null));
-
-        // Test SQLite
-        var sqliteTypes = TypeMappingHelpers.GetGeometryTypesForProvider("sqlite");
-        Assert.NotNull(sqliteTypes);
-        Assert.True(sqliteTypes.All(t => t != null));
-
-        // Test unknown provider (should return standard types)
-        var unknownTypes = TypeMappingHelpers.GetGeometryTypesForProvider("unknown");
-        Assert.NotNull(unknownTypes);
-        Assert.True(unknownTypes.All(t => t != null));
-
-        // SQLite should only have standard types (no additional provider-specific types)
-        var standardTypes = TypeMappingHelpers.GetStandardGeometryTypes();
-        Assert.Equal(standardTypes.Length, sqliteTypes.Length);
-    }
-
-    [Fact]
-    public void Should_expect_get_geometry_types_for_provider_case_insensitive()
-    {
-        // Act
-        var sqlServerLower = TypeMappingHelpers.GetGeometryTypesForProvider("sqlserver");
-        var sqlServerUpper = TypeMappingHelpers.GetGeometryTypesForProvider("SQLSERVER");
-        var sqlServerMixed = TypeMappingHelpers.GetGeometryTypesForProvider("SqlServer");
-
-        // Assert
-        Assert.Equal(sqlServerLower.Length, sqlServerUpper.Length);
-        Assert.Equal(sqlServerLower.Length, sqlServerMixed.Length);
-    }
-
-    [Fact]
     public void Should_expect_get_standard_json_types_returns_expected_types()
     {
         // Act

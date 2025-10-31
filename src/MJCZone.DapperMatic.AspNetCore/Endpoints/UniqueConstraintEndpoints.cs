@@ -197,7 +197,7 @@ public static class UniqueConstraintEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(uniqueConstraint)
             .NotNull(v => v.ColumnNames, nameof(UniqueConstraintDto.ColumnNames))
             .Custom(

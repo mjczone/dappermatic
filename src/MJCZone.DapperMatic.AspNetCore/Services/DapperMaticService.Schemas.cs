@@ -23,7 +23,7 @@ public partial class DapperMaticService
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -70,7 +70,7 @@ public partial class DapperMaticService
 
         var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -120,7 +120,7 @@ public partial class DapperMaticService
 
         var normalizedSchemaName = NormalizeSchemaName(schema.SchemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -170,7 +170,7 @@ public partial class DapperMaticService
 
         var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -218,7 +218,7 @@ public partial class DapperMaticService
 
         var normalizedSchemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

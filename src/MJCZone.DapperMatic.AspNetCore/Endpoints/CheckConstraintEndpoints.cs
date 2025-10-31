@@ -197,7 +197,7 @@ public static class CheckConstraintEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(checkConstraint)
             .NotNullOrWhiteSpace(v => v.CheckExpression, nameof(CheckConstraintDto.CheckExpression))
             .Assert();

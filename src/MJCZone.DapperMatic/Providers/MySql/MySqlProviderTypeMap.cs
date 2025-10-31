@@ -39,46 +39,284 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return "mysql";
         }
 
-        /// <summary>
-        /// Registers .NET types to SQL types converters.
-        /// </summary>
-        protected override void RegisterDotnetTypeToSqlTypeConverters()
+        /// <inheritdoc/>
+        protected override void RegisterNetTopologySuiteTypes()
         {
-            // Use the standardized registration from base class
-            RegisterStandardDotnetTypeToSqlTypeConverters();
+            // NetTopologySuite types map to specific MySQL geometry types
+            var geometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+            var pointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+            var lineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+            var polygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+            var multiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+            var multiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+            var multiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+            var geometryCollectionType = Type.GetType(
+                "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
+            );
+
+            if (geometryType != null)
+            {
+                RegisterConverter(
+                    geometryType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+                    )
+                );
+            }
+
+            if (pointType != null)
+            {
+                RegisterConverter(
+                    pointType,
+                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point))
+                );
+            }
+
+            if (lineStringType != null)
+            {
+                RegisterConverter(
+                    lineStringType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring)
+                    )
+                );
+            }
+
+            if (polygonType != null)
+            {
+                RegisterConverter(
+                    polygonType,
+                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon))
+                );
+            }
+
+            if (multiPointType != null)
+            {
+                RegisterConverter(
+                    multiPointType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipoint)
+                    )
+                );
+            }
+
+            if (multiLineStringType != null)
+            {
+                RegisterConverter(
+                    multiLineStringType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multilinestring)
+                    )
+                );
+            }
+
+            if (multiPolygonType != null)
+            {
+                RegisterConverter(
+                    multiPolygonType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipolygon)
+                    )
+                );
+            }
+
+            if (geometryCollectionType != null)
+            {
+                RegisterConverter(
+                    geometryCollectionType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometrycollection)
+                    )
+                );
+            }
         }
 
         /// <inheritdoc/>
-        protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
+        protected override void RegisterSqlServerTypes()
         {
-            return shortName switch
+            // SQL Server geometry types map to MySQL GEOMETRY
+            var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
+            var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
+            var sqlHierarchyIdType = Type.GetType(
+                "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types"
+            );
+
+            if (sqlGeometryType != null)
             {
-                // NetTopologySuite types - MySQL supports specific geometry types
-                "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_geometry
-                ),
-                "NetTopologySuite.Geometries.Point" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point),
-                "NetTopologySuite.Geometries.LineString" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_linestring
-                ),
-                "NetTopologySuite.Geometries.Polygon" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon),
-                "NetTopologySuite.Geometries.MultiPoint" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_multipoint
-                ),
-                "NetTopologySuite.Geometries.MultiLineString" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_multilinestring
-                ),
-                "NetTopologySuite.Geometries.MultiPolygon" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_multipolygon
-                ),
-                "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
-                    MySqlTypes.sql_geometrycollection
-                ),
-                // MySQL types
-                "MySql.Data.Types.MySqlGeometry" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                "MySqlConnector.MySqlGeometry" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                _ => null,
-            };
+                RegisterConverter(
+                    sqlGeometryType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+                    )
+                );
+            }
+
+            if (sqlGeographyType != null)
+            {
+                RegisterConverter(
+                    sqlGeographyType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+                    )
+                );
+            }
+
+            if (sqlHierarchyIdType != null)
+            {
+                var mySqlHierarchyIdType = GetProviderTypeMapping()
+                    .CreateTextType(new DotnetTypeDescriptor(typeof(string), length: -1, isUnicode: false));
+                RegisterConverter(sqlHierarchyIdType, new DotnetTypeToSqlTypeConverter(d => mySqlHierarchyIdType));
+            }
+        }
+
+        /// <inheritdoc/>
+        protected override void RegisterMySqlTypes()
+        {
+            // MySQL native geometry types
+            var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+            );
+
+            RegisterConverterForTypes(mySqlGeometryConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+        }
+
+        /// <inheritdoc/>
+        protected override void RegisterNpgsqlTypes()
+        {
+            // PostgreSQL geometric types map to specific MySQL geometry types
+            var npgsqlPointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");
+            var npgsqlLSegType = Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql");
+            var npgsqlPathType = Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql");
+            var npgsqlPolygonType = Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql");
+            var npgsqlLineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
+            var npgsqlCircleType = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
+            var npgsqlBoxType = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
+
+            if (npgsqlPointType != null)
+            {
+                RegisterConverter(
+                    npgsqlPointType,
+                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point))
+                );
+            }
+
+            if (npgsqlLSegType != null)
+            {
+                RegisterConverter(
+                    npgsqlLSegType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring)
+                    )
+                );
+            }
+
+            if (npgsqlPathType != null)
+            {
+                RegisterConverter(
+                    npgsqlPathType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+                    )
+                );
+            }
+
+            if (npgsqlPolygonType != null)
+            {
+                RegisterConverter(
+                    npgsqlPolygonType,
+                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon))
+                );
+            }
+
+            if (npgsqlLineType != null)
+            {
+                RegisterConverter(
+                    npgsqlLineType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring)
+                    )
+                );
+            }
+
+            if (npgsqlCircleType != null)
+            {
+                RegisterConverter(
+                    npgsqlCircleType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+                    )
+                );
+            }
+
+            if (npgsqlBoxType != null)
+            {
+                RegisterConverter(
+                    npgsqlBoxType,
+                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon))
+                );
+            }
+
+            // PostgreSQL network types map to VARCHAR
+            var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
+            var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
+
+            if (npgsqlInetType != null)
+            {
+                RegisterConverter(
+                    npgsqlInetType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateStringType(MySqlTypes.sql_varchar, 45, isUnicode: false)
+                    )
+                );
+            }
+
+            if (npgsqlCidrType != null)
+            {
+                RegisterConverter(
+                    npgsqlCidrType,
+                    new DotnetTypeToSqlTypeConverter(d =>
+                        TypeMappingHelpers.CreateStringType(MySqlTypes.sql_varchar, 43, isUnicode: false)
+                    )
+                );
+            }
+
+            // PostgreSQL range and special types map to JSON
+            var npgsqlSpecialTypes = new[]
+            {
+                Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
+            }
+                .Where(t => t != null)
+                .ToArray();
+
+            var npgsqlSpecialConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false)
+            );
+            RegisterConverterForTypes(npgsqlSpecialConverter, npgsqlSpecialTypes!);
+
+            // PostgreSQL range arrays
+            var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
+            if (rangeType != null)
+            {
+                var rangeArrayTypes = new[]
+                {
+                    typeof(DateOnly),
+                    typeof(int),
+                    typeof(long),
+                    typeof(decimal),
+                    typeof(DateTime),
+                    typeof(DateTimeOffset),
+                }
+                    .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
+                    .ToArray();
+
+                var rangeArrayConverter = new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false)
+                );
+                RegisterConverterForTypes(rangeArrayConverter, rangeArrayTypes);
+            }
         }
 
         /// <summary>

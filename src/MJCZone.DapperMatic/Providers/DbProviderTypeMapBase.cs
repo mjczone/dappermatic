@@ -244,10 +244,21 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// </summary>
     /// <remarks>
     /// This method should be called in the constructor of the derived class to register the converters.
+    /// Calls all registration methods in sequence to ensure complete type coverage.
     /// </remarks>
     protected virtual void RegisterDotnetTypeToSqlTypeConverters()
     {
-        RegisterStandardDotnetTypeToSqlTypeConverters();
+        // Register standard types supported by all providers
+        RegisterStandardTypes();
+
+        // Register provider-specific type families (all providers must handle these)
+        RegisterNetTopologySuiteTypes();
+        RegisterSqlServerTypes();
+        RegisterMySqlTypes();
+        RegisterNpgsqlTypes();
+
+        // Final escape hatch for truly custom provider-specific types
+        RegisterProviderSpecificConverters();
     }
 
     /// <summary>
@@ -453,45 +464,48 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         return new DotnetTypeToSqlTypeConverter(d => mapping.CreateNetworkType(d));
     }
 
-    /// <summary>
-    /// Gets the geometric to SQL type converter using standardized geometry handling.
-    /// </summary>
-    /// <returns>Geometric to SQL type converter.</returns>
-    protected virtual DotnetTypeToSqlTypeConverter GetGeometricToSqlTypeConverter()
-    {
-        return new DotnetTypeToSqlTypeConverter(d =>
-        {
-            var fullName = d.DotnetType.GetFullTypeName();
-            if (string.IsNullOrWhiteSpace(fullName))
-            {
-                return null;
-            }
-
-            return CreateGeometryTypeForShortName(fullName);
-        });
-    }
-
-    /// <summary>
-    /// Creates a geometry type descriptor for the given assembly-qualified short name.
-    /// This method should be overridden by providers that support geometry types.
-    /// </summary>
-    /// <param name="shortName">The assembly-qualified short name of the geometry type.</param>
-    /// <returns>SQL type descriptor for geometry storage, or null if not supported.</returns>
-    protected virtual SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
-    {
-        // Default implementation returns null (no geometry support)
-        return null;
-    }
-
     #endregion
 
     #region Standard Registration Implementation
 
     /// <summary>
-    /// Registers standard .NET types to SQL type converters using common patterns.
-    /// This method provides the shared registration logic that all providers can inherit.
+    /// Registers converters for NetTopologySuite geometry types.
+    /// All providers must implement this to handle NTS types appropriately.
     /// </summary>
-    protected virtual void RegisterStandardDotnetTypeToSqlTypeConverters()
+    protected abstract void RegisterNetTopologySuiteTypes();
+
+    /// <summary>
+    /// Registers converters for SQL Server-specific types (SqlGeometry, SqlGeography, SqlHierarchyId).
+    /// All providers must implement this to handle SQL Server types appropriately.
+    /// </summary>
+    protected abstract void RegisterSqlServerTypes();
+
+    /// <summary>
+    /// Registers converters for MySQL-specific types (MySqlGeometry from both MySql.Data and MySqlConnector).
+    /// All providers must implement this to handle MySQL types appropriately.
+    /// </summary>
+    protected abstract void RegisterMySqlTypes();
+
+    /// <summary>
+    /// Registers converters for Npgsql-specific types (NpgsqlPoint, NpgsqlInet, NpgsqlRange, etc.).
+    /// All providers must implement this to handle Npgsql types appropriately.
+    /// </summary>
+    protected abstract void RegisterNpgsqlTypes();
+
+    /// <summary>
+    /// Allows providers to register additional provider-specific converters.
+    /// Override this method to add converters that don't fit the standard patterns.
+    /// </summary>
+    protected virtual void RegisterProviderSpecificConverters()
+    {
+        // Default implementation does nothing
+    }
+
+    /// <summary>
+    /// Registers standard .NET types to SQL type converters using common patterns.
+    /// This method provides the shared registration logic that all providers use identically.
+    /// </summary>
+    private void RegisterStandardTypes()
     {
         var booleanConverter = GetBooleanToSqlTypeConverter();
         var numericConverter = GetNumericToSqlTypeConverter();
@@ -508,7 +522,6 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var arrayConverter = GetArrayToSqlTypeConverter();
         var pocoConverter = GetPocoToSqlTypeConverter();
         var networkTypeConverter = GetNetworkTypeToSqlTypeConverter();
-        var geometricConverter = GetGeometricToSqlTypeConverter();
 
         // Boolean affinity
         RegisterConverter<bool>(booleanConverter);
@@ -552,27 +565,8 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         // Poco (uses a placeholder to easily locate it)
         RegisterConverter<InternalPocoTypePlaceholder>(pocoConverter);
 
-        // Network type affinity
+        // Network type affinity (standard System.Net types)
         RegisterConverterForTypes(networkTypeConverter, TypeMappingHelpers.GetStandardNetworkTypes());
-
-        // Geometry types (support provider-specific geometry types)
-        var geometryTypes = GetProviderTypeMapping().GetSupportedGeometryTypes();
-        if (geometryTypes.Length > 0)
-        {
-            RegisterConverterForTypes(geometricConverter, geometryTypes);
-        }
-
-        // Allow providers to register additional converters
-        RegisterProviderSpecificConverters();
-    }
-
-    /// <summary>
-    /// Allows providers to register additional provider-specific converters.
-    /// Override this method to add converters that don't fit the standard patterns.
-    /// </summary>
-    protected virtual void RegisterProviderSpecificConverters()
-    {
-        // Default implementation does nothing
     }
 
     #endregion

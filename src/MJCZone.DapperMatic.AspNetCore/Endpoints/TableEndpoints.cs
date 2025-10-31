@@ -294,7 +294,7 @@ public static class TableEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(table)
             .NotNullOrWhiteSpace(t => t.TableName, nameof(TableDto.TableName))
             .MaxLength(v => v.TableName, 128, nameof(TableDto.TableName), inclusive: true)
@@ -347,7 +347,7 @@ public static class TableEndpoints
         }
 
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(updates)
             .MaxLength(u => u.TableName, 128, nameof(TableDto.TableName), inclusive: true)
             .Assert();

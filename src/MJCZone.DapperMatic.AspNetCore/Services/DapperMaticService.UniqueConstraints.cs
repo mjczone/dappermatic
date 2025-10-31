@@ -36,7 +36,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -93,7 +93,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -170,7 +170,7 @@ public partial class DapperMaticService
                 : $"uq_{schemaName}_{tableName}_{string.Join('_', uniqueConstraint.ColumnNames)}";
         }
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
@@ -298,7 +298,7 @@ public partial class DapperMaticService
 
         schemaName = NormalizeSchemaName(schemaName);
 
-        Validate
+        ValidationFactory
             .Arguments()
             .NotNull(context, nameof(context))
             .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))

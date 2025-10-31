@@ -278,7 +278,7 @@ public static class ViewEndpoints
     )
     {
         // API layer validation
-        Validate
+        ValidationFactory
             .Object(view)
             .NotNullOrWhiteSpace(v => v.ViewName, nameof(ViewDto.ViewName))
             .MaxLength(v => v.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
@@ -328,7 +328,7 @@ public static class ViewEndpoints
         }
 
         // API layer validation
-        Validate.Object(updates).MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true).Assert();
+        ValidationFactory.Object(updates).MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true).Assert();
 
         operationContext.RequestBody = updates;
 
