@@ -188,7 +188,8 @@ public class MySqlDataTypeRegistry : ProviderDataTypeRegistryBase
                 "geometrycollection",
                 DataTypeCategory.Spatial,
                 isCommon: false,
-                "Collection of geometry values"
+                "Collection of geometry values",
+                "geomcollection"
             )
         );
 

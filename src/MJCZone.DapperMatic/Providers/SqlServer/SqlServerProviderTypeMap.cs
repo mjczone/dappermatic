@@ -52,17 +52,27 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
             // NetTopologySuite types
             "NetTopologySuite.Geometries.Geometry" => TypeMappingHelpers.CreateGeometryType(
                 SqlServerTypes.sql_geometry
-            ),
-            "NetTopologySuite.Geometries.Point"
+            ), // All NetTopologySuite types should map consistently
+            "NetTopologySuite.Geometries.Geometry"
+            or "NetTopologySuite.Geometries.Point"
             or "NetTopologySuite.Geometries.LineString"
             or "NetTopologySuite.Geometries.Polygon"
             or "NetTopologySuite.Geometries.MultiPoint"
             or "NetTopologySuite.Geometries.MultiLineString"
             or "NetTopologySuite.Geometries.MultiPolygon"
-            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateLobType(
-                "nvarchar(max)",
-                isUnicode: true
+            or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
+                SqlServerTypes.sql_geometry
             ),
+            // "NetTopologySuite.Geometries.Point"
+            // or "NetTopologySuite.Geometries.LineString"
+            // or "NetTopologySuite.Geometries.Polygon"
+            // or "NetTopologySuite.Geometries.MultiPoint"
+            // or "NetTopologySuite.Geometries.MultiLineString"
+            // or "NetTopologySuite.Geometries.MultiPolygon"
+            // or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateLobType(
+            //     "nvarchar(max)",
+            //     isUnicode: true
+            // ),
             // SQL Server types
             "Microsoft.SqlServer.Types.SqlGeometry" => TypeMappingHelpers.CreateGeometryType(
                 SqlServerTypes.sql_geometry

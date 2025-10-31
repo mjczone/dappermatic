@@ -179,8 +179,8 @@ namespace MJCZone.DapperMatic.Providers.MySql
                 MySqlTypes.sql_multipoint,
                 MySqlTypes.sql_multilinestring,
                 MySqlTypes.sql_multipolygon,
-                MySqlTypes.sql_geomcollection,
-                MySqlTypes.sql_geometrycollection
+                MySqlTypes.sql_geometrycollection,
+                MySqlTypes.sql_geomcollection
             );
         }
 

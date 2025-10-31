@@ -108,8 +108,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             or "NetTopologySuite.Geometries.GeometryCollection" => TypeMappingHelpers.CreateGeometryType(
                 PostgreSqlTypes.sql_geometry
             ),
-            "NpgsqlTypes.NpgsqlInet" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
-            "NpgsqlTypes.NpgsqlCidr" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
             "NpgsqlTypes.NpgsqlPoint" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
             "NpgsqlTypes.NpgsqlLSeg" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg),
             "NpgsqlTypes.NpgsqlPath" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path),
@@ -117,6 +115,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             "NpgsqlTypes.NpgsqlLine" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line),
             "NpgsqlTypes.NpgsqlCircle" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle),
             "NpgsqlTypes.NpgsqlBox" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box),
+            "NpgsqlTypes.NpgsqlInet" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
+            "NpgsqlTypes.NpgsqlCidr" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
             "NpgsqlTypes.NpgsqlInterval" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
             "NpgsqlTypes.NpgsqlTid" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid),
             "NpgsqlTypes.NpgsqlTsQuery" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery),

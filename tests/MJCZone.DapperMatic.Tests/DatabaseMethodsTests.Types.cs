@@ -242,6 +242,28 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(IDictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
     [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
     [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
+    // Npgsql Types (work on all providers, but PostgreSQL has native types, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
+    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "JSON", "POINT", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "JSON", "LSEG", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "JSON", "PATH", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "JSON", "POLYGON", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "JSON", "LINE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "JSON", "CIRCLE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "JSON", "BOX", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlInet), "VARCHAR(MAX)", "JSON", "INET", "TEXT", false, 45, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT", false, 43, null, null, false, null, "LONGTEXT")]
+    // NeTopologySuite Geometry Types (work on all providers, but PostgreSQL has native types, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
+    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "GEOMETRY", "GEOMETRYCOLLECTION", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Point), "GEOMETRY", "POINT", "POINT", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "GEOMETRY", "LINESTRING", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "GEOMETRY", "POLYGON", "POLYGON", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "GEOMETRY", "MULTIPOINT", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "GEOMETRY", "MULTILINESTRING", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "GEOMETRY", "MULTIPOLYGON", "GEOMETRY", "TEXT")]
+    // Network Types
+    [InlineData(typeof(IPAddress), "VARCHAR(17)", "VARCHAR(17)", "INET", "VARCHAR(17)", false, 17)]
+    [InlineData(typeof(PhysicalAddress), "VARCHAR(43)", "VARCHAR(43)", "MACADDR", "VARCHAR(43)", false, 43)]
     // csharpier-ignore-end
     protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,
@@ -261,8 +283,26 @@ public abstract partial class DatabaseMethodsTests
         using var db = await OpenConnectionAsync();
         var dbType = db.GetDbProviderType();
 
+        if (dbType == DbProviderType.PostgreSql)
+        {
+            var isPostGisInstalled = await db.QueryFirstOrDefaultAsync<bool>(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis');"
+            );
+            if (!isPostGisInstalled && postgreSqlTypeName == "GEOMETRY")
+            {
+                type = typeof(string);
+                length = -1;
+                postgreSqlTypeName = "TEXT";
+            }
+        }
+
         var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
         var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
+
+        Func<DbProviderType, Task<string>> getExpectedPostgreSqlTypeName = async dbType =>
+        {
+            return postgreSqlTypeName;
+        };
 
         Func<DbProviderType, Task<string>> getExpectedMySqlTypeName = async dbType =>
         {
@@ -287,7 +327,7 @@ public abstract partial class DatabaseMethodsTests
         {
             DbProviderType.SqlServer => sqlServerTypeName,
             DbProviderType.MySql => await getExpectedMySqlTypeName(dbType),
-            DbProviderType.PostgreSql => postgreSqlTypeName,
+            DbProviderType.PostgreSql => await getExpectedPostgreSqlTypeName(dbType),
             DbProviderType.Sqlite => sqliteTypeName,
             _ => throw new NotSupportedException($"Database type {dbType} is not supported."),
         };
@@ -323,10 +363,25 @@ public abstract partial class DatabaseMethodsTests
         await db.DropTableIfExistsAsync(null, tableName);
         Assert.NotNull(column);
 
-        var providerTypeName = column?.ProviderDataTypes.FirstOrDefault().Value;
+        var providerTypeName = column?.GetProviderDataType(dbType, false);
         Assert.NotNull(providerTypeName);
         Assert.NotEmpty(providerTypeName);
 
+        // The provider type name DOES NOT include the parentheses for length/precision/scale, these
+        // are rather properties of the column metadata
+        Assert.False(
+            providerTypeName!.Contains('('),
+            $"When fetching a column, the provider type name '{providerTypeName}' would not contain '{expectedTypeName.Split('(')[0]}'"
+        );
+
+        var providerTypeNameWithDetails = column?.GetProviderDataType(dbType, true);
+        Assert.NotNull(providerTypeNameWithDetails);
+        Assert.NotEmpty(providerTypeNameWithDetails);
+
+        // In MariaDB it's GEOMETRYCOLLECTIOn, in MySQL it's GEOMCOLLECTION except MySQL 5.7, so we want to accept both the alias
+        // and the main name
+        List<string> possibleExpectedTypeNames =  [providerTypeNameWithDetails];
+        var alternativeProviderTypeName = providerTypeName;
         var providerDataType = providerDataTypes.FirstOrDefault(dt =>
             string.Equals(dt.DataType, providerTypeName, StringComparison.OrdinalIgnoreCase)
         );
@@ -349,41 +404,7 @@ public abstract partial class DatabaseMethodsTests
             string.Join(", ", providerDataTypeAliases)
         );
 
-        // The provider type name DOES NOT include the parentheses for length/precision/scale, these
-        // are rather properties of the column metadata
-        Assert.False(
-            providerTypeName!.Contains('('),
-            $"When fetching a column, the provider type name '{providerTypeName}' would not contain '{expectedTypeName.Split('(')[0]}'"
-        );
-
-        // The data type will does not include length/precision/scale in the name, so we add these if they are returned by the provider
-        // Handle -1 as MAX/unlimited length
-        if (column!.Length.HasValue && column.Length.Value == -1)
-        {
-            // For SQL Server, render as (MAX)
-            if (dbType == DbProviderType.SqlServer)
-            {
-                providerTypeName += "(MAX)";
-            }
-            // For other providers (MySQL TEXT, PostgreSQL TEXT, SQLite TEXT), -1 means unlimited, don't append anything
-        }
-        else if (column!.Length.HasValue && column.Length.Value > 0)
-        {
-            providerTypeName += $"({column.Length.Value})";
-        }
-        else if (
-            column.Precision.HasValue
-            && column.Precision.Value > 0
-            && column.Scale.HasValue
-            && column.Scale.Value > 0
-        )
-        {
-            providerTypeName += $"({column.Precision.Value},{column.Scale.Value})";
-        }
-        else if (column.Precision.HasValue && column.Precision.Value > 0)
-        {
-            providerTypeName += $"({column.Precision.Value})";
-        }
+        possibleExpectedTypeNames.Add(providerTypeNameWithDetails.Replace(providerTypeName, providerDataType.DataType));
 
         base.Output.WriteLine(
             "Column '{0}' mapped to provider type '{1}' (expected '{2}')",
@@ -391,7 +412,7 @@ public abstract partial class DatabaseMethodsTests
             providerTypeName,
             expectedTypeName
         );
-        Assert.Equal(expectedTypeName, providerTypeName, StringComparer.OrdinalIgnoreCase);
+        Assert.Contains(expectedTypeName, possibleExpectedTypeNames, StringComparer.OrdinalIgnoreCase);
     }
 
 
@@ -448,6 +469,8 @@ public abstract partial class DatabaseMethodsTests
 
             foreach (var providerDataTypeName in providerDataTypeNames)
             {
+                if (IgnoreSqlType(providerDataTypeName)) continue;
+                
                 // Create a table with this type to verify it can be created, and return the column definition as DapperMatic sees it
                 DmColumn? column = await CreateTableWithProviderDataTypeAndGetColumnAsync(db, dbType, providerDataTypeName, providerDataType, hasPostgisExtension, postgisTypes);
                 // Some types can't be created directly, like POSTGIS geometry types without the postgis extension installed, so we skip those

@@ -355,7 +355,8 @@ public abstract partial class DatabaseMethodsBase
             );
         }
 
-        return sql.ToString();
+        var columnSqlStatement = sql.ToString();
+        return columnSqlStatement;
     }
 
     /// <summary>
