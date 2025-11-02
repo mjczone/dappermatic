@@ -189,78 +189,26 @@ namespace MJCZone.DapperMatic.Providers.MySql
         /// <inheritdoc/>
         protected override void RegisterNpgsqlTypes()
         {
-            // PostgreSQL geometric types map to specific MySQL geometry types
-            var npgsqlPointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");
-            var npgsqlLSegType = Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql");
-            var npgsqlPathType = Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql");
-            var npgsqlPolygonType = Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql");
-            var npgsqlLineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
-            var npgsqlCircleType = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
-            var npgsqlBoxType = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
-
-            if (npgsqlPointType != null)
+            // PostgreSQL geometric types → TEXT (stored as PostgreSQL text representation)
+            // Note: MySQL GEOMETRY types require specific binary formats incompatible with Npgsql's text format
+            // Using TEXT storage for consistency with SQL Server (VARCHAR) and SQLite (TEXT)
+            var npgsqlGeometryTypes = new[]
             {
-                RegisterConverter(
-                    npgsqlPointType,
-                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point))
-                );
+                Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
             }
+                .Where(t => t != null)
+                .ToArray();
 
-            if (npgsqlLSegType != null)
-            {
-                RegisterConverter(
-                    npgsqlLSegType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring)
-                    )
-                );
-            }
-
-            if (npgsqlPathType != null)
-            {
-                RegisterConverter(
-                    npgsqlPathType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
-                    )
-                );
-            }
-
-            if (npgsqlPolygonType != null)
-            {
-                RegisterConverter(
-                    npgsqlPolygonType,
-                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon))
-                );
-            }
-
-            if (npgsqlLineType != null)
-            {
-                RegisterConverter(
-                    npgsqlLineType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring)
-                    )
-                );
-            }
-
-            if (npgsqlCircleType != null)
-            {
-                RegisterConverter(
-                    npgsqlCircleType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
-                    )
-                );
-            }
-
-            if (npgsqlBoxType != null)
-            {
-                RegisterConverter(
-                    npgsqlBoxType,
-                    new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon))
-                );
-            }
+            var npgsqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateLobType(MySqlTypes.sql_text, isUnicode: false)
+            );
+            RegisterConverterForTypes(npgsqlGeometryConverter, npgsqlGeometryTypes!);
 
             // PostgreSQL network types map to VARCHAR
             var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");

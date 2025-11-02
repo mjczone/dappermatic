@@ -254,14 +254,14 @@ public abstract partial class DatabaseMethodsTests
     // [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT" /* WKT */, false, 43, null, null, false, null, "LONGTEXT")]
     // Npgsql Types
     // The specific WKT/WKB conversion logic needs to be handled in the provider-specific code
-    // SQL Server uses VARCHAR(MAX) for Npgsql geometric types (no native SqlGeometry support)
-    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "POINT", "POINT", "TEXT", false, null, null, null, false, null, "POINT")]
-    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "LINESTRING", "LSEG", "TEXT", false, null, null, null, false, null, "LINESTRING")]
-    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "GEOMETRY", "PATH", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "POLYGON", "POLYGON", "TEXT", false, null, null, null, false, null, "POLYGON")]
-    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "LINESTRING", "LINE", "TEXT", false, null, null, null, false, null, "LINESTRING")]
-    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "GEOMETRY", "CIRCLE", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "POLYGON", "BOX", "TEXT", false, null, null, null, false, null, "POLYGON")]
+    // SQL Server, MySQL, and SQLite use text-based storage for Npgsql geometric types
+    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "TEXT(65535)", "POINT", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "TEXT(65535)", "LSEG", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "TEXT(65535)", "PATH", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "TEXT(65535)", "POLYGON", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "TEXT(65535)", "LINE", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "TEXT(65535)", "CIRCLE", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
+    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "TEXT(65535)", "BOX", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
     [InlineData(typeof(NpgsqlInet), "VARCHAR(45)", "VARCHAR(45)", "INET", "VARCHAR(45)", false, 45, null, null, false, null, "VARCHAR(45)")] // Use standard VARCHAR for IPs
     [InlineData(typeof(NpgsqlCidr), "VARCHAR(43)", "VARCHAR(43)", "CIDR", "VARCHAR(43)", false, 43, null, null, false, null, "VARCHAR(43)")] // Use standard VARCHAR for CIDRs
     [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "TEXT(65535)", "DATERANGE", "TEXT")]

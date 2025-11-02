@@ -1801,7 +1801,7 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             Type.GetType("MySql.Data.MySqlClient.MySqlGeometry, MySql.Data")
             ?? Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
 
-        // Try SQL Server types
+        // Try SQL Server types (even though we don't support these at this time)
         var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
         var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
         var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
