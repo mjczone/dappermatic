@@ -2260,7 +2260,9 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         public NpgsqlTypes.NpgsqlRange<DateTime>? DateTimeRange { get; set; }
 
         [DmColumn("dateonly_range")]
-        public NpgsqlTypes.NpgsqlRange<DateOnly>? DateOnlyRange { get; set; }
+        public NpgsqlTypes.NpgsqlRange<DateTime>? DateOnlyRange { get; set; }
+        // This will be supported when Npgsql adds support for DateOnly ranges in version 10+
+        // public NpgsqlTypes.NpgsqlRange<DateOnly>? DateOnlyRange { get; set; }
 
         [DmColumn("datetimeoffset_range")]
         public NpgsqlTypes.NpgsqlRange<DateTimeOffset>? DateTimeOffsetRange { get; set; }

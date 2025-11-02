@@ -176,6 +176,18 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
         if (rangeType != null)
         {
+            var rangeTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t))
+                .ToArray();
+
             var rangeArrayTypes = new[]
             {
                 typeof(DateOnly),
@@ -187,6 +199,11 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
             }
                 .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
                 .ToArray();
+
+            var rangeTypeConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateLobType($"{SqlServerTypes.sql_varchar}(max)", isUnicode: false)
+            );
+            RegisterConverterForTypes(rangeTypeConverter, rangeTypes);
 
             var rangeArrayConverter = new DotnetTypeToSqlTypeConverter(d =>
                 TypeMappingHelpers.CreateLobType($"{SqlServerTypes.sql_varchar}(max)", isUnicode: false)
@@ -207,7 +224,7 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         var dateTimeConverter = GetDateTimeToDotnetTypeConverter();
         var byteArrayConverter = GetByteArrayToDotnetTypeConverter();
         var objectConverter = GetObjectToDotnetTypeConverter();
-        var geometricConverter = GetGeometricToDotnetTypeConverter();
+        // var geometricConverter = GetGeometricToDotnetTypeConverter();
 
         // Boolean affinity (in SQL Server, the bit type is used for boolean values, it consists of 0 or 1)
         RegisterConverter(SqlServerTypes.sql_bit, booleanConverter);
@@ -274,13 +291,14 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         // Object affinity
         RegisterConverter(SqlServerTypes.sql_variant, objectConverter);
 
-        // Geometry affinity
-        RegisterConverterForTypes(
-            geometricConverter,
-            SqlServerTypes.sql_geometry,
-            SqlServerTypes.sql_geography,
-            SqlServerTypes.sql_hierarchyid
-        );
+        // Geometry affinity - Disabled: geometry, geography, hierarchyid are no longer supported
+        // to maintain cross-platform compatibility. Use NetTopologySuite for spatial data instead.
+        // RegisterConverterForTypes(
+        //     geometricConverter,
+        //     SqlServerTypes.sql_geometry,
+        //     SqlServerTypes.sql_geography,
+        //     SqlServerTypes.sql_hierarchyid
+        // );
     }
 
     #region Custom Provider-Specific Converters (Override base if needed)
@@ -411,46 +429,48 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
         return new(d => new DotnetTypeDescriptor(typeof(object)));
     }
 
-    private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
-    {
-        // NetTopologySuite types map to specific SqlServer geometry types
-        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
-        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
-        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
-        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
-        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
-        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
-        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
-        var ntsGeometryCollectionType = Type.GetType(
-            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
-        );
-
-        // SQL Server-specific spatial types (SqlGeometry, SqlGeography, SqlHierarchyId) are no longer supported
-        // to maintain cross-platform compatibility. For spatial data, use NetTopologySuite types instead.
-
-        return new(d =>
-        {
-            switch (d.BaseTypeName)
-            {
-                case SqlServerTypes.sql_geometry:
-                    if (ntsGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(ntsGeometryType);
-                    }
-
-                    // Fallback: WKB (Well-Known Binary) format as byte[]
-                    return new DotnetTypeDescriptor(typeof(byte[]));
-                case SqlServerTypes.sql_geography:
-                    // WKB (Well-Known Binary) format as byte[]
-                    return new DotnetTypeDescriptor(typeof(byte[]));
-                case SqlServerTypes.sql_hierarchyid:
-                    // Hierarchical path as string (e.g., "/1/2/3/")
-                    return new DotnetTypeDescriptor(typeof(string));
-            }
-
-            return null;
-        });
-    }
+    // Disabled: geometry, geography, hierarchyid SQL types are no longer supported
+    // to maintain cross-platform compatibility. Use NetTopologySuite for spatial data instead.
+    // private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
+    // {
+    //     // NetTopologySuite types map to specific SqlServer geometry types
+    //     var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+    //     var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+    //     var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+    //     var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+    //     var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+    //     var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+    //     var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+    //     var ntsGeometryCollectionType = Type.GetType(
+    //         "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
+    //     );
+    //
+    //     // SQL Server-specific spatial types (SqlGeometry, SqlGeography, SqlHierarchyId) are no longer supported
+    //     // to maintain cross-platform compatibility. For spatial data, use NetTopologySuite types instead.
+    //
+    //     return new(d =>
+    //     {
+    //         switch (d.BaseTypeName)
+    //         {
+    //             case SqlServerTypes.sql_geometry:
+    //                 if (ntsGeometryType != null)
+    //                 {
+    //                     return new DotnetTypeDescriptor(ntsGeometryType);
+    //                 }
+    //
+    //                 // Fallback: WKB (Well-Known Binary) format as byte[]
+    //                 return new DotnetTypeDescriptor(typeof(byte[]));
+    //             case SqlServerTypes.sql_geography:
+    //                 // WKB (Well-Known Binary) format as byte[]
+    //                 return new DotnetTypeDescriptor(typeof(byte[]));
+    //             case SqlServerTypes.sql_hierarchyid:
+    //                 // Hierarchical path as string (e.g., "/1/2/3/")
+    //                 return new DotnetTypeDescriptor(typeof(string));
+    //         }
+    //
+    //         return null;
+    //     });
+    // }
 
     #endregion // SqlTypeToDotnetTypeConverters
 }

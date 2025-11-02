@@ -160,6 +160,18 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
         var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
         if (rangeType != null)
         {
+            var rangeTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t))
+                .ToArray();
+
             var rangeArrayTypes = new[]
             {
                 typeof(DateOnly),
@@ -172,6 +184,7 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
                 .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
                 .ToArray();
 
+            RegisterConverterForTypes(textConverter, rangeTypes);
             RegisterConverterForTypes(textConverter, rangeArrayTypes);
         }
     }

@@ -11,16 +11,14 @@ using Dapper;
 namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 
 /// <summary>
-/// Smart type handler for NetTopologySuite geometry types with provider-specific optimization.
-/// PostgreSQL: Native NTS support via Npgsql.NetTopologySuite (pass through)
-/// MySQL: Native NTS support via MySqlConnector (pass through)
-/// SQL Server/SQLite: WKT (Well-Known Text) format via ToString()/Parse
+/// Smart type handler for NetTopologySuite geometry types using WKT format for cross-database compatibility.
+/// All providers: WKT (Well-Known Text) format via ToString()/Parse
 /// </summary>
 /// <remarks>
 /// This handler uses reflection to work with NetTopologySuite types without taking a direct
 /// dependency. The consuming application must reference NetTopologySuite for this handler
-/// to function. Uses WKT text format for SQL Server/SQLite as the default (human-readable,
-/// no extra dependencies). WKB binary format can be used if NetTopologySuite.IO is available.
+/// to function. Uses WKT text format for all providers (human-readable, no extra dependencies).
+/// This approach avoids requiring provider-specific NTS packages (Npgsql.NetTopologySuite, MySqlConnector.NetTopologySuite).
 /// </remarks>
 public class SmartNtsGeometryTypeHandler : SqlMapper.ITypeHandler
 {
@@ -40,8 +38,7 @@ public class SmartNtsGeometryTypeHandler : SqlMapper.ITypeHandler
 
     /// <summary>
     /// Sets the parameter value for a NetTopologySuite geometry.
-    /// PostgreSQL/MySQL (MySqlConnector): Passes geometry directly (provider handles NTS natively).
-    /// SQL Server/SQLite/MySQL (MySql.Data): Serializes geometry to WKT text via ToString().
+    /// All providers: Serializes geometry to WKT text via ToString().
     /// </summary>
     /// <param name="parameter">The database parameter to set.</param>
     /// <param name="value">The NTS Geometry value to store.</param>
@@ -53,24 +50,8 @@ public class SmartNtsGeometryTypeHandler : SqlMapper.ITypeHandler
             return;
         }
 
-        var paramType = parameter.GetType().FullName ?? string.Empty;
-
-        // PostgreSQL: Npgsql has built-in NTS support (pass through)
-        if (paramType.Contains("Npgsql", StringComparison.Ordinal))
-        {
-            parameter.Value = value;
-            return;
-        }
-
-        // MySQL: MySqlConnector (not MySql.Data) has built-in NTS support (pass through)
-        if (paramType.Contains("MySqlConnector", StringComparison.Ordinal))
-        {
-            parameter.Value = value;
-            return;
-        }
-
-        // SQL Server / SQLite / MySql.Data: Use WKT text format (ToString() produces WKT)
-        // This is human-readable and doesn't require NetTopologySuite.IO package
+        // All providers: Use WKT text format (ToString() produces WKT)
+        // This is human-readable, cross-database compatible, and doesn't require provider-specific NTS packages
         var wkt = value.ToString();
         if (string.IsNullOrEmpty(wkt))
         {
@@ -84,8 +65,7 @@ public class SmartNtsGeometryTypeHandler : SqlMapper.ITypeHandler
 
     /// <summary>
     /// Parses a database value back to a NetTopologySuite geometry.
-    /// PostgreSQL/MySQL: Value is already NTS Geometry from provider.
-    /// SQL Server/SQLite: Deserializes from WKT text string.
+    /// All providers: Deserializes from WKT text string.
     /// </summary>
     /// <param name="destinationType">The target type (NTS Geometry or derived type).</param>
     /// <param name="value">The database value to parse.</param>
@@ -99,13 +79,13 @@ public class SmartNtsGeometryTypeHandler : SqlMapper.ITypeHandler
 
         var valueType = value.GetType();
 
-        // Check if value is already an NTS Geometry (PostgreSQL/MySQL native)
+        // Check if value is already an NTS Geometry (shouldn't happen with WKT storage, but handle for safety)
         if (_geometryType != null && _geometryType.IsAssignableFrom(valueType))
         {
             return value;
         }
 
-        // Try parsing from WKT text string (SQL Server/SQLite default format)
+        // Parse from WKT text string (all providers)
         if (value is string wkt && !string.IsNullOrEmpty(wkt))
         {
             return ParseWkt(wkt);

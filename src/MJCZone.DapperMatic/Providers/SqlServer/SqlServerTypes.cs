@@ -108,14 +108,14 @@ public static class SqlServerTypes
     /// <summary>SQL Server image type.</summary>
     public const string sql_image = "image";
 
-    /// <summary>SQL Server geometry type.</summary>
-    public const string sql_geometry = "geometry";
+    // /// <summary>SQL Server geometry type.</summary>
+    // public const string sql_geometry = "geometry";
 
-    /// <summary>SQL Server geography type.</summary>
-    public const string sql_geography = "geography";
+    // /// <summary>SQL Server geography type.</summary>
+    // public const string sql_geography = "geography";
 
-    /// <summary>SQL Server hierarchyid type.</summary>
-    public const string sql_hierarchyid = "hierarchyid";
+    // /// <summary>SQL Server hierarchyid type.</summary>
+    // public const string sql_hierarchyid = "hierarchyid";
 
     /// <summary>SQL Server sql_variant type.</summary>
     public const string sql_variant = "sql_variant";

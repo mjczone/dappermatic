@@ -182,25 +182,25 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
                 "Stores values of various data types"
             )
         );
-        RegisterDataType(
-            CreateSimpleType(
-                "hierarchyid",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Represents position in a hierarchy"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "geography",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Spatial data type for geographical data"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType("geometry", DataTypeCategory.Spatial, isCommon: false, "Spatial data type for planar data")
-        );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "hierarchyid",
+        //         DataTypeCategory.Other,
+        //         isCommon: false,
+        //         "Represents position in a hierarchy"
+        //     )
+        // );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "geography",
+        //         DataTypeCategory.Spatial,
+        //         isCommon: false,
+        //         "Spatial data type for geographical data"
+        //     )
+        // );
+        // RegisterDataType(
+        //     CreateSimpleType("geometry", DataTypeCategory.Spatial, isCommon: false, "Spatial data type for planar data")
+        // );
         RegisterDataType(
             CreateSimpleType(
                 "timestamp",

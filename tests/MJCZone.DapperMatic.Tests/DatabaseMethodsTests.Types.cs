@@ -646,7 +646,7 @@ public abstract partial class DatabaseMethodsTests
                         // case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
                         case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
                         case "date[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateOnly[])); break;
-                        case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
+                        case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateTime>)); break; // Npgsql 9.x returns DateTime, not DateOnly
                         case "double precision": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
                         case "double precision[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
                         case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;

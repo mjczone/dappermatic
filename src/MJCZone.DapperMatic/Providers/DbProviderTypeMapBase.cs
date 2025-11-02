@@ -253,7 +253,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
         // Register provider-specific type families (all providers must handle these)
         RegisterNetTopologySuiteTypes();
-        RegisterSqlServerTypes();
+        // RegisterSqlServerTypes();
         RegisterMySqlTypes();
         RegisterNpgsqlTypes();
 

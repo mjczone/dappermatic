@@ -306,6 +306,18 @@ namespace MJCZone.DapperMatic.Providers.MySql
             var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
             if (rangeType != null)
             {
+                var rangeTypes = new[]
+                {
+                    typeof(DateOnly),
+                    typeof(int),
+                    typeof(long),
+                    typeof(decimal),
+                    typeof(DateTime),
+                    typeof(DateTimeOffset),
+                }
+                    .Select(t => rangeType.MakeGenericType(t))
+                    .ToArray();
+
                 var rangeArrayTypes = new[]
                 {
                     typeof(DateOnly),
@@ -317,6 +329,10 @@ namespace MJCZone.DapperMatic.Providers.MySql
                 }
                     .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
                     .ToArray();
+
+                var rangeTypeConverter = GetProviderTypeMapping()
+                    .CreateTextType(new DotnetTypeDescriptor(typeof(string), length: -1, isUnicode: false));
+                RegisterConverterForTypes(new DotnetTypeToSqlTypeConverter(d => rangeTypeConverter), rangeTypes);
 
                 var rangeArrayConverter = new DotnetTypeToSqlTypeConverter(d =>
                     TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false)

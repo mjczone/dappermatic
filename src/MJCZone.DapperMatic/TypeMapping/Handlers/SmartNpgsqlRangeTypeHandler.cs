@@ -71,7 +71,7 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
 
     /// <summary>
     /// Parses a database value back to NpgsqlRange&lt;T&gt;.
-    /// PostgreSQL: Value is already NpgsqlRange&lt;T&gt; from Npgsql.
+    /// PostgreSQL: Value is already NpgsqlRange&lt;T&gt; from Npgsql, or PostgreSQL native format string.
     /// Other providers: Deserializes from JSON string.
     /// </summary>
     /// <param name="destinationType">The target type (NpgsqlRange&lt;T&gt;).</param>
@@ -88,11 +88,59 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
         var valueType = value.GetType();
         if (valueType.IsGenericType && valueType.Name.StartsWith("NpgsqlRange", StringComparison.Ordinal))
         {
+            // Get the generic argument of the incoming range
+            var valueGenericArgs = valueType.GetGenericArguments();
+            if (valueGenericArgs.Length == 1)
+            {
+                var valueInnerType = valueGenericArgs[0];
+
+                // If types match, return as-is (existing behavior)
+                if (valueInnerType == typeof(T))
+                {
+                    return value;
+                }
+
+                // Handle DateTime <-> DateTimeOffset conversion for Npgsql 9.x compatibility
+                // Npgsql 9.x returns NpgsqlRange<DateTime> for both tsrange and tstzrange
+                if ((valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateTimeOffset)) ||
+                    (valueInnerType == typeof(DateTimeOffset) && typeof(T) == typeof(DateTime)))
+                {
+                    return ConvertRangeType(value, valueType);
+                }
+            }
+
+            // Type mismatch we can't handle - return as-is and let Dapper deal with it
             return value;
         }
 
-        // Deserialize from JSON (other providers)
-        var json = value.ToString() ?? "{}";
+        // Get the NpgsqlRange<T> type for reflection operations
+        var rangeType = Type.GetType($"NpgsqlTypes.NpgsqlRange`1[[{typeof(T).AssemblyQualifiedName}]], Npgsql");
+        if (rangeType == null)
+        {
+            throw new InvalidOperationException(
+                $"NpgsqlRange<{typeof(T).Name}> type not found. Ensure Npgsql package is referenced."
+            );
+        }
+
+        // Try PostgreSQL native format first: "[1,10]", "(1,10)", "[1,10)", "empty", etc.
+        var str = value.ToString() ?? string.Empty;
+
+        if (str.StartsWith('[') || str.StartsWith('(') || str.Equals("empty", StringComparison.OrdinalIgnoreCase))
+        {
+            // Call static NpgsqlRange<T>.Parse(string) method via reflection
+            var parseMethod = rangeType.GetMethod("Parse", new[] { typeof(string) });
+            if (parseMethod == null)
+            {
+                throw new InvalidOperationException(
+                    $"Could not find Parse method on NpgsqlRange<{typeof(T).Name}>."
+                );
+            }
+
+            return parseMethod.Invoke(null, new object[] { str });
+        }
+
+        // Deserialize from JSON (other providers or fallback)
+        var json = str;
         using var jsonDoc = JsonDocument.Parse(json);
         var root = jsonDoc.RootElement;
 
@@ -103,15 +151,6 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
         var upperBound = upperBoundInfinite ? default(T) : root.GetProperty("UpperBound").Deserialize<T>();
         var lowerInclusive = root.TryGetProperty("LowerBoundIsInclusive", out var li) && li.GetBoolean();
         var upperInclusive = root.TryGetProperty("UpperBoundIsInclusive", out var ui) && ui.GetBoolean();
-
-        // Create NpgsqlRange<T> using reflection (avoids direct Npgsql dependency)
-        var rangeType = Type.GetType($"NpgsqlTypes.NpgsqlRange`1[[{typeof(T).AssemblyQualifiedName}]], Npgsql");
-        if (rangeType == null)
-        {
-            throw new InvalidOperationException(
-                $"NpgsqlRange<{typeof(T).Name}> type not found. Ensure Npgsql package is referenced."
-            );
-        }
 
         // Find the constructor: NpgsqlRange(T lowerBound, bool lowerBoundIsInclusive, bool lowerBoundInfinite, T upperBound, bool upperBoundIsInclusive, bool upperBoundInfinite)
         var ctor = rangeType.GetConstructor(
@@ -171,5 +210,101 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
         }
 
         return ctor.Invoke(new object[] { default(T)!, false, true, default(T)!, false, true });
+    }
+
+    /// <summary>
+    /// Converts a NpgsqlRange from one type to another (e.g., DateTime to DateTimeOffset).
+    /// This handles Npgsql 9.x compatibility where tstzrange returns NpgsqlRange&lt;DateTime&gt;
+    /// but we expect NpgsqlRange&lt;DateTimeOffset&gt;.
+    /// </summary>
+    /// <param name="value">The incoming range value to convert.</param>
+    /// <param name="valueType">The type of the incoming range.</param>
+    /// <returns>A new NpgsqlRange&lt;T&gt; with converted bounds.</returns>
+    private static object ConvertRangeType(object value, Type valueType)
+    {
+        // Extract bounds and metadata from the incoming range using reflection
+        var lowerBound = valueType.GetProperty("LowerBound")?.GetValue(value);
+        var upperBound = valueType.GetProperty("UpperBound")?.GetValue(value);
+        var lowerBoundInclusive = (bool)(valueType.GetProperty("LowerBoundIsInclusive")?.GetValue(value) ?? false);
+        var upperBoundInclusive = (bool)(valueType.GetProperty("UpperBoundIsInclusive")?.GetValue(value) ?? false);
+        var lowerBoundInfinite = (bool)(valueType.GetProperty("LowerBoundInfinite")?.GetValue(value) ?? false);
+        var upperBoundInfinite = (bool)(valueType.GetProperty("UpperBoundInfinite")?.GetValue(value) ?? false);
+
+        // Convert bounds to target type T
+        T convertedLowerBound = default!;
+        T convertedUpperBound = default!;
+
+        if (!lowerBoundInfinite && lowerBound != null)
+        {
+            convertedLowerBound = ConvertDateTimeValue<T>(lowerBound);
+        }
+
+        if (!upperBoundInfinite && upperBound != null)
+        {
+            convertedUpperBound = ConvertDateTimeValue<T>(upperBound);
+        }
+
+        // Reconstruct range with converted bounds
+        var rangeType = Type.GetType($"NpgsqlTypes.NpgsqlRange`1[[{typeof(T).AssemblyQualifiedName}]], Npgsql");
+        if (rangeType == null)
+        {
+            throw new InvalidOperationException(
+                $"NpgsqlRange<{typeof(T).Name}> type not found. Ensure Npgsql package is referenced."
+            );
+        }
+
+        var ctor = rangeType.GetConstructor(
+            new[] { typeof(T), typeof(bool), typeof(bool), typeof(T), typeof(bool), typeof(bool) }
+        );
+
+        if (ctor == null)
+        {
+            throw new InvalidOperationException(
+                $"Could not find appropriate constructor for NpgsqlRange<{typeof(T).Name}>."
+            );
+        }
+
+        return ctor.Invoke(
+            new object[]
+            {
+                convertedLowerBound!,
+                lowerBoundInclusive,
+                lowerBoundInfinite,
+                convertedUpperBound!,
+                upperBoundInclusive,
+                upperBoundInfinite,
+            }
+        );
+    }
+
+    /// <summary>
+    /// Converts between DateTime and DateTimeOffset types.
+    /// Used for handling Npgsql 9.x compatibility where tstzrange returns DateTime
+    /// but we expect DateTimeOffset.
+    /// </summary>
+    /// <typeparam name="TTarget">The target type (DateTime or DateTimeOffset).</typeparam>
+    /// <param name="value">The value to convert.</param>
+    /// <returns>The converted value.</returns>
+    private static TTarget ConvertDateTimeValue<TTarget>(object value)
+    {
+        if (value is DateTime dt && typeof(TTarget) == typeof(DateTimeOffset))
+        {
+            // Convert DateTime to DateTimeOffset
+            // PostgreSQL timestamptz stores UTC, so treat unspecified as UTC
+            var utcDateTime = dt.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                : dt;
+            return (TTarget)(object)new DateTimeOffset(utcDateTime);
+        }
+
+        if (value is DateTimeOffset dto && typeof(TTarget) == typeof(DateTime))
+        {
+            // Convert DateTimeOffset to DateTime
+            return (TTarget)(object)dto.DateTime;
+        }
+
+        throw new InvalidOperationException(
+            $"Cannot convert {value.GetType().Name} to {typeof(TTarget).Name}"
+        );
     }
 }
