@@ -74,29 +74,37 @@ public class SmartNpgsqlPointTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from WKT format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "POINT(x y)"
-#pragma warning disable CA1865 // Use char overload (no StringComparison overload available for char)
-        if (
-            !wkt.StartsWith("POINT(", StringComparison.OrdinalIgnoreCase)
-            || !wkt.EndsWith(")", StringComparison.Ordinal)
-        )
-#pragma warning restore CA1865
+        double x, y;
+
+        // Try PostgreSQL native format: "(x,y)"
+        if (str.StartsWith('(') && str.EndsWith(')'))
         {
-            throw new FormatException($"Invalid WKT format for point. Expected 'POINT(x y)', got: {wkt}");
+            var coords = str.Substring(1, str.Length - 2).Split(',', StringSplitOptions.RemoveEmptyEntries);
+            if (coords.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL point format. Expected '(x,y)', got: {str}");
+            }
+            x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+            y = double.Parse(coords[1], CultureInfo.InvariantCulture);
         }
-
-        var coords = wkt.Substring(6, wkt.Length - 7).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        if (coords.Length != 2)
+        // Try WKT format: "POINT(x y)"
+        else if (str.StartsWith("POINT(", StringComparison.OrdinalIgnoreCase) && str.EndsWith(')'))
         {
-            throw new FormatException($"Invalid WKT format for point. Expected 2 coordinates, got: {coords.Length}");
+            var coords = str.Substring(6, str.Length - 7).Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (coords.Length != 2)
+            {
+                throw new FormatException($"Invalid WKT point format. Expected 'POINT(x y)', got: {str}");
+            }
+            x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+            y = double.Parse(coords[1], CultureInfo.InvariantCulture);
         }
-
-        var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
-        var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+        else
+        {
+            throw new FormatException($"Invalid point format. Expected '(x,y)' or 'POINT(x y)', got: {str}");
+        }
 
         // Create NpgsqlPoint using reflection (avoids direct Npgsql dependency)
         var pointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");

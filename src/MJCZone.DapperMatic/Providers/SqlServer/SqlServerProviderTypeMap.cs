@@ -40,68 +40,76 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
     /// <inheritdoc/>
     protected override void RegisterNetTopologySuiteTypes()
     {
-        // All NetTopologySuite geometry types map to SQL Server GEOMETRY type
-        var ntsConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+        // NetTopologySuite types map to VARCHAR(MAX) on SQL Server (WKT text format)
+        // SQL Server's native GEOMETRY type requires Microsoft.SqlServer.Types which has been removed
+        // for cross-platform compatibility. NTS geometries are stored as WKT text.
+        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var ntsGeometryCollectionType = Type.GetType(
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
         );
 
-        RegisterConverterForTypes(ntsConverter, TypeMappingHelpers.GetStandardGeometryTypes());
+        var geometryTypeConverter = TypeMappingHelpers.CreateStringType(
+            SqlServerTypes.sql_varchar,
+            isUnicode: false,
+            length: TypeMappingDefaults.MaxLength
+        );
+
+        RegisterConverterForTypes(
+            new DotnetTypeToSqlTypeConverter(d => geometryTypeConverter),
+            [
+                ntsGeometryType,
+                ntsPointType,
+                ntsLineStringType,
+                ntsPolygonType,
+                ntsMultiPointType,
+                ntsMultiLineStringType,
+                ntsMultiPolygonType,
+                ntsGeometryCollectionType,
+            ]
+        );
     }
 
     /// <inheritdoc/>
     protected override void RegisterSqlServerTypes()
     {
-        // SQL Server native types - use their specific types
-        var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
-        var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
-        var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
-
-        if (sqlGeometryType != null)
-        {
-            RegisterConverter(
-                sqlGeometryType,
-                new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
-                )
-            );
-        }
-
-        if (sqlGeographyType != null)
-        {
-            RegisterConverter(
-                sqlGeographyType,
-                new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geography)
-                )
-            );
-        }
-
-        if (sqlHierarchyIdType != null)
-        {
-            RegisterConverter(
-                sqlHierarchyIdType,
-                new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_hierarchyid)
-                )
-            );
-        }
+        // SQL Server-specific spatial types (SqlGeometry, SqlGeography, SqlHierarchyId) are no longer supported
+        // to maintain cross-platform compatibility. They require Microsoft.SqlServer.Types with Windows-specific
+        // native assemblies.
+        //
+        // For spatial data on SQL Server, use NetTopologySuite types instead (cross-platform).
+        // NTS geometries are stored as WKT (Well-Known Text) in VARCHAR(MAX) columns.
+        // The geometry.ToString() method produces WKT format which is parsed back by the handler.
     }
 
     /// <inheritdoc/>
     protected override void RegisterMySqlTypes()
     {
-        // MySQL geometry types map to SQL Server GEOMETRY
-        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
-        );
+        var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data");
+        var sqlMySqlConnectorGeometryType = Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
 
-        RegisterConverterForTypes(mySqlGeometryConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+        // MySQL geometry types → VARCHAR (WKB format)
+        // Note: Without SqlGeometry support, we store these as WKB hex strings instead of native geometry columns
+        var mySqlGeometryTypeInSqlServer = TypeMappingHelpers.CreateStringType(
+            SqlServerTypes.sql_varchar,
+            isUnicode: false,
+            length: TypeMappingDefaults.MaxLength
+        );
+        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d => mySqlGeometryTypeInSqlServer);
+
+        RegisterConverterForTypes(mySqlGeometryConverter, [sqlMySqlDataGeometryType, sqlMySqlConnectorGeometryType]);
     }
 
     /// <inheritdoc/>
     protected override void RegisterNpgsqlTypes()
     {
-        // PostgreSQL geometric types map to SQL Server GEOMETRY
+        // PostgreSQL geometric types → VARCHAR (WKT format)
+        // Note: Without SqlGeometry support, we store these as WKT text instead of native geometry columns
         var npgsqlGeometryTypes = new[]
         {
             Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
@@ -116,7 +124,11 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
             .ToArray();
 
         var npgsqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateGeometryType(SqlServerTypes.sql_geometry)
+            TypeMappingHelpers.CreateStringType(
+                SqlServerTypes.sql_varchar,
+                isUnicode: false,
+                length: TypeMappingDefaults.MaxLength
+            )
         );
         RegisterConverterForTypes(npgsqlGeometryConverter, npgsqlGeometryTypes!);
 
@@ -303,216 +315,136 @@ public sealed class SqlServerProviderTypeMap : DbProviderTypeMapBase<SqlServerPr
 
     private static SqlTypeToDotnetTypeConverter GetBooleanToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(typeof(bool));
-        });
+        return new(d => new DotnetTypeDescriptor(typeof(bool)));
     }
 
     private static SqlTypeToDotnetTypeConverter GetNumbericToDotnetTypeConverter()
     {
         return new(d =>
         {
-            switch (d.BaseTypeName)
+            return d.BaseTypeName switch
             {
-                case SqlServerTypes.sql_tinyint:
-                    return new DotnetTypeDescriptor(typeof(byte));
-                case SqlServerTypes.sql_smallint:
-                    return new DotnetTypeDescriptor(typeof(short));
-                case SqlServerTypes.sql_int:
-                    return new DotnetTypeDescriptor(typeof(int));
-                case SqlServerTypes.sql_bigint:
-                    return new DotnetTypeDescriptor(typeof(long));
-                case SqlServerTypes.sql_real:
-                    return new DotnetTypeDescriptor(typeof(float));
-                case SqlServerTypes.sql_float:
-                    return new DotnetTypeDescriptor(typeof(double));
-                case SqlServerTypes.sql_decimal:
-                    return new DotnetTypeDescriptor(typeof(decimal))
-                    {
-                        Precision = d.Precision ?? 16,
-                        Scale = d.Scale ?? 4,
-                    };
-                case SqlServerTypes.sql_numeric:
-                    return new DotnetTypeDescriptor(typeof(decimal))
-                    {
-                        Precision = d.Precision ?? 16,
-                        Scale = d.Scale ?? 4,
-                    };
-                case SqlServerTypes.sql_money:
-                    return new DotnetTypeDescriptor(typeof(decimal))
-                    {
-                        Precision = d.Precision ?? 19,
-                        Scale = d.Scale ?? 4,
-                    };
-                case SqlServerTypes.sql_smallmoney:
-                    return new DotnetTypeDescriptor(typeof(decimal))
-                    {
-                        Precision = d.Precision ?? 10,
-                        Scale = d.Scale ?? 4,
-                    };
-                default:
-                    return new DotnetTypeDescriptor(typeof(int));
-            }
+                SqlServerTypes.sql_tinyint => new DotnetTypeDescriptor(typeof(byte)),
+                SqlServerTypes.sql_smallint => new DotnetTypeDescriptor(typeof(short)),
+                SqlServerTypes.sql_int => new DotnetTypeDescriptor(typeof(int)),
+                SqlServerTypes.sql_bigint => new DotnetTypeDescriptor(typeof(long)),
+                SqlServerTypes.sql_real => new DotnetTypeDescriptor(typeof(float)),
+                SqlServerTypes.sql_float => new DotnetTypeDescriptor(typeof(double)),
+                SqlServerTypes.sql_decimal => new DotnetTypeDescriptor(typeof(decimal))
+                {
+                    Precision = d.Precision ?? 16,
+                    Scale = d.Scale ?? 4,
+                },
+                SqlServerTypes.sql_numeric => new DotnetTypeDescriptor(typeof(decimal))
+                {
+                    Precision = d.Precision ?? 16,
+                    Scale = d.Scale ?? 4,
+                },
+                SqlServerTypes.sql_money => new DotnetTypeDescriptor(typeof(decimal))
+                {
+                    Precision = d.Precision ?? 19,
+                    Scale = d.Scale ?? 4,
+                },
+                SqlServerTypes.sql_smallmoney => new DotnetTypeDescriptor(typeof(decimal))
+                {
+                    Precision = d.Precision ?? 10,
+                    Scale = d.Scale ?? 4,
+                },
+                _ => new DotnetTypeDescriptor(typeof(int)),
+            };
         });
     }
 
     private static SqlTypeToDotnetTypeConverter GetGuidToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(typeof(Guid));
-        });
+        return new(d => new DotnetTypeDescriptor(typeof(Guid)));
     }
 
     private static SqlTypeToDotnetTypeConverter GetTextToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(
-                typeof(string),
-                d.Length ?? 255,
-                isUnicode: d.IsUnicode.GetValueOrDefault(true),
-                isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
-            );
-        });
+        return new(d => new DotnetTypeDescriptor(
+            typeof(string),
+            d.Length ?? 255,
+            isUnicode: d.IsUnicode.GetValueOrDefault(true),
+            isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
+        ));
     }
 
     private static SqlTypeToDotnetTypeConverter GetXmlToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(typeof(XDocument));
-        });
+        return new(d => new DotnetTypeDescriptor(typeof(XDocument)));
     }
 
     private static SqlTypeToDotnetTypeConverter GetJsonToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(typeof(JsonDocument));
-        });
+        return new(d => new DotnetTypeDescriptor(typeof(JsonDocument)));
     }
 
     private static SqlTypeToDotnetTypeConverter GetDateTimeToDotnetTypeConverter()
     {
         return new(d =>
-        {
-            switch (d.BaseTypeName)
+            d.BaseTypeName switch
             {
-                case SqlServerTypes.sql_smalldatetime:
-                case SqlServerTypes.sql_datetime:
-                case SqlServerTypes.sql_datetime2:
-                case SqlServerTypes.sql_timestamp:
-                    return new DotnetTypeDescriptor(typeof(DateTime));
-                case SqlServerTypes.sql_datetimeoffset:
-                    return new DotnetTypeDescriptor(typeof(DateTimeOffset));
-                case SqlServerTypes.sql_time:
-                    return new DotnetTypeDescriptor(typeof(TimeOnly));
-                case SqlServerTypes.sql_date:
-                    return new DotnetTypeDescriptor(typeof(DateOnly));
-                default:
-                    return new DotnetTypeDescriptor(typeof(DateTime));
+                SqlServerTypes.sql_smalldatetime
+                or SqlServerTypes.sql_datetime
+                or SqlServerTypes.sql_datetime2
+                or SqlServerTypes.sql_timestamp => new DotnetTypeDescriptor(typeof(DateTime)),
+                SqlServerTypes.sql_datetimeoffset => new DotnetTypeDescriptor(typeof(DateTimeOffset)),
+                SqlServerTypes.sql_time => new DotnetTypeDescriptor(typeof(TimeOnly)),
+                SqlServerTypes.sql_date => new DotnetTypeDescriptor(typeof(DateOnly)),
+                _ => new DotnetTypeDescriptor(typeof(DateTime)),
             }
-        });
+        );
     }
 
     private static SqlTypeToDotnetTypeConverter GetByteArrayToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(
-                typeof(byte[]),
-                d.Length ?? int.MaxValue,
-                isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
-            );
-        });
+        return new(d => new DotnetTypeDescriptor(
+            typeof(byte[]),
+            d.Length ?? int.MaxValue,
+            isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
+        ));
     }
 
     private static SqlTypeToDotnetTypeConverter GetObjectToDotnetTypeConverter()
     {
-        return new(d =>
-        {
-            return new DotnetTypeDescriptor(typeof(object));
-        });
+        return new(d => new DotnetTypeDescriptor(typeof(object)));
     }
 
     private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
     {
-        // NetTopologySuite types
-        var sqlNetTopologyGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        // NetTopologySuite types map to specific SqlServer geometry types
+        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var ntsGeometryCollectionType = Type.GetType(
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
+        );
 
-        // var sqlNetTopologyPointType = Type.GetType(
-        //     "NetTopologySuite.Geometries.Point, NetTopologySuite"
-        // );
-        // var sqlNetTopologyLineStringType = Type.GetType(
-        //     "NetTopologySuite.Geometries.LineString, NetTopologySuite"
-        // );
-        // var sqlNetTopologyPolygonType = Type.GetType(
-        //     "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
-        // );
-        // var sqlNetTopologyMultiPointType = Type.GetType(
-        //     "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-        // );
-        // var sqlNetTopologyMultLineStringType = Type.GetType(
-        //     "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
-        // );
-        // var sqlNetTopologyMultiPolygonType = Type.GetType(
-        //     "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
-        // );
-        // var sqlNetTopologyGeometryCollectionType = Type.GetType(
-        //     "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
-        // );
-
-        // Geometry affinity
-        var sqlGeometryType = Type.GetType(
-            "Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types",
-            false,
-            false
-        );
-        var sqlGeographyType = Type.GetType(
-            "Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types",
-            false,
-            false
-        );
-        var sqlHierarchyIdType = Type.GetType(
-            "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types",
-            false,
-            false
-        );
+        // SQL Server-specific spatial types (SqlGeometry, SqlGeography, SqlHierarchyId) are no longer supported
+        // to maintain cross-platform compatibility. For spatial data, use NetTopologySuite types instead.
 
         return new(d =>
         {
             switch (d.BaseTypeName)
             {
                 case SqlServerTypes.sql_geometry:
-                    if (sqlNetTopologyGeometryType != null)
+                    if (ntsGeometryType != null)
                     {
-                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
-                    }
-
-                    if (sqlGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlGeometryType);
+                        return new DotnetTypeDescriptor(ntsGeometryType);
                     }
 
                     // Fallback: WKB (Well-Known Binary) format as byte[]
                     return new DotnetTypeDescriptor(typeof(byte[]));
                 case SqlServerTypes.sql_geography:
-                    if (sqlGeographyType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlGeographyType);
-                    }
-
-                    // Fallback: WKB (Well-Known Binary) format as byte[]
+                    // WKB (Well-Known Binary) format as byte[]
                     return new DotnetTypeDescriptor(typeof(byte[]));
                 case SqlServerTypes.sql_hierarchyid:
-                    if (sqlHierarchyIdType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlHierarchyIdType);
-                    }
-
-                    // Fallback: Hierarchical path as string (e.g., "/1/2/3/")
+                    // Hierarchical path as string (e.g., "/1/2/3/")
                     return new DotnetTypeDescriptor(typeof(string));
             }
 

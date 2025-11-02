@@ -17,6 +17,8 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlBoxTypeHandler : SqlMapper.ITypeHandler
 {
+    private static readonly string[] PointSeparator = new[] { "),(" };
+
     /// <summary>
     /// Sets the parameter value for a box.
     /// PostgreSQL: Passes box directly (Npgsql converts NpgsqlBox to native PostgreSQL box).
@@ -89,31 +91,61 @@ public class SmartNpgsqlBoxTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from WKT polygon format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "POLYGON((x1 y1,x2 y1,x2 y2,x1 y2,x1 y1))"
-        if (!wkt.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
+        double x1, y1, x2, y2;
+
+        // Try PostgreSQL native format: "(x1,y1),(x2,y2)"
+        if (str.Contains("),(", StringComparison.Ordinal))
         {
-            throw new FormatException($"Invalid WKT format for box. Expected 'POLYGON((...))', got: {wkt}");
+            var parts = str.Split(PointSeparator, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL box format. Expected '(x1,y1),(x2,y2)', got: {str}");
+            }
+
+            // Remove leading/trailing parentheses
+            var p1Str = parts[0].TrimStart('(');
+            var p2Str = parts[1].TrimEnd(')');
+
+            var p1Coords = p1Str.Split(',', StringSplitOptions.RemoveEmptyEntries);
+            var p2Coords = p2Str.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (p1Coords.Length != 2 || p2Coords.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL box format. Expected '(x1,y1),(x2,y2)', got: {str}");
+            }
+
+            x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
+            y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
+            x2 = double.Parse(p2Coords[0], CultureInfo.InvariantCulture);
+            y2 = double.Parse(p2Coords[1], CultureInfo.InvariantCulture);
         }
-
-        var coordsStr = wkt.Substring(9, wkt.Length - 11); // Remove "POLYGON((" and "))"
-        var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-        if (pointStrs.Length < 4)
+        // Try WKT polygon format: "POLYGON((x1 y1,x2 y1,x2 y2,x1 y2,x1 y1))"
+        else if (str.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
         {
-            throw new FormatException($"Invalid WKT format for box. Expected at least 4 points.");
+            var coordsStr = str.Substring(9, str.Length - 11); // Remove "POLYGON((" and "))"
+            var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (pointStrs.Length < 4)
+            {
+                throw new FormatException($"Invalid WKT polygon format for box. Expected at least 4 points, got: {str}");
+            }
+
+            // Extract first point (lower-left) and third point (upper-right)
+            var p1Coords = pointStrs[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var p3Coords = pointStrs[2].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
+            y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
+            x2 = double.Parse(p3Coords[0], CultureInfo.InvariantCulture);
+            y2 = double.Parse(p3Coords[1], CultureInfo.InvariantCulture);
         }
-
-        // Extract first point (lower-left) and third point (upper-right)
-        var p1Coords = pointStrs[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var p3Coords = pointStrs[2].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        var x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
-        var y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
-        var x2 = double.Parse(p3Coords[0], CultureInfo.InvariantCulture);
-        var y2 = double.Parse(p3Coords[1], CultureInfo.InvariantCulture);
+        else
+        {
+            throw new FormatException($"Invalid box format. Expected '(x1,y1),(x2,y2)' or 'POLYGON((...))' got: {str}");
+        }
 
         // Create NpgsqlPoint instances for corners
         var pointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");

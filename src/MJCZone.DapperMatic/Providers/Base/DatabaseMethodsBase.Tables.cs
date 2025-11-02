@@ -288,9 +288,10 @@ public abstract partial class DatabaseMethodsBase
 
         sql.Append(';');
 
-        var sqlStatement = sql.ToString();
+        var createTableSqlStatement = sql.ToString();
 
-        await ExecuteAsync(db, sqlStatement, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
+        await ExecuteAsync(db, createTableSqlStatement, tx: tx, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
 
         // Add indexes AFTER the table is created
         foreach (var index in tableConstraints.Indexes)

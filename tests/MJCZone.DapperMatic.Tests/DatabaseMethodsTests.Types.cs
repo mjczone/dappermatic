@@ -254,13 +254,14 @@ public abstract partial class DatabaseMethodsTests
     // [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT" /* WKT */, false, 43, null, null, false, null, "LONGTEXT")]
     // Npgsql Types
     // The specific WKT/WKB conversion logic needs to be handled in the provider-specific code
-    [InlineData(typeof(NpgsqlPoint), "GEOMETRY", "POINT", "POINT", "TEXT", false, null, null, null, false, null, "POINT")]
-    [InlineData(typeof(NpgsqlLSeg), "GEOMETRY", "LINESTRING", "LSEG", "TEXT", false, null, null, null, false, null, "LINESTRING")]
-    [InlineData(typeof(NpgsqlPath), "GEOMETRY", "GEOMETRY", "PATH", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(NpgsqlPolygon), "GEOMETRY", "POLYGON", "POLYGON", "TEXT", false, null, null, null, false, null, "POLYGON")]
-    [InlineData(typeof(NpgsqlLine), "GEOMETRY", "LINESTRING", "LINE", "TEXT", false, null, null, null, false, null, "LINESTRING")]
-    [InlineData(typeof(NpgsqlCircle), "GEOMETRY", "GEOMETRY", "CIRCLE", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(NpgsqlBox), "GEOMETRY", "POLYGON", "BOX", "TEXT", false, null, null, null, false, null, "POLYGON")]
+    // SQL Server uses VARCHAR(MAX) for Npgsql geometric types (no native SqlGeometry support)
+    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "POINT", "POINT", "TEXT", false, null, null, null, false, null, "POINT")]
+    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "LINESTRING", "LSEG", "TEXT", false, null, null, null, false, null, "LINESTRING")]
+    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "GEOMETRY", "PATH", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "POLYGON", "POLYGON", "TEXT", false, null, null, null, false, null, "POLYGON")]
+    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "LINESTRING", "LINE", "TEXT", false, null, null, null, false, null, "LINESTRING")]
+    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "GEOMETRY", "CIRCLE", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "POLYGON", "BOX", "TEXT", false, null, null, null, false, null, "POLYGON")]
     [InlineData(typeof(NpgsqlInet), "VARCHAR(45)", "VARCHAR(45)", "INET", "VARCHAR(45)", false, 45, null, null, false, null, "VARCHAR(45)")] // Use standard VARCHAR for IPs
     [InlineData(typeof(NpgsqlCidr), "VARCHAR(43)", "VARCHAR(43)", "CIDR", "VARCHAR(43)", false, 43, null, null, false, null, "VARCHAR(43)")] // Use standard VARCHAR for CIDRs
     [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "JSON", "DATERANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
@@ -280,24 +281,22 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(NpgsqlTsQuery), "VARCHAR(MAX)", "JSON", "TSQUERY", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
     [InlineData(typeof(NpgsqlTsVector), "VARCHAR(MAX)", "JSON", "TSVECTOR", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
     // NetTopologySuite Geometry Types
-    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "GEOMETRY", "GEOMETRYCOLLECTION", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Point), "GEOMETRY", "POINT", "POINT", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "GEOMETRY", "LINESTRING", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "GEOMETRY", "POLYGON", "POLYGON", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "GEOMETRY", "MULTIPOINT", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "GEOMETRY", "MULTILINESTRING", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "GEOMETRY", "MULTIPOLYGON", "GEOMETRY", "TEXT")]
+    // SQL Server uses VARCHAR(MAX) for NTS types (WKT text format, no native SqlGeometry support)
+    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "VARCHAR(MAX)", "GEOMETRYCOLLECTION", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Point), "VARCHAR(MAX)", "POINT", "POINT", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "VARCHAR(MAX)", "LINESTRING", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "VARCHAR(MAX)", "POLYGON", "POLYGON", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "VARCHAR(MAX)", "MULTIPOINT", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "VARCHAR(MAX)", "MULTILINESTRING", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "VARCHAR(MAX)", "MULTIPOLYGON", "GEOMETRY", "TEXT")]
     // Network Types
     [InlineData(typeof(IPAddress), "VARCHAR(17)", "VARCHAR(17)", "INET", "VARCHAR(17)", false, 17)]
     [InlineData(typeof(PhysicalAddress), "VARCHAR(43)", "VARCHAR(43)", "MACADDR", "VARCHAR(43)", false, 43)]
     // MySqlConnector Spatial Types
-    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(MySqlConnector.MySqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    // SQL Server Spatial Types & HierarchyId
-    [InlineData(typeof(Microsoft.SqlServer.Types.SqlGeometry), "GEOMETRY", "GEOMETRY", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(Microsoft.SqlServer.Types.SqlGeography), "GEOGRAPHY", "GEOMETRY", "GEOGRAPHY", "TEXT")]
-    [InlineData(typeof(Microsoft.SqlServer.Types.SqlHierarchyId), "HIERARCHYID(892)", "TEXT(65535)", "LTREE", "TEXT", false, 892)]
+    // SQL Server uses VARCHAR(MAX) for MySQL geometric types (no native SqlGeometry support)
+    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(MySqlConnector.MySqlGeometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
     // csharpier-ignore-end
     protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,
@@ -750,9 +749,9 @@ public abstract partial class DatabaseMethodsTests
                         case "datetimeoffset": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
                         case "decimal": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(decimal), null, 18, 2); break;
                         case "float": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
-                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(Microsoft.SqlServer.Types.SqlGeography)); break;
+                        case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(byte[])); break;
                         case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
-                        case "hierarchyid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(Microsoft.SqlServer.Types.SqlHierarchyId)); break;
+                        case "hierarchyid": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(string)); break;
                         case "image": AssertValues(providerDataTypeName, DataTypeCategory.Binary, typeof(byte[])); break;
                         case "int": AssertValues(providerDataTypeName, DataTypeCategory.Integer, typeof(int)); break;
                         case "money": AssertValues(providerDataTypeName, DataTypeCategory.Money, typeof(decimal)); break;

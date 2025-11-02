@@ -189,25 +189,66 @@ public static class DapperMaticTypeMapping
     /// </summary>
     private static void RegisterNativeSpatialHandlers()
     {
-        // Optional: MySQL spatial types (if MySql.Data available)
-        // if (IsMySqlDataAvailable())
-        // {
-        //     TryAddTypeHandler(new MySqlGeometryTypeHandler());
-        // }
+        // NetTopologySuite geometry types - smart handlers
+        // PostgreSQL/MySQL (MySqlConnector): Native NTS support via provider libraries (pass through)
+        // SQL Server/SQLite/MySQL (MySql.Data): WKB conversion via reflection
+        // NOTE: SQL Server requires query modifications (use geometry::STGeomFromWKB for INSERT, .STAsBinary() for SELECT)
+        RegisterNtsGeometryHandlers();
 
-        // Optional: SQL Server spatial types (if Microsoft.SqlServer.Types available)
-        // if (IsSqlServerTypesAvailable())
-        // {
-        //     TryAddTypeHandler(new SqlGeographyTypeHandler());
-        //     TryAddTypeHandler(new SqlGeometryTypeHandler());
-        //     TryAddTypeHandler(new SqlHierarchyIdTypeHandler());
-        // }
+        // MySQL spatial types - smart handler (MySQL native, others as WKB byte array)
+        RegisterMySqlGeometryHandler();
+    }
 
-        // Note: NetTopologySuite types are handled by provider libraries
-        // - PostgreSQL: Npgsql has built-in NTS support
-        // - MySQL: MySqlConnector (not MySql.Data) has built-in NTS support
-        // - SQL Server: Use Microsoft.SqlServer.Types with NTS adapter
-        // No custom handlers needed for NTS types in most cases
+    /// <summary>
+    /// Registers MySqlGeometry type handler using reflection to avoid direct MySql.Data dependency.
+    /// </summary>
+    private static void RegisterMySqlGeometryHandler()
+    {
+        // Try MySql.Data.MySqlClient.MySqlGeometry
+        var geometryType = Type.GetType("MySql.Data.MySqlClient.MySqlGeometry, MySql.Data");
+        if (geometryType == null)
+        {
+            // Try MySqlConnector.MySqlGeometry
+            geometryType = Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
+        }
+
+        if (geometryType != null)
+        {
+            var handler = new SmartMySqlGeometryTypeHandler();
+            TryAddTypeHandler(handler, geometryType);
+        }
+    }
+
+    /// <summary>
+    /// Registers NetTopologySuite geometry type handlers using reflection to avoid direct NTS dependency.
+    /// Supports all NTS geometry types with provider-specific optimizations.
+    /// </summary>
+    private static void RegisterNtsGeometryHandlers()
+    {
+        // Create a single handler instance for all NTS geometry types
+        var handler = new SmartNtsGeometryTypeHandler();
+
+        // Register for all NTS geometry types
+        var ntsGeometryTypes = new[]
+        {
+            "NetTopologySuite.Geometries.Geometry, NetTopologySuite",
+            "NetTopologySuite.Geometries.Point, NetTopologySuite",
+            "NetTopologySuite.Geometries.LineString, NetTopologySuite",
+            "NetTopologySuite.Geometries.Polygon, NetTopologySuite",
+            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite",
+            "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite",
+            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite",
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite",
+        };
+
+        foreach (var typeName in ntsGeometryTypes)
+        {
+            var geometryType = Type.GetType(typeName, throwOnError: false);
+            if (geometryType != null)
+            {
+                TryAddTypeHandler(handler, geometryType);
+            }
+        }
     }
 
     /// <summary>

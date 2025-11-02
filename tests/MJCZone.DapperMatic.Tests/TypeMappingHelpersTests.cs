@@ -474,58 +474,37 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
-    public void Should_expect_get_standard_geometry_types_returns_filtered_array()
+    public void Should_expect_database_driver_provider_specific_type_references_to_exist_in_test_assembly()
     {
         // Act
-        var types = TypeMappingHelpers.GetStandardGeometryTypes();
-
-        // Assert
-        Assert.NotNull(types);
-        Assert.IsType<Type[]>(types);
-
-        // All returned types should be non-null
-        Assert.True(types.All(t => t != null));
-
-        // If NetTopologySuite is available, should have 8 types
-        if (types.Length > 0)
+        var types = new[]
         {
-            Assert.Equal(8, types.Length);
-        }
-    }
-
-    [Fact]
-    public void Should_expect_get_sqlserver_geometry_types_returns_filtered_array()
-    {
-        // Act
-        var types = TypeMappingHelpers.GetSqlServerGeometryTypes();
-
-        // Assert
-        Assert.NotNull(types);
-        Assert.IsType<Type[]>(types);
-
-        // All returned types should be non-null
-        Assert.True(types.All(t => t != null));
-    }
-
-    [Fact]
-    public void Should_expect_get_mysql_geometry_types_returns_filtered_array()
-    {
-        // Act
-        var types = TypeMappingHelpers.GetMySqlGeometryTypes();
-
-        // Assert
-        Assert.NotNull(types);
-        Assert.IsType<Type[]>(types);
-
-        // All returned types should be non-null
-        Assert.True(types.All(t => t != null));
-    }
-
-    [Fact]
-    public void Should_expect_get_postgresql_special_types_returns_filtered_array()
-    {
-        // Act
-        var types = TypeMappingHelpers.GetPostgreSqlSpecialTypes();
+            // NetTopologySuite geometry types
+            Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"),
+            Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"),
+            // MySQL spatial types
+            Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data"),
+            Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector"),
+            // PostgreSQL/PostGIS spatial type (and all other Npgsql types while we're at it)
+            Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
+            Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
+        };
 
         // Assert
         Assert.NotNull(types);

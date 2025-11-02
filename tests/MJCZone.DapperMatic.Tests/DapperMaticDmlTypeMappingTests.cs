@@ -1284,6 +1284,589 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         await db.DropTableIfExistsAsync(null, "test_cidr_networks");
     }
 
+    [Fact]
+    protected virtual async Task Should_support_numeric_arrays_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with SmartArrayTypeHandler
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Create table with multiple numeric array columns
+        var table = new DmTable
+        {
+            TableName = "test_numeric_arrays",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("long_values", typeof(long[]), isNullable: true),
+                new DmColumn("short_values", typeof(short[]), isNullable: true),
+                new DmColumn("double_values", typeof(double[]), isNullable: true),
+                new DmColumn("float_values", typeof(float[]), isNullable: true),
+                new DmColumn("decimal_values", typeof(decimal[]), isNullable: true),
+                new DmColumn("bool_values", typeof(bool[]), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Insert test data
+        var testData = new
+        {
+            longValues = new long[] { 1000L, 2000L, 3000L },
+            shortValues = new short[] { (short)10, (short)20, (short)30 },
+            doubleValues = new double[] { 1.5, 2.5, 3.5 },
+            floatValues = new float[] { 1.1f, 2.2f, 3.3f },
+            decimalValues = new decimal[] { 10.5m, 20.5m, 30.5m },
+            boolValues = new bool[] { true, false, true },
+        };
+
+        await db.ExecuteAsync(
+            "INSERT INTO test_numeric_arrays (long_values, short_values, double_values, float_values, decimal_values, bool_values) "
+                + "VALUES (@longValues, @shortValues, @doubleValues, @floatValues, @decimalValues, @boolValues)",
+            testData
+        );
+
+        // Query data back
+        var results = (
+            await db.QueryAsync<TestDocumentWithNumericArrays>(
+                "SELECT id, long_values, short_values, double_values, float_values, decimal_values, bool_values FROM test_numeric_arrays"
+            )
+        ).ToList();
+
+        // Verify results
+        Assert.Single(results);
+        Assert.NotNull(results[0].LongValues);
+        Assert.Equal(3, results[0].LongValues!.Length);
+        Assert.Equal(1000L, results[0].LongValues![0]);
+
+        Assert.NotNull(results[0].ShortValues);
+        Assert.Equal(3, results[0].ShortValues!.Length);
+        Assert.Equal((short)10, results[0].ShortValues![0]);
+
+        Assert.NotNull(results[0].DoubleValues);
+        Assert.Equal(3, results[0].DoubleValues!.Length);
+
+        Assert.NotNull(results[0].FloatValues);
+        Assert.Equal(3, results[0].FloatValues!.Length);
+
+        Assert.NotNull(results[0].DecimalValues);
+        Assert.Equal(3, results[0].DecimalValues!.Length);
+        Assert.Equal(10.5m, results[0].DecimalValues![0]);
+
+        Assert.NotNull(results[0].BoolValues);
+        Assert.Equal(3, results[0].BoolValues!.Length);
+        Assert.True(results[0].BoolValues![0]);
+        Assert.False(results[0].BoolValues![1]);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_numeric_arrays");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_temporal_and_guid_arrays_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Create table with temporal and GUID array columns
+        var table = new DmTable
+        {
+            TableName = "test_temporal_arrays",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("guid_values", typeof(Guid[]), isNullable: true),
+                new DmColumn("datetimeoffset_values", typeof(DateTimeOffset[]), isNullable: true),
+                new DmColumn("dateonly_values", typeof(DateOnly[]), isNullable: true),
+                new DmColumn("timeonly_values", typeof(TimeOnly[]), isNullable: true),
+                new DmColumn("timespan_values", typeof(TimeSpan[]), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Insert test data
+        var testData = new
+        {
+            guidValues = new[] { Guid.NewGuid(), Guid.NewGuid() },
+            datetimeoffsetValues = new[] { DateTimeOffset.UtcNow, DateTimeOffset.UtcNow.AddDays(1) },
+            dateonlyValues = new[] { new DateOnly(2025, 1, 15), new DateOnly(2025, 1, 16) },
+            timeonlyValues = new[] { new TimeOnly(10, 30, 0), new TimeOnly(18, 45, 30) },
+            timespanValues = new[] { TimeSpan.FromHours(1), TimeSpan.FromHours(2) },
+        };
+
+        await db.ExecuteAsync(
+            "INSERT INTO test_temporal_arrays (guid_values, datetimeoffset_values, dateonly_values, timeonly_values, timespan_values) "
+                + "VALUES (@guidValues, @datetimeoffsetValues, @dateonlyValues, @timeonlyValues, @timespanValues)",
+            testData
+        );
+
+        // Query data back
+        var results = (
+            await db.QueryAsync<TestDocumentWithTemporalArrays>(
+                "SELECT id, guid_values, datetimeoffset_values, dateonly_values, timeonly_values, timespan_values FROM test_temporal_arrays"
+            )
+        ).ToList();
+
+        // Verify results
+        Assert.Single(results);
+        Assert.NotNull(results[0].GuidValues);
+        Assert.Equal(2, results[0].GuidValues!.Length);
+
+        Assert.NotNull(results[0].DateTimeOffsetValues);
+        Assert.Equal(2, results[0].DateTimeOffsetValues!.Length);
+
+        Assert.NotNull(results[0].DateOnlyValues);
+        Assert.Equal(2, results[0].DateOnlyValues!.Length);
+
+        Assert.NotNull(results[0].TimeOnlyValues);
+        Assert.Equal(2, results[0].TimeOnlyValues!.Length);
+
+        Assert.NotNull(results[0].TimeSpanValues);
+        Assert.Equal(2, results[0].TimeSpanValues!.Length);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_temporal_arrays");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_npgsql_range_types_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with NpgsqlRange handlers
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Get NpgsqlRange types via reflection
+        var rangeIntType = Type.GetType("NpgsqlTypes.NpgsqlRange`1[[System.Int32, System.Private.CoreLib]], Npgsql");
+        var rangeLongType = Type.GetType("NpgsqlTypes.NpgsqlRange`1[[System.Int64, System.Private.CoreLib]], Npgsql");
+        var rangeDecimalType = Type.GetType(
+            "NpgsqlTypes.NpgsqlRange`1[[System.Decimal, System.Private.CoreLib]], Npgsql"
+        );
+        var rangeDateTimeType = Type.GetType(
+            "NpgsqlTypes.NpgsqlRange`1[[System.DateTime, System.Private.CoreLib]], Npgsql"
+        );
+        var rangeDateOnlyType = Type.GetType(
+            "NpgsqlTypes.NpgsqlRange`1[[System.DateOnly, System.Private.CoreLib]], Npgsql"
+        );
+        var rangeDateTimeOffsetType = Type.GetType(
+            "NpgsqlTypes.NpgsqlRange`1[[System.DateTimeOffset, System.Private.CoreLib]], Npgsql"
+        );
+
+        // Skip test if Npgsql types not available
+        if (rangeIntType == null)
+        {
+            Output.WriteLine("NpgsqlRange types not available, skipping test");
+            return;
+        }
+
+        // Create table with range columns
+        var table = new DmTable
+        {
+            TableName = "test_range_types",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("int_range", rangeIntType, isNullable: true),
+                new DmColumn("long_range", rangeLongType, isNullable: true),
+                new DmColumn("decimal_range", rangeDecimalType, isNullable: true),
+                new DmColumn("datetime_range", rangeDateTimeType, isNullable: true),
+                new DmColumn("dateonly_range", rangeDateOnlyType, isNullable: true),
+                new DmColumn("datetimeoffset_range", rangeDateTimeOffsetType, isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Create range instances using reflection
+        var createRange = (Type rangeType, object lower, object upper) =>
+        {
+            var ctor = rangeType.GetConstructor(new[] { lower.GetType(), upper.GetType() });
+            return ctor?.Invoke(new[] { lower, upper });
+        };
+
+        var intRange = createRange(rangeIntType!, 1, 10);
+        var longRange = createRange(rangeLongType!, 1000L, 2000L);
+        var decimalRange = createRange(rangeDecimalType!, 10.5m, 20.5m);
+        var datetimeRange = createRange(
+            rangeDateTimeType!,
+            DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
+            DateTime.SpecifyKind(DateTime.UtcNow.AddDays(7), DateTimeKind.Unspecified)
+        );
+        var dateonlyRange = createRange(rangeDateOnlyType!, new DateOnly(2025, 1, 15), new DateOnly(2025, 1, 22));
+        var datetimeoffsetRange = createRange(
+            rangeDateTimeOffsetType!,
+            DateTimeOffset.UtcNow,
+            DateTimeOffset.UtcNow.AddDays(7)
+        );
+
+        // Insert test data
+        await db.ExecuteAsync(
+            "INSERT INTO test_range_types (int_range, long_range, decimal_range, datetime_range, dateonly_range, datetimeoffset_range) "
+                + "VALUES (@intRange, @longRange, @decimalRange, @datetimeRange, @dateonlyRange, @datetimeoffsetRange)",
+            new
+            {
+                intRange,
+                longRange,
+                decimalRange,
+                datetimeRange,
+                dateonlyRange,
+                datetimeoffsetRange,
+            }
+        );
+
+        // Query data back
+        var results = (
+            await db.QueryAsync<TestDocumentWithRangeTypes>(
+                "SELECT id, int_range, long_range, decimal_range, datetime_range, dateonly_range, datetimeoffset_range FROM test_range_types"
+            )
+        ).ToList();
+
+        // Verify results
+        Assert.Single(results);
+        Assert.NotNull(results[0].IntRange);
+        Assert.NotNull(results[0].LongRange);
+        Assert.NotNull(results[0].DecimalRange);
+        Assert.NotNull(results[0].DateTimeRange);
+        Assert.NotNull(results[0].DateOnlyRange);
+        Assert.NotNull(results[0].DateTimeOffsetRange);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_range_types");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_npgsql_geometric_types_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with Npgsql geometric handlers
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Get Npgsql geometric types via reflection
+        var npgsqlPointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");
+        var npgsqlBoxType = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
+        var npgsqlCircleType = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
+        var npgsqlLineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
+        var npgsqlLSegType = Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql");
+        var npgsqlPathType = Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql");
+        var npgsqlPolygonType = Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql");
+
+        // Skip test if Npgsql types not available
+        if (npgsqlPointType == null)
+        {
+            Output.WriteLine("Npgsql geometric types not available, skipping test");
+            return;
+        }
+
+        // Create table with geometric columns
+        var table = new DmTable
+        {
+            TableName = "test_npgsql_geometric_types",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("point_value", npgsqlPointType, isNullable: true),
+                new DmColumn("box_value", npgsqlBoxType, isNullable: true),
+                new DmColumn("circle_value", npgsqlCircleType, isNullable: true),
+                new DmColumn("line_value", npgsqlLineType, isNullable: true),
+                new DmColumn("lseg_value", npgsqlLSegType, isNullable: true),
+                new DmColumn("path_value", npgsqlPathType, isNullable: true),
+                new DmColumn("polygon_value", npgsqlPolygonType, isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Create geometric instances using reflection
+        var pointValue = npgsqlPointType!
+            .GetConstructor(new[] { typeof(double), typeof(double) })!
+            .Invoke(new object[] { 1.0, 2.0 });
+        var boxValue = npgsqlBoxType!
+            .GetConstructor(new[] { typeof(double), typeof(double), typeof(double), typeof(double) })!
+            .Invoke(new object[] { 0.0, 0.0, 10.0, 10.0 });
+        var circleValue = npgsqlCircleType!
+            .GetConstructor(new[] { typeof(double), typeof(double), typeof(double) })!
+            .Invoke(new object[] { 5.0, 5.0, 3.0 });
+        var lineValue = npgsqlLineType!
+            .GetConstructor(new[] { typeof(double), typeof(double), typeof(double) })!
+            .Invoke(new object[] { 1.0, 2.0, 3.0 });
+
+        var point1 = npgsqlPointType!
+            .GetConstructor(new[] { typeof(double), typeof(double) })!
+            .Invoke(new object[] { 0.0, 0.0 });
+        var point2 = npgsqlPointType!
+            .GetConstructor(new[] { typeof(double), typeof(double) })!
+            .Invoke(new object[] { 10.0, 10.0 });
+        var lsegValue = npgsqlLSegType!
+            .GetConstructor(new[] { npgsqlPointType, npgsqlPointType })!
+            .Invoke(new[] { point1, point2 });
+
+        var points = Array.CreateInstance(npgsqlPointType!, 3);
+        points.SetValue(
+            npgsqlPointType!
+                .GetConstructor(new[] { typeof(double), typeof(double) })!
+                .Invoke(new object[] { 0.0, 0.0 }),
+            0
+        );
+        points.SetValue(
+            npgsqlPointType!
+                .GetConstructor(new[] { typeof(double), typeof(double) })!
+                .Invoke(new object[] { 10.0, 0.0 }),
+            1
+        );
+        points.SetValue(
+            npgsqlPointType!
+                .GetConstructor(new[] { typeof(double), typeof(double) })!
+                .Invoke(new object[] { 5.0, 10.0 }),
+            2
+        );
+
+        var pathValue = npgsqlPathType!
+            .GetConstructor(new[] { points.GetType(), typeof(bool) })!
+            .Invoke(new object[] { points, false });
+        var polygonValue = npgsqlPolygonType!
+            .GetConstructor(new[] { points.GetType() })!
+            .Invoke(new object[] { points });
+
+        // Insert test data
+        await db.ExecuteAsync(
+            "INSERT INTO test_npgsql_geometric_types (point_value, box_value, circle_value, line_value, lseg_value, path_value, polygon_value) "
+                + "VALUES (@pointValue, @boxValue, @circleValue, @lineValue, @lsegValue, @pathValue, @polygonValue)",
+            new
+            {
+                pointValue,
+                boxValue,
+                circleValue,
+                lineValue,
+                lsegValue,
+                pathValue,
+                polygonValue,
+            }
+        );
+
+        // Query data back
+        var results = (
+            await db.QueryAsync<TestDocumentWithNpgsqlGeometricTypes>(
+                "SELECT id, point_value, box_value, circle_value, line_value, lseg_value, path_value, polygon_value FROM test_npgsql_geometric_types"
+            )
+        ).ToList();
+
+        // Verify results
+        Assert.Single(results);
+        Assert.NotNull(results[0].PointValue);
+        Assert.NotNull(results[0].BoxValue);
+        Assert.NotNull(results[0].CircleValue);
+        Assert.NotNull(results[0].LineValue);
+        Assert.NotNull(results[0].LSegValue);
+        Assert.NotNull(results[0].PathValue);
+        Assert.NotNull(results[0].PolygonValue);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_npgsql_geometric_types");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_nettopologysuite_basic_geometries_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Get NetTopologySuite types via reflection
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+
+        // Skip test if NetTopologySuite not available
+        if (ntsPointType == null)
+        {
+            Output.WriteLine("NetTopologySuite not available, skipping test");
+            return;
+        }
+
+        // Create table with NTS geometry columns
+        var table = new DmTable
+        {
+            TableName = "test_nts_basic_geometries",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("title", typeof(string), length: 100),
+                new DmColumn("point_geom", ntsPointType, isNullable: true),
+                new DmColumn("line_geom", ntsLineStringType, isNullable: true),
+                new DmColumn("polygon_geom", ntsPolygonType, isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Create NetTopologySuite geometries using WKT
+        var geometryFactoryType = Type.GetType("NetTopologySuite.Geometries.GeometryFactory, NetTopologySuite");
+        var wktReaderType = Type.GetType("NetTopologySuite.IO.WKTReader, NetTopologySuite");
+
+        if (geometryFactoryType == null || wktReaderType == null)
+        {
+            Output.WriteLine("NetTopologySuite geometry creation types not available, skipping test");
+            await db.DropTableIfExistsAsync(null, "test_nts_basic_geometries");
+            return;
+        }
+
+        var factory = Activator.CreateInstance(geometryFactoryType);
+        var reader = Activator.CreateInstance(wktReaderType, factory);
+        var readMethod = wktReaderType.GetMethod("Read", new[] { typeof(string) });
+
+        var pointGeom = readMethod!.Invoke(reader, new object[] { "POINT(1 2)" });
+        var lineGeom = readMethod!.Invoke(reader, new object[] { "LINESTRING(0 0, 10 10, 20 20)" });
+        var polygonGeom = readMethod!.Invoke(reader, new object[] { "POLYGON((0 0, 10 0, 10 10, 0 10, 0 0))" });
+
+        // Insert test data
+        await db.ExecuteAsync(
+            "INSERT INTO test_nts_basic_geometries (title, point_geom, line_geom, polygon_geom) "
+                + "VALUES (@title, @pointGeom, @lineGeom, @polygonGeom)",
+            new
+            {
+                title = "NTS Basic Geometries",
+                pointGeom,
+                lineGeom,
+                polygonGeom,
+            }
+        );
+
+        // Query data back
+        var results = (
+            await db.QueryAsync<TestDocumentWithNTSGeometries>(
+                "SELECT id, title, point_geom, line_geom, polygon_geom FROM test_nts_basic_geometries"
+            )
+        ).ToList();
+
+        // Verify results
+        Assert.Single(results);
+        Assert.Equal("NTS Basic Geometries", results[0].Title);
+        Assert.NotNull(results[0].PointGeom);
+        Assert.NotNull(results[0].LineGeom);
+        Assert.NotNull(results[0].PolygonGeom);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_nts_basic_geometries");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_provider_specific_spatial_types_with_cross_provider_fallback_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with provider-specific spatial handlers
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Test is conditional on provider-specific types being available
+        // Try MySqlGeometry first
+        var mySqlGeometryType =
+            Type.GetType("MySql.Data.MySqlClient.MySqlGeometry, MySql.Data")
+            ?? Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
+
+        // Try SQL Server types
+        var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
+        var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
+        var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
+
+        // Skip if no provider-specific types available
+        if (mySqlGeometryType == null && sqlGeometryType == null)
+        {
+            Output.WriteLine("No provider-specific spatial types available, skipping test");
+            return;
+        }
+
+        // Test whichever types are available
+        var hasTypes = false;
+
+        // Test MySqlGeometry if available
+        if (mySqlGeometryType != null)
+        {
+            hasTypes = true;
+            var table = new DmTable
+            {
+                TableName = "test_mysql_geometry",
+                Columns =
+                [
+                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                    new DmColumn("geom", mySqlGeometryType, isNullable: true),
+                ],
+            };
+
+            await db.CreateTableIfNotExistsAsync(table);
+
+            // Create MySqlGeometry from WKT
+            var parseMethod = mySqlGeometryType.GetMethod("Parse", new[] { typeof(string) });
+            if (parseMethod != null)
+            {
+                var geom = parseMethod.Invoke(null, new object[] { "POINT(1 2)" });
+                await db.ExecuteAsync("INSERT INTO test_mysql_geometry (geom) VALUES (@geom)", new { geom });
+
+                var results = (await db.QueryAsync<dynamic>("SELECT id, geom FROM test_mysql_geometry")).ToList();
+                Assert.Single(results);
+                Assert.NotNull(results[0].geom);
+            }
+
+            await db.DropTableIfExistsAsync(null, "test_mysql_geometry");
+        }
+
+        // Test SQL Server types if available
+        if (sqlHierarchyIdType != null)
+        {
+            hasTypes = true;
+            var table = new DmTable
+            {
+                TableName = "test_sql_hierarchyid",
+                Columns =
+                [
+                    new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                    new DmColumn("path", sqlHierarchyIdType, isNullable: true),
+                ],
+            };
+
+            await db.CreateTableIfNotExistsAsync(table);
+
+            // Create SqlHierarchyId from string path
+            var parseMethod = sqlHierarchyIdType.GetMethod("Parse", new[] { typeof(string) });
+            if (parseMethod != null)
+            {
+                var path = parseMethod.Invoke(null, new object[] { "/1/2/3/" });
+                await db.ExecuteAsync("INSERT INTO test_sql_hierarchyid (path) VALUES (@path)", new { path });
+
+                var results = (await db.QueryAsync<dynamic>("SELECT id, path FROM test_sql_hierarchyid")).ToList();
+                Assert.Single(results);
+                Assert.NotNull(results[0].path);
+            }
+
+            await db.DropTableIfExistsAsync(null, "test_sql_hierarchyid");
+        }
+
+        Assert.True(hasTypes, "At least one provider-specific type should have been tested");
+    }
+
     #region Test Helper Classes
 
     /// <summary>
@@ -1572,7 +2155,7 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         public string Title { get; set; } = string.Empty;
 
         [DmColumn("network")]
-        public object? Network { get; set; }
+        public NpgsqlTypes.NpgsqlCidr? Network { get; set; }
     }
 
     /// <summary>
@@ -1603,6 +2186,135 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
 
         [DmColumn("network", providerDataType: "{postgresql:cidr}")]
         public object? Network { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for numeric array type handlers (Phase 5).
+    /// </summary>
+    public class TestDocumentWithNumericArrays
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("long_values")]
+        public long[]? LongValues { get; set; }
+
+        [DmColumn("short_values")]
+        public short[]? ShortValues { get; set; }
+
+        [DmColumn("double_values")]
+        public double[]? DoubleValues { get; set; }
+
+        [DmColumn("float_values")]
+        public float[]? FloatValues { get; set; }
+
+        [DmColumn("decimal_values")]
+        public decimal[]? DecimalValues { get; set; }
+
+        [DmColumn("bool_values")]
+        public bool[]? BoolValues { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for temporal and GUID array type handlers (Phase 5).
+    /// </summary>
+    public class TestDocumentWithTemporalArrays
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("guid_values")]
+        public Guid[]? GuidValues { get; set; }
+
+        [DmColumn("datetimeoffset_values")]
+        public DateTimeOffset[]? DateTimeOffsetValues { get; set; }
+
+        [DmColumn("dateonly_values")]
+        public DateOnly[]? DateOnlyValues { get; set; }
+
+        [DmColumn("timeonly_values")]
+        public TimeOnly[]? TimeOnlyValues { get; set; }
+
+        [DmColumn("timespan_values")]
+        public TimeSpan[]? TimeSpanValues { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for NpgsqlRange type handlers (Phase 7).
+    /// </summary>
+    public class TestDocumentWithRangeTypes
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("int_range")]
+        public NpgsqlTypes.NpgsqlRange<int>? IntRange { get; set; }
+
+        [DmColumn("long_range")]
+        public NpgsqlTypes.NpgsqlRange<long>? LongRange { get; set; }
+
+        [DmColumn("decimal_range")]
+        public NpgsqlTypes.NpgsqlRange<decimal>? DecimalRange { get; set; }
+
+        [DmColumn("datetime_range")]
+        public NpgsqlTypes.NpgsqlRange<DateTime>? DateTimeRange { get; set; }
+
+        [DmColumn("dateonly_range")]
+        public NpgsqlTypes.NpgsqlRange<DateOnly>? DateOnlyRange { get; set; }
+
+        [DmColumn("datetimeoffset_range")]
+        public NpgsqlTypes.NpgsqlRange<DateTimeOffset>? DateTimeOffsetRange { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for Npgsql geometric type handlers (Phase 8).
+    /// </summary>
+    public class TestDocumentWithNpgsqlGeometricTypes
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("point_value")]
+        public NpgsqlTypes.NpgsqlPoint? PointValue { get; set; }
+
+        [DmColumn("box_value")]
+        public NpgsqlTypes.NpgsqlBox? BoxValue { get; set; }
+
+        [DmColumn("circle_value")]
+        public NpgsqlTypes.NpgsqlCircle? CircleValue { get; set; }
+
+        [DmColumn("line_value")]
+        public NpgsqlTypes.NpgsqlLine? LineValue { get; set; }
+
+        [DmColumn("lseg_value")]
+        public NpgsqlTypes.NpgsqlLSeg? LSegValue { get; set; }
+
+        [DmColumn("path_value")]
+        public NpgsqlTypes.NpgsqlPath? PathValue { get; set; }
+
+        [DmColumn("polygon_value")]
+        public NpgsqlTypes.NpgsqlPolygon? PolygonValue { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for NetTopologySuite geometry type handlers (Phase 9).
+    /// </summary>
+    public class TestDocumentWithNTSGeometries
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [DmColumn("point_geom")]
+        public NetTopologySuite.Geometries.Point? PointGeom { get; set; }
+
+        [DmColumn("line_geom")]
+        public NetTopologySuite.Geometries.LineString? LineGeom { get; set; }
+
+        [DmColumn("polygon_geom")]
+        public NetTopologySuite.Geometries.Polygon? PolygonGeom { get; set; }
     }
 
     #endregion // #region Test Helper Classes

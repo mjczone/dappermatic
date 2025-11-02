@@ -17,6 +17,8 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlCircleTypeHandler : SqlMapper.ITypeHandler
 {
+    private static readonly string[] CircleSeparator = new[] { ")," };
+
     /// <summary>
     /// Sets the parameter value for a circle.
     /// PostgreSQL: Passes circle directly (Npgsql converts NpgsqlCircle to native PostgreSQL circle).
@@ -84,37 +86,60 @@ public class SmartNpgsqlCircleTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from extended WKT format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "CIRCLE(x y, radius)"
-#pragma warning disable CA1865 // Use char overload (no StringComparison overload available for char)
-        if (
-            !wkt.StartsWith("CIRCLE(", StringComparison.OrdinalIgnoreCase)
-            || !wkt.EndsWith(")", StringComparison.Ordinal)
-        )
-#pragma warning restore CA1865
+        double x, y, radius;
+
+        // Try PostgreSQL native format: "<(x,y),r>"
+        if (str.StartsWith('<') && str.EndsWith('>'))
         {
-            throw new FormatException($"Invalid WKT format for circle. Expected 'CIRCLE(x y, radius)', got: {wkt}");
+            var content = str.Substring(1, str.Length - 2); // Remove "<" and ">"
+            var parts = content.Split(CircleSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL circle format. Expected '<(x,y),r>', got: {str}");
+            }
+
+            // Parse center point "(x,y"
+            var centerStr = parts[0].TrimStart('(');
+            var centerCoords = centerStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (centerCoords.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL circle format. Expected '<(x,y),r>', got: {str}");
+            }
+
+            x = double.Parse(centerCoords[0], CultureInfo.InvariantCulture);
+            y = double.Parse(centerCoords[1], CultureInfo.InvariantCulture);
+            radius = double.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
         }
-
-        var content = wkt.Substring(7, wkt.Length - 8); // Remove "CIRCLE(" and ")"
-        var parts = content.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-        if (parts.Length != 2)
+        // Try extended WKT format: "CIRCLE(x y, radius)"
+        else if (str.StartsWith("CIRCLE(", StringComparison.OrdinalIgnoreCase) && str.EndsWith(')'))
         {
-            throw new FormatException($"Invalid WKT format for circle. Expected 'x y, radius', got: {content}");
-        }
+            var content = str.Substring(7, str.Length - 8); // Remove "CIRCLE(" and ")"
+            var parts = content.Split(',', StringSplitOptions.RemoveEmptyEntries);
 
-        var coords = parts[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (coords.Length != 2)
+            if (parts.Length != 2)
+            {
+                throw new FormatException($"Invalid WKT circle format. Expected 'CIRCLE(x y, radius)', got: {str}");
+            }
+
+            var coords = parts[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (coords.Length != 2)
+            {
+                throw new FormatException($"Invalid center coordinates in circle WKT, got: {str}");
+            }
+
+            x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+            y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+            radius = double.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
+        }
+        else
         {
-            throw new FormatException($"Invalid center coordinates in circle WKT.");
+            throw new FormatException($"Invalid circle format. Expected '<(x,y),r>' or 'CIRCLE(x y, radius)', got: {str}");
         }
-
-        var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
-        var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
-        var radius = double.Parse(parts[1].Trim(), CultureInfo.InvariantCulture);
 
         // Create NpgsqlPoint for center
         var pointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");

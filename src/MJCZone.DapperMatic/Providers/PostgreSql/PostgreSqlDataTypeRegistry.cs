@@ -213,16 +213,34 @@ public class PostgreSqlDataTypeRegistry : ProviderDataTypeRegistryBase
         RegisterDataType(CreateSimpleType("daterange", DataTypeCategory.Range, isCommon: false, "Range of date"));
 
         // Multirange types (PostgreSQL 14+)
-        RegisterDataType(CreateSimpleType("int4multirange", DataTypeCategory.Range, isCommon: false, "Multirange of integer"));
-        RegisterDataType(CreateSimpleType("int8multirange", DataTypeCategory.Range, isCommon: false, "Multirange of bigint"));
-        RegisterDataType(CreateSimpleType("nummultirange", DataTypeCategory.Range, isCommon: false, "Multirange of numeric"));
         RegisterDataType(
-            CreateSimpleType("tsmultirange", DataTypeCategory.Range, isCommon: false, "Multirange of timestamp without time zone")
+            CreateSimpleType("int4multirange", DataTypeCategory.Range, isCommon: false, "Multirange of integer")
         );
         RegisterDataType(
-            CreateSimpleType("tstzmultirange", DataTypeCategory.Range, isCommon: false, "Multirange of timestamp with time zone")
+            CreateSimpleType("int8multirange", DataTypeCategory.Range, isCommon: false, "Multirange of bigint")
         );
-        RegisterDataType(CreateSimpleType("datemultirange", DataTypeCategory.Range, isCommon: false, "Multirange of date"));
+        RegisterDataType(
+            CreateSimpleType("nummultirange", DataTypeCategory.Range, isCommon: false, "Multirange of numeric")
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "tsmultirange",
+                DataTypeCategory.Range,
+                isCommon: false,
+                "Multirange of timestamp without time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType(
+                "tstzmultirange",
+                DataTypeCategory.Range,
+                isCommon: false,
+                "Multirange of timestamp with time zone"
+            )
+        );
+        RegisterDataType(
+            CreateSimpleType("datemultirange", DataTypeCategory.Range, isCommon: false, "Multirange of date")
+        );
 
         // Array types - standard notation (suffix [])
         RegisterDataType(CreateSimpleType("boolean[]", DataTypeCategory.Array, isCommon: false, "Array of boolean"));

@@ -81,7 +81,11 @@ public partial class DapperMaticService
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        ValidationFactory.Arguments().NotNull(context, nameof(context)).NotNull(datasource, nameof(datasource)).Assert();
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNull(datasource, nameof(datasource))
+            .Assert();
 
         if (
             !string.IsNullOrWhiteSpace(datasource.Id)

@@ -17,6 +17,8 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlLSegTypeHandler : SqlMapper.ITypeHandler
 {
+    private static readonly string[] PointSeparator = new[] { "),(" };
+
     /// <summary>
     /// Sets the parameter value for a line segment.
     /// PostgreSQL: Passes lseg directly (Npgsql converts NpgsqlLSeg to native PostgreSQL lseg).
@@ -88,44 +90,68 @@ public class SmartNpgsqlLSegTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from WKT LINESTRING format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "LINESTRING(x1 y1, x2 y2)"
-#pragma warning disable CA1865 // Use char overload (no StringComparison overload available for char)
-        if (
-            !wkt.StartsWith("LINESTRING(", StringComparison.OrdinalIgnoreCase)
-            || !wkt.EndsWith(")", StringComparison.Ordinal)
-        )
-#pragma warning restore CA1865
+        double x1, y1, x2, y2;
+
+        // Try PostgreSQL native format: "[(x1,y1),(x2,y2)]"
+        if (str.StartsWith('[') && str.EndsWith(']'))
         {
-            throw new FormatException(
-                $"Invalid WKT format for line segment. Expected 'LINESTRING(x1 y1, x2 y2)', got: {wkt}"
-            );
+            var content = str.Substring(1, str.Length - 2); // Remove "[" and "]"
+            var parts = content.Split(PointSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            if (parts.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL lseg format. Expected '[(x1,y1),(x2,y2)]', got: {str}");
+            }
+
+            // Parse first point
+            var p1Str = parts[0].TrimStart('(');
+            var p1Coords = p1Str.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            // Parse second point
+            var p2Str = parts[1].TrimEnd(')');
+            var p2Coords = p2Str.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (p1Coords.Length != 2 || p2Coords.Length != 2)
+            {
+                throw new FormatException($"Invalid PostgreSQL lseg format. Expected '[(x1,y1),(x2,y2)]', got: {str}");
+            }
+
+            x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
+            y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
+            x2 = double.Parse(p2Coords[0], CultureInfo.InvariantCulture);
+            y2 = double.Parse(p2Coords[1], CultureInfo.InvariantCulture);
         }
-
-        var coordsStr = wkt.Substring(11, wkt.Length - 12); // Remove "LINESTRING(" and ")"
-        var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-        if (pointStrs.Length != 2)
+        // Try WKT LINESTRING format: "LINESTRING(x1 y1, x2 y2)"
+        else if (str.StartsWith("LINESTRING(", StringComparison.OrdinalIgnoreCase) && str.EndsWith(')'))
         {
-            throw new FormatException(
-                $"Invalid WKT format for line segment. Expected 2 points, got: {pointStrs.Length}"
-            );
+            var coordsStr = str.Substring(11, str.Length - 12); // Remove "LINESTRING(" and ")"
+            var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (pointStrs.Length != 2)
+            {
+                throw new FormatException($"Invalid WKT lseg format. Expected 'LINESTRING(x1 y1, x2 y2)', got: {str}");
+            }
+
+            var p1Coords = pointStrs[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            var p2Coords = pointStrs[1].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            if (p1Coords.Length != 2 || p2Coords.Length != 2)
+            {
+                throw new FormatException($"Invalid WKT lseg format. Expected 2 coordinates per point, got: {str}");
+            }
+
+            x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
+            y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
+            x2 = double.Parse(p2Coords[0], CultureInfo.InvariantCulture);
+            y2 = double.Parse(p2Coords[1], CultureInfo.InvariantCulture);
         }
-
-        var p1Coords = pointStrs[0].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        var p2Coords = pointStrs[1].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        if (p1Coords.Length != 2 || p2Coords.Length != 2)
+        else
         {
-            throw new FormatException("Invalid coordinate format in line segment WKT.");
+            throw new FormatException($"Invalid lseg format. Expected '[(x1,y1),(x2,y2)]' or 'LINESTRING(x1 y1, x2 y2)', got: {str}");
         }
-
-        var x1 = double.Parse(p1Coords[0], CultureInfo.InvariantCulture);
-        var y1 = double.Parse(p1Coords[1], CultureInfo.InvariantCulture);
-        var x2 = double.Parse(p2Coords[0], CultureInfo.InvariantCulture);
-        var y2 = double.Parse(p2Coords[1], CultureInfo.InvariantCulture);
 
         // Create NpgsqlPoint instances for start and end
         var pointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");

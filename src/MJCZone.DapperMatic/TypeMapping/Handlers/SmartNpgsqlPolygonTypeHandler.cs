@@ -19,6 +19,8 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
 {
+    private static readonly string[] PointSeparator = new[] { "),(" };
+
     /// <summary>
     /// Sets the parameter value for a polygon.
     /// PostgreSQL: Passes polygon directly (Npgsql converts NpgsqlPolygon to native PostgreSQL polygon).
@@ -112,22 +114,62 @@ public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from WKT POLYGON format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "POLYGON((x1 y1, x2 y2, ..., x1 y1))"
-        if (!wkt.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
+        List<(double x, double y)> points = new();
+
+        // Try PostgreSQL native format: "((x1,y1),(x2,y2),...)"
+        if (str.StartsWith('(') && str.EndsWith(')') && str.Length > 2 && str[1] == '(')
         {
-            throw new FormatException($"Invalid WKT format for polygon. Expected 'POLYGON((...))', got: {wkt}");
+            var content = str.Substring(1, str.Length - 2); // Remove outer parentheses
+            var pointParts = content.Split(PointSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var part in pointParts)
+            {
+                var cleanPart = part.Trim('(', ')');
+                var coords = cleanPart.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                if (coords.Length != 2)
+                {
+                    throw new FormatException($"Invalid PostgreSQL polygon format. Expected point coordinates, got: {part}");
+                }
+
+                var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+                var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+                points.Add((x, y));
+            }
         }
-
-        var coordsStr = wkt.Substring(9, wkt.Length - 11); // Remove "POLYGON((" and "))"
-        var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-        // Remove the last point if it's the same as the first (WKT convention)
-        if (pointStrs.Length > 1)
+        // Try WKT POLYGON format: "POLYGON((x1 y1, x2 y2, ..., x1 y1))"
+        else if (str.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
         {
-            pointStrs = pointStrs.Take(pointStrs.Length - 1).ToArray();
+            var coordsStr = str.Substring(9, str.Length - 11); // Remove "POLYGON((" and "))"
+            var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            // Remove the last point if it's the same as the first (WKT convention)
+            var pointsToProcess = pointStrs;
+            if (pointStrs.Length > 1)
+            {
+                pointsToProcess = pointStrs.Take(pointStrs.Length - 1).ToArray();
+            }
+
+            foreach (var pointStr in pointsToProcess)
+            {
+                var coords = pointStr.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+                if (coords.Length != 2)
+                {
+                    throw new FormatException($"Invalid WKT polygon format. Expected point coordinates, got: {pointStr}");
+                }
+
+                var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+                var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+                points.Add((x, y));
+            }
+        }
+        else
+        {
+            throw new FormatException($"Invalid polygon format. Expected '((x,y)...)' or 'POLYGON((...))', got: {str}");
         }
 
         // Create NpgsqlPoint array
@@ -143,21 +185,13 @@ public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
             throw new InvalidOperationException("Could not find appropriate constructor for NpgsqlPoint.");
         }
 
-        var points = Array.CreateInstance(pointType, pointStrs.Length);
+        var pointsArray = Array.CreateInstance(pointType, points.Count);
 
-        for (var i = 0; i < pointStrs.Length; i++)
+        for (var i = 0; i < points.Count; i++)
         {
-            var coords = pointStrs[i].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            if (coords.Length != 2)
-            {
-                throw new FormatException($"Invalid coordinate format in polygon WKT at point {i}.");
-            }
-
-            var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
-            var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+            var (x, y) = points[i];
             var point = pointCtor.Invoke(new object[] { x, y });
-            points.SetValue(point, i);
+            pointsArray.SetValue(point, i);
         }
 
         // Create NpgsqlPolygon using reflection
@@ -167,12 +201,13 @@ public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
             throw new InvalidOperationException("NpgsqlPolygon type not found. Ensure Npgsql package is referenced.");
         }
 
-        var polygonCtor = polygonType.GetConstructor(new[] { points.GetType() });
+        var arrayType = pointType.MakeArrayType();
+        var polygonCtor = polygonType.GetConstructor(new[] { arrayType });
         if (polygonCtor == null)
         {
             throw new InvalidOperationException("Could not find appropriate constructor for NpgsqlPolygon.");
         }
 
-        return polygonCtor.Invoke(new object[] { points });
+        return polygonCtor.Invoke(new object[] { pointsArray });
     }
 }

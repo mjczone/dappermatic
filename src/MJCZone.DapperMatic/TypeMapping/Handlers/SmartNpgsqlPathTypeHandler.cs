@@ -19,6 +19,8 @@ namespace MJCZone.DapperMatic.TypeMapping.Handlers;
 /// </summary>
 public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
 {
+    private static readonly string[] PointSeparator = new[] { "),(" };
+
     /// <summary>
     /// Sets the parameter value for a path.
     /// PostgreSQL: Passes path directly (Npgsql converts NpgsqlPath to native PostgreSQL path).
@@ -137,35 +139,86 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from WKT format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
         bool isOpen;
-        string coordsStr;
+        List<(double x, double y)> points = new();
 
-        if (wkt.StartsWith("LINESTRING(", StringComparison.OrdinalIgnoreCase))
+        // Try PostgreSQL native format: "((x1,y1),(x2,y2),...)" or "[(x1,y1),(x2,y2),...]" (open path with brackets)
+        if ((str.StartsWith('(') && str.EndsWith(')') && str.Length > 2 && str[1] == '(') ||
+            (str.StartsWith('[') && str.EndsWith(']')))
+        {
+            // Open paths use [] brackets, closed paths use () parentheses
+            isOpen = str.StartsWith('[');
+
+            var content = str.Substring(1, str.Length - 2); // Remove outer brackets/parens
+            var pointParts = content.Split(PointSeparator, StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var part in pointParts)
+            {
+                var cleanPart = part.Trim('(', ')');
+                var coords = cleanPart.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+                if (coords.Length != 2)
+                {
+                    throw new FormatException($"Invalid PostgreSQL path format. Expected point coordinates, got: {part}");
+                }
+
+                var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+                var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+                points.Add((x, y));
+            }
+        }
+        // Try WKT format: "LINESTRING(...)" or "POLYGON((...))
+        else if (str.StartsWith("LINESTRING(", StringComparison.OrdinalIgnoreCase))
         {
             isOpen = true;
-            coordsStr = wkt.Substring(11, wkt.Length - 12); // Remove "LINESTRING(" and ")"
+            var coordsStr = str.Substring(11, str.Length - 12); // Remove "LINESTRING(" and ")"
+            var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (var pointStr in pointStrs)
+            {
+                var coords = pointStr.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (coords.Length != 2)
+                {
+                    throw new FormatException($"Invalid WKT path format. Expected point coordinates, got: {pointStr}");
+                }
+
+                var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+                var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+                points.Add((x, y));
+            }
         }
-        else if (wkt.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
+        else if (str.StartsWith("POLYGON((", StringComparison.OrdinalIgnoreCase))
         {
             isOpen = false;
-            coordsStr = wkt.Substring(9, wkt.Length - 11); // Remove "POLYGON((" and "))"
+            var coordsStr = str.Substring(9, str.Length - 11); // Remove "POLYGON((" and "))"
+            var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            // For closed paths, remove the last point if it's the same as the first (WKT convention)
+            var pointsToProcess = pointStrs;
+            if (pointStrs.Length > 1)
+            {
+                pointsToProcess = pointStrs.Take(pointStrs.Length - 1).ToArray();
+            }
+
+            foreach (var pointStr in pointsToProcess)
+            {
+                var coords = pointStr.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (coords.Length != 2)
+                {
+                    throw new FormatException($"Invalid WKT path format. Expected point coordinates, got: {pointStr}");
+                }
+
+                var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
+                var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+                points.Add((x, y));
+            }
         }
         else
         {
-            throw new FormatException(
-                $"Invalid WKT format for path. Expected 'LINESTRING(...)' or 'POLYGON((...))', got: {wkt}"
-            );
-        }
-
-        var pointStrs = coordsStr.Split(',', StringSplitOptions.RemoveEmptyEntries);
-
-        // For closed paths, remove the last point if it's the same as the first (WKT convention)
-        if (!isOpen && pointStrs.Length > 1)
-        {
-            pointStrs = pointStrs.Take(pointStrs.Length - 1).ToArray();
+            throw new FormatException($"Invalid path format. Expected '((x,y)...)' or WKT format, got: {str}");
         }
 
         // Create NpgsqlPoint array
@@ -181,21 +234,13 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
             throw new InvalidOperationException("Could not find appropriate constructor for NpgsqlPoint.");
         }
 
-        var points = Array.CreateInstance(pointType, pointStrs.Length);
+        var pointsArray = Array.CreateInstance(pointType, points.Count);
 
-        for (var i = 0; i < pointStrs.Length; i++)
+        for (var i = 0; i < points.Count; i++)
         {
-            var coords = pointStrs[i].Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-            if (coords.Length != 2)
-            {
-                throw new FormatException($"Invalid coordinate format in path WKT at point {i}.");
-            }
-
-            var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
-            var y = double.Parse(coords[1], CultureInfo.InvariantCulture);
+            var (x, y) = points[i];
             var point = pointCtor.Invoke(new object[] { x, y });
-            points.SetValue(point, i);
+            pointsArray.SetValue(point, i);
         }
 
         // Create NpgsqlPath using reflection
@@ -205,12 +250,13 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
             throw new InvalidOperationException("NpgsqlPath type not found. Ensure Npgsql package is referenced.");
         }
 
-        var pathCtor = pathType.GetConstructor(new[] { points.GetType(), typeof(bool) });
+        var arrayType = pointType.MakeArrayType();
+        var pathCtor = pathType.GetConstructor(new[] { arrayType, typeof(bool) });
         if (pathCtor == null)
         {
             throw new InvalidOperationException("Could not find appropriate constructor for NpgsqlPath.");
         }
 
-        return pathCtor.Invoke(new object[] { points, isOpen });
+        return pathCtor.Invoke(new object[] { pointsArray, isOpen });
     }
 }

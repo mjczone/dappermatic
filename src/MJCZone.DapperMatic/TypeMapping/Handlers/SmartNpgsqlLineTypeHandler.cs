@@ -75,31 +75,44 @@ public class SmartNpgsqlLineTypeHandler : SqlMapper.ITypeHandler
             return value;
         }
 
-        // Parse from extended WKT format (other providers)
-        var wkt = value.ToString() ?? string.Empty;
+        // Parse from string format (other providers)
+        var str = value.ToString() ?? string.Empty;
 
-        // Expected format: "LINE(a b c)"
-#pragma warning disable CA1865 // Use char overload (no StringComparison overload available for char)
-        if (
-            !wkt.StartsWith("LINE(", StringComparison.OrdinalIgnoreCase) || !wkt.EndsWith(")", StringComparison.Ordinal)
-        )
-#pragma warning restore CA1865
+        double a, b, c;
+
+        // Try PostgreSQL native format: "{a,b,c}"
+        if (str.StartsWith('{') && str.EndsWith('}'))
         {
-            throw new FormatException($"Invalid WKT format for line. Expected 'LINE(a b c)', got: {wkt}");
+            var content = str.Substring(1, str.Length - 2); // Remove "{" and "}"
+            var coeffs = content.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+            if (coeffs.Length != 3)
+            {
+                throw new FormatException($"Invalid PostgreSQL line format. Expected '{{a,b,c}}', got: {str}");
+            }
+
+            a = double.Parse(coeffs[0], CultureInfo.InvariantCulture);
+            b = double.Parse(coeffs[1], CultureInfo.InvariantCulture);
+            c = double.Parse(coeffs[2], CultureInfo.InvariantCulture);
         }
-
-        var coeffs = wkt.Substring(5, wkt.Length - 6).Split(' ', StringSplitOptions.RemoveEmptyEntries);
-
-        if (coeffs.Length != 3)
+        // Try extended WKT format: "LINE(a b c)"
+        else if (str.StartsWith("LINE(", StringComparison.OrdinalIgnoreCase) && str.EndsWith(')'))
         {
-            throw new FormatException(
-                $"Invalid WKT format for line. Expected 3 coefficients (a b c), got: {coeffs.Length}"
-            );
-        }
+            var coeffs = str.Substring(5, str.Length - 6).Split(' ', StringSplitOptions.RemoveEmptyEntries);
 
-        var a = double.Parse(coeffs[0], CultureInfo.InvariantCulture);
-        var b = double.Parse(coeffs[1], CultureInfo.InvariantCulture);
-        var c = double.Parse(coeffs[2], CultureInfo.InvariantCulture);
+            if (coeffs.Length != 3)
+            {
+                throw new FormatException($"Invalid WKT line format. Expected 'LINE(a b c)', got: {str}");
+            }
+
+            a = double.Parse(coeffs[0], CultureInfo.InvariantCulture);
+            b = double.Parse(coeffs[1], CultureInfo.InvariantCulture);
+            c = double.Parse(coeffs[2], CultureInfo.InvariantCulture);
+        }
+        else
+        {
+            throw new FormatException($"Invalid line format. Expected '{{a,b,c}}' or 'LINE(a b c)', got: {str}");
+        }
 
         // Create NpgsqlLine using reflection
         var lineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");

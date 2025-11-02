@@ -246,7 +246,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// This method should be called in the constructor of the derived class to register the converters.
     /// Calls all registration methods in sequence to ensure complete type coverage.
     /// </remarks>
-    protected virtual void RegisterDotnetTypeToSqlTypeConverters()
+    protected void RegisterDotnetTypeToSqlTypeConverters()
     {
         // Register standard types supported by all providers
         RegisterStandardTypes();
@@ -469,43 +469,10 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     #region Standard Registration Implementation
 
     /// <summary>
-    /// Registers converters for NetTopologySuite geometry types.
-    /// All providers must implement this to handle NTS types appropriately.
-    /// </summary>
-    protected abstract void RegisterNetTopologySuiteTypes();
-
-    /// <summary>
-    /// Registers converters for SQL Server-specific types (SqlGeometry, SqlGeography, SqlHierarchyId).
-    /// All providers must implement this to handle SQL Server types appropriately.
-    /// </summary>
-    protected abstract void RegisterSqlServerTypes();
-
-    /// <summary>
-    /// Registers converters for MySQL-specific types (MySqlGeometry from both MySql.Data and MySqlConnector).
-    /// All providers must implement this to handle MySQL types appropriately.
-    /// </summary>
-    protected abstract void RegisterMySqlTypes();
-
-    /// <summary>
-    /// Registers converters for Npgsql-specific types (NpgsqlPoint, NpgsqlInet, NpgsqlRange, etc.).
-    /// All providers must implement this to handle Npgsql types appropriately.
-    /// </summary>
-    protected abstract void RegisterNpgsqlTypes();
-
-    /// <summary>
-    /// Allows providers to register additional provider-specific converters.
-    /// Override this method to add converters that don't fit the standard patterns.
-    /// </summary>
-    protected virtual void RegisterProviderSpecificConverters()
-    {
-        // Default implementation does nothing
-    }
-
-    /// <summary>
     /// Registers standard .NET types to SQL type converters using common patterns.
     /// This method provides the shared registration logic that all providers use identically.
     /// </summary>
-    private void RegisterStandardTypes()
+    protected virtual void RegisterStandardTypes()
     {
         var booleanConverter = GetBooleanToSqlTypeConverter();
         var numericConverter = GetNumericToSqlTypeConverter();
@@ -567,6 +534,39 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
         // Network type affinity (standard System.Net types)
         RegisterConverterForTypes(networkTypeConverter, TypeMappingHelpers.GetStandardNetworkTypes());
+    }
+
+    /// <summary>
+    /// Registers converters for NetTopologySuite geometry types.
+    /// All providers must implement this to handle NTS types appropriately.
+    /// </summary>
+    protected abstract void RegisterNetTopologySuiteTypes();
+
+    /// <summary>
+    /// Registers converters for SQL Server-specific types (SqlGeometry, SqlGeography, SqlHierarchyId).
+    /// All providers must implement this to handle SQL Server types appropriately.
+    /// </summary>
+    protected abstract void RegisterSqlServerTypes();
+
+    /// <summary>
+    /// Registers converters for MySQL-specific types (MySqlGeometry from both MySql.Data and MySqlConnector).
+    /// All providers must implement this to handle MySQL types appropriately.
+    /// </summary>
+    protected abstract void RegisterMySqlTypes();
+
+    /// <summary>
+    /// Registers converters for Npgsql-specific types (NpgsqlPoint, NpgsqlInet, NpgsqlRange, etc.).
+    /// All providers must implement this to handle Npgsql types appropriately.
+    /// </summary>
+    protected abstract void RegisterNpgsqlTypes();
+
+    /// <summary>
+    /// Allows providers to register additional provider-specific converters.
+    /// Override this method to add converters that don't fit the standard patterns.
+    /// </summary>
+    protected virtual void RegisterProviderSpecificConverters()
+    {
+        // Default implementation does nothing
     }
 
     #endregion

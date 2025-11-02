@@ -40,22 +40,39 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
     /// <inheritdoc/>
     protected override void RegisterNetTopologySuiteTypes()
     {
-        // SQLite stores all geometry types as TEXT (WKT format)
-        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        // NetTopologySuite types map to PostgreSQL/PostGIS geometry types
+        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var ntsGeometryCollectionType = Type.GetType(
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
         );
 
-        RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetStandardGeometryTypes());
+        var lobTypeConverter = TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false);
+
+        // SQLite stores all geometry types as TEXT (WKT format)
+        RegisterConverterForTypes(
+            new DotnetTypeToSqlTypeConverter(d => lobTypeConverter),
+            [
+                ntsGeometryType,
+                ntsPointType,
+                ntsLineStringType,
+                ntsPolygonType,
+                ntsMultiPointType,
+                ntsMultiLineStringType,
+                ntsMultiPolygonType,
+                ntsGeometryCollectionType,
+            ]
+        );
     }
 
     /// <inheritdoc/>
     protected override void RegisterSqlServerTypes()
     {
-        // SQLite stores all SQL Server types as TEXT
-        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
-        );
-
         var sqlServerTypes = new[]
         {
             Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types"),
@@ -65,18 +82,26 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
             .Where(t => t != null)
             .ToArray();
 
+        // SQLite stores all SQL Server types as TEXT
+        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+            TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
+        );
+
         RegisterConverterForTypes(textConverter, sqlServerTypes!);
     }
 
     /// <inheritdoc/>
     protected override void RegisterMySqlTypes()
     {
+        var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data");
+        var sqlMySqlConnectorGeometryType = Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
+
         // SQLite stores all MySQL geometry types as TEXT
-        var textConverter = new DotnetTypeToSqlTypeConverter(d =>
+        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
             TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false)
         );
 
-        RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetMySqlGeometryTypes());
+        RegisterConverterForTypes(mySqlGeometryConverter, [sqlMySqlDataGeometryType, sqlMySqlConnectorGeometryType]);
     }
 
     /// <inheritdoc/>
