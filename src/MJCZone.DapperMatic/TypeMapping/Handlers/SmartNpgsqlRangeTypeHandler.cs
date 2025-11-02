@@ -107,6 +107,14 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
                 {
                     return ConvertRangeType(value, valueType);
                 }
+
+                // Handle DateTime <-> DateOnly conversion for Npgsql 9.x compatibility
+                // Npgsql 9.x returns NpgsqlRange<DateTime> for daterange but we expect DateOnly
+                if ((valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateOnly)) ||
+                    (valueInnerType == typeof(DateOnly) && typeof(T) == typeof(DateTime)))
+                {
+                    return ConvertRangeType(value, valueType);
+                }
             }
 
             // Type mismatch we can't handle - return as-is and let Dapper deal with it
@@ -278,11 +286,11 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
     }
 
     /// <summary>
-    /// Converts between DateTime and DateTimeOffset types.
-    /// Used for handling Npgsql 9.x compatibility where tstzrange returns DateTime
-    /// but we expect DateTimeOffset.
+    /// Converts between DateTime, DateTimeOffset, and DateOnly types.
+    /// Used for handling Npgsql 9.x compatibility where range types return DateTime
+    /// but we expect DateTimeOffset or DateOnly.
     /// </summary>
-    /// <typeparam name="TTarget">The target type (DateTime or DateTimeOffset).</typeparam>
+    /// <typeparam name="TTarget">The target type (DateTime, DateTimeOffset, or DateOnly).</typeparam>
     /// <param name="value">The value to convert.</param>
     /// <returns>The converted value.</returns>
     private static TTarget ConvertDateTimeValue<TTarget>(object value)
@@ -301,6 +309,19 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
         {
             // Convert DateTimeOffset to DateTime
             return (TTarget)(object)dto.DateTime;
+        }
+
+        if (value is DateTime dt2 && typeof(TTarget) == typeof(DateOnly))
+        {
+            // Convert DateTime to DateOnly
+            // PostgreSQL date type only stores the date part, so extract it
+            return (TTarget)(object)DateOnly.FromDateTime(dt2);
+        }
+
+        if (value is DateOnly dateOnly && typeof(TTarget) == typeof(DateTime))
+        {
+            // Convert DateOnly to DateTime (use midnight for time component)
+            return (TTarget)(object)dateOnly.ToDateTime(TimeOnly.MinValue);
         }
 
         throw new InvalidOperationException(

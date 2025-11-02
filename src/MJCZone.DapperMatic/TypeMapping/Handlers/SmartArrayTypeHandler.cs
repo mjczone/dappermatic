@@ -76,6 +76,42 @@ public class SmartArrayTypeHandler<T> : SqlMapper.TypeHandler<T[]>
             return array;
         }
 
+        // Handle DateTime[] ↔ DateTimeOffset[] conversion for Npgsql 9.x compatibility
+        // Npgsql 9.x returns DateTime[] for timestamptz[] but we expect DateTimeOffset[]
+        if (value is DateTime[] dateTimeArray && typeof(T) == typeof(DateTimeOffset))
+        {
+            return (T[])(object)ConvertDateTimeArray<DateTime, DateTimeOffset>(dateTimeArray);
+        }
+
+        if (value is DateTimeOffset[] dateTimeOffsetArray && typeof(T) == typeof(DateTime))
+        {
+            return (T[])(object)ConvertDateTimeArray<DateTimeOffset, DateTime>(dateTimeOffsetArray);
+        }
+
+        // Handle DateTime[] ↔ DateOnly[] conversion for Npgsql 9.x compatibility
+        // Npgsql 9.x returns DateTime[] for date[] but we expect DateOnly[]
+        if (value is DateTime[] dateTimeArray2 && typeof(T) == typeof(DateOnly))
+        {
+            return (T[])(object)ConvertDateTimeArray<DateTime, DateOnly>(dateTimeArray2);
+        }
+
+        if (value is DateOnly[] dateOnlyArray && typeof(T) == typeof(DateTime))
+        {
+            return (T[])(object)ConvertDateTimeArray<DateOnly, DateTime>(dateOnlyArray);
+        }
+
+        // Handle TimeSpan[] ↔ TimeOnly[] conversion for Npgsql 9.x compatibility
+        // Npgsql 9.x returns TimeSpan[] for time[] but we expect TimeOnly[]
+        if (value is TimeSpan[] timeSpanArray && typeof(T) == typeof(TimeOnly))
+        {
+            return (T[])(object)ConvertTimeArray<TimeSpan, TimeOnly>(timeSpanArray);
+        }
+
+        if (value is TimeOnly[] timeOnlyArray && typeof(T) == typeof(TimeSpan))
+        {
+            return (T[])(object)ConvertTimeArray<TimeOnly, TimeSpan>(timeOnlyArray);
+        }
+
         // Deserialize from JSON (other providers)
         var jsonString = value.ToString();
         if (string.IsNullOrWhiteSpace(jsonString))
@@ -84,5 +120,99 @@ public class SmartArrayTypeHandler<T> : SqlMapper.TypeHandler<T[]>
         }
 
         return JsonSerializer.Deserialize<T[]>(jsonString);
+    }
+
+    /// <summary>
+    /// Converts array elements between DateTime, DateTimeOffset, and DateOnly types.
+    /// Used for handling Npgsql 9.x compatibility where arrays return DateTime[]
+    /// but we expect DateTimeOffset[] or DateOnly[].
+    /// </summary>
+    /// <typeparam name="TSource">The source array element type.</typeparam>
+    /// <typeparam name="TTarget">The target array element type.</typeparam>
+    /// <param name="sourceArray">The source array to convert.</param>
+    /// <returns>The converted array with target element type.</returns>
+    private static TTarget[] ConvertDateTimeArray<TSource, TTarget>(TSource[] sourceArray)
+    {
+        var result = new TTarget[sourceArray.Length];
+
+        for (int i = 0; i < sourceArray.Length; i++)
+        {
+            var sourceValue = sourceArray[i];
+
+            // DateTime → DateTimeOffset
+            if (sourceValue is DateTime dt && typeof(TTarget) == typeof(DateTimeOffset))
+            {
+                // PostgreSQL timestamptz stores UTC, treat unspecified as UTC
+                var utcDateTime = dt.Kind == DateTimeKind.Unspecified
+                    ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
+                    : dt;
+                result[i] = (TTarget)(object)new DateTimeOffset(utcDateTime);
+            }
+            // DateTimeOffset → DateTime
+            else if (sourceValue is DateTimeOffset dto && typeof(TTarget) == typeof(DateTime))
+            {
+                result[i] = (TTarget)(object)dto.DateTime;
+            }
+            // DateTime → DateOnly
+            else if (sourceValue is DateTime dt2 && typeof(TTarget) == typeof(DateOnly))
+            {
+                // PostgreSQL date type only stores the date part, extract it
+                result[i] = (TTarget)(object)DateOnly.FromDateTime(dt2);
+            }
+            // DateOnly → DateTime
+            else if (sourceValue is DateOnly dateOnly && typeof(TTarget) == typeof(DateTime))
+            {
+                // Convert DateOnly to DateTime (use midnight for time component)
+                result[i] = (TTarget)(object)dateOnly.ToDateTime(TimeOnly.MinValue);
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot convert {typeof(TSource).Name}[] to {typeof(TTarget).Name}[]"
+                );
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Converts array elements between TimeSpan and TimeOnly types.
+    /// Used for handling Npgsql 9.x compatibility where time[] returns TimeSpan[]
+    /// but we expect TimeOnly[].
+    /// </summary>
+    /// <typeparam name="TSource">The source array element type.</typeparam>
+    /// <typeparam name="TTarget">The target array element type.</typeparam>
+    /// <param name="sourceArray">The source array to convert.</param>
+    /// <returns>The converted array with target element type.</returns>
+    private static TTarget[] ConvertTimeArray<TSource, TTarget>(TSource[] sourceArray)
+    {
+        var result = new TTarget[sourceArray.Length];
+
+        for (int i = 0; i < sourceArray.Length; i++)
+        {
+            var sourceValue = sourceArray[i];
+
+            // TimeSpan → TimeOnly
+            if (sourceValue is TimeSpan ts && typeof(TTarget) == typeof(TimeOnly))
+            {
+                // PostgreSQL time type stores time of day, convert from TimeSpan
+                result[i] = (TTarget)(object)TimeOnly.FromTimeSpan(ts);
+            }
+            // TimeOnly → TimeSpan
+            else if (sourceValue is TimeOnly to && typeof(TTarget) == typeof(TimeSpan))
+            {
+                // Convert TimeOnly to TimeSpan
+                result[i] = (TTarget)(object)to.ToTimeSpan();
+            }
+            else
+            {
+                throw new InvalidOperationException(
+                    $"Cannot convert {typeof(TSource).Name}[] to {typeof(TTarget).Name}[]"
+                );
+            }
+        }
+
+        return result;
     }
 }

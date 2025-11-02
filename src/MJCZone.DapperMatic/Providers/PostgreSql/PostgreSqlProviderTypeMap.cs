@@ -1005,15 +1005,12 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         {
             switch (d.BaseTypeName)
             {
-                // Change this to DateOnly when Npgsql 10+ comes out
+                // Using DateOnly for semantic correctness
+                // SmartNpgsqlRangeTypeHandler will convert from DateTime (Npgsql 9.x) to DateOnly automatically
                 case PostgreSqlTypes.sql_datemultirange:
-                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTime)).MakeArrayType());
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)).MakeArrayType());
                 case PostgreSqlTypes.sql_daterange:
-                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTime)));
-                // case PostgreSqlTypes.sql_datemultirange:
-                //     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)).MakeArrayType());
-                // case PostgreSqlTypes.sql_daterange:
-                //     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)));
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)));
                 case PostgreSqlTypes.sql_int4multirange:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(int)).MakeArrayType());
                 case PostgreSqlTypes.sql_int4range:

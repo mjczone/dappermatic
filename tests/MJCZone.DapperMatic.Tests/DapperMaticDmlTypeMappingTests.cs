@@ -1774,6 +1774,20 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
     protected virtual async Task Should_support_provider_specific_spatial_types_with_cross_provider_fallback_Async()
     {
         using var db = await OpenConnectionAsync();
+
+        if (db.GetDbProviderType() == DbProviderType.PostgreSql)
+        {
+            // If PostGIS is not installed, skip the test
+            var postgisInstalled = await db.ExecuteScalarAsync<bool>(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')"
+            );
+            if (!postgisInstalled)
+            {
+                Output.WriteLine("PostGIS extension not installed, skipping test");
+                return;
+            }
+        }
+
         await InitFreshSchemaAsync(db, null);
 
         // Initialize DapperMatic type mapping with provider-specific spatial handlers
@@ -2260,9 +2274,7 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         public NpgsqlTypes.NpgsqlRange<DateTime>? DateTimeRange { get; set; }
 
         [DmColumn("dateonly_range")]
-        public NpgsqlTypes.NpgsqlRange<DateTime>? DateOnlyRange { get; set; }
-        // This will be supported when Npgsql adds support for DateOnly ranges in version 10+
-        // public NpgsqlTypes.NpgsqlRange<DateOnly>? DateOnlyRange { get; set; }
+        public NpgsqlTypes.NpgsqlRange<DateOnly>? DateOnlyRange { get; set; }
 
         [DmColumn("datetimeoffset_range")]
         public NpgsqlTypes.NpgsqlRange<DateTimeOffset>? DateTimeOffsetRange { get; set; }

@@ -264,12 +264,12 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "POLYGON", "BOX", "TEXT", false, null, null, null, false, null, "POLYGON")]
     [InlineData(typeof(NpgsqlInet), "VARCHAR(45)", "VARCHAR(45)", "INET", "VARCHAR(45)", false, 45, null, null, false, null, "VARCHAR(45)")] // Use standard VARCHAR for IPs
     [InlineData(typeof(NpgsqlCidr), "VARCHAR(43)", "VARCHAR(43)", "CIDR", "VARCHAR(43)", false, 43, null, null, false, null, "VARCHAR(43)")] // Use standard VARCHAR for CIDRs
-    [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "JSON", "DATERANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<int>), "VARCHAR(MAX)", "JSON", "INT4RANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<long>), "VARCHAR(MAX)", "JSON", "INT8RANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<decimal>), "VARCHAR(MAX)", "JSON", "NUMRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTime>), "VARCHAR(MAX)", "JSON", "TSRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTimeOffset>), "VARCHAR(MAX)", "JSON", "TSTZRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "TEXT(65535)", "DATERANGE", "TEXT")]
+    [InlineData(typeof(NpgsqlRange<int>), "VARCHAR(MAX)", "TEXT(65535)", "INT4RANGE", "TEXT")]
+    [InlineData(typeof(NpgsqlRange<long>), "VARCHAR(MAX)", "TEXT(65535)", "INT8RANGE", "TEXT")]
+    [InlineData(typeof(NpgsqlRange<decimal>), "VARCHAR(MAX)", "TEXT(65535)", "NUMRANGE", "TEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTime>), "VARCHAR(MAX)", "TEXT(65535)", "TSRANGE", "TEXT")]
+    [InlineData(typeof(NpgsqlRange<DateTimeOffset>), "VARCHAR(MAX)", "TEXT(65535)", "TSTZRANGE", "TEXT")]
     [InlineData(typeof(NpgsqlRange<DateOnly>[]), "VARCHAR(MAX)", "JSON", "DATEMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
     [InlineData(typeof(NpgsqlRange<int>[]), "VARCHAR(MAX)", "JSON", "INT4MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
     [InlineData(typeof(NpgsqlRange<long>[]), "VARCHAR(MAX)", "JSON", "INT8MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
@@ -646,7 +646,7 @@ public abstract partial class DatabaseMethodsTests
                         // case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
                         case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;
                         case "date[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateOnly[])); break;
-                        case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateTime>)); break; // Npgsql 9.x returns DateTime, not DateOnly
+                        case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
                         case "double precision": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
                         case "double precision[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
                         case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
