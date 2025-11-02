@@ -93,7 +93,10 @@ public class SmartNpgsqlLSegTypeHandler : SqlMapper.ITypeHandler
         // Parse from string format (other providers)
         var str = value.ToString() ?? string.Empty;
 
-        double x1, y1, x2, y2;
+        double x1,
+            y1,
+            x2,
+            y2;
 
         // Try PostgreSQL native format: "[(x1,y1),(x2,y2)]"
         if (str.StartsWith('[') && str.EndsWith(']'))
@@ -150,7 +153,9 @@ public class SmartNpgsqlLSegTypeHandler : SqlMapper.ITypeHandler
         }
         else
         {
-            throw new FormatException($"Invalid lseg format. Expected '[(x1,y1),(x2,y2)]' or 'LINESTRING(x1 y1, x2 y2)', got: {str}");
+            throw new FormatException(
+                $"Invalid lseg format. Expected '[(x1,y1),(x2,y2)]' or 'LINESTRING(x1 y1, x2 y2)', got: {str}"
+            );
         }
 
         // Create NpgsqlPoint instances for start and end

@@ -132,7 +132,9 @@ public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
 
                 if (coords.Length != 2)
                 {
-                    throw new FormatException($"Invalid PostgreSQL polygon format. Expected point coordinates, got: {part}");
+                    throw new FormatException(
+                        $"Invalid PostgreSQL polygon format. Expected point coordinates, got: {part}"
+                    );
                 }
 
                 var x = double.Parse(coords[0], CultureInfo.InvariantCulture);
@@ -159,7 +161,9 @@ public class SmartNpgsqlPolygonTypeHandler : SqlMapper.ITypeHandler
 
                 if (coords.Length != 2)
                 {
-                    throw new FormatException($"Invalid WKT polygon format. Expected point coordinates, got: {pointStr}");
+                    throw new FormatException(
+                        $"Invalid WKT polygon format. Expected point coordinates, got: {pointStr}"
+                    );
                 }
 
                 var x = double.Parse(coords[0], CultureInfo.InvariantCulture);

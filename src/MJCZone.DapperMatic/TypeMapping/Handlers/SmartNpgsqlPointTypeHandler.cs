@@ -77,7 +77,8 @@ public class SmartNpgsqlPointTypeHandler : SqlMapper.ITypeHandler
         // Parse from string format (other providers)
         var str = value.ToString() ?? string.Empty;
 
-        double x, y;
+        double x,
+            y;
 
         // Try PostgreSQL native format: "(x,y)"
         if (str.StartsWith('(') && str.EndsWith(')'))

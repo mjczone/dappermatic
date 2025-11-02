@@ -78,7 +78,9 @@ public class SmartNpgsqlLineTypeHandler : SqlMapper.ITypeHandler
         // Parse from string format (other providers)
         var str = value.ToString() ?? string.Empty;
 
-        double a, b, c;
+        double a,
+            b,
+            c;
 
         // Try PostgreSQL native format: "{a,b,c}"
         if (str.StartsWith('{') && str.EndsWith('}'))

@@ -143,9 +143,7 @@ public class SmartArrayTypeHandler<T> : SqlMapper.TypeHandler<T[]>
             if (sourceValue is DateTime dt && typeof(TTarget) == typeof(DateTimeOffset))
             {
                 // PostgreSQL timestamptz stores UTC, treat unspecified as UTC
-                var utcDateTime = dt.Kind == DateTimeKind.Unspecified
-                    ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-                    : dt;
+                var utcDateTime = dt.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(dt, DateTimeKind.Utc) : dt;
                 result[i] = (TTarget)(object)new DateTimeOffset(utcDateTime);
             }
             // DateTimeOffset → DateTime

@@ -146,8 +146,10 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
         List<(double x, double y)> points = new();
 
         // Try PostgreSQL native format: "((x1,y1),(x2,y2),...)" or "[(x1,y1),(x2,y2),...]" (open path with brackets)
-        if ((str.StartsWith('(') && str.EndsWith(')') && str.Length > 2 && str[1] == '(') ||
-            (str.StartsWith('[') && str.EndsWith(']')))
+        if (
+            (str.StartsWith('(') && str.EndsWith(')') && str.Length > 2 && str[1] == '(')
+            || (str.StartsWith('[') && str.EndsWith(']'))
+        )
         {
             // Open paths use [] brackets, closed paths use () parentheses
             isOpen = str.StartsWith('[');
@@ -162,7 +164,9 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
 
                 if (coords.Length != 2)
                 {
-                    throw new FormatException($"Invalid PostgreSQL path format. Expected point coordinates, got: {part}");
+                    throw new FormatException(
+                        $"Invalid PostgreSQL path format. Expected point coordinates, got: {part}"
+                    );
                 }
 
                 var x = double.Parse(coords[0], CultureInfo.InvariantCulture);

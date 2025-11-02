@@ -89,7 +89,9 @@ public class SmartNpgsqlCircleTypeHandler : SqlMapper.ITypeHandler
         // Parse from string format (other providers)
         var str = value.ToString() ?? string.Empty;
 
-        double x, y, radius;
+        double x,
+            y,
+            radius;
 
         // Try PostgreSQL native format: "<(x,y),r>"
         if (str.StartsWith('<') && str.EndsWith('>'))
@@ -138,7 +140,9 @@ public class SmartNpgsqlCircleTypeHandler : SqlMapper.ITypeHandler
         }
         else
         {
-            throw new FormatException($"Invalid circle format. Expected '<(x,y),r>' or 'CIRCLE(x y, radius)', got: {str}");
+            throw new FormatException(
+                $"Invalid circle format. Expected '<(x,y),r>' or 'CIRCLE(x y, radius)', got: {str}"
+            );
         }
 
         // Create NpgsqlPoint for center

@@ -94,7 +94,10 @@ public class SmartNpgsqlBoxTypeHandler : SqlMapper.ITypeHandler
         // Parse from string format (other providers)
         var str = value.ToString() ?? string.Empty;
 
-        double x1, y1, x2, y2;
+        double x1,
+            y1,
+            x2,
+            y2;
 
         // Try PostgreSQL native format: "(x1,y1),(x2,y2)"
         if (str.Contains("),(", StringComparison.Ordinal))
@@ -130,7 +133,9 @@ public class SmartNpgsqlBoxTypeHandler : SqlMapper.ITypeHandler
 
             if (pointStrs.Length < 4)
             {
-                throw new FormatException($"Invalid WKT polygon format for box. Expected at least 4 points, got: {str}");
+                throw new FormatException(
+                    $"Invalid WKT polygon format for box. Expected at least 4 points, got: {str}"
+                );
             }
 
             // Extract first point (lower-left) and third point (upper-right)

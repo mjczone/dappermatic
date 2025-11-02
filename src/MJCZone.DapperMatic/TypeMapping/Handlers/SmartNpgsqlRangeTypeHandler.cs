@@ -102,16 +102,20 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
 
                 // Handle DateTime <-> DateTimeOffset conversion for Npgsql 9.x compatibility
                 // Npgsql 9.x returns NpgsqlRange<DateTime> for both tsrange and tstzrange
-                if ((valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateTimeOffset)) ||
-                    (valueInnerType == typeof(DateTimeOffset) && typeof(T) == typeof(DateTime)))
+                if (
+                    (valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateTimeOffset))
+                    || (valueInnerType == typeof(DateTimeOffset) && typeof(T) == typeof(DateTime))
+                )
                 {
                     return ConvertRangeType(value, valueType);
                 }
 
                 // Handle DateTime <-> DateOnly conversion for Npgsql 9.x compatibility
                 // Npgsql 9.x returns NpgsqlRange<DateTime> for daterange but we expect DateOnly
-                if ((valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateOnly)) ||
-                    (valueInnerType == typeof(DateOnly) && typeof(T) == typeof(DateTime)))
+                if (
+                    (valueInnerType == typeof(DateTime) && typeof(T) == typeof(DateOnly))
+                    || (valueInnerType == typeof(DateOnly) && typeof(T) == typeof(DateTime))
+                )
                 {
                     return ConvertRangeType(value, valueType);
                 }
@@ -139,9 +143,7 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
             var parseMethod = rangeType.GetMethod("Parse", new[] { typeof(string) });
             if (parseMethod == null)
             {
-                throw new InvalidOperationException(
-                    $"Could not find Parse method on NpgsqlRange<{typeof(T).Name}>."
-                );
+                throw new InvalidOperationException($"Could not find Parse method on NpgsqlRange<{typeof(T).Name}>.");
             }
 
             return parseMethod.Invoke(null, new object[] { str });
@@ -299,9 +301,7 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
         {
             // Convert DateTime to DateTimeOffset
             // PostgreSQL timestamptz stores UTC, so treat unspecified as UTC
-            var utcDateTime = dt.Kind == DateTimeKind.Unspecified
-                ? DateTime.SpecifyKind(dt, DateTimeKind.Utc)
-                : dt;
+            var utcDateTime = dt.Kind == DateTimeKind.Unspecified ? DateTime.SpecifyKind(dt, DateTimeKind.Utc) : dt;
             return (TTarget)(object)new DateTimeOffset(utcDateTime);
         }
 
@@ -324,8 +324,6 @@ public class SmartNpgsqlRangeTypeHandler<T> : SqlMapper.ITypeHandler
             return (TTarget)(object)dateOnly.ToDateTime(TimeOnly.MinValue);
         }
 
-        throw new InvalidOperationException(
-            $"Cannot convert {value.GetType().Name} to {typeof(TTarget).Name}"
-        );
+        throw new InvalidOperationException($"Cannot convert {value.GetType().Name} to {typeof(TTarget).Name}");
     }
 }
