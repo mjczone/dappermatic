@@ -3,14 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Collections;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Numerics;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Xml.Linq;
 using MJCZone.DapperMatic.Converters;
 using MJCZone.DapperMatic.Providers.Base;
 
@@ -132,44 +125,6 @@ namespace MJCZone.DapperMatic.Providers.MySql
         }
 
         /// <inheritdoc/>
-        protected override void RegisterSqlServerTypes()
-        {
-            // SQL Server geometry types map to MySQL GEOMETRY
-            var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
-            var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
-            var sqlHierarchyIdType = Type.GetType(
-                "Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types"
-            );
-
-            if (sqlGeometryType != null)
-            {
-                RegisterConverter(
-                    sqlGeometryType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
-                    )
-                );
-            }
-
-            if (sqlGeographyType != null)
-            {
-                RegisterConverter(
-                    sqlGeographyType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
-                    )
-                );
-            }
-
-            if (sqlHierarchyIdType != null)
-            {
-                var mySqlHierarchyIdType = GetProviderTypeMapping()
-                    .CreateTextType(new DotnetTypeDescriptor(typeof(string), length: -1, isUnicode: false));
-                RegisterConverter(sqlHierarchyIdType, new DotnetTypeToSqlTypeConverter(d => mySqlHierarchyIdType));
-            }
-        }
-
-        /// <inheritdoc/>
         protected override void RegisterMySqlTypes()
         {
             var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data");
@@ -184,109 +139,6 @@ namespace MJCZone.DapperMatic.Providers.MySql
                 mySqlGeometryConverter,
                 [sqlMySqlDataGeometryType, sqlMySqlConnectorGeometryType]
             );
-        }
-
-        /// <inheritdoc/>
-        protected override void RegisterNpgsqlTypes()
-        {
-            // PostgreSQL geometric types → TEXT (stored as PostgreSQL text representation)
-            // Note: MySQL GEOMETRY types require specific binary formats incompatible with Npgsql's text format
-            // Using TEXT storage for consistency with SQL Server (VARCHAR) and SQLite (TEXT)
-            var npgsqlGeometryTypes = new[]
-            {
-                Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
-            }
-                .Where(t => t != null)
-                .ToArray();
-
-            var npgsqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
-                TypeMappingHelpers.CreateLobType(MySqlTypes.sql_text, isUnicode: false)
-            );
-            RegisterConverterForTypes(npgsqlGeometryConverter, npgsqlGeometryTypes!);
-
-            // PostgreSQL network types map to VARCHAR
-            var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
-            var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
-
-            if (npgsqlInetType != null)
-            {
-                RegisterConverter(
-                    npgsqlInetType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateStringType(MySqlTypes.sql_varchar, 45, isUnicode: false)
-                    )
-                );
-            }
-
-            if (npgsqlCidrType != null)
-            {
-                RegisterConverter(
-                    npgsqlCidrType,
-                    new DotnetTypeToSqlTypeConverter(d =>
-                        TypeMappingHelpers.CreateStringType(MySqlTypes.sql_varchar, 43, isUnicode: false)
-                    )
-                );
-            }
-
-            // PostgreSQL range and special types map to JSON
-            var npgsqlSpecialTypes = new[]
-            {
-                Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
-                Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
-            }
-                .Where(t => t != null)
-                .ToArray();
-
-            var npgsqlSpecialConverter = new DotnetTypeToSqlTypeConverter(d =>
-                TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false)
-            );
-            RegisterConverterForTypes(npgsqlSpecialConverter, npgsqlSpecialTypes!);
-
-            // PostgreSQL range arrays
-            var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
-            if (rangeType != null)
-            {
-                var rangeTypes = new[]
-                {
-                    typeof(DateOnly),
-                    typeof(int),
-                    typeof(long),
-                    typeof(decimal),
-                    typeof(DateTime),
-                    typeof(DateTimeOffset),
-                }
-                    .Select(t => rangeType.MakeGenericType(t))
-                    .ToArray();
-
-                var rangeArrayTypes = new[]
-                {
-                    typeof(DateOnly),
-                    typeof(int),
-                    typeof(long),
-                    typeof(decimal),
-                    typeof(DateTime),
-                    typeof(DateTimeOffset),
-                }
-                    .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
-                    .ToArray();
-
-                var rangeTypeConverter = GetProviderTypeMapping()
-                    .CreateTextType(new DotnetTypeDescriptor(typeof(string), length: -1, isUnicode: false));
-                RegisterConverterForTypes(new DotnetTypeToSqlTypeConverter(d => rangeTypeConverter), rangeTypes);
-
-                var rangeArrayConverter = new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false)
-                );
-                RegisterConverterForTypes(rangeArrayConverter, rangeArrayTypes);
-            }
         }
 
         /// <summary>

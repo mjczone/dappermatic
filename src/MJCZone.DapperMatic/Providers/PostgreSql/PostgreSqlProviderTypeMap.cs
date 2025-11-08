@@ -63,7 +63,9 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         {
             RegisterConverter(
                 ntsPointType,
-                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point))
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_point)
+                )
             );
         }
 
@@ -72,7 +74,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsLineStringType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_linestring)
                 )
             );
         }
@@ -82,7 +84,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsPolygonType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_polygon)
                 )
             );
         }
@@ -92,7 +94,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsMultiPointType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multipoint)
                 )
             );
         }
@@ -102,7 +104,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsMultiLineStringType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multilinestring)
                 )
             );
         }
@@ -112,7 +114,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsMultiPolygonType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multipolygon)
                 )
             );
         }
@@ -122,61 +124,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             RegisterConverter(
                 ntsGeometryCollectionType,
                 new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_collection)
                 )
             );
         }
-    }
-
-    /// <inheritdoc />
-    protected override void RegisterSqlServerTypes()
-    {
-        // SQL Server types map to PostgreSQL equivalents
-        var sqlGeometryType = Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types");
-        var sqlGeographyType = Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types");
-        var sqlHierarchyIdType = Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types");
-
-        if (sqlGeometryType != null)
-        {
-            RegisterConverter(
-                sqlGeometryType,
-                new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
-                )
-            );
-        }
-
-        if (sqlGeographyType != null)
-        {
-            RegisterConverter(
-                sqlGeographyType,
-                new DotnetTypeToSqlTypeConverter(d =>
-                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geography)
-                )
-            );
-        }
-
-        if (sqlHierarchyIdType != null)
-        {
-            RegisterConverter(
-                sqlHierarchyIdType,
-                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_ltree))
-            );
-        }
-    }
-
-    /// <inheritdoc />
-    protected override void RegisterMySqlTypes()
-    {
-        var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data");
-        var sqlMySqlConnectorGeometryType = Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
-
-        // MySQL geometry types map to PostgreSQL GEOMETRY
-        var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
-            TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
-        );
-
-        RegisterConverterForTypes(mySqlGeometryConverter, [sqlMySqlDataGeometryType, sqlMySqlConnectorGeometryType]);
     }
 
     /// <inheritdoc />
@@ -355,7 +306,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     protected override void RegisterSqlTypeToDotnetTypeConverters()
     {
         var booleanConverter = GetBooleanToDotnetTypeConverter();
-        var numericConverter = GetNumbericToDotnetTypeConverter();
+        var numericConverter = GetNumberToDotnetTypeConverter();
         var guidConverter = GetGuidToDotnetTypeConverter();
         var textConverter = GetTextToDotnetTypeConverter();
         var xmlConverter = GetXmlToDotnetTypeConverter();
@@ -587,7 +538,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         });
     }
 
-    private static SqlTypeToDotnetTypeConverter GetNumbericToDotnetTypeConverter()
+    private static SqlTypeToDotnetTypeConverter GetNumberToDotnetTypeConverter()
     {
         return new(d =>
         {

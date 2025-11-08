@@ -416,12 +416,55 @@ public partial class SqlServerMethods
                     }
                 }
 
+                // Construct full provider data type including length/precision/scale
+                var fullProviderDataType = tableColumn.data_type;
+                if (normalizedLength.HasValue)
+                {
+                    if (
+                        (normalizedLength.Value == -1 || normalizedLength.Value == int.MaxValue)
+                        && (
+                            tableColumn.data_type.Equals("varchar", StringComparison.OrdinalIgnoreCase)
+                            || tableColumn.data_type.Equals("nvarchar", StringComparison.OrdinalIgnoreCase)
+                            || tableColumn.data_type.Equals("varbinary", StringComparison.OrdinalIgnoreCase)
+                        )
+                    )
+                    {
+                        fullProviderDataType += "(max)";
+                    }
+                    else if (normalizedLength.Value > 0 && normalizedLength.Value != int.MaxValue)
+                    {
+                        fullProviderDataType += $"({normalizedLength.Value})";
+                    }
+                }
+                else if (tableColumn.numeric_precision.HasValue)
+                {
+                    // Skip precision for types that don't support it in SQL Server DDL
+                    var typeLower = tableColumn.data_type.ToLowerInvariant();
+                    var isIntegerType = typeLower is "tinyint" or "smallint" or "int" or "bigint" or "bit";
+                    var isMoneyType = typeLower is "money" or "smallmoney";
+                    var isFixedType = typeLower is "real" or "uniqueidentifier" or "xml" or "rowversion" or "timestamp";
+                    var isDateTimeWithoutPrecision = typeLower is "date" or "datetime" or "smalldatetime";
+
+                    if (!isIntegerType && !isMoneyType && !isFixedType && !isDateTimeWithoutPrecision)
+                    {
+                        if (tableColumn.numeric_scale.HasValue)
+                        {
+                            fullProviderDataType +=
+                                $"({tableColumn.numeric_precision.Value},{tableColumn.numeric_scale.Value})";
+                        }
+                        else
+                        {
+                            fullProviderDataType += $"({tableColumn.numeric_precision.Value})";
+                        }
+                    }
+                }
+
                 var column = new DmColumn(
                     tableColumn.schema_name,
                     tableColumn.table_name,
                     tableColumn.column_name,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string> { { ProviderType, tableColumn.data_type } },
+                    new Dictionary<DbProviderType, string> { { ProviderType, fullProviderDataType } },
                     normalizedLength,
                     tableColumn.numeric_precision,
                     tableColumn.numeric_scale,

@@ -174,12 +174,30 @@ internal static partial class SqliteSqlParser
                     normalizedLength = -1;
                 }
 
+                // Construct full provider data type including length/precision/scale
+                var fullColumnDataType = columnDataType;
+                if (length.HasValue)
+                {
+                    fullColumnDataType += $"({length.Value})";
+                }
+                else if (precision.HasValue)
+                {
+                    if (scale.HasValue)
+                    {
+                        fullColumnDataType += $"({precision.Value},{scale.Value})";
+                    }
+                    else
+                    {
+                        fullColumnDataType += $"({precision.Value})";
+                    }
+                }
+
                 var column = new DmColumn(
                     null,
                     tableName,
                     columnName,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string> { { DbProviderType.Sqlite, columnDataType } },
+                    new Dictionary<DbProviderType, string> { { DbProviderType.Sqlite, fullColumnDataType } },
                     normalizedLength,
                     precision,
                     scale

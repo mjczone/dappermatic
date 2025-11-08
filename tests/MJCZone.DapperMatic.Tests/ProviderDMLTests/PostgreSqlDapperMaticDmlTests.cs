@@ -5,11 +5,12 @@
 
 using System.Data;
 using Dapper;
+using MJCZone.DapperMatic.Tests.ProviderDDLTests;
 using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using Npgsql;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDMLTests;
 
 /// <summary>
 /// DapperMatic DML type mapping tests for PostgreSQL 15.

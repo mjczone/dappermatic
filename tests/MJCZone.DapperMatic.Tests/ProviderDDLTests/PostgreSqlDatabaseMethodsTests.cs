@@ -11,7 +11,7 @@ using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using Npgsql;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDDLTests;
 
 /// <summary>
 /// Testing Postgres 15

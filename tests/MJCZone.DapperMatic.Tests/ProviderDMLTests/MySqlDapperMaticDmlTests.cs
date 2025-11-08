@@ -4,11 +4,12 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
+using MJCZone.DapperMatic.Tests.ProviderDDLTests;
 using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using MySql.Data.MySqlClient;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDMLTests;
 
 /// <summary>
 /// DapperMatic DML type mapping tests for MySql 9.0 (9.4).

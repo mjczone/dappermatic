@@ -12,16 +12,16 @@ namespace MJCZone.DapperMatic.Providers.PostgreSql;
 /// <summary>
 /// PostgreSQL specific type mapping configuration.
 /// </summary>
-public class PostgreSqlTypeMapping : IProviderTypeMapping
+public class PostgreSqlTypeMapping : ProviderTypeMappingBase
 {
     /// <inheritdoc />
-    public string BooleanType => PostgreSqlTypes.sql_boolean;
+    public override string BooleanType => PostgreSqlTypes.sql_boolean;
 
     /// <inheritdoc />
-    public bool IsUnicodeProvider => true; // PostgreSQL uses Unicode by default
+    public override bool IsUnicodeProvider => true; // PostgreSQL uses Unicode by default
 
     /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } =
+    public override Dictionary<Type, string> NumericTypeMap { get; } =
         new()
         {
             { typeof(byte), PostgreSqlTypes.sql_smallint },
@@ -39,48 +39,19 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
         };
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateGuidType()
+    public override SqlTypeDescriptor CreateGuidType()
     {
         return TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_uuid);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
-    {
-        return TypeMappingHelpers.CreateStringType(
-            PostgreSqlTypes.sql_char,
-            length: 1,
-            isUnicode: false,
-            isFixedLength: true
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
-    {
-        // Support both -1 and int.MaxValue for backward compatibility
-        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
-        {
-            return TypeMappingHelpers.CreateLobType(PostgreSqlTypes.sql_text, isUnicode: false);
-        }
-
-        var sqlType = descriptor.IsFixedLength == true ? PostgreSqlTypes.sql_char : PostgreSqlTypes.sql_varchar;
-        return TypeMappingHelpers.CreateStringType(
-            sqlType,
-            descriptor.Length,
-            isUnicode: false,
-            descriptor.IsFixedLength.GetValueOrDefault(false)
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
     {
         return descriptor.DotnetType switch
         {
@@ -96,20 +67,20 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
     {
         // PostgreSQL uses bytea for all binary data regardless of length
         return TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_bytea);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_xml);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
     {
         return descriptor.DotnetType switch
         {
@@ -117,12 +88,51 @@ public class PostgreSqlTypeMapping : IProviderTypeMapping
             Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateSimpleType(
                 PostgreSqlTypes.sql_macaddr
             ),
-            _ => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? PostgreSqlTypes.sql_char : PostgreSqlTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(50),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
+            _ => CreateStringTypeInternal(
+                length: descriptor.Length.GetValueOrDefault(50),
+                isUnicode: descriptor.IsUnicode.GetValueOrDefault(false),
+                isFixedLength: descriptor.IsFixedLength.GetValueOrDefault(false)
             ),
+        };
+    }
+
+    /// <summary>
+    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
+    /// </summary>
+    /// <param name="length">The length, or null to use default.</param>
+    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
+    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
+    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
+    protected override SqlTypeDescriptor CreateStringTypeInternal(
+        int length,
+        bool isUnicode = false,
+        bool isFixedLength = false
+    )
+    {
+        // Fix the length value
+        if (length <= 0 && length != TypeMappingDefaults.MaxLength)
+        {
+            length = TypeMappingDefaults.DefaultStringLength;
+        }
+
+        string sqlType;
+        if (length == TypeMappingDefaults.MaxLength || length == int.MaxValue)
+        {
+            sqlType = PostgreSqlTypes.sql_text;
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = TypeMappingDefaults.MaxLength,
+                IsUnicode = isUnicode,
+                IsFixedLength = false,
+            };
+        }
+
+        sqlType = isFixedLength ? $"{PostgreSqlTypes.sql_char}({length})" : $"{PostgreSqlTypes.sql_varchar}({length})";
+        return new SqlTypeDescriptor(sqlType)
+        {
+            Length = length,
+            IsUnicode = isUnicode,
+            IsFixedLength = isFixedLength,
         };
     }
 }

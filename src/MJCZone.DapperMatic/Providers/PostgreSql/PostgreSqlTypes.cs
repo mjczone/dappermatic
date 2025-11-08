@@ -179,11 +179,53 @@ public static class PostgreSqlTypes
     /// <summary>Represents the PostgreSQL circle type.</summary>
     public const string sql_circle = "circle";
 
+    /// <summary>Represents the PostgreSQL geometry type.</summary>
+    public const string sql_geometry = "geometry";
+
+    /// <summary>Represents the PostgreSQL geometry point type.</summary>
+    public const string sql_geometry_point = "geometry(Point)";
+
+    /// <summary>Represents the PostgreSQL geometry linestring type.</summary>
+    public const string sql_geometry_linestring = "geometry(LineString)";
+
+    /// <summary>Represents the PostgreSQL geometry polygon type.</summary>
+    public const string sql_geometry_polygon = "geometry(Polygon)";
+
+    /// <summary>Represents the PostgreSQL geometry multipoint type.</summary>
+    public const string sql_geometry_multipoint = "geometry(MultiPoint)";
+
+    /// <summary>Represents the PostgreSQL geometry multilinestring type.</summary>
+    public const string sql_geometry_multilinestring = "geometry(MultiLineString)";
+
+    /// <summary>Represents the PostgreSQL geometry multipolygon type.</summary>
+    public const string sql_geometry_multipolygon = "geometry(MultiPolygon)";
+
+    /// <summary>Represents the PostgreSQL geometry collection type.</summary>
+    public const string sql_geometry_collection = "geometry(GeometryCollection)";
+
     /// <summary>Represents the PostgreSQL geography type.</summary>
     public const string sql_geography = "geography";
 
-    /// <summary>Represents the PostgreSQL geometry type.</summary>
-    public const string sql_geometry = "geometry";
+    /// <summary>Represents the PostgreSQL geography point type.</summary>
+    public const string sql_geography_point = "geography(Point)";
+
+    /// <summary>Represents the PostgreSQL geography linestring type.</summary>
+    public const string sql_geography_linestring = "geography(LineString)";
+
+    /// <summary>Represents the PostgreSQL geography polygon type.</summary>
+    public const string sql_geography_polygon = "geography(Polygon)";
+
+    /// <summary>Represents the PostgreSQL geography multipoint type.</summary>
+    public const string sql_geography_multipoint = "geography(MultiPoint)";
+
+    /// <summary>Represents the PostgreSQL geography multilinestring type.</summary>
+    public const string sql_geography_multilinestring = "geography(MultiLineString)";
+
+    /// <summary>Represents the PostgreSQL geography multipolygon type.</summary>
+    public const string sql_geography_multipolygon = "geography(MultiPolygon)";
+
+    /// <summary>Represents the PostgreSQL geography collection type.</summary>
+    public const string sql_geography_collection = "geography(GeometryCollection)";
 
     /// <summary>Represents the PostgreSQL line type.</summary>
     public const string sql_line = "line";

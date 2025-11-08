@@ -8,7 +8,7 @@ using System.Data.SqlClient;
 using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDDLTests;
 
 /// <summary>
 /// Testing SqlServer 2025 Linux (CU image)

@@ -416,21 +416,9 @@ public class TypeMappingConsistencyTests : TestBase
         Assert.Equal(10, decimalType.Precision);
         Assert.Equal(2, decimalType.Scale);
 
-        // Test string type creation
-        var stringType = TypeMappingHelpers.CreateStringType("varchar", 255);
-        Assert.Equal("varchar(255)", stringType.SqlTypeName);
-        Assert.Equal(255, stringType.Length);
-
         // Test simple type creation
         var simpleType = TypeMappingHelpers.CreateSimpleType("int");
         Assert.Equal("int", simpleType.SqlTypeName);
-
-        // Test GUID string type creation
-        var guidType = TypeMappingHelpers.CreateGuidStringType("char", false, true);
-        Assert.Equal("char(36)", guidType.SqlTypeName);
-        Assert.Equal(36, guidType.Length);
-        Assert.False(guidType.IsUnicode);
-        Assert.True(guidType.IsFixedLength);
     }
 
     [Fact]

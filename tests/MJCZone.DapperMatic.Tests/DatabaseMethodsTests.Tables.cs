@@ -39,7 +39,7 @@ public abstract partial class DatabaseMethodsTests
             tableName,
             [
                 new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
-                new DmColumn("name", typeof(string), isUnique: true),
+                new DmColumn("name", typeof(string), length: 255, isUnique: true),
             ]
         );
         var created = await db.CreateTableIfNotExistsAsync(table);

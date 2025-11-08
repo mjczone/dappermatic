@@ -22,6 +22,23 @@ internal static partial class ExtensionMethods
     private static readonly ConcurrentDictionary<Type, string> _friendlyNameCache = new();
 
     /// <summary>
+    /// Adds an item to the list if it does not already exist in the list.
+    /// </summary>
+    /// <typeparam name="T">The type of the list item.</typeparam>
+    /// <param name="list">The list to add the item to.</param>
+    /// <param name="item">The item to add.</param>
+    /// <returns>True if the item was added; otherwise, false.</returns>
+    public static bool AddIfNotExists<T>(this IList<T> list, T item)
+    {
+        if (!list.Contains(item))
+        {
+            list.Add(item);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
     /// Determines if the specified type is a struct.
     /// </summary>
     /// <param name="type">The type to check.</param>

@@ -8,7 +8,7 @@ using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using MySql.Data.MySqlClient;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDDLTests;
 
 /// <summary>
 /// Testing MySql 90

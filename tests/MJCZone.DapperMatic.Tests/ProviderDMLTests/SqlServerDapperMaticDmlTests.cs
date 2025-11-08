@@ -5,10 +5,11 @@
 
 using System.Data;
 using System.Data.SqlClient;
+using MJCZone.DapperMatic.Tests.ProviderDDLTests;
 using MJCZone.DapperMatic.Tests.ProviderFixtures;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDMLTests;
 
 /// <summary>
 /// DapperMatic DML type mapping tests for SqlServer 2022.

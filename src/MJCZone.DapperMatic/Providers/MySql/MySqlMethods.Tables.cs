@@ -461,7 +461,7 @@ public partial class MySqlMethods
                     tableColumn.table_name,
                     tableColumn.column_name,
                     dotnetTypeDescriptor.DotnetType,
-                    new Dictionary<DbProviderType, string> { { ProviderType, tableColumn.data_type } },
+                    new Dictionary<DbProviderType, string> { { ProviderType, tableColumn.data_type_complete } },
                     normalizedLength,
                     usePrecision,
                     tableColumn.numeric_scale,

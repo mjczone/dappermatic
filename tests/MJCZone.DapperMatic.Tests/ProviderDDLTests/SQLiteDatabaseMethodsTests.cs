@@ -7,7 +7,7 @@ using System.Data;
 using System.Data.SQLite;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDDLTests;
 
 public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseMethodsTests(output), IDisposable
 {

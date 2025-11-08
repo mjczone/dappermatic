@@ -417,11 +417,18 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <summary>
     /// Gets the text to SQL type converter using provider-specific text handling.
     /// </summary>
+    /// <param name="length">The length of the text type (-1 for max length).</param>
+    /// <param name="isUnicode">Whether the text type is Unicode.</param>
     /// <returns>Text to SQL type converter.</returns>
-    protected virtual DotnetTypeToSqlTypeConverter GetTextToSqlTypeConverter()
+    protected virtual DotnetTypeToSqlTypeConverter GetTextToSqlTypeConverter(int length, bool isUnicode)
     {
         var mapping = GetProviderTypeMapping();
-        return new DotnetTypeToSqlTypeConverter(d => mapping.CreateTextType(d));
+        return new DotnetTypeToSqlTypeConverter(d =>
+        {
+            d.Length ??= length;
+            d.IsUnicode ??= isUnicode;
+            return mapping.CreateTextType(d);
+        });
     }
 
     /// <summary>
@@ -478,7 +485,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         var numericConverter = GetNumericToSqlTypeConverter();
         var guidConverter = GetGuidToSqlTypeConverter();
         var charConverter = GetCharToSqlTypeConverter();
-        var textConverter = GetTextToSqlTypeConverter();
+        var textConverter = GetTextToSqlTypeConverter(-1, false);
         var xmlConverter = GetXmlToSqlTypeConverter();
         var jsonConverter = GetJsonToSqlTypeConverter();
         var dateTimeConverter = GetDateTimeToSqlTypeConverter();
@@ -506,7 +513,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
         RegisterConverterForTypes(textConverter, TypeMappingHelpers.GetStandardTextTypes());
 
         // Xml affinity
-        RegisterConverterForTypes(xmlConverter, typeof(System.Xml.Linq.XDocument), typeof(System.Xml.Linq.XElement));
+        RegisterConverterForTypes(xmlConverter, [typeof(System.Xml.Linq.XDocument), typeof(System.Xml.Linq.XElement)]);
 
         // Json affinity
         RegisterConverterForTypes(jsonConverter, TypeMappingHelpers.GetStandardJsonTypes());
@@ -540,25 +547,131 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// Registers converters for NetTopologySuite geometry types.
     /// All providers must implement this to handle NTS types appropriately.
     /// </summary>
-    protected abstract void RegisterNetTopologySuiteTypes();
+    protected virtual void RegisterNetTopologySuiteTypes()
+    {
+        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var ntsGeometryCollectionType = Type.GetType(
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
+        );
+
+        // Store all geometry types as TEXT (WKT format)
+        RegisterConverterForTypes(
+            GetTextToSqlTypeConverter(-1, isUnicode: false),
+            [
+                ntsGeometryType,
+                ntsPointType,
+                ntsLineStringType,
+                ntsPolygonType,
+                ntsMultiPointType,
+                ntsMultiLineStringType,
+                ntsMultiPolygonType,
+                ntsGeometryCollectionType,
+            ]
+        );
+    }
 
     /// <summary>
     /// Registers converters for SQL Server-specific types (SqlGeometry, SqlGeography, SqlHierarchyId).
     /// All providers must implement this to handle SQL Server types appropriately.
     /// </summary>
-    protected abstract void RegisterSqlServerTypes();
+    protected virtual void RegisterSqlServerTypes()
+    {
+        RegisterConverterForTypes(
+            GetTextToSqlTypeConverter(-1, isUnicode: false),
+            [
+                Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types"),
+                Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types"),
+                Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types"),
+            ]
+        );
+    }
 
     /// <summary>
     /// Registers converters for MySQL-specific types (MySqlGeometry from both MySql.Data and MySqlConnector).
     /// All providers must implement this to handle MySQL types appropriately.
     /// </summary>
-    protected abstract void RegisterMySqlTypes();
+    protected virtual void RegisterMySqlTypes()
+    {
+        RegisterConverterForTypes(
+            GetTextToSqlTypeConverter(-1, isUnicode: false),
+            [
+                Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data"),
+                Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector"),
+            ]
+        );
+    }
 
     /// <summary>
     /// Registers converters for Npgsql-specific types (NpgsqlPoint, NpgsqlInet, NpgsqlRange, etc.).
     /// All providers must implement this to handle Npgsql types appropriately.
     /// </summary>
-    protected abstract void RegisterNpgsqlTypes();
+    protected virtual void RegisterNpgsqlTypes()
+    {
+        RegisterConverterForTypes(
+            GetTextToSqlTypeConverter(-1, isUnicode: false),
+            [
+                Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
+                Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
+            ]
+        );
+
+        // PostgreSQL network types → VARCHAR with specific lengths
+        RegisterConverter(
+            Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql"),
+            GetTextToSqlTypeConverter(length: 45, isUnicode: false)
+        );
+        RegisterConverter(
+            Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql"),
+            GetTextToSqlTypeConverter(length: 43, isUnicode: false)
+        );
+
+        // PostgreSQL range arrays also map to TEXT
+        var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
+        if (rangeType != null)
+        {
+            var rangeTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t))
+                .ToArray();
+
+            var rangeArrayTypes = new[]
+            {
+                typeof(DateOnly),
+                typeof(int),
+                typeof(long),
+                typeof(decimal),
+                typeof(DateTime),
+                typeof(DateTimeOffset),
+            }
+                .Select(t => rangeType.MakeGenericType(t).MakeArrayType())
+                .ToArray();
+
+            RegisterConverterForTypes(GetTextToSqlTypeConverter(-1, isUnicode: false), rangeTypes);
+            RegisterConverterForTypes(GetTextToSqlTypeConverter(-1, isUnicode: false), rangeArrayTypes);
+        }
+    }
 
     /// <summary>
     /// Allows providers to register additional provider-specific converters.
@@ -581,9 +694,9 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <param name="type">The .NET type to convert to a SQL type.</param>
     /// <param name="converter">The converter to register.</param>
     /// <param name="prepend">Whether to prepend the converter to the list of converters.</param>
-    public static void RegisterConverter(Type type, DotnetTypeToSqlTypeConverter converter, bool prepend = false)
+    public static void RegisterConverter(Type? type, DotnetTypeToSqlTypeConverter converter, bool prepend = false)
     {
-        if (converter == null)
+        if (converter == null || type == null)
         {
             return;
         }
@@ -652,7 +765,7 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// </summary>
     /// <param name="converter">The converter to register.</param>
     /// <param name="types">The .NET types to convert to a SQL type.</param>
-    protected static void RegisterConverterForTypes(DotnetTypeToSqlTypeConverter converter, params Type?[] types)
+    protected static void RegisterConverterForTypes(DotnetTypeToSqlTypeConverter converter, IEnumerable<Type?> types)
     {
         foreach (var type in types)
         {
@@ -670,11 +783,16 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
     /// <param name="clrTypeNames">The .NET type names to convert to a SQL type.</param>
     protected static void RegisterConverterForTypes(
         DotnetTypeToSqlTypeConverter converter,
-        params string[] clrTypeNames
+        IEnumerable<string?> clrTypeNames
     )
     {
         foreach (var typeName in clrTypeNames)
         {
+            if (string.IsNullOrWhiteSpace(typeName))
+            {
+                continue;
+            }
+
             if (Type.GetType(typeName, false, true) is Type type)
             {
                 RegisterConverter(type, converter);

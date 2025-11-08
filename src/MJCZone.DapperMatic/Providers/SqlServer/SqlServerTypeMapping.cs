@@ -3,25 +3,18 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Net;
-using System.Net.NetworkInformation;
-using MJCZone.DapperMatic.Providers.Base;
-
 namespace MJCZone.DapperMatic.Providers.SqlServer;
 
 /// <summary>
 /// SQL Server specific type mapping configuration.
 /// </summary>
-public class SqlServerTypeMapping : IProviderTypeMapping
+public class SqlServerTypeMapping : ProviderTypeMappingBase
 {
     /// <inheritdoc />
-    public string BooleanType => SqlServerTypes.sql_bit;
+    public override string BooleanType => SqlServerTypes.sql_bit;
 
     /// <inheritdoc />
-    public bool IsUnicodeProvider => false; // SQL Server can use both Unicode and non-Unicode
-
-    /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } =
+    public override Dictionary<Type, string> NumericTypeMap { get; } =
         new()
         {
             { typeof(byte), SqlServerTypes.sql_tinyint },
@@ -39,25 +32,13 @@ public class SqlServerTypeMapping : IProviderTypeMapping
         };
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateGuidType()
+    public override SqlTypeDescriptor CreateGuidType()
     {
         return TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_uniqueidentifier);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
-    {
-        var sqlType = descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char;
-        return TypeMappingHelpers.CreateStringType(
-            sqlType,
-            length: 1,
-            descriptor.IsUnicode.GetValueOrDefault(false),
-            isFixedLength: true
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         // Objects are stored as JSON strings - use VARCHAR(MAX) or NVARCHAR(MAX) based on unicode flag
         var sqlType =
@@ -66,33 +47,7 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
-    {
-        // Support both -1 and int.MaxValue for backward compatibility
-        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
-        {
-            var sqlType =
-                descriptor.IsUnicode == true
-                    ? $"{SqlServerTypes.sql_nvarchar}(max)"
-                    : $"{SqlServerTypes.sql_varchar}(max)";
-            return TypeMappingHelpers.CreateLobType(sqlType, descriptor.IsUnicode.GetValueOrDefault(false));
-        }
-
-        var baseType =
-            descriptor.IsFixedLength == true
-                ? (descriptor.IsUnicode == true ? SqlServerTypes.sql_nchar : SqlServerTypes.sql_char)
-                : (descriptor.IsUnicode == true ? SqlServerTypes.sql_nvarchar : SqlServerTypes.sql_varchar);
-
-        return TypeMappingHelpers.CreateStringType(
-            baseType,
-            descriptor.Length,
-            descriptor.IsUnicode.GetValueOrDefault(false),
-            descriptor.IsFixedLength.GetValueOrDefault(false)
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
     {
         return descriptor.DotnetType switch
         {
@@ -112,7 +67,7 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
     {
         // Determine appropriate default length when not specified
         int? actualLength = descriptor.Length;
@@ -140,34 +95,63 @@ public class SqlServerTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateSimpleType(SqlServerTypes.sql_xml);
     }
 
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    /// <summary>
+    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
+    /// </summary>
+    /// <param name="length">The length, or null to use default.</param>
+    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
+    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
+    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
+    protected override SqlTypeDescriptor CreateStringTypeInternal(
+        int length,
+        bool isUnicode = false,
+        bool isFixedLength = false
+    )
     {
-        return descriptor.DotnetType switch
+        // Fix the length value
+        if (length <= 0 && length != TypeMappingDefaults.MaxLength)
         {
-            Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? SqlServerTypes.sql_char : SqlServerTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(45),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
-            Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? SqlServerTypes.sql_char : SqlServerTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(17),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
-            _ => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? SqlServerTypes.sql_char : SqlServerTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(50),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
-        };
+            length = TypeMappingDefaults.DefaultStringLength;
+        }
+
+        string sqlType;
+        if (length == TypeMappingDefaults.MaxLength || length == int.MaxValue)
+        {
+            sqlType = isUnicode ? $"{SqlServerTypes.sql_nvarchar}(max)" : $"{SqlServerTypes.sql_varchar}(max)";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = TypeMappingDefaults.MaxLength,
+                IsUnicode = isUnicode,
+                IsFixedLength = false,
+            };
+        }
+
+        if (isFixedLength)
+        {
+            sqlType = isUnicode ? $"{SqlServerTypes.sql_nchar}({length})" : $"{SqlServerTypes.sql_char}({length})";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = length,
+                IsUnicode = isUnicode,
+                IsFixedLength = isFixedLength,
+            };
+        }
+        else
+        {
+            sqlType = isUnicode
+                ? $"{SqlServerTypes.sql_nvarchar}({length})"
+                : $"{SqlServerTypes.sql_varchar}({length})";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = length,
+                IsUnicode = isUnicode,
+                IsFixedLength = isFixedLength,
+            };
+        }
     }
 }

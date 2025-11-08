@@ -5,9 +5,10 @@
 
 using System.Data;
 using System.Data.SQLite;
+using MJCZone.DapperMatic.Tests.ProviderDDLTests;
 using Xunit.Abstractions;
 
-namespace MJCZone.DapperMatic.Tests.ProviderTests;
+namespace MJCZone.DapperMatic.Tests.ProviderDMLTests;
 
 /// <summary>
 /// DapperMatic DML type mapping tests for SQLite 3.

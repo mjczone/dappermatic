@@ -554,53 +554,6 @@ public class DmColumn
     }
 
     /// <summary>
-    /// Gets the provider data type name for the specified provider, optionally including length, precision, and scale.
-    /// </summary>
-    /// <param name="providerType">The provider type.</param>
-    /// <param name="includeLengthPrecisionScale">Whether to include length, precision, and scale in the returned data type name. The type name is more descriptive but may not be a valid type name for the provider with the additional information.</param>
-    /// <returns>The provider data type name for the specified provider.</returns>
-    public string? GetProviderDataType(DbProviderType providerType, bool includeLengthPrecisionScale)
-    {
-        var providerDataTypeName = ProviderDataTypes.TryGetValue(providerType, out var name) ? name : null;
-
-        if (includeLengthPrecisionScale && providerDataTypeName != null)
-        {
-            if (Length.HasValue)
-            {
-                if (
-                    providerType == DbProviderType.SqlServer
-                    && (Length.Value == -1 || Length.Value == int.MaxValue)
-                    && (
-                        providerDataTypeName.Equals("VARCHAR", StringComparison.OrdinalIgnoreCase)
-                        || providerDataTypeName.Equals("NVARCHAR", StringComparison.OrdinalIgnoreCase)
-                        || providerDataTypeName.Equals("VARBINARY", StringComparison.OrdinalIgnoreCase)
-                    )
-                )
-                {
-                    providerDataTypeName += "(MAX)";
-                }
-                else if (Length.Value > 0 && Length.Value != int.MaxValue)
-                {
-                    providerDataTypeName += $"({Length.Value})";
-                }
-            }
-            else if (Precision.HasValue)
-            {
-                if (Scale.HasValue && Scale.Value > 0)
-                {
-                    providerDataTypeName += $"({Precision.Value},{Scale.Value})";
-                }
-                else
-                {
-                    providerDataTypeName += $"({Precision.Value})";
-                }
-            }
-        }
-
-        return providerDataTypeName;
-    }
-
-    /// <summary>
     /// Sets the provider data type for the specified provider.
     /// </summary>
     /// <param name="providerType">The provider type.</param>

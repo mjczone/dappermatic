@@ -5,8 +5,11 @@
 
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Xml.Linq;
 using Dapper;
+using Docker.DotNet.Models;
 using MJCZone.DapperMatic.Models;
 using MJCZone.DapperMatic.Providers;
 using NpgsqlTypes;
@@ -164,7 +167,7 @@ public abstract partial class DatabaseMethodsTests
 
     // WHEN ADDING COLUMNS in SQLITE, WE ARE ABLE TO PRESERVE THE EXACT TYPE NAMES OFTEN,
     // BECAUSE SQLITE IS DYNAMICALLY TYPED AND DOES NOT ENFORCE TYPES STRICTLY, AND TYPES THAT
-    // CONTAIN WORDS LIKE 'CHAR' OR 'INT' ARE ACCEPTED AS VALID TYPES AND MAPPED AUTOMATICALLY
+    // CONTAIN WORDS LIKE 'CHAR' OR 'INT' ARE ACCEPTED AS VALID TYPES AND MAPPED AUTOMATICALLYTypestext(65535)
     // TO 1 OF THE 5 STORAGE CLASSES (NULL, INTEGER, REAL, TEXT, BLOB). THIS IS A CONVENIENCE
     // WE TAKE ADVANTAGE OF SO THAT WE CAN REVERSE MAP THE TYPES TO PROPER .NET TYPES LATER
     // IF NEEDED.
@@ -178,125 +181,115 @@ public abstract partial class DatabaseMethodsTests
     // csharpier-ignore-start
     [Theory]
     // Primitive & Common Types
-    [InlineData(typeof(byte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT", false, null, null, null, false, "TINYINT(4)", "TINYINT(4)")]
-    [InlineData(typeof(sbyte), "TINYINT(3)", "TINYINT(3)", "INT2", "TINYINT", false, null, null, null, false, "TINYINT(4)", "TINYINT(4)")]
-    [InlineData(typeof(short), "SMALLINT(5)", "SMALLINT(5)", "INT2", "SMALLINT", false, null, null, null, false, "SMALLINT(6)", "SMALLINT(6)")]
-    [InlineData(typeof(int), "INT(10)", "INT(10)", "INT4", "INT", false, null, null, null, false, "INT(11)", "INT(11)")]// int4 is PostgreSQL name for 4-byte integer
-    [InlineData(typeof(long), "BIGINT(19)", "BIGINT(19)", "INT8", "BIGINT", false, null, null, null, false, "BIGINT(20)", "BIGINT(20)")]
-    [InlineData(typeof(float), "REAL(24)", "DOUBLE(22)", "FLOAT4", "REAL")]
-    [InlineData(typeof(double), "FLOAT(53)", "FLOAT(12)", "FLOAT8", "DOUBLE")]
-    [InlineData(typeof(decimal), "DECIMAL(16,4)", "DECIMAL(16,4)", "NUMERIC(16,4)", "NUMERIC(16,4)")]
-    [InlineData(typeof(decimal), "DECIMAL(12,8)", "DECIMAL(12,8)", "NUMERIC(12,8)", "NUMERIC(12,8)", false, null, 12, 8)]
-    [InlineData(typeof(decimal), "DECIMAL(12)", "DECIMAL(12)", "NUMERIC(12)", "NUMERIC(12)", false, null, 12, 0)]
-    [InlineData(typeof(bool), "BIT", "TINYINT(1)", "BOOL", "BOOLEAN")]
-    [InlineData(typeof(char), "CHAR(1)", "CHAR(1)", "BPCHAR(1)", "CHAR(1)")]
-    [InlineData(typeof(char), "NCHAR(1)", "CHAR(1)", "BPCHAR(1)", "NCHAR(1)", true)]
-    [InlineData(typeof(string), "CHAR(234)", "CHAR(234)", "BPCHAR(234)", "CHAR(234)", false, 234, null, null, true)]
-    [InlineData(typeof(string), "NCHAR(234)", "CHAR(234)", "BPCHAR(234)", "NCHAR(234)", true, 234, null, null, true)]
-    [InlineData(typeof(string), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
-    [InlineData(typeof(string), "NVARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "NVARCHAR(255)", true)]
-    [InlineData(typeof(string), "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", false, 234)]
-    [InlineData(typeof(string), "NVARCHAR(234)", "VARCHAR(234)", "VARCHAR(234)", "NVARCHAR(234)", true, 234)]
-    [InlineData(typeof(string), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
-    [InlineData(typeof(string), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, int.MaxValue)]
-    [InlineData(typeof(Guid), "UNIQUEIDENTIFIER", "CHAR(36)", "UUID", "VARCHAR(36)")]
+    [InlineData(typeof(byte), "tinyint", "tinyint", "smallint", "tinyint", false, null, null, null, false, "tinyint(4)", "tinyint(4)")]
+    [InlineData(typeof(sbyte), "tinyint", "tinyint", "smallint", "tinyint", false, null, null, null, false, "tinyint(4)", "tinyint(4)")]
+    [InlineData(typeof(short), "smallint", "smallint", "smallint", "smallint", false, null, null, null, false, "smallint(6)", "smallint(6)")]
+    [InlineData(typeof(int), "int", "int", "integer", "int", false, null, null, null, false, "int(11)", "int(11)")]
+    [InlineData(typeof(long), "bigint", "bigint", "bigint", "bigint", false, null, null, null, false, "bigint(20)", "bigint(20)")]
+    [InlineData(typeof(float), "real", "double", "real", "real")]
+    [InlineData(typeof(double), "float(53)", "float", "double precision", "double")]
+    [InlineData(typeof(decimal), "decimal(16,4)", "decimal(16,4)", "numeric(16,4)", "numeric(16,4)")]
+    [InlineData(typeof(decimal), "decimal(12,8)", "decimal(12,8)", "numeric(12,8)", "numeric(12,8)", false, null, 12, 8)]
+    [InlineData(typeof(decimal), "decimal(12,0)", "decimal(12,0)", "numeric(12,0)", "numeric(12,0)", false, null, 12, 0)]
+    [InlineData(typeof(bool), "bit", "tinyint(1)", "boolean", "boolean")]
+    [InlineData(typeof(char), "char(1)", "char(1)", "character(1)", "char(1)")]
+    [InlineData(typeof(char), "nchar(1)", "char(1)", "character(1)", "nchar(1)", true)]
+    [InlineData(typeof(string), "char(234)", "char(234)", "character(234)", "char(234)", false, 234, null, null, true)]
+    [InlineData(typeof(string), "nchar(234)", "char(234)", "character(234)", "nchar(234)", true, 234, null, null, true)]
+    [InlineData(typeof(string), "varchar(max)", "text", "text", "varchar(-1)")]
+    [InlineData(typeof(string), "nvarchar(max)", "text", "text", "nvarchar(-1)", true)]
+    [InlineData(typeof(string), "varchar(234)", "varchar(234)", "character varying(234)", "varchar(234)", false, 234)]
+    [InlineData(typeof(string), "nvarchar(234)", "varchar(234)", "character varying(234)", "nvarchar(234)", true, 234)]
+    [InlineData(typeof(string), "nvarchar(max)", "text", "text", "nvarchar(-1)", true, -1)]
+    [InlineData(typeof(string), "nvarchar(max)", "longtext", "text", "nvarchar(-1)", true, int.MaxValue)]
+    [InlineData(typeof(Guid), "uniqueidentifier", "char(36)", "uuid", "char(36)")]
     // Date & Time Types
-    [InlineData(typeof(DateTime), "DATETIME", "DATETIME", "TIMESTAMP", "DATETIME")]
-    [InlineData(typeof(DateTimeOffset), "DATETIMEOFFSET", "TIMESTAMP", "TIMESTAMPTZ", "DATETIME")]
-    [InlineData(typeof(TimeSpan), "TIME", "TIME", "INTERVAL", "TIME")]
-    [InlineData(typeof(DateOnly), "DATE", "DATE", "DATE", "DATE")]
-    [InlineData(typeof(TimeOnly), "TIME", "TIME", "TIME", "TIME")]
+    [InlineData(typeof(DateTime), "datetime", "datetime(6)", "timestamp without time zone", "datetime")]
+    [InlineData(typeof(DateTimeOffset), "datetimeoffset", "timestamp(6)", "timestamp with time zone", "datetime")]
+    [InlineData(typeof(TimeSpan), "time", "time", "interval", "time")]
+    [InlineData(typeof(DateOnly), "date", "date", "date", "date")]
+    [InlineData(typeof(TimeOnly), "time", "time", "time without time zone", "time")]
     // Binary Types
-    [InlineData(typeof(byte[]), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
-    [InlineData(typeof(Memory<byte>), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
-    [InlineData(typeof(ReadOnlyMemory<byte>), "VARBINARY(255)", "VARBINARY(255)", "BYTEA", "BLOB")]
-    [InlineData(typeof(Stream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
-    [InlineData(typeof(MemoryStream), "VARBINARY(MAX)", "LONGBLOB", "BYTEA", "BLOB")]
+    [InlineData(typeof(byte[]), "varbinary(max)", "longblob", "bytea", "blob")]
+    [InlineData(typeof(Memory<byte>), "varbinary(max)", "longblob", "bytea", "blob")]
+    [InlineData(typeof(ReadOnlyMemory<byte>), "varbinary(max)", "longblob", "bytea", "blob")]
+    [InlineData(typeof(Stream), "varbinary(max)", "longblob", "bytea", "blob")]
+    [InlineData(typeof(MemoryStream), "varbinary(max)", "longblob", "bytea", "blob")]
     // JSON & Complex Types (MariaDB 10.x maps JSON to LONGTEXT)
-    [InlineData(typeof(System.Text.Json.JsonDocument), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(System.Text.Json.JsonElement), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(System.Text.Json.JsonDocument), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(System.Text.Json.JsonElement), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(System.Text.Json.Nodes.JsonArray), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(System.Text.Json.Nodes.JsonObject), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(System.Text.Json.Nodes.JsonValue), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(object), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(object), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(DayOfWeek), "INT(10)", "INT(10)", "INT4", "INT", false, null, null, null, false, "INT(11)", "INT(11)")] // Enum example - stored as underlying integer type (int32)
+    [InlineData(typeof(JsonDocument), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(JsonElement), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(JsonDocument), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(JsonElement), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonArray), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonObject), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(System.Text.Json.Nodes.JsonValue), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(object), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(object), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(DayOfWeek), "int", "int", "integer", "int", false, null, null, null, false, "int(11)", "int(11)")] // Enum example - stored as underlying integer type (int32)
     // Array Types (PostgreSQL native, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
-    [InlineData(typeof(string[]), "VARCHAR(MAX)", "JSON", "_TEXT", "TEXT")]
-    [InlineData(typeof(int[]), "VARCHAR(MAX)", "JSON", "_INT4", "TEXT")]
-    [InlineData(typeof(long[]), "VARCHAR(MAX)", "JSON", "_INT8", "TEXT")]
-    [InlineData(typeof(Guid[]), "VARCHAR(MAX)", "JSON", "_UUID", "TEXT")]
-    [InlineData(typeof(char[]), "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)")]
-    [InlineData(typeof(char[]), "NVARCHAR(255)", "VARCHAR(255)", "VARCHAR(255)", "NVARCHAR(255)", true)]
-    [InlineData(typeof(char[]), "VARCHAR(MAX)", "TEXT(65535)", "TEXT", "VARCHAR", false, -1)]
-    [InlineData(typeof(char[]), "NVARCHAR(MAX)", "TEXT(65535)", "TEXT", "NVARCHAR", true, -1)]
+    [InlineData(typeof(string[]), "varchar(max)", "json", "text[]", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(int[]), "varchar(max)", "json", "integer[]", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(long[]), "varchar(max)", "json", "bigint[]", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(Guid[]), "varchar(max)", "json", "uuid[]", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(char[]), "varchar(max)", "text", "text", "varchar(-1)")]
+    [InlineData(typeof(char[]), "nvarchar(max)", "text", "text", "nvarchar(-1)", true)]
+    [InlineData(typeof(char[]), "varchar(max)", "text", "text", "varchar(-1)", false, -1)]
+    [InlineData(typeof(char[]), "nvarchar(max)", "text", "text", "nvarchar(-1)", true, -1)]
     // Collection Types (all serialized as JSON, MariaDB 10.x maps JSON to LONGTEXT)
-    [InlineData(typeof(List<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(List<string>), "NVARCHAR(MAX)", "JSON", "JSONB", "TEXT", true)]
-    [InlineData(typeof(IList<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(ICollection<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(IEnumerable<string>), "VARCHAR(MAX)", "JSON", "JSONB", "TEXT")]
-    [InlineData(typeof(Dictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
-    [InlineData(typeof(IDictionary<string, string>), "VARCHAR(MAX)", "JSON", "HSTORE", "TEXT")]
-    [InlineData(typeof(Dictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
-    [InlineData(typeof(IDictionary<string, string>), "NVARCHAR(MAX)", "JSON", "HSTORE", "TEXT", true)]
-    // Npgsql Types (work on all providers, but PostgreSQL has native types, others JSON/TEXT, MariaDB 10.x maps JSON to LONGTEXT)
-    // [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "JSON", "POINT", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "JSON", "LSEG", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "JSON", "PATH", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "JSON", "POLYGON", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "JSON", "LINE", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "JSON", "CIRCLE", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "JSON", "BOX", "TEXT" /* WKT */, false, null, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlInet), "VARCHAR(MAX)", "JSON", "INET", "TEXT" /* WKT */, false, 45, null, null, false, null, "LONGTEXT")]
-    // [InlineData(typeof(NpgsqlCidr), "VARCHAR(MAX)", "JSON", "CIDR", "TEXT" /* WKT */, false, 43, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(List<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(List<string>), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IList<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(ICollection<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IEnumerable<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(Dictionary<string, string>), "varchar(max)", "json", "hstore", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IDictionary<string, string>), "varchar(max)", "json", "hstore", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(Dictionary<string, string>), "nvarchar(max)", "json", "hstore", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IDictionary<string, string>), "nvarchar(max)", "json", "hstore", "text", true, null, null, null, false, null, "longtext")]
     // Npgsql Types
     // The specific WKT/WKB conversion logic needs to be handled in the provider-specific code
     // SQL Server, MySQL, and SQLite use text-based storage for Npgsql geometric types
-    [InlineData(typeof(NpgsqlPoint), "VARCHAR(MAX)", "TEXT(65535)", "POINT", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlLSeg), "VARCHAR(MAX)", "TEXT(65535)", "LSEG", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlPath), "VARCHAR(MAX)", "TEXT(65535)", "PATH", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlPolygon), "VARCHAR(MAX)", "TEXT(65535)", "POLYGON", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlLine), "VARCHAR(MAX)", "TEXT(65535)", "LINE", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlCircle), "VARCHAR(MAX)", "TEXT(65535)", "CIRCLE", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlBox), "VARCHAR(MAX)", "TEXT(65535)", "BOX", "TEXT", false, null, null, null, false, null, "TEXT(65535)")]
-    [InlineData(typeof(NpgsqlInet), "VARCHAR(45)", "VARCHAR(45)", "INET", "VARCHAR(45)", false, 45, null, null, false, null, "VARCHAR(45)")] // Use standard VARCHAR for IPs
-    [InlineData(typeof(NpgsqlCidr), "VARCHAR(43)", "VARCHAR(43)", "CIDR", "VARCHAR(43)", false, 43, null, null, false, null, "VARCHAR(43)")] // Use standard VARCHAR for CIDRs
-    [InlineData(typeof(NpgsqlRange<DateOnly>), "VARCHAR(MAX)", "TEXT(65535)", "DATERANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<int>), "VARCHAR(MAX)", "TEXT(65535)", "INT4RANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<long>), "VARCHAR(MAX)", "TEXT(65535)", "INT8RANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<decimal>), "VARCHAR(MAX)", "TEXT(65535)", "NUMRANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTime>), "VARCHAR(MAX)", "TEXT(65535)", "TSRANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTimeOffset>), "VARCHAR(MAX)", "TEXT(65535)", "TSTZRANGE", "TEXT")]
-    [InlineData(typeof(NpgsqlRange<DateOnly>[]), "VARCHAR(MAX)", "JSON", "DATEMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<int>[]), "VARCHAR(MAX)", "JSON", "INT4MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<long>[]), "VARCHAR(MAX)", "JSON", "INT8MULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<decimal>[]), "VARCHAR(MAX)", "JSON", "NUMMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTime>[]), "VARCHAR(MAX)", "JSON", "TSMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlRange<DateTimeOffset>[]), "VARCHAR(MAX)", "JSON", "TSTZMULTIRANGE", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlInterval), "VARCHAR(MAX)", "JSON", "INTERVAL", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlTid), "VARCHAR(MAX)", "JSON", "TID", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlTsQuery), "VARCHAR(MAX)", "JSON", "TSQUERY", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
-    [InlineData(typeof(NpgsqlTsVector), "VARCHAR(MAX)", "JSON", "TSVECTOR", "TEXT", false, null, null, null, false, null, "LONGTEXT")]
+    [InlineData(typeof(NpgsqlPoint), "varchar(max)", "text", "point", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlLSeg), "varchar(max)", "text", "lseg", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlPath), "varchar(max)", "text", "path", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlPolygon), "varchar(max)", "text", "polygon", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlLine), "varchar(max)", "text", "line", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlCircle), "varchar(max)", "text", "circle", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlBox), "varchar(max)", "text", "box", "varchar(-1)", false, null, null, null, false, null, "text")]
+    [InlineData(typeof(NpgsqlInet), "varchar(45)", "varchar(45)", "inet", "varchar(45)", false, 45, null, null, false, null, "varchar(45)")] // Use standard VARCHAR for IPs
+    [InlineData(typeof(NpgsqlCidr), "varchar(43)", "varchar(43)", "cidr", "varchar(43)", false, 43, null, null, false, null, "varchar(43)")] // Use standard VARCHAR for CIDRs
+    [InlineData(typeof(NpgsqlRange<DateOnly>), "varchar(max)", "text", "daterange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<int>), "varchar(max)", "text", "int4range", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<long>), "varchar(max)", "text", "int8range", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<decimal>), "varchar(max)", "text", "numrange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<DateTime>), "varchar(max)", "text", "tsrange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<DateTimeOffset>), "varchar(max)", "text", "tstzrange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<DateOnly>[]), "varchar(max)", "text", "datemultirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<int>[]), "varchar(max)", "text", "int4multirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<long>[]), "varchar(max)", "text", "int8multirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<decimal>[]), "varchar(max)", "text", "nummultirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<DateTime>[]), "varchar(max)", "text", "tsmultirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlRange<DateTimeOffset>[]), "varchar(max)", "text", "tstzmultirange", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlInterval), "varchar(max)", "text", "interval", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlTid), "varchar(max)", "text", "tid", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlTsQuery), "varchar(max)", "text", "tsquery", "varchar(-1)")]
+    [InlineData(typeof(NpgsqlTsVector), "varchar(max)", "text", "tsvector", "varchar(-1)")]
     // NetTopologySuite Geometry Types
     // SQL Server uses VARCHAR(MAX) for NTS types (WKT text format, no native SqlGeometry support)
-    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "VARCHAR(MAX)", "GEOMETRYCOLLECTION", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Point), "VARCHAR(MAX)", "POINT", "POINT", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "VARCHAR(MAX)", "LINESTRING", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "VARCHAR(MAX)", "POLYGON", "POLYGON", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "VARCHAR(MAX)", "MULTIPOINT", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "VARCHAR(MAX)", "MULTILINESTRING", "GEOMETRY", "TEXT")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "VARCHAR(MAX)", "MULTIPOLYGON", "GEOMETRY", "TEXT")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "varchar(max)", "geometry", "geometry", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "varchar(max)", "geomcollection", "geometry(GeometryCollection)", "varchar(-1)", false, null, null, null, false, "geometrycollection", "geometrycollection")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Point), "varchar(max)", "point", "geometry(Point)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "varchar(max)", "linestring", "geometry(LineString)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "varchar(max)", "polygon", "geometry(Polygon)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "varchar(max)", "multipoint", "geometry(MultiPoint)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "varchar(max)", "multilinestring", "geometry(MultiLineString)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "varchar(max)", "multipolygon", "geometry(MultiPolygon)", "varchar(-1)")]
     // Network Types
-    [InlineData(typeof(IPAddress), "VARCHAR(17)", "VARCHAR(17)", "INET", "VARCHAR(17)", false, 17)]
-    [InlineData(typeof(PhysicalAddress), "VARCHAR(43)", "VARCHAR(43)", "MACADDR", "VARCHAR(43)", false, 43)]
+    [InlineData(typeof(IPAddress), "varchar(17)", "varchar(17)", "inet", "varchar(17)", false, 17)]
+    [InlineData(typeof(PhysicalAddress), "varchar(43)", "varchar(43)", "macaddr", "varchar(43)", false, 43)]
     // MySqlConnector Spatial Types
     // SQL Server uses VARCHAR(MAX) for MySQL geometric types (no native SqlGeometry support)
-    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
-    [InlineData(typeof(MySqlConnector.MySqlGeometry), "VARCHAR(MAX)", "GEOMETRY", "GEOMETRY", "TEXT", false, null, null, null, false, null, "GEOMETRY")]
+    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)", false, null, null, null, false, null, "geometry")]
+    [InlineData(typeof(MySqlConnector.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)", false, null, null, null, false, null, "geometry")]
     // csharpier-ignore-end
     protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,
@@ -316,59 +309,7 @@ public abstract partial class DatabaseMethodsTests
         using var db = await OpenConnectionAsync();
         var dbType = db.GetDbProviderType();
 
-        bool isPostGisInstalled = false;
-        if (dbType == DbProviderType.PostgreSql)
-        {
-            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS hstore;");
-            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS ltree;");
-            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
-
-            isPostGisInstalled = await db.QueryFirstOrDefaultAsync<bool>(
-                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis');"
-            );
-            if (!isPostGisInstalled && postgreSqlTypeName == "GEOMETRY")
-            {
-                type = typeof(string);
-                length = -1;
-                postgreSqlTypeName = "TEXT";
-            }
-        }
-
-        var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
-        var providerDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
-
-        Func<DbProviderType, Task<string>> getExpectedMySqlTypeName = async dbType =>
-        {
-            var dbVersion = await databaseMethods.GetDatabaseVersionAsync(db);
-            if (dbVersion.Major == 5)
-            {
-                return mySql5TypeName ?? mySqlTypeName;
-            }
-            else if (dbVersion.Major >= 10)
-            {
-                if (mySqlTypeName.Equals("JSON", StringComparison.OrdinalIgnoreCase))
-                {
-                    // MySQL 5.x and MariaDB 10.x do not have a native JSON type, so we map to LONGTEXT
-                    return "LONGTEXT";
-                }
-                return mariaDb10TypeName ?? mySqlTypeName;
-            }
-            return mySqlTypeName;
-        };
-
-        string expectedTypeName = dbType switch
-        {
-            DbProviderType.SqlServer => sqlServerTypeName,
-            DbProviderType.MySql => await getExpectedMySqlTypeName(dbType),
-            DbProviderType.PostgreSql => postgreSqlTypeName,
-            DbProviderType.Sqlite => sqliteTypeName,
-            _ => throw new NotSupportedException($"Database type {dbType} is not supported."),
-        };
-
-        if (expectedTypeName == "GEOGRAPHY" && dbType == DbProviderType.PostgreSql && !isPostGisInstalled)
-        {
-            return;
-        }
+        if (await PostGisRequiredAndNotInstalled(type, dbType, db)) return;
 
         // Create table with a column of that type
         const string tableName = "testTableWithSpecificType";
@@ -401,48 +342,67 @@ public abstract partial class DatabaseMethodsTests
         await db.DropTableIfExistsAsync(null, tableName);
         Assert.NotNull(column);
 
-        var providerTypeName = column?.GetProviderDataType(dbType, false);
+        var providerTypeName = column?.GetProviderDataType(dbType);
         Assert.NotNull(providerTypeName);
         Assert.NotEmpty(providerTypeName);
 
-        // The provider type name DOES NOT include the parentheses for length/precision/scale, these
-        // are rather properties of the column metadata
-        Assert.False(
-            providerTypeName!.Contains('('),
-            $"When fetching a column, the provider type name '{providerTypeName}' would not contain '{expectedTypeName.Split('(')[0]}'"
-        );
+        var databaseMethods = DatabaseMethodsProvider.GetMethods(db);
+        var databaseProviderDataTypes = databaseMethods.GetAvailableDataTypes(includeAdvanced: true).ToList();
 
-        var providerTypeNameWithDetails = column?.GetProviderDataType(dbType, true);
-        Assert.NotNull(providerTypeNameWithDetails);
-        Assert.NotEmpty(providerTypeNameWithDetails);
+        var dbVersion = await databaseMethods.GetDatabaseVersionAsync(db);
+        var isMySql5 = dbType == DbProviderType.MySql && dbVersion.Major == 5;
+        var isMariaDb = dbType == DbProviderType.MySql && dbVersion.Major >= 10;
+        string expectedTypeName = dbType switch
+        {
+            DbProviderType.SqlServer => sqlServerTypeName,
+            DbProviderType.MySql => isMySql5
+                ? (mySql5TypeName ?? mySqlTypeName)
+                : isMariaDb
+                    ? (mariaDb10TypeName ?? mySqlTypeName)
+                    : mySqlTypeName,
+            DbProviderType.PostgreSql => postgreSqlTypeName,
+            DbProviderType.Sqlite => sqliteTypeName,
+            _ => throw new NotSupportedException($"Database type {dbType} is not supported."),
+        };
+
+        // var providerTypeNameWithDetails = column?.GetProviderDataType(dbType, true);
+        // Assert.NotNull(providerTypeNameWithDetails);
+        // Assert.NotEmpty(providerTypeNameWithDetails);
 
         // In MariaDB it's GEOMETRYCOLLECTIOn, in MySQL it's GEOMCOLLECTION except MySQL 5.7, so we want to accept both the alias
         // and the main name
-        List<string> possibleExpectedTypeNames =  [providerTypeNameWithDetails];
-        var alternativeProviderTypeName = providerTypeName;
-        var providerDataType = providerDataTypes.FirstOrDefault(dt =>
-            string.Equals(dt.DataType, providerTypeName, StringComparison.OrdinalIgnoreCase)
-        );
-        if (providerDataType == null)
-        {
-            // The type could be an alias
-            providerDataType = providerDataTypes.FirstOrDefault(dt =>
-                (dt.Aliases ?? []).Any(alias =>
-                    string.Equals(alias, providerTypeName, StringComparison.OrdinalIgnoreCase)
-                )
-            );
-        }
-        Assert.NotNull(providerDataType);
-        var providerDataTypeAliases = providerDataType.Aliases ?? [];
-        Output.WriteLine(
-            "Column '{0}' provider type '{1}' has {2} aliases: {3}",
-            columnName,
-            providerTypeName,
-            providerDataTypeAliases.Count,
-            string.Join(", ", providerDataTypeAliases)
-        );
+        // List<string> possibleExpectedTypeNames =  [providerTypeNameWithDetails];
+        // var alternativeProviderTypeName = providerTypeName;
 
-        possibleExpectedTypeNames.Add(providerTypeNameWithDetails.Replace(providerTypeName, providerDataType.DataType));
+        // // Extract base type name by removing parentheses and everything after them
+        // // e.g., "VARCHAR(255)" -> "VARCHAR", "DECIMAL(10,2)" -> "DECIMAL"
+        // var baseTypeName = providerTypeName.Contains('(')
+        //     ? providerTypeName.Substring(0, providerTypeName.IndexOf('('))
+        //     : providerTypeName;
+
+        // var providerDataType = databaseProviderDataTypes.FirstOrDefault(dt =>
+        //     string.Equals(dt.DataType, baseTypeName, StringComparison.OrdinalIgnoreCase)
+        // );
+        // if (providerDataType == null)
+        // {
+        //     // The type could be an alias
+        //     providerDataType = databaseProviderDataTypes.FirstOrDefault(dt =>
+        //         (dt.Aliases ?? []).Any(alias =>
+        //             string.Equals(alias, baseTypeName, StringComparison.OrdinalIgnoreCase)
+        //         )
+        //     );
+        // }
+        // Assert.NotNull(providerDataType);
+        // var providerDataTypeAliases = providerDataType.Aliases ?? [];
+        // Output.WriteLine(
+        //     "Column '{0}' provider type '{1}' has {2} aliases: {3}",
+        //     columnName,
+        //     providerTypeName,
+        //     providerDataTypeAliases.Count,
+        //     string.Join(", ", providerDataTypeAliases)
+        // );
+
+        // possibleExpectedTypeNames.AddIfNotExists(providerTypeNameWithDetails.Replace(baseTypeName, providerDataType.DataType));
 
         base.Output.WriteLine(
             "Column '{0}' mapped to provider type '{1}' (expected '{2}')",
@@ -450,9 +410,52 @@ public abstract partial class DatabaseMethodsTests
             providerTypeName,
             expectedTypeName
         );
-        Assert.Contains(expectedTypeName, possibleExpectedTypeNames, StringComparer.OrdinalIgnoreCase);
+
+        Assert.Equivalent(expectedTypeName, providerTypeName);
+
+// #pragma warning disable CA1869 // Cache and reuse 'JsonSerializerOptions' instances
+//         var inputJson = JsonSerializer.Serialize(new
+//         {
+//             sqlServerTypeName,
+//             mySqlTypeName,
+//             postgreSqlTypeName,
+//             sqliteTypeName,
+//             isUnicode,
+//             length,
+//             precision,
+//             scale,
+//             isFixedLength
+//         }, new JsonSerializerOptions { WriteIndented = true });
+// #pragma warning restore CA1869 // Cache and reuse 'JsonSerializerOptions' instances
+//         Assert.True(
+//             possibleExpectedTypeNames.Any(name => string.Equals(name, expectedTypeName, StringComparison.OrdinalIgnoreCase)),
+//             $"Expected type '{expectedTypeName}' not found in possible types: {string.Join(", ", possibleExpectedTypeNames)}. Column '{columnName}' mapped to provider type '{providerTypeName}'" +
+//             // Add function parameters for more detail
+//             $"\n({inputJson})"
+//         );
     }
 
+    private async Task<bool> PostGisRequiredAndNotInstalled(Type type, DbProviderType dbType, System.Data.IDbConnection db)
+    {
+        var requiresPostGis = type.Namespace!.StartsWith("NetTopologySuite.Geometries", StringComparison.OrdinalIgnoreCase);
+        bool isPostGisInstalled = false;
+        if (dbType == DbProviderType.PostgreSql)
+        {
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS hstore;");
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS ltree;");
+            await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
+
+            isPostGisInstalled = await db.QueryFirstOrDefaultAsync<bool>(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis');"
+            );
+        }
+        if (dbType == DbProviderType.PostgreSql && requiresPostGis && !isPostGisInstalled)
+        {
+            // Skip the test if PostGIS is required but not installed
+            return true;
+        }
+        return false;
+    }
 
     [Fact]
     protected virtual async Task Should_map_provider_data_types_to_expected_dotnet_types()
@@ -570,7 +573,7 @@ public abstract partial class DatabaseMethodsTests
                         case "json":
                             if (dbVersion.Major < 10)
                                 // MySQL
-                                AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument));
+                                AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(JsonDocument));
                             else
                                 // MariaDB
                                 AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(string), unicode: true);
@@ -614,8 +617,8 @@ public abstract partial class DatabaseMethodsTests
                         case "_int4": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(int[])); break;
                         case "_int8": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(long[])); break;
                         case "_interval": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeSpan[])); break;
-                        case "_json": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
-                        case "_jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "_json": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(JsonDocument[])); break;
+                        case "_jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(JsonDocument[])); break;
                         case "_numeric": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(decimal[])); break;
                         case "_text": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
                         case "_time": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeOnly[])); break;
@@ -649,6 +652,10 @@ public abstract partial class DatabaseMethodsTests
                         case "daterange": AssertValues(providerDataTypeName, DataTypeCategory.Range, typeof(NpgsqlRange<DateOnly>)); break;
                         case "double precision": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
                         case "double precision[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
+                        case "float4": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(float)); break;
+                        case "float8": AssertValues(providerDataTypeName, DataTypeCategory.Decimal, typeof(double)); break;
+                        case "float4[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(float[])); break;
+                        case "float8[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(double[])); break;
                         case "geography": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
                         case "geometry": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
                         case "hstore": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(Dictionary<string, string>)); break;
@@ -659,10 +666,10 @@ public abstract partial class DatabaseMethodsTests
                         case "integer[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(int[])); break;
                         case "interval": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(TimeSpan)); break;
                         case "interval[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(TimeSpan[])); break;
-                        case "json": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument)); break;
-                        case "json[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
-                        case "jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(System.Text.Json.JsonDocument)); break;
-                        case "jsonb[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(System.Text.Json.JsonDocument[])); break;
+                        case "json": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(JsonDocument)); break;
+                        case "json[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(JsonDocument[])); break;
+                        case "jsonb": AssertValues(providerDataTypeName, DataTypeCategory.Json, typeof(JsonDocument)); break;
+                        case "jsonb[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(JsonDocument[])); break;
                         case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
                         // case "line": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlLine)); break;
                         case "lseg": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.LineString)); break;
@@ -705,6 +712,8 @@ public abstract partial class DatabaseMethodsTests
                         case "timestamp with time zone": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
                         case "timestamp with time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTimeOffset[])); break;
                         case "timestamp without time zone[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTime[])); break;
+                        case "timestamptz": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTimeOffset)); break;
+                        case "timestamptz[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTimeOffset[])); break;
                         case "timestamp": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateTime)); break;
                         case "timestamp[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(DateTime[])); break;
                         case "tsquery": AssertValues(providerDataTypeName, DataTypeCategory.Other, typeof(NpgsqlTsQuery)); break;

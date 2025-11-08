@@ -136,57 +136,6 @@ public static class TypeMappingHelpers
     }
 
     /// <summary>
-    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
-    /// </summary>
-    /// <param name="sqlType">The base SQL type name (e.g., "varchar", "nvarchar", "char").</param>
-    /// <param name="length">The length, or null to use default.</param>
-    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
-    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
-    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
-    public static SqlTypeDescriptor CreateStringType(
-        string sqlType,
-        int? length = null,
-        bool isUnicode = false,
-        bool isFixedLength = false
-    )
-    {
-        var actualLength = length ?? TypeMappingDefaults.DefaultStringLength;
-
-        string sqlTypeName;
-        if (actualLength == TypeMappingDefaults.MaxLength)
-        {
-            sqlTypeName = $"{sqlType}(max)";
-        }
-        else
-        {
-            sqlTypeName = $"{sqlType}({actualLength})";
-        }
-
-        return new SqlTypeDescriptor(sqlTypeName)
-        {
-            Length = actualLength == TypeMappingDefaults.MaxLength ? null : actualLength,
-            IsUnicode = isUnicode,
-            IsFixedLength = isFixedLength,
-        };
-    }
-
-    /// <summary>
-    /// Creates a SqlTypeDescriptor for GUID types stored as strings.
-    /// </summary>
-    /// <param name="sqlType">The base SQL type name (e.g., "varchar", "char").</param>
-    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
-    /// <param name="isFixedLength">Whether the type is fixed-length (typically true for GUIDs).</param>
-    /// <returns>A SqlTypeDescriptor configured for GUID storage.</returns>
-    public static SqlTypeDescriptor CreateGuidStringType(
-        string sqlType,
-        bool isUnicode = false,
-        bool isFixedLength = true
-    )
-    {
-        return CreateStringType(sqlType, TypeMappingDefaults.GuidStringLength, isUnicode, isFixedLength);
-    }
-
-    /// <summary>
     /// Determines if a type is a NetTopologySuite geometry type.
     /// </summary>
     /// <param name="type">The type to check.</param>
@@ -527,7 +476,7 @@ public static class TypeMappingHelpers
     {
         return provider.ToLowerInvariant() switch
         {
-            "postgresql" => new DotnetTypeToSqlTypeConverter(d =>
+            "pg" or "postgres" or "pgsql" or "postgresql" => new DotnetTypeToSqlTypeConverter(d =>
             {
                 if (d.DotnetType?.IsArray == true)
                 {

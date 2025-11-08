@@ -3,25 +3,18 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Net;
-using System.Net.NetworkInformation;
-using MJCZone.DapperMatic.Providers.Base;
-
 namespace MJCZone.DapperMatic.Providers.MySql;
 
 /// <summary>
 /// MySQL specific type mapping configuration.
 /// </summary>
-public class MySqlTypeMapping : IProviderTypeMapping
+public class MySqlTypeMapping : ProviderTypeMappingBase
 {
     /// <inheritdoc />
-    public string BooleanType => MySqlTypes.sql_bool;
+    public override string BooleanType => MySqlTypes.sql_bool;
 
     /// <inheritdoc />
-    public bool IsUnicodeProvider => false; // MySQL does not use Unicode by default
-
-    /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } =
+    public override Dictionary<Type, string> NumericTypeMap { get; } =
         new()
         {
             { typeof(byte), MySqlTypes.sql_tinyint },
@@ -39,48 +32,13 @@ public class MySqlTypeMapping : IProviderTypeMapping
         };
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateGuidType()
-    {
-        return TypeMappingHelpers.CreateGuidStringType(MySqlTypes.sql_char, isUnicode: false, isFixedLength: true);
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateCharType(DotnetTypeDescriptor descriptor)
-    {
-        return TypeMappingHelpers.CreateStringType(
-            MySqlTypes.sql_char,
-            length: 1,
-            isUnicode: false,
-            isFixedLength: true
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateJsonType(MySqlTypes.sql_json, isText: false);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
-    {
-        // Support both -1 and int.MaxValue for backward compatibility
-        if (descriptor.Length == -1 || descriptor.Length == int.MaxValue)
-        {
-            return TypeMappingHelpers.CreateLobType(MySqlTypes.sql_text, isUnicode: false);
-        }
-
-        var sqlType = descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar;
-        return TypeMappingHelpers.CreateStringType(
-            sqlType,
-            descriptor.Length,
-            isUnicode: false,
-            descriptor.IsFixedLength.GetValueOrDefault(false)
-        );
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
     {
         return descriptor.DotnetType switch
         {
@@ -100,7 +58,7 @@ public class MySqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
     {
         // Determine appropriate default length when not specified
         int? actualLength = descriptor.Length;
@@ -128,34 +86,60 @@ public class MySqlTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         return TypeMappingHelpers.CreateLobType(MySqlTypes.sql_text, isUnicode: false);
     }
 
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateNetworkType(DotnetTypeDescriptor descriptor)
+    /// <summary>
+    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
+    /// </summary>
+    /// <param name="length">The length, or null to use default.</param>
+    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
+    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
+    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
+    protected override SqlTypeDescriptor CreateStringTypeInternal(
+        int length,
+        bool isUnicode = false,
+        bool isFixedLength = false
+    )
     {
-        return descriptor.DotnetType switch
+        // Fix the length value
+        if (length <= 0 && length != TypeMappingDefaults.MaxLength)
         {
-            Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(45),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
-            Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(17),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
-            _ => TypeMappingHelpers.CreateStringType(
-                descriptor.IsFixedLength == true ? MySqlTypes.sql_char : MySqlTypes.sql_varchar,
-                descriptor.Length.GetValueOrDefault(50),
-                isUnicode: false,
-                descriptor.IsFixedLength.GetValueOrDefault(false)
-            ),
+            length = TypeMappingDefaults.DefaultStringLength;
+        }
+
+        string sqlType;
+        if (length == TypeMappingDefaults.MaxLength)
+        {
+            sqlType = MySqlTypes.sql_text;
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = TypeMappingDefaults.MaxLength,
+                IsUnicode = isUnicode,
+                IsFixedLength = false,
+            };
+        }
+
+        if (length > 65535)
+        {
+            sqlType = MySqlTypes.sql_longtext;
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = TypeMappingDefaults.MaxLength,
+                IsUnicode = isUnicode,
+                IsFixedLength = false,
+            };
+        }
+
+        sqlType = isFixedLength ? $"{MySqlTypes.sql_char}({length})" : $"{MySqlTypes.sql_varchar}({length})";
+        return new SqlTypeDescriptor(sqlType)
+        {
+            Length = length,
+            // UNICODE is assigned in DDL as `CHARACTER SET to utf8mb4` rather than in the type name
+            IsUnicode = isUnicode,
+            IsFixedLength = isFixedLength,
         };
     }
 }

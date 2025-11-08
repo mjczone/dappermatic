@@ -126,58 +126,6 @@ public class TypeMappingHelpersTests : TestBase
         Assert.Equal(2, result.Scale);
     }
 
-    [Fact]
-    public void Should_create_string_type_with_defaults_uses_default_length()
-    {
-        // Act
-        var result = TypeMappingHelpers.CreateStringType("varchar");
-
-        // Assert
-        Assert.Equal("varchar(255)", result.SqlTypeName);
-        Assert.Equal(255, result.Length);
-        Assert.False(result.IsUnicode);
-        Assert.False(result.IsFixedLength);
-    }
-
-    [Fact]
-    public void Should_create_string_type_with_max_length_uses_max_syntax()
-    {
-        // Act
-        var result = TypeMappingHelpers.CreateStringType("varchar", TypeMappingDefaults.MaxLength);
-
-        // Assert
-        Assert.Equal("varchar(max)", result.SqlTypeName);
-        Assert.Null(result.Length);
-        Assert.False(result.IsUnicode);
-        Assert.False(result.IsFixedLength);
-    }
-
-    [Fact]
-    public void Should_create_string_type_with_unicode_and_fixed_length_sets_flags()
-    {
-        // Act
-        var result = TypeMappingHelpers.CreateStringType("nchar", 50, isUnicode: true, isFixedLength: true);
-
-        // Assert
-        Assert.Equal("nchar(50)", result.SqlTypeName);
-        Assert.Equal(50, result.Length);
-        Assert.True(result.IsUnicode);
-        Assert.True(result.IsFixedLength);
-    }
-
-    [Fact]
-    public void Should_create_guid_string_type_returns_correct_configuration()
-    {
-        // Act
-        var result = TypeMappingHelpers.CreateGuidStringType("char", isUnicode: false, isFixedLength: true);
-
-        // Assert
-        Assert.Equal("char(36)", result.SqlTypeName);
-        Assert.Equal(36, result.Length);
-        Assert.False(result.IsUnicode);
-        Assert.True(result.IsFixedLength);
-    }
-
     [Theory]
     [InlineData(typeof(string), false)]
     [InlineData(typeof(int), false)]
