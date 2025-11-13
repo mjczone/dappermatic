@@ -92,7 +92,7 @@ public partial class DapperMaticServiceTests
             // DataTypeCategory.Boolean,
             // DataTypeCategory.Json,
             DataTypeCategory.Xml,
-            DataTypeCategory.Spatial,
+            // DataTypeCategory.Spatial, // Not supported - requires platform-specific native libraries
             // DataTypeCategory.Array,
             // DataTypeCategory.Range,
             // DataTypeCategory.Network,
@@ -140,11 +140,11 @@ public partial class DapperMaticServiceTests
             "varbinary(max)",
             // "json",
             "xml",
-            "geography",
-            "geometry",
+            // "geography", // Not supported - requires platform-specific native libraries
+            // "geometry", // Not supported - requires platform-specific native libraries
             "uniqueidentifier",
             // "cursor", // Not a data type, it's a programming construct
-            "hierarchyid",
+            // "hierarchyid", // Not supported - requires platform-specific native libraries
             "rowversion",
             "sql_variant",
             // "table", // Not a column data type, used for table variables
