@@ -17,6 +17,14 @@
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic/"
             },
             {
+              "text": "📦 / TypeMapping",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.typemapping/"
+            },
+            {
+              "text": "📦 / TypeMapping.Handlers",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.typemapping.handlers/"
+            },
+            {
               "text": "📦 / Providers",
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers/"
             },

@@ -91,9 +91,10 @@ public abstract class PostgreSqlDapperMaticDmlTests<TDatabaseFixture>(
         return db;
     }
 
-    public void Dispose()
+    public override void Dispose()
     {
         dataSource?.Dispose();
+        base.Dispose();
         GC.SuppressFinalize(this);
     }
 }
