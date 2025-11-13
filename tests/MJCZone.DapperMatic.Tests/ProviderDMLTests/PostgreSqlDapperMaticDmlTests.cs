@@ -54,6 +54,8 @@ public abstract class PostgreSqlDapperMaticDmlTests<TDatabaseFixture>(
 ) : DapperMaticDmlTypeMappingTests(output), IClassFixture<TDatabaseFixture>, IDisposable
     where TDatabaseFixture : PostgreSqlDatabaseFixture
 {
+    private readonly NpgsqlDataSource dataSource = CreateDataSource(fixture.ConnectionString);
+
     static PostgreSqlDapperMaticDmlTests()
     {
         Providers.DatabaseMethodsProvider.RegisterFactory(
@@ -62,13 +64,20 @@ public abstract class PostgreSqlDapperMaticDmlTests<TDatabaseFixture>(
         );
     }
 
+    private static NpgsqlDataSource CreateDataSource(string connectionString)
+    {
+        var dataSourceBuilder = new NpgsqlDataSourceBuilder(connectionString);
+        dataSourceBuilder.UseNetTopologySuite();
+        return dataSourceBuilder.Build();
+    }
+
     public override async Task<IDbConnection> OpenConnectionAsync()
     {
+        var connection = await dataSource.OpenConnectionAsync();
         var db = new Logging.DbLoggingConnection(
-            new NpgsqlConnection(fixture.ConnectionString),
+            connection,
             new Logging.TestLogger(Output, nameof(NpgsqlConnection))
         );
-        await db.OpenAsync();
 
         // Create extensions needed for DML tests
         await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");
@@ -80,5 +89,11 @@ public abstract class PostgreSqlDapperMaticDmlTests<TDatabaseFixture>(
         }
 
         return db;
+    }
+
+    public void Dispose()
+    {
+        dataSource?.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

@@ -1687,6 +1687,29 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, null);
 
+        var dbType = db.GetDbProviderType();
+
+        // Skip test if PostGIS is required but not installed
+        if (dbType == DbProviderType.PostgreSql)
+        {
+            var postgisInstalled = await db.ExecuteScalarAsync<bool>(
+                "SELECT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'postgis')"
+            );
+            if (!postgisInstalled)
+            {
+                Output.WriteLine("PostGIS not installed, skipping NetTopologySuite test on PostgreSQL");
+                return;
+            }
+        }
+
+        // Skip test for MySQL/MariaDB - NTS requires ST_GeomFromText() wrapper which needs custom handler
+        // MySqlConnector has MySqlGeometry type but no ADO.NET level NTS support package
+        if (dbType == DbProviderType.MySql)
+        {
+            Output.WriteLine("MySQL/MariaDB NetTopologySuite support requires custom ST_GeomFromText() handling, skipping test");
+            return;
+        }
+
         // Initialize DapperMatic type mapping
         DapperMaticTypeMapping.Initialize(
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
