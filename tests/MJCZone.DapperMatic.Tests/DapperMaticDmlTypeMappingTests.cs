@@ -1706,7 +1706,9 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         // MySqlConnector has MySqlGeometry type but no ADO.NET level NTS support package
         if (dbType == DbProviderType.MySql)
         {
-            Output.WriteLine("MySQL/MariaDB NetTopologySuite support requires custom ST_GeomFromText() handling, skipping test");
+            Output.WriteLine(
+                "MySQL/MariaDB NetTopologySuite support requires custom ST_GeomFromText() handling, skipping test"
+            );
             return;
         }
 

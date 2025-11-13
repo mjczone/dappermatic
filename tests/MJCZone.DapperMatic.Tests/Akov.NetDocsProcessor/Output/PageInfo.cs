@@ -35,6 +35,7 @@ public class PageInfo
     /// </summary>
     public string Url { get; set; } = default!;
 #endif
+
     /// <summary>
     /// Class or Interface or Delegate etc
     /// </summary>

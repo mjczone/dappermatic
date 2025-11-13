@@ -80,6 +80,7 @@ public class MemberDescription : IXmlMemberElement
     /// </summary>
     public PayloadInfo PayloadInfo { get; set; } = default!;
 #endif
+
     /// <summary>
     /// The method, event or property return type.
     /// </summary>

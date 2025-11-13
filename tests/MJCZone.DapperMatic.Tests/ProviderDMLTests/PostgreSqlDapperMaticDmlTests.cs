@@ -74,10 +74,7 @@ public abstract class PostgreSqlDapperMaticDmlTests<TDatabaseFixture>(
     public override async Task<IDbConnection> OpenConnectionAsync()
     {
         var connection = await dataSource.OpenConnectionAsync();
-        var db = new Logging.DbLoggingConnection(
-            connection,
-            new Logging.TestLogger(Output, nameof(NpgsqlConnection))
-        );
+        var db = new Logging.DbLoggingConnection(connection, new Logging.TestLogger(Output, nameof(NpgsqlConnection)));
 
         // Create extensions needed for DML tests
         await db.ExecuteAsync("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";");

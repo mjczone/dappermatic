@@ -40,6 +40,7 @@ public class EnumMemberDescription : IXmlMemberBaseElement
     /// </summary>
     public PageInfo Parent { get; set; } = default!;
 #endif
+
     /// <summary>
     /// The xml summary for the member.
     /// </summary>

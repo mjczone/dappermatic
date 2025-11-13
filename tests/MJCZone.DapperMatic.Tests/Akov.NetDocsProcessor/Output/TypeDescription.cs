@@ -85,6 +85,7 @@ public class TypeDescription : IXmlMemberBaseElement
     /// </summary>
     public PayloadInfo PayloadInfo { get; set; } = default!;
 #endif
+
     /// <summary>
     /// The main page element e.g. `Class`, `Interface`, `Record` etc.
     /// </summary>
