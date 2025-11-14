@@ -3,623 +3,528 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Security.Claims;
-
+using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
-using MJCZone.DapperMatic.AspNetCore.Models.Responses;
-using MJCZone.DapperMatic.AspNetCore.Security;
-using MJCZone.DapperMatic.Models;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
 /// <summary>
 /// Partial class containing view-related methods for DapperMaticService.
 /// </summary>
-public sealed partial class DapperMaticService
+public partial class DapperMaticService
 {
     /// <summary>
     /// Gets all views from the specified datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">Optional schema name filter.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of views.</returns>
-    public async Task<IEnumerable<DmView>> GetViewsAsync(
+    public async Task<IEnumerable<ViewDto>> GetViewsAsync(
+        IOperationContext context,
         string datasourceId,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
+        schemaName = NormalizeSchemaName(schemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListViews,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to list views for datasource '{datasourceId}'."
-            );
-        }
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
 
-        try
+        using (connection)
         {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Get views using extension method
-                var views = await connection
-                    .GetViewsAsync(schemaName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+            // Get views using extension method
+            var views = await connection
+                .GetViewsAsync(schemaName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
 
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return views;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(context, true, $"Retrieved views for datasource '{datasourceId}'")
+                .ConfigureAwait(false);
+            return views.ToViewDtos();
         }
     }
 
     /// <summary>
     /// Gets a specific view from the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="viewName">The view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The view if found, otherwise null.</returns>
-    public async Task<DmView?> GetViewAsync(
+    /// <returns>The view.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
+    public async Task<ViewDto> GetViewAsync(
+        IOperationContext context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
 
         // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(viewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(viewName));
-        }
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(viewName, nameof(viewName))
+            .Assert();
 
-        // Create operation context
-        var context = new OperationContext
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            User = user,
-            Operation = OperationIdentifiers.GetView,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            ViewName = viewName,
-        };
-
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to get view '{viewName}' from datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Get view using extension method
-                var view = await connection
-                    .GetViewAsync(schemaName, viewName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+            // Get view using extension method
+            var view = await connection
+                .GetViewAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
 
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return view;
+            if (view == null)
+            {
+                throw new KeyNotFoundException(
+                    !string.IsNullOrWhiteSpace(schemaName)
+                        ? $"View '{viewName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
+                        : $"View '{viewName}' not found in datasource '{datasourceId}'"
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, true, $"Retrieved view '{viewName}' for datasource '{datasourceId}'")
+                .ConfigureAwait(false);
+            return view.ToViewDto();
         }
     }
 
     /// <summary>
     /// Creates a new view in the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
-    /// <param name="view">The view to create.</param>
-    /// <param name="user">The user making the request.</param>
+    /// <param name="view">The view data transfer object containing the view information.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The created view if successful, otherwise null.</returns>
-    public async Task<DmView?> CreateViewAsync(
+    /// <returns>The created view.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the schema is not found.</exception>
+    /// <exception cref="DuplicateKeyException">Thrown when the view already exists.</exception>
+    public async Task<ViewDto> CreateViewAsync(
+        IOperationContext context,
         string datasourceId,
-        DmView view,
-        ClaimsPrincipal? user = null,
+        ViewDto view,
         CancellationToken cancellationToken = default
     )
     {
-        if (view.SchemaName == "_")
-        {
-            view.SchemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        ArgumentNullException.ThrowIfNull(view);
-        if (string.IsNullOrWhiteSpace(view.ViewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(view));
-        }
-        if (string.IsNullOrWhiteSpace(view.Definition))
-        {
-            throw new ArgumentException("View definition is required.", nameof(view));
-        }
+        // Convert DTO to domain model for validation
+        var dmView = view.ToDmView();
+        var schemaName = NormalizeSchemaName(dmView.SchemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.CreateView,
-            DatasourceId = datasourceId,
-            SchemaName = view.SchemaName,
-            ViewName = view.ViewName,
-            RequestBody = view,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNull(view, nameof(view))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to create view '{view.ViewName}' in datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
+            // Check view does not already exist
+            await AssertViewDoesNotExistAsync(datasourceId, dmView.ViewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Create view using extension method
+            var created = await connection
+                .CreateViewIfNotExistsAsync(
+                    schemaName,
+                    dmView.ViewName,
+                    dmView.Definition,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (!created)
             {
-                // Create view using extension method
-                var success = await connection
-                    .CreateViewIfNotExistsAsync(view, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (success)
-                {
-                    await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    return view; // Return original view object
-                }
-
-                await LogAuditEventAsync(context, false, "View already exists")
-                    .ConfigureAwait(false);
-                return null;
+                throw new InvalidOperationException(
+                    $"Failed to create view '{dmView.ViewName}' for an unknown reason."
+                );
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, true, $"View '{dmView.ViewName}' created successfully.")
+                .ConfigureAwait(false);
+
+            var createdView = await connection
+                .GetViewAsync(schemaName, dmView.ViewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                createdView
+                ?? throw new InvalidOperationException(
+                    $"View '{dmView.ViewName}' was created but could not be retrieved."
+                )
+            ).ToViewDto();
         }
     }
 
     /// <summary>
-    /// Updates an existing view in the datasource.
+    /// Updates an existing view's properties in the datasource.
     /// </summary>
-    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="context">The operation context.</param>
+    /// /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="viewName">The name of the view to update.</param>
-    /// <param name="newViewName">The new name for the view (optional).</param>
-    /// <param name="newViewDefinition">The new definition for the view (optional).</param>
-    /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
+    /// <param name="updates">The view updates (only non-null properties will be updated).</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>The updated view if successful, otherwise null.</returns>
-    public async Task<DmView?> UpdateViewAsync(
+    /// <returns>The updated view.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
+    public async Task<ViewDto> UpdateViewAsync(
+        IOperationContext context,
         string datasourceId,
         string viewName,
-        string? newViewName,
-        string? newViewDefinition,
-        string? schemaName = null,
-        ClaimsPrincipal? user = null,
+        ViewDto updates,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(viewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(viewName));
-        }
+        var schemaName = NormalizeSchemaName(updates.SchemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.UpdateView,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            ViewName = viewName,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(viewName, nameof(viewName))
+            .NotNull(updates, nameof(updates))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to update view '{viewName}' in datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            DmView? updatedView = null;
-            using (connection)
+            // Check view exists
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            var changesMade = false;
+
+            // Update definition if provided
+            if (!string.IsNullOrWhiteSpace(updates.Definition))
             {
-                if (!string.IsNullOrWhiteSpace(newViewDefinition))
-                {
-                    // Update the view
-                    var updated = await connection
-                        .UpdateViewIfExistsAsync(
-                            schemaName,
-                            viewName,
-                            newViewDefinition,
-                            cancellationToken: cancellationToken
-                        )
-                        .ConfigureAwait(false);
-
-                    if (updated)
-                    {
-                        updatedView = await connection
-                            .GetViewAsync(
-                                schemaName,
-                                viewName,
-                                cancellationToken: cancellationToken
-                            )
-                            .ConfigureAwait(false);
-                        await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(newViewName))
-                {
-                    // Rename the view if a new name is provided
-                    var updated = await connection
-                        .RenameViewIfExistsAsync(
-                            schemaName,
-                            viewName,
-                            newViewName!,
-                            cancellationToken: cancellationToken
-                        )
-                        .ConfigureAwait(false);
-
-                    if (updated)
-                    {
-                        updatedView = await connection
-                            .GetViewAsync(
-                                schemaName,
-                                viewName,
-                                cancellationToken: cancellationToken
-                            )
-                            .ConfigureAwait(false);
-                        await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                    }
-                }
-            }
-
-            if (updatedView != null)
-            {
-                return updatedView;
-            }
-            else
-            {
-                await LogAuditEventAsync(context, false, "View not found or no changes made")
+                var updated = await connection
+                    .UpdateViewIfExistsAsync(
+                        schemaName,
+                        viewName,
+                        updates.Definition,
+                        cancellationToken: cancellationToken
+                    )
                     .ConfigureAwait(false);
-                return null;
+
+                if (updated)
+                {
+                    changesMade = true;
+                    await LogAuditEventAsync(context, true, $"View '{viewName}' definition updated successfully.")
+                        .ConfigureAwait(false);
+                }
+                else
+                {
+                    throw new InvalidOperationException($"Failed to update definition for view '{viewName}'.");
+                }
             }
+
+            if (!changesMade)
+            {
+                await LogAuditEventAsync(context, false, "No changes made - no valid definition provided")
+                    .ConfigureAwait(false);
+                throw new InvalidOperationException("No changes made - no valid definition provided");
+            }
+
+            // Get the updated view
+            var updatedView = await connection
+                .GetViewAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                updatedView
+                ?? throw new InvalidOperationException($"View '{viewName}' was updated but could not be retrieved.")
+            ).ToViewDto();
         }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
+    }
+
+    /// <summary>
+    /// Renames an existing view in the datasource.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="currentViewName">The current name of the view.</param>
+    /// <param name="newViewName">The new name for the view.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The renamed view.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
+    public async Task<ViewDto> RenameViewAsync(
+        IOperationContext context,
+        string datasourceId,
+        string currentViewName,
+        string newViewName,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        schemaName = NormalizeSchemaName(schemaName);
+
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(currentViewName, nameof(currentViewName))
+            .NotNullOrWhiteSpace(newViewName, nameof(newViewName))
+            .Assert();
+
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Check view exists
+            await AssertViewExistsAsync(datasourceId, currentViewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Check view does not already exist
+            await AssertViewDoesNotExistAsync(datasourceId, newViewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            // Rename the view
+            var updated = await connection
+                .RenameViewIfExistsAsync(schemaName, currentViewName, newViewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!updated)
+            {
+                throw new InvalidOperationException($"Failed to rename view '{currentViewName}' to '{newViewName}'.");
+            }
+
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    $"View '{currentViewName}' renamed to '{newViewName}' successfully."
+                )
+                .ConfigureAwait(false);
+
+            // Get the renamed view
+            var renamedView = await connection
+                .GetViewAsync(schemaName, newViewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            return (
+                renamedView
+                ?? throw new InvalidOperationException($"View '{newViewName}' was renamed but could not be retrieved.")
+            ).ToViewDto();
         }
     }
 
     /// <summary>
     /// Drops a view from the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="viewName">The name of the view to drop.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>True if the view was dropped, false if it didn't exist.</returns>
-    public async Task<bool> DropViewAsync(
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown when the view does not exist.</exception>
+    public async Task DropViewAsync(
+        IOperationContext context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(viewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(viewName));
-        }
+        schemaName = NormalizeSchemaName(schemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.DropView,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            ViewName = viewName,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(viewName, nameof(viewName))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to drop view '{viewName}' from datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Drop view using extension method
-                var success = await connection
-                    .DropViewIfExistsAsync(
-                        schemaName,
-                        viewName,
-                        cancellationToken: cancellationToken
-                    )
-                    .ConfigureAwait(false);
+            // Check view exists
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
 
-                await LogAuditEventAsync(context, success).ConfigureAwait(false);
-                return success;
+            // Drop view using extension method
+            var dropped = await connection
+                .DropViewIfExistsAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!dropped)
+            {
+                throw new InvalidOperationException($"Failed to drop view '{viewName}' for an unknown reason.");
             }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+
+            await LogAuditEventAsync(context, dropped, $"View '{viewName}' dropped successfully.")
+                .ConfigureAwait(false);
         }
     }
 
     /// <summary>
     /// Checks if a view exists in the datasource.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="viewName">The view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the view exists, otherwise false.</returns>
     public async Task<bool> ViewExistsAsync(
+        IOperationContext context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(viewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(viewName));
-        }
+        schemaName = NormalizeSchemaName(schemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ViewExists,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            ViewName = viewName,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(viewName, nameof(viewName))
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to check if view '{viewName}' exists in datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // Check if view exists using extension method
-                var exists = await connection
-                    .DoesViewExistAsync(schemaName, viewName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+            // Check if view exists using extension method
+            var exists = await connection
+                .DoesViewExistAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
 
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return exists;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(
+                    context,
+                    true,
+                    exists == true ? $"View '{viewName}' exists." : $"View '{viewName}' does not exist."
+                )
+                .ConfigureAwait(false);
+            return exists;
         }
     }
 
     /// <summary>
     /// Queries a view with filtering, sorting, and pagination.
     /// </summary>
+    /// <param name="context">The operation context.</param>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="viewName">The view name to query.</param>
     /// <param name="request">The query parameters.</param>
     /// <param name="schemaName">Optional schema name.</param>
-    /// <param name="user">The user making the request.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The query results with pagination information.</returns>
     public async Task<QueryResultDto> QueryViewAsync(
+        IOperationContext context,
         string datasourceId,
         string viewName,
-        QueryRequest request,
+        QueryDto request,
         string? schemaName = null,
-        ClaimsPrincipal? user = null,
         CancellationToken cancellationToken = default
     )
     {
-        if (schemaName == "_")
-        {
-            schemaName = null; // Normalize "_" to null for non-schema providers
-        }
+        await AssertPermissionsAsync(context).ConfigureAwait(false);
 
-        // Validate inputs
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasourceId));
-        }
-        if (string.IsNullOrWhiteSpace(viewName))
-        {
-            throw new ArgumentException("View name is required.", nameof(viewName));
-        }
-        ArgumentNullException.ThrowIfNull(request);
+        schemaName = NormalizeSchemaName(schemaName);
 
-        // Create operation context
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.QueryView,
-            DatasourceId = datasourceId,
-            SchemaName = schemaName,
-            ViewName = viewName,
-            RequestBody = request,
-        };
+        ValidationFactory
+            .Arguments()
+            .NotNull(context, nameof(context))
+            .NotNullOrWhiteSpace(datasourceId, nameof(datasourceId))
+            .NotNullOrWhiteSpace(viewName, nameof(viewName))
+            .NotNull(request, nameof(request))
+            .Object(
+                request,
+                nameof(request),
+                builder =>
+                    builder
+                        .Custom(
+                            r => r.Take > 0 && r.Take <= 1000,
+                            nameof(request.Take),
+                            "Take must be greater than 0 and less than or equal to 1000."
+                        )
+                        .Custom(r => r.Skip >= 0, nameof(request.Skip), "Skip must be greater than or equal to 0.")
+            )
+            .Assert();
 
-        // Check authorization
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
+        using (connection)
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to query view '{viewName}' in datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var connection = await CreateConnectionForDatasource(datasourceId)
+            // Check schema exists if specified
+            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            using (connection)
-            {
-                // First verify the view exists
-                var viewExists = await connection
-                    .DoesViewExistAsync(schemaName, viewName, cancellationToken: cancellationToken)
-                    .ConfigureAwait(false);
+            // Check view exists
+            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
 
-                if (!viewExists)
-                {
-                    throw new ArgumentException($"View '{viewName}' does not exist.");
-                }
+            // Build the query using provider-specific identifier naming
+            var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, viewName);
 
-                // Build the query using provider-specific identifier naming
-                var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, viewName);
+            var result = await ExecuteDataQueryAsync(
+                    connection,
+                    qualifiedFromName,
+                    request,
+                    schemaName,
+                    null // tableName = null for views to use fallback behavior
+                )
+                .ConfigureAwait(false);
 
-                var result = await ExecuteDataQueryAsync(
-                        connection,
-                        qualifiedFromName,
-                        request,
-                        schemaName,
-                        null // tableName = null for views to use fallback behavior
-                    )
-                    .ConfigureAwait(false);
-
-                await LogAuditEventAsync(context, true).ConfigureAwait(false);
-                return result;
-            }
-        }
-        catch (Exception ex) when (ex is not UnauthorizedAccessException)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
+            await LogAuditEventAsync(context, true, $"Queried view '{viewName}' for datasource '{datasourceId}'")
+                .ConfigureAwait(false);
+            return result;
         }
     }
 }

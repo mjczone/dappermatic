@@ -10,18 +10,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for table list operations.
 /// </summary>
-public class TableListResponse : ResponseBase<IEnumerable<TableDto>>
+public class TableListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TableListResponse"/> class.
     /// </summary>
     public TableListResponse()
-        : base(Enumerable.Empty<TableDto>()) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TableListResponse"/> class.
     /// </summary>
     /// <param name="tables">The collection of tables.</param>
     public TableListResponse(IEnumerable<TableDto> tables)
-        : base(tables) { }
+    {
+        Result = tables;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of tables.
+    /// </summary>
+    public IEnumerable<TableDto> Result { get; set; }
 }

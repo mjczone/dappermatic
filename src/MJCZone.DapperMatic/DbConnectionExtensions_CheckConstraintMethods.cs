@@ -15,6 +15,28 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Checks if a check constraint exists in the specified table.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesCheckConstraintExistAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesCheckConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a check constraint exists in the specified table.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -32,14 +54,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesCheckConstraintExistAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DoesCheckConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a check constraint exists on the specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesCheckConstraintExistOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesCheckConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -63,14 +100,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesCheckConstraintExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesCheckConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -91,6 +121,41 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .CreateCheckConstraintIfNotExistsAsync(db, constraint, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Creates a check constraint if it does not exist.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="expression">The constraint expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was created, otherwise false.</returns>
+    public static async Task<bool> CreateCheckConstraintIfNotExistsAsync<T>(
+        this IDbConnection db,
+        string? columnName,
+        string constraintName,
+        string expression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .CreateCheckConstraintIfNotExistsAsync(
+                db,
+                schemaName,
+                tableName,
+                columnName,
+                constraintName,
+                expression,
+                tx,
+                cancellationToken
+            )
             .ConfigureAwait(false);
     }
 
@@ -134,6 +199,28 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Gets the check constraint with the specified name.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The check constraint, or null if not found.</returns>
+    public static async Task<DmCheckConstraint?> GetCheckConstraintAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetCheckConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the check constraint with the specified name.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -151,14 +238,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetCheckConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .GetCheckConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the name of the check constraint on the specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The name of the check constraint, or null if not found.</returns>
+    public static async Task<string?> GetCheckConstraintNameOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetCheckConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -182,14 +284,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetCheckConstraintNameOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetCheckConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the names of the check constraints in the specified table.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of check constraint names.</returns>
+    public static async Task<List<string>> GetCheckConstraintNamesAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetCheckConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -213,14 +330,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetCheckConstraintNamesAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetCheckConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the check constraint on the specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The check constraint, or null if not found.</returns>
+    public static async Task<DmCheckConstraint?> GetCheckConstraintOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetCheckConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -244,14 +376,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetCheckConstraintOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetCheckConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the check constraints in the specified table.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of check constraints.</returns>
+    public static async Task<List<DmCheckConstraint>> GetCheckConstraintsAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetCheckConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -275,14 +422,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetCheckConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintNameFilter,
-                tx,
-                cancellationToken
-            )
+            .GetCheckConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the check constraint if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropCheckConstraintIfExistsAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropCheckConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -306,14 +468,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropCheckConstraintIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DropCheckConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the check constraint on the specified column if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropCheckConstraintOnColumnIfExistsAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropCheckConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -337,14 +514,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropCheckConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropCheckConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 

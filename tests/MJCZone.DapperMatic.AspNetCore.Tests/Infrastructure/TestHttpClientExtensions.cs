@@ -43,10 +43,7 @@ public static class TestHttpClientExtensions
                 {
                     services
                         .AddAuthentication("Test")
-                        .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>(
-                            "Test",
-                            options => { }
-                        );
+                        .AddScheme<AuthenticationSchemeOptions, TestAuthenticationHandler>("Test", options => { });
                     services.AddSingleton(new TestAuthenticationHandler.TestUser(claims));
                 });
             })
@@ -65,9 +62,7 @@ public static class TestHttpClientExtensions
         CancellationToken cancellationToken = default
     )
     {
-        var json = await response
-            .Content.ReadAsStringAsync(cancellationToken)
-            .ConfigureAwait(false);
+        var json = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         return JsonSerializer.Deserialize<T>(json, JsonOptions);
     }
 

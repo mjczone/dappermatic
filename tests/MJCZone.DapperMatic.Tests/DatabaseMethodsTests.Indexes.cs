@@ -13,7 +13,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_Indexes_Async(string? schemaName)
+    protected virtual async Task Can_perform_simple_crud_on_indexes_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -37,14 +37,7 @@ public abstract partial class DatabaseMethodsTests
 
         var columns = new List<DmColumn>
         {
-            new(
-                schemaName,
-                tableName,
-                columnName,
-                typeof(int),
-                defaultExpression: "1",
-                isNullable: false
-            )
+            new(schemaName, tableName, columnName, typeof(int), defaultExpression: "1", isNullable: false),
         };
         for (var i = 0; i < 10; i++)
         {
@@ -76,35 +69,21 @@ public abstract partial class DatabaseMethodsTests
             isUnique: true
         );
 
-        Output.WriteLine(
-            "Creating multiple column unique index: {0}.{1}_multi",
-            tableName,
-            indexName + "_multi"
-        );
+        Output.WriteLine("Creating multiple column unique index: {0}.{1}_multi", tableName, indexName + "_multi");
         await db.CreateIndexIfNotExistsAsync(
             schemaName,
             tableName,
             indexName + "_multi",
-            [
-                new DmOrderedColumn(columnName + "_1", DmColumnOrder.Descending),
-                new DmOrderedColumn(columnName + "_2")
-            ],
+            [new DmOrderedColumn(columnName + "_1", DmColumnOrder.Descending), new DmOrderedColumn(columnName + "_2")],
             isUnique: true
         );
 
-        Output.WriteLine(
-            "Creating multiple column non unique index: {0}.{1}_multi2",
-            tableName,
-            indexName
-        );
+        Output.WriteLine("Creating multiple column non unique index: {0}.{1}_multi2", tableName, indexName);
         await db.CreateIndexIfNotExistsAsync(
             schemaName,
             tableName,
             indexName + "_multi2",
-            [
-                new DmOrderedColumn(columnName + "_3"),
-                new DmOrderedColumn(columnName + "_4", DmColumnOrder.Descending)
-            ]
+            [new DmOrderedColumn(columnName + "_3"), new DmOrderedColumn(columnName + "_4", DmColumnOrder.Descending)]
         );
 
         Output.WriteLine("Index Exists: {0}.{1}", tableName, indexName);
@@ -117,14 +96,8 @@ public abstract partial class DatabaseMethodsTests
 
         var indexNames = await db.GetIndexNamesAsync(schemaName, tableName);
         Assert.Contains(indexNames, i => i.Equals(indexName, StringComparison.OrdinalIgnoreCase));
-        Assert.Contains(
-            indexNames,
-            i => i.Equals(indexName + "_multi", StringComparison.OrdinalIgnoreCase)
-        );
-        Assert.Contains(
-            indexNames,
-            i => i.Equals(indexName + "_multi2", StringComparison.OrdinalIgnoreCase)
-        );
+        Assert.Contains(indexNames, i => i.Equals(indexName + "_multi", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(indexNames, i => i.Equals(indexName + "_multi2", StringComparison.OrdinalIgnoreCase));
 
         var indexes = await db.GetIndexesAsync(schemaName, tableName);
         Assert.True(indexes.Count >= 3);

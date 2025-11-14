@@ -156,9 +156,9 @@ public class DmColumn
         ColumnName = columnName;
         DotnetType = dotnetType;
         ProviderDataTypes = providerDataTypes ?? [];
-        Length = length == -1 ? null : length;
-        Precision = precision == -1 ? null : precision;
-        Scale = scale == -1 ? null : scale;
+        Length = length;
+        Precision = precision;
+        Scale = scale;
         IsNullable = isNullable;
         IsPrimaryKey = isPrimaryKey;
         IsAutoIncrement = isAutoIncrement;
@@ -398,9 +398,7 @@ public class DmColumn
     /// <returns><c>true</c> if the column is text; otherwise, <c>false</c>.</returns>
     public bool IsText()
     {
-        return DotnetType == typeof(string)
-            || DotnetType == typeof(char)
-            || DotnetType == typeof(char[]);
+        return DotnetType == typeof(string) || DotnetType == typeof(char) || DotnetType == typeof(char[]);
     }
 
     /// <summary>
@@ -463,8 +461,7 @@ public class DmColumn
     /// <returns><c>true</c> if the column is a dictionary type; otherwise, <c>false</c>.</returns>
     public bool IsDictionary()
     {
-        return DotnetType?.IsGenericType == true
-            && DotnetType.GetGenericTypeDefinition() == typeof(Dictionary<,>);
+        return DotnetType?.IsGenericType == true && DotnetType.GetGenericTypeDefinition() == typeof(Dictionary<,>);
     }
 
     /// <summary>
@@ -553,9 +550,7 @@ public class DmColumn
     /// <returns>The provider data type for the specified provider.</returns>
     public string? GetProviderDataType(DbProviderType providerType)
     {
-        return ProviderDataTypes.TryGetValue(providerType, out var providerDataType)
-            ? providerDataType
-            : null;
+        return ProviderDataTypes.TryGetValue(providerType, out var providerDataType) ? providerDataType : null;
     }
 
     /// <summary>
@@ -578,9 +573,7 @@ public class DmColumn
     /// <returns>The default expression for the specified provider, or null if neither is set.</returns>
     public string? GetDefaultExpression(DbProviderType providerType)
     {
-        return _defaultExpressionFunc != null
-            ? _defaultExpressionFunc(providerType)
-            : _defaultExpression;
+        return _defaultExpressionFunc != null ? _defaultExpressionFunc(providerType) : _defaultExpression;
     }
 
     /// <summary>

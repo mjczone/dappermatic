@@ -41,6 +41,10 @@ public static class ServiceCollectionExtensions
 
         services.AddScoped<IDapperMaticService, DapperMaticService>();
 
+        // Register operation context services
+        services.TryAddScoped<IOperationContext, OperationContext>();
+        services.TryAddScoped<IOperationContextInitializer, OperationContextInitializer>();
+
         // Apply fluent configuration
         if (configure != null)
         {
@@ -68,9 +72,7 @@ public static class ServiceCollectionExtensions
     private static void RegisterDatasourceRepositoryIfNotRegistered(IServiceCollection services)
     {
         // Check if repository is already registered
-        var hasRepository = services.Any(sd =>
-            sd.ServiceType == typeof(IDapperMaticDatasourceRepository)
-        );
+        var hasRepository = services.Any(sd => sd.ServiceType == typeof(IDapperMaticDatasourceRepository));
 
         if (!hasRepository)
         {
@@ -88,14 +90,8 @@ public static class ServiceCollectionExtensions
         {
             var options = serviceProvider.GetRequiredService<IOptions<DapperMaticOptions>>();
             var datasourceIdFactory = serviceProvider.GetRequiredService<IDatasourceIdFactory>();
-            var logger = serviceProvider.GetRequiredService<
-                ILogger<InMemoryDapperMaticDatasourceRepository>
-            >();
-            var repository = new InMemoryDapperMaticDatasourceRepository(
-                options,
-                datasourceIdFactory,
-                logger
-            );
+            var logger = serviceProvider.GetRequiredService<ILogger<InMemoryDapperMaticDatasourceRepository>>();
+            var repository = new InMemoryDapperMaticDatasourceRepository(options, datasourceIdFactory, logger);
 
             // Get final options configuration (includes both direct config and fluent API additions)
             if (options?.Value?.Datasources?.Count > 0)
@@ -122,8 +118,7 @@ internal abstract class DapperTypeHandlerBase<T> : Dapper.SqlMapper.TypeHandler<
     /// </summary>
     /// <param name="parameter">The database parameter to set the value for.</param>
     /// <param name="value">The value to set.</param>
-    public override void SetValue(System.Data.IDbDataParameter parameter, T? value) =>
-        parameter.Value = value;
+    public override void SetValue(System.Data.IDbDataParameter parameter, T? value) => parameter.Value = value;
 }
 
 /// <summary>

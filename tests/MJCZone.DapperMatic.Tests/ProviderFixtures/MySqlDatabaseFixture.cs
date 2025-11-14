@@ -26,8 +26,7 @@ public class MySql_57_DatabaseFixture : MySqlDatabaseFixture
 
     public override bool IgnoreSqlType(string sqlType)
     {
-        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase)
-            || base.IgnoreSqlType(sqlType);
+        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase) || base.IgnoreSqlType(sqlType);
     }
 }
 

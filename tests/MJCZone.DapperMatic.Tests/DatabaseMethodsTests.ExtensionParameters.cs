@@ -12,7 +12,7 @@ namespace MJCZone.DapperMatic.Tests;
 public abstract partial class DatabaseMethodsTests
 {
     [Fact]
-    protected virtual async Task Can_use_command_timeout_parameter_async()
+    protected virtual async Task Can_use_command_timeout_parameter_Async()
     {
         // Test commandTimeout parameter like documentation example
         var table = new DmTable(
@@ -40,10 +40,7 @@ public abstract partial class DatabaseMethodsTests
 
         // Test introspection operations
         var tables = await db.GetTablesAsync(table.SchemaName);
-        Assert.Contains(
-            tables,
-            t => t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase)
-        );
+        Assert.Contains(tables, t => t.TableName.Equals(table.TableName, StringComparison.OrdinalIgnoreCase));
 
         // Clean up
         await db.DropTableIfExistsAsync(table.SchemaName, table.TableName);
@@ -52,7 +49,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Can_use_transaction_support_async()
+    protected virtual async Task Can_use_transaction_support_Async()
     {
         // Test transaction support like documentation example
         var usersTable = new DmTable(
@@ -113,14 +110,8 @@ public abstract partial class DatabaseMethodsTests
 
         // Verify all tables were created
         var usersExists = await db.DoesTableExistAsync(usersTable.SchemaName, usersTable.TableName);
-        var ordersExists = await db.DoesTableExistAsync(
-            ordersTable.SchemaName,
-            ordersTable.TableName
-        );
-        var itemsExists = await db.DoesTableExistAsync(
-            orderItemsTable.SchemaName,
-            orderItemsTable.TableName
-        );
+        var ordersExists = await db.DoesTableExistAsync(ordersTable.SchemaName, ordersTable.TableName);
+        var itemsExists = await db.DoesTableExistAsync(orderItemsTable.SchemaName, orderItemsTable.TableName);
 
         Assert.True(usersExists);
         Assert.True(ordersExists);
@@ -135,7 +126,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Can_use_cancellation_token_async()
+    protected virtual async Task Can_use_cancellation_token_Async()
     {
         // Test cancellation token support like documentation example
         var table = new DmTable(
@@ -160,25 +151,17 @@ public abstract partial class DatabaseMethodsTests
         Assert.True(created);
 
         // Verify table exists
-        var exists = await db.DoesTableExistAsync(
-            table.SchemaName,
-            table.TableName,
-            cancellationToken: cts.Token
-        );
+        var exists = await db.DoesTableExistAsync(table.SchemaName, table.TableName, cancellationToken: cts.Token);
         Assert.True(exists);
 
         // Clean up
-        await db.DropTableIfExistsAsync(
-            table.SchemaName,
-            table.TableName,
-            cancellationToken: cts.Token
-        );
+        await db.DropTableIfExistsAsync(table.SchemaName, table.TableName, cancellationToken: cts.Token);
 
         Output.WriteLine("✅ Cancellation token support works correctly");
     }
 
     [Fact]
-    protected virtual async Task Can_combine_all_parameters_async()
+    protected virtual async Task Can_combine_all_parameters_Async()
     {
         // Test combining timeout, transaction, and cancellation token
         var table = new DmTable(
@@ -202,11 +185,7 @@ public abstract partial class DatabaseMethodsTests
         try
         {
             // Combine transaction and cancellation token
-            var created = await db.CreateTableIfNotExistsAsync(
-                table,
-                tx: transaction,
-                cancellationToken: cts.Token
-            );
+            var created = await db.CreateTableIfNotExistsAsync(table, tx: transaction, cancellationToken: cts.Token);
             Assert.True(created);
 
             transaction.Commit();
@@ -228,7 +207,7 @@ public abstract partial class DatabaseMethodsTests
     }
 
     [Fact]
-    protected virtual async Task Transaction_rollback_prevents_table_creation_async()
+    protected virtual async Task Should_expect_transaction_rollback_prevents_table_creation_async_Async()
     {
         // Test that rollback actually prevents table creation
         // Note: MySQL/MariaDB DDL statements auto-commit, so rollback doesn't work for CREATE TABLE

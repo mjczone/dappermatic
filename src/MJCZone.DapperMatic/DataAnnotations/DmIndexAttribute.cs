@@ -13,11 +13,7 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// <example>
 /// [DmIndex(true, "Col1", "Col2")]
 /// </example>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Class,
-    AllowMultiple = true,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class DmIndexAttribute : Attribute
 {
     /// <summary>
@@ -26,18 +22,11 @@ public sealed class DmIndexAttribute : Attribute
     /// <param name="isUnique">A value indicating whether the index is unique.</param>
     /// <param name="columnNames">The names of the columns included in the index.</param>
     /// <param name="indexName">The name of the index constraint.</param>
-    public DmIndexAttribute(
-        bool isUnique = false,
-        string[]? columnNames = null,
-        string? indexName = null
-    )
+    public DmIndexAttribute(bool isUnique = false, string[]? columnNames = null, string? indexName = null)
     {
         if (columnNames == null || columnNames.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one column name is required",
-                nameof(columnNames)
-            );
+            throw new ArgumentException("At least one column name is required", nameof(columnNames));
         }
 
         IsUnique = isUnique;

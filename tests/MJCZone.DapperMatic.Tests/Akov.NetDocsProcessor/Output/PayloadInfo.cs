@@ -17,22 +17,22 @@ public class PayloadInfo
     public bool IsSealed { get; set; }
     public bool IsStatic { get; set; }
     public bool IsVirtual { get; set; }
-    
+
     // Type
     public bool IsGenericType { get; set; }
-    
+
     // Field
     public bool IsConst { get; set; }
     public bool IsReadOnlyField { get; set; }
-    
+
     // Method
-    public bool? IsAsync { get; set; } 
+    public bool? IsAsync { get; set; }
     public bool? IsExtensionMethod { get; set; }
     public bool? IsGenericMethod { get; set; }
     public bool? IsReadOnlyMethod { get; set; }
-    
+
     // Property
-    public bool? HasGetMethod { get; set; } 
+    public bool? HasGetMethod { get; set; }
     public bool? HasSetMethod { get; set; }
     public bool? IsIndexer { get; set; }
     public bool? IsRequired { get; set; }

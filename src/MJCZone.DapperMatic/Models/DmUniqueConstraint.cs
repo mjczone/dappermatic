@@ -38,12 +38,7 @@ public class DmUniqueConstraint : DmConstraint
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="columns">The columns.</param>
     [SetsRequiredMembers]
-    public DmUniqueConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName,
-        DmOrderedColumn[] columns
-    )
+    public DmUniqueConstraint(string? schemaName, string tableName, string constraintName, DmOrderedColumn[] columns)
         : base(constraintName)
     {
         SchemaName = schemaName;

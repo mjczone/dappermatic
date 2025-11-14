@@ -36,11 +36,7 @@ public partial class SqliteMethods
             throw new ArgumentException("Column name is required", nameof(column));
         }
 
-        var (_, tableName, columnName) = NormalizeNames(
-            column.SchemaName,
-            column.TableName,
-            column.ColumnName
-        );
+        var (_, tableName, columnName) = NormalizeNames(column.SchemaName, column.TableName, column.ColumnName);
 
         return await AlterTableUsingRecreateTableStrategyAsync(
                 db,
@@ -48,9 +44,7 @@ public partial class SqliteMethods
                 tableName,
                 table =>
                 {
-                    return table.Columns.All(x =>
-                        !x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-                    );
+                    return table.Columns.All(x => !x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase));
                 },
                 table =>
                 {
@@ -88,15 +82,11 @@ public partial class SqliteMethods
                 tableName,
                 table =>
                 {
-                    return table.Columns.Any(x =>
-                        x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-                    );
+                    return table.Columns.Any(x => x.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase));
                 },
                 table =>
                 {
-                    table.Columns.RemoveAll(c =>
-                        c.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-                    );
+                    table.Columns.RemoveAll(c => c.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase));
                     return table;
                 },
                 tx: tx,

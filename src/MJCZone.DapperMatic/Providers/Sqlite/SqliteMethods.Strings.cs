@@ -35,10 +35,7 @@ public partial class SqliteMethods
     }
 
     /// <inheritdoc/>
-    protected override (string sql, object parameters) SqlDoesTableExist(
-        string? schemaName,
-        string tableName
-    )
+    protected override (string sql, object parameters) SqlDoesTableExist(string? schemaName, string tableName)
     {
         const string sql = """
             SELECT COUNT(*)
@@ -48,14 +45,7 @@ public partial class SqliteMethods
                 AND name = @tableName
             """;
 
-        return (
-            sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName),
-                tableName = NormalizeName(tableName),
-            }
-        );
+        return (sql, new { schemaName = NormalizeSchemaName(schemaName), tableName = NormalizeName(tableName) });
     }
 
     /// <inheritdoc/>
@@ -64,9 +54,7 @@ public partial class SqliteMethods
         string? tableNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? string.Empty
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? string.Empty : ToLikeString(tableNameFilter);
 
         var sql = $"""
 
@@ -74,7 +62,7 @@ public partial class SqliteMethods
                             FROM sqlite_master
                             WHERE
                                 type = 'table'
-                                AND name NOT LIKE 'sqlite_%'
+                                AND name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? null : " AND name LIKE @where"
             )}
@@ -100,10 +88,7 @@ public partial class SqliteMethods
     /// <param name="constraintName">The constraint name (ignored in SQLite).</param>
     /// <param name="defaultExpression">The default expression.</param>
     /// <returns>The SQL string for inline default column constraint.</returns>
-    protected override string SqlInlineDefaultColumnConstraint(
-        string constraintName,
-        string defaultExpression
-    )
+    protected override string SqlInlineDefaultColumnConstraint(string constraintName, string defaultExpression)
     {
         SqlExpressionValidator.ValidateDefaultExpression(defaultExpression, nameof(defaultExpression));
 
@@ -146,9 +131,7 @@ public partial class SqliteMethods
         string? viewNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 
@@ -157,7 +140,7 @@ public partial class SqliteMethods
                             FROM sqlite_master AS m
                             WHERE
                                 m.TYPE = 'view'
-                                AND m.name NOT LIKE 'sqlite_%'
+                                AND m.name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? string.Empty : " AND m.name LIKE @where"
             )}
@@ -169,14 +152,9 @@ public partial class SqliteMethods
     }
 
     /// <inheritdoc/>
-    protected override (string sql, object parameters) SqlGetViews(
-        string? schemaName,
-        string? viewNameFilter
-    )
+    protected override (string sql, object parameters) SqlGetViews(string? schemaName, string? viewNameFilter)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
 
@@ -187,7 +165,7 @@ public partial class SqliteMethods
                             FROM sqlite_master AS m
                             WHERE
                                 m.TYPE = 'view'
-                                AND m.name NOT LIKE 'sqlite_%'
+                                AND m.name NOT LIKE 'sqlite\_%' ESCAPE '\'
                                 {(
                 string.IsNullOrWhiteSpace(where) ? string.Empty : " AND m.name LIKE @where"
             )}

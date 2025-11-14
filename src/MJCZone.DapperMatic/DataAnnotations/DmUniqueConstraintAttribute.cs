@@ -13,11 +13,7 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// <example>
 /// [DmUniqueConstraint("UQ_MyTable_Col1_Col2", "Col1", "Col2")]
 /// </example>
-[AttributeUsage(
-    AttributeTargets.Property | AttributeTargets.Class,
-    AllowMultiple = true,
-    Inherited = false
-)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class DmUniqueConstraintAttribute : Attribute
 {
     /// <summary>

@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for datasource operations.
 /// </summary>
-public class DatasourceResponse : ResponseBase<DatasourceDto?>
+public class DatasourceResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DatasourceResponse"/> class.
     /// </summary>
-    public DatasourceResponse()
-        : base(null) { }
+    public DatasourceResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DatasourceResponse"/> class.
     /// </summary>
-    /// <param name="datasource">The datasource information.</param>
-    public DatasourceResponse(DatasourceDto? datasource)
-        : base(datasource) { }
+    /// <param name="result">The datasource information.</param>
+    public DatasourceResponse(DatasourceDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the datasource data.
+    /// </summary>
+    public DatasourceDto? Result { get; set; }
 }

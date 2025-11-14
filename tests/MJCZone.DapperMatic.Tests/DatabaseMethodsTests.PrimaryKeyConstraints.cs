@@ -12,9 +12,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_PrimaryKeyConstraints_Async(
-        string? schemaName
-    )
+    protected virtual async Task Can_perform_simple_crud_on_primary_key_constraints_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -26,16 +24,7 @@ public abstract partial class DatabaseMethodsTests
         await db.CreateTableIfNotExistsAsync(
             schemaName,
             tableName,
-            [
-                new DmColumn(
-                    schemaName,
-                    tableName,
-                    columnName,
-                    typeof(int),
-                    defaultExpression: "1",
-                    isNullable: false
-                )
-            ]
+            [new DmColumn(schemaName, tableName, columnName, typeof(int), defaultExpression: "1", isNullable: false)]
         );
         Output.WriteLine("Primary Key Exists: {0}.{1}", tableName, primaryKeyName);
         var exists = await db.DoesPrimaryKeyConstraintExistAsync(schemaName, tableName);

@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for schema operations.
 /// </summary>
-public class SchemaResponse : ResponseBase<SchemaDto?>
+public class SchemaResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaResponse"/> class.
     /// </summary>
-    public SchemaResponse()
-        : base(null) { }
+    public SchemaResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaResponse"/> class.
     /// </summary>
-    /// <param name="schema">The schema information.</param>
-    public SchemaResponse(SchemaDto? schema)
-        : base(schema) { }
+    /// <param name="result">The schema information.</param>
+    public SchemaResponse(SchemaDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the schema data.
+    /// </summary>
+    public SchemaDto? Result { get; set; }
 }

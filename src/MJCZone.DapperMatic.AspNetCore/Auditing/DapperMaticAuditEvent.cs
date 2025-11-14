@@ -16,7 +16,7 @@ public class DapperMaticAuditEvent
     public string UserIdentifier { get; set; } = string.Empty;
 
     /// <summary>
-    /// Gets or sets the operation that was performed (e.g., "datasources/add", "datasources/remove").
+    /// Gets or sets the operation that was performed (e.g., "datasources/post", "tables/put").
     /// </summary>
     public string Operation { get; set; } = string.Empty;
 
@@ -41,9 +41,9 @@ public class DapperMaticAuditEvent
     public string? ViewName { get; set; }
 
     /// <summary>
-    /// Gets or sets the name of the column being accessed, if applicable.
+    /// Gets or sets the name of the columns being accessed, if applicable.
     /// </summary>
-    public string? ColumnName { get; set; }
+    public List<string>? ColumnNames { get; set; }
 
     /// <summary>
     /// Gets or sets the name of the index being accessed, if applicable.
@@ -61,9 +61,9 @@ public class DapperMaticAuditEvent
     public bool Success { get; set; }
 
     /// <summary>
-    /// Gets or sets the error message if the operation failed.
+    /// Gets or sets the message describing the operation outcome.
     /// </summary>
-    public string? ErrorMessage { get; set; }
+    public string? Message { get; set; }
 
     /// <summary>
     /// Gets or sets the timestamp when the operation occurred.

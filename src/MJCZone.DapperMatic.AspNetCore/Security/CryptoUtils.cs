@@ -66,9 +66,7 @@ public static class CryptoUtils
         {
             throw new ArgumentException("Required", nameof(encryptionKey));
         }
-        return Encoding.UTF8.GetString(
-            Decrypt(Convert.FromBase64String(ciphertextBase64), encryptionKey)
-        );
+        return Encoding.UTF8.GetString(Decrypt(Convert.FromBase64String(ciphertextBase64), encryptionKey));
     }
 
     /// <summary>
@@ -85,8 +83,7 @@ public static class CryptoUtils
             throw new ArgumentException("Required", nameof(encryptionKey));
         }
 
-        var usingRawKey =
-            TryDecodeBase64Key(encryptionKey, out var rawKey) && rawKey.Length == KeySize;
+        var usingRawKey = TryDecodeBase64Key(encryptionKey, out var rawKey) && rawKey.Length == KeySize;
         byte[] key,
             salt = [];
 
@@ -191,9 +188,7 @@ public static class CryptoUtils
         {
             if (!TryDecodeBase64Key(encryptionKey, out var rawKey) || rawKey.Length != KeySize)
             {
-                throw new CryptographicException(
-                    "Invalid raw key (expect Base64-encoded 32 bytes)."
-                );
+                throw new CryptographicException("Invalid raw key (expect Base64-encoded 32 bytes).");
             }
 
             key = rawKey;
@@ -244,12 +239,7 @@ public static class CryptoUtils
 
     private static byte[] DeriveKeyFromPassphrase(string passphrase, byte[] salt)
     {
-        using var pbkdf2 = new Rfc2898DeriveBytes(
-            passphrase,
-            salt,
-            Pbkdf2Iterations,
-            HashAlgorithmName.SHA256
-        );
+        using var pbkdf2 = new Rfc2898DeriveBytes(passphrase, salt, Pbkdf2Iterations, HashAlgorithmName.SHA256);
         return pbkdf2.GetBytes(KeySize);
     }
 }

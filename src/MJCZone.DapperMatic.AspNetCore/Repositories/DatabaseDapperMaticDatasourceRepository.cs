@@ -88,10 +88,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
 
         if (string.IsNullOrWhiteSpace(datasource.ConnectionString))
         {
-            throw new ArgumentException(
-                "Datasource connection string is required.",
-                nameof(datasource)
-            );
+            throw new ArgumentException("Datasource connection string is required.", nameof(datasource));
         }
 
         if (await DatasourceExistsAsync(datasource.Id).ConfigureAwait(false))
@@ -187,12 +184,8 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
             EncryptedConnectionString = string.IsNullOrWhiteSpace(datasource.ConnectionString)
                 ? null
                 : EncryptConnectionString(datasource.ConnectionString),
-            DisplayName = string.IsNullOrWhiteSpace(datasource.DisplayName)
-                ? null
-                : datasource.DisplayName,
-            Description = string.IsNullOrWhiteSpace(datasource.Description)
-                ? null
-                : datasource.Description,
+            DisplayName = string.IsNullOrWhiteSpace(datasource.DisplayName) ? null : datasource.DisplayName,
+            Description = string.IsNullOrWhiteSpace(datasource.Description) ? null : datasource.Description,
             Tags = $";{string.Join(";", datasource.Tags ?? [])};".Replace(
                 ";;",
                 string.Empty,
@@ -202,9 +195,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
             UpdatedAt = DateTimeOffset.UtcNow,
         };
 
-        var rowsAffected = await connection
-            .ExecuteAsync(sql.ToString(), parameters)
-            .ConfigureAwait(false);
+        var rowsAffected = await connection.ExecuteAsync(sql.ToString(), parameters).ConfigureAwait(false);
         return rowsAffected > 0;
     }
 
@@ -216,9 +207,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
         using var connection = _connectionFactory.CreateConnection(_provider, _connectionString);
 
         var sql = "DELETE FROM dm_datasources WHERE id = @Id";
-        var rowsAffected = await connection
-            .ExecuteAsync(sql, new { Id = id.ToLowerInvariant() })
-            .ConfigureAwait(false);
+        var rowsAffected = await connection.ExecuteAsync(sql, new { Id = id.ToLowerInvariant() }).ConfigureAwait(false);
         return rowsAffected > 0;
     }
 
@@ -248,11 +237,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
                     Description = r.description,
                     Tags = !string.IsNullOrEmpty(r.tags)
                         ? r
-                            .tags.Split(
-                                ';',
-                                StringSplitOptions.RemoveEmptyEntries
-                                    | StringSplitOptions.TrimEntries
-                            )
+                            .tags.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                             .ToList()
                         : null,
                     IsEnabled = r.is_enabled,
@@ -289,10 +274,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
             Description = result.description,
             Tags = !string.IsNullOrEmpty(result.tags)
                 ? result
-                    .tags.Split(
-                        ';',
-                        StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-                    )
+                    .tags.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                     .ToList()
                 : null,
             IsEnabled = result.is_enabled,
@@ -329,17 +311,11 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
 
         try
         {
-            return encryptedConnectionString != null
-                ? DecryptConnectionString(encryptedConnectionString)
-                : null;
+            return encryptedConnectionString != null ? DecryptConnectionString(encryptedConnectionString) : null;
         }
         catch (Exception ex)
         {
-            _logger.LogError(
-                ex,
-                "Failed to decrypt connection string for datasource ID {DatasourceId}",
-                id
-            );
+            _logger.LogError(ex, "Failed to decrypt connection string for datasource ID {DatasourceId}", id);
             return null;
         }
     }

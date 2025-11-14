@@ -55,7 +55,6 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
                 isCommon: true,
                 "Text string (UTF-8 or UTF-16)",
                 "character",
-                "varchar",
                 "varying character",
                 "nchar",
                 "native character",
@@ -81,7 +80,6 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
                 DataTypeCategory.Decimal,
                 isCommon: false,
                 "Can store INTEGER, REAL, or TEXT",
-                "decimal",
                 "boolean",
                 "date",
                 "datetime"
@@ -99,15 +97,7 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
 
-        RegisterDataType(
-            CreateStringType(
-                "char",
-                int.MaxValue,
-                1,
-                isCommon: false,
-                "Character string (maps to TEXT)"
-            )
-        );
+        RegisterDataType(CreateStringType("char", int.MaxValue, 1, isCommon: false, "Character string (maps to TEXT)"));
 
         RegisterDataType(
             CreateSimpleType(
@@ -138,6 +128,15 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
 
         RegisterDataType(
             CreateSimpleType(
+                "time",
+                DataTypeCategory.DateTime,
+                isCommon: true,
+                "Time value (stored as TEXT, REAL, or INTEGER)"
+            )
+        );
+
+        RegisterDataType(
+            CreateSimpleType(
                 "timestamp",
                 DataTypeCategory.DateTime,
                 isCommon: false,
@@ -146,26 +145,18 @@ public class SqliteDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         RegisterDataType(
-            CreateDecimalType(
-                "decimal",
-                1000,
-                1000,
-                18,
-                2,
-                isCommon: false,
-                "Decimal number (stored as TEXT or REAL)"
-            )
+            CreateDecimalType("decimal", 1000, 1000, 18, 2, isCommon: false, "Decimal number (stored as TEXT or REAL)")
         );
 
         // SQLite specific features
-        RegisterDataType(
-            CreateSimpleType(
-                "json",
-                DataTypeCategory.Json,
-                isCommon: false,
-                "JSON data (stored as TEXT with JSON functions available)"
-            )
-        );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "json",
+        //         DataTypeCategory.Json,
+        //         isCommon: false,
+        //         "JSON data (stored as TEXT with JSON functions available)"
+        //     )
+        // );
 
         // Note: SQLite doesn't have true constraints on these types - they're mainly for compatibility
         // The actual storage class is determined by the affinity rules

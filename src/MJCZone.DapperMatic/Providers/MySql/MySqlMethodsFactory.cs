@@ -27,10 +27,7 @@ public class MySqlMethodsFactory : DatabaseMethodsFactoryBase
     /// <returns><c>true</c> if the connection is supported; otherwise, <c>false</c>.</returns>
     public override bool SupportsConnection(IDbConnection db) =>
         SupportsConnectionCustom(db)
-        || (db.GetType().FullName ?? string.Empty).Contains(
-            "mysql",
-            StringComparison.OrdinalIgnoreCase
-        );
+        || (db.GetType().FullName ?? string.Empty).Contains("mysql", StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
     /// Creates the core database methods for MySQL.

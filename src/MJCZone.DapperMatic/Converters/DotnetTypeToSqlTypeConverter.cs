@@ -8,8 +8,7 @@ namespace MJCZone.DapperMatic.Converters;
 /// <summary>
 /// .NET Type to SQL Type converter.
 /// </summary>
-public class DotnetTypeToSqlTypeConverter
-    : IDbTypeConverter<DotnetTypeDescriptor, SqlTypeDescriptor?>
+public class DotnetTypeToSqlTypeConverter : IDbTypeConverter<DotnetTypeDescriptor, SqlTypeDescriptor?>
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DotnetTypeToSqlTypeConverter"/> class.

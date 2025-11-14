@@ -40,8 +40,7 @@ public abstract class DatabaseMethodsBase<TMap> : DatabaseMethodsBase
     )
     {
         return (
-            await db.QueryAsync<TOutput>(sql, param, tx, commandTimeout, commandType)
-                .ConfigureAwait(false)
+            await db.QueryAsync<TOutput>(sql, param, tx, commandTimeout, commandType).ConfigureAwait(false)
         ).AsList();
     }
 
@@ -57,13 +56,7 @@ public abstract class DatabaseMethodsBase<TMap> : DatabaseMethodsBase
     )
         where TOutput : default
     {
-        var result = await db.ExecuteScalarAsync<TOutput>(
-                sql,
-                param,
-                tx,
-                commandTimeout,
-                commandType
-            )
+        var result = await db.ExecuteScalarAsync<TOutput>(sql, param, tx, commandTimeout, commandType)
             .ConfigureAwait(false);
         return result;
     }
@@ -79,8 +72,7 @@ public abstract class DatabaseMethodsBase<TMap> : DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await db.ExecuteAsync(sql, param, tx, commandTimeout, commandType)
-            .ConfigureAwait(false);
+        return await db.ExecuteAsync(sql, param, tx, commandTimeout, commandType).ConfigureAwait(false);
     }
 }
 
@@ -164,10 +156,7 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     public virtual DotnetTypeDescriptor GetDotnetTypeFromSqlType(string sqlType)
     {
         if (
-            ProviderTypeMap.TryGetDotnetTypeDescriptorMatchingFullSqlTypeName(
-                sqlType,
-                out var dotnetTypeDescriptor
-            )
+            ProviderTypeMap.TryGetDotnetTypeDescriptorMatchingFullSqlTypeName(sqlType, out var dotnetTypeDescriptor)
             && dotnetTypeDescriptor?.DotnetType != null
         )
         {
@@ -186,10 +175,8 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     public string GetSqlTypeFromDotnetType(DotnetTypeDescriptor descriptor)
     {
         if (
-            ProviderTypeMap.TryGetProviderSqlTypeMatchingDotnetType(
-                descriptor,
-                out var providerDataType
-            ) && !string.IsNullOrWhiteSpace(providerDataType?.SqlTypeName)
+            ProviderTypeMap.TryGetProviderSqlTypeMatchingDotnetType(descriptor, out var providerDataType)
+            && !string.IsNullOrWhiteSpace(providerDataType?.SqlTypeName)
         )
         {
             return providerDataType.SqlTypeName;
@@ -232,9 +219,7 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     /// </summary>
     /// <param name="includeAdvanced">If true, includes advanced/specialized types; otherwise, only common types.</param>
     /// <returns>A collection of available data types.</returns>
-    public virtual IEnumerable<Models.DataTypeInfo> GetAvailableDataTypes(
-        bool includeAdvanced = false
-    )
+    public virtual IEnumerable<Models.DataTypeInfo> GetAvailableDataTypes(bool includeAdvanced = false)
     {
         return GetDataTypeRegistry().GetAvailableDataTypes(includeAdvanced);
     }
@@ -390,15 +375,9 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     /// <param name="identifiers">The identifiers.</param>
     /// <param name="joinCharacter">The union string.</param>
     /// <returns>The quoted compound identifier.</returns>
-    protected virtual string GetQuotedCompoundIdentifier(
-        string[] identifiers,
-        string joinCharacter = "."
-    )
+    protected virtual string GetQuotedCompoundIdentifier(string[] identifiers, string joinCharacter = ".")
     {
-        return string.Join(
-            joinCharacter,
-            identifiers.Select(x => string.Empty.ToQuotedIdentifier(QuoteChars, x))
-        );
+        return string.Join(joinCharacter, identifiers.Select(x => string.Empty.ToQuotedIdentifier(QuoteChars, x)));
     }
 
     /// <summary>
@@ -420,8 +399,7 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     /// <returns>The LIKE string.</returns>
     protected virtual string ToLikeString(string text, string allowedSpecialChars = "-_.*")
     {
-        return text.ToAlphaNumeric(allowedSpecialChars)
-            .Replace("*", "%", StringComparison.OrdinalIgnoreCase);
+        return text.ToAlphaNumeric(allowedSpecialChars).Replace("*", "%", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>

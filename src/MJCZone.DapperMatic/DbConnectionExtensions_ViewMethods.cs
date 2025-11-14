@@ -49,9 +49,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .CreateViewIfNotExistsAsync(db, view, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).CreateViewIfNotExistsAsync(db, view, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -74,14 +72,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .CreateViewIfNotExistsAsync(
-                db,
-                schemaName,
-                viewName,
-                viewDefinition,
-                tx,
-                cancellationToken
-            )
+            .CreateViewIfNotExistsAsync(db, schemaName, viewName, viewDefinition, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -104,21 +95,12 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        if (
-            !await db.DropViewIfExistsAsync(schemaName, viewName, tx, cancellationToken)
-                .ConfigureAwait(false)
-        )
+        if (!await db.DropViewIfExistsAsync(schemaName, viewName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
-        return await db.CreateViewIfNotExistsAsync(
-                schemaName,
-                viewName,
-                viewDefinition,
-                tx,
-                cancellationToken
-            )
+        return await db.CreateViewIfNotExistsAsync(schemaName, viewName, viewDefinition, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -139,9 +121,7 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        return await Database(db)
-            .GetViewAsync(db, schemaName, viewName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        return await Database(db).GetViewAsync(db, schemaName, viewName, tx, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>

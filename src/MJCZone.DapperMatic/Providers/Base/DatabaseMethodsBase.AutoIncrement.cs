@@ -19,7 +19,8 @@ public abstract partial class DatabaseMethodsBase
     protected virtual bool DetermineIsAutoIncrement(
         DmColumn column,
         object? providerSpecificMetadata = null,
-        string? sqlTypeName = null)
+        string? sqlTypeName = null
+    )
     {
         // 1. Check if already explicitly set
         if (column.IsAutoIncrement)
@@ -38,9 +39,11 @@ public abstract partial class DatabaseMethodsBase
 
             // Additional patterns not caught by SqlTypeDescriptor
             var lowerTypeName = sqlTypeName.ToLowerInvariant();
-            if (lowerTypeName.Contains("identity", StringComparison.OrdinalIgnoreCase) ||
-                lowerTypeName.Contains("autoincrement", StringComparison.OrdinalIgnoreCase) ||
-                lowerTypeName.Contains("auto_increment", StringComparison.OrdinalIgnoreCase))
+            if (
+                lowerTypeName.Contains("identity", StringComparison.OrdinalIgnoreCase)
+                || lowerTypeName.Contains("autoincrement", StringComparison.OrdinalIgnoreCase)
+                || lowerTypeName.Contains("auto_increment", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return true;
             }
@@ -51,10 +54,12 @@ public abstract partial class DatabaseMethodsBase
         if (!string.IsNullOrWhiteSpace(providerDataType))
         {
             var lowerProviderType = providerDataType.ToLowerInvariant();
-            if (lowerProviderType.Contains("serial", StringComparison.OrdinalIgnoreCase) ||
-                lowerProviderType.Contains("identity", StringComparison.OrdinalIgnoreCase) ||
-                lowerProviderType.Contains("autoincrement", StringComparison.OrdinalIgnoreCase) ||
-                lowerProviderType.Contains("auto_increment", StringComparison.OrdinalIgnoreCase))
+            if (
+                lowerProviderType.Contains("serial", StringComparison.OrdinalIgnoreCase)
+                || lowerProviderType.Contains("identity", StringComparison.OrdinalIgnoreCase)
+                || lowerProviderType.Contains("autoincrement", StringComparison.OrdinalIgnoreCase)
+                || lowerProviderType.Contains("auto_increment", StringComparison.OrdinalIgnoreCase)
+            )
             {
                 return true;
             }
@@ -63,8 +68,7 @@ public abstract partial class DatabaseMethodsBase
         // 4. Check type map for auto-increment flag
         try
         {
-            var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(
-                providerDataType ?? sqlTypeName ?? string.Empty);
+            var dotnetTypeDescriptor = GetDotnetTypeFromSqlType(providerDataType ?? sqlTypeName ?? string.Empty);
 
             if (dotnetTypeDescriptor?.IsAutoIncrementing == true)
             {

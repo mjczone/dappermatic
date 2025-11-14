@@ -84,9 +84,7 @@ public class DmForeignKeyConstraint : DmConstraint
     {
         if (sourceColumns.Length != referencedColumns.Length)
         {
-            throw new ArgumentException(
-                "SourceColumns and ReferencedColumns must have the same number of columns."
-            );
+            throw new ArgumentException("SourceColumns and ReferencedColumns must have the same number of columns.");
         }
 
         SchemaName = schemaName;

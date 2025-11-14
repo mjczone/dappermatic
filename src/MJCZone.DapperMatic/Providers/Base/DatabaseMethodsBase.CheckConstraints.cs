@@ -34,14 +34,7 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        return await GetCheckConstraintAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetCheckConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -69,14 +62,7 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        return await GetCheckConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetCheckConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -157,29 +143,16 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesCheckConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesCheckConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
             return false;
         }
 
-        var sql = SqlAlterTableAddCheckConstraint(
-            schemaName,
-            tableName,
-            constraintName,
-            expression
-        );
+        var sql = SqlAlterTableAddCheckConstraint(schemaName, tableName, constraintName, expression);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -245,14 +218,7 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Column name is required.", nameof(columnName));
         }
 
-        var checkConstraints = await GetCheckConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                null,
-                tx,
-                cancellationToken
-            )
+        var checkConstraints = await GetCheckConstraintsAsync(db, schemaName, tableName, null, tx, cancellationToken)
             .ConfigureAwait(false);
 
         return checkConstraints
@@ -319,14 +285,7 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Column name is required.", nameof(columnName));
         }
 
-        var checkConstraints = await GetCheckConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                null,
-                tx,
-                cancellationToken
-            )
+        var checkConstraints = await GetCheckConstraintsAsync(db, schemaName, tableName, null, tx, cancellationToken)
             .ConfigureAwait(false);
 
         return checkConstraints.FirstOrDefault(c =>
@@ -364,23 +323,18 @@ public abstract partial class DatabaseMethodsBase
             return [];
         }
 
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
             return [];
         }
 
-        var filter = string.IsNullOrWhiteSpace(constraintNameFilter)
-            ? null
-            : ToSafeString(constraintNameFilter);
+        var filter = string.IsNullOrWhiteSpace(constraintNameFilter) ? null : ToSafeString(constraintNameFilter);
 
         return string.IsNullOrWhiteSpace(filter)
             ? table.CheckConstraints
-            : table
-                .CheckConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter))
-                .ToList();
+            : table.CheckConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter)).ToList();
     }
 
     /// <summary>
@@ -433,8 +387,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropCheckConstraint(schemaName, tableName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -474,14 +427,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            !await DoesCheckConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesCheckConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -490,8 +436,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropCheckConstraint(schemaName, tableName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

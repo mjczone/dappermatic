@@ -13,13 +13,13 @@ namespace Akov.NetDocsProcessor.Compilation;
 
 internal class TypeSymbolObject
 {
-    private TypeSymbolObject() {}
-    
+    private TypeSymbolObject() { }
+
     public static TypeSymbolObject Create(CSharpCompilation compilation, TypeInfo type)
     {
         var symbolObject = new TypeSymbolObject
         {
-            Type = compilation.GetTypeByMetadataName(type.FullName ?? type.Name)
+            Type = compilation.GetTypeByMetadataName(type.FullName ?? type.Name),
         };
 
         if (type.IsEnum)
@@ -30,7 +30,7 @@ internal class TypeSymbolObject
         {
             symbolObject.InitializeMembers();
         }
-        
+
         return symbolObject;
     }
 
@@ -44,7 +44,8 @@ internal class TypeSymbolObject
 
     private void InitializeMembers()
     {
-        if (Type is null) return;
+        if (Type is null)
+            return;
 
         Constructors = Type.Constructors;
 
@@ -52,7 +53,7 @@ internal class TypeSymbolObject
         var methods = new List<IMethodSymbol>();
         var properties = new List<IPropertySymbol>();
         var events = new List<IEventSymbol>();
-        
+
         foreach (var member in Type.GetMembers())
         {
             switch (member.Kind)
@@ -82,7 +83,8 @@ internal class TypeSymbolObject
 
     private void InitializeEnumMembers()
     {
-        if (Type is null) return;
+        if (Type is null)
+            return;
         EnumMembers = Type.GetMembers();
     }
 }

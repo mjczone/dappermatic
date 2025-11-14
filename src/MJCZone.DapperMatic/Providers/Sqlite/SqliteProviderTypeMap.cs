@@ -3,14 +3,6 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Collections;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Numerics;
-using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Xml.Linq;
 using MJCZone.DapperMatic.Converters;
 using MJCZone.DapperMatic.Providers.Base;
 
@@ -38,35 +30,10 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
     }
 
     /// <inheritdoc/>
-    protected override void RegisterDotnetTypeToSqlTypeConverters()
-    {
-        // Use the standardized registration from base class
-        RegisterStandardDotnetTypeToSqlTypeConverters();
-    }
-
-    /// <inheritdoc/>
-    protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
-    {
-        return shortName switch
-        {
-            // NetTopologySuite types - SQLite stores geometry as text (WKT format)
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" or
-            "NetTopologySuite.Geometries.Point, NetTopologySuite" or
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false),
-            _ => null
-        };
-    }
-
-    /// <inheritdoc/>
     protected override void RegisterSqlTypeToDotnetTypeConverters()
     {
         var booleanConverter = GetBooleanToDotnetTypeConverter();
-        var numericConverter = GetNumbericToDotnetTypeConverter();
+        var numericConverter = GetNumberToDotnetTypeConverter();
         var guidConverter = GetGuidToDotnetTypeConverter();
         var textConverter = GetTextToDotnetTypeConverter();
         var dateTimeConverter = GetDateTimeToDotnetTypeConverter();
@@ -142,7 +109,7 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
         });
     }
 
-    private static SqlTypeToDotnetTypeConverter GetNumbericToDotnetTypeConverter()
+    private static SqlTypeToDotnetTypeConverter GetNumberToDotnetTypeConverter()
     {
         return new(d =>
         {
@@ -163,7 +130,7 @@ public sealed class SqliteProviderTypeMap : DbProviderTypeMapBase<SqliteProvider
                 case SqliteTypes.sql_int8:
                     return new DotnetTypeDescriptor(typeof(long));
                 case SqliteTypes.sql_real:
-                    return new DotnetTypeDescriptor(typeof(float));
+                    return new DotnetTypeDescriptor(typeof(double));
                 case SqliteTypes.sql_float:
                 case SqliteTypes.sql_double:
                 case SqliteTypes.sql_double_precision:

@@ -33,14 +33,7 @@ public partial class MySqlMethods
     {
         // Check if the column exists
         if (
-            !await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesColumnExistAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -49,14 +42,7 @@ public partial class MySqlMethods
 
         // Check if a column with the new name already exists
         if (
-            await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    newColumnName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesColumnExistAsync(db, schemaName, tableName, newColumnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -103,7 +89,9 @@ public partial class MySqlMethods
                     db,
                     $"""
                     ALTER TABLE {schemaQualifiedTableName}
-                                        CHANGE {GetQuotedIdentifier(columnName)} {GetQuotedIdentifier(newColumnName)} {columnDefinition}
+                                        CHANGE {GetQuotedIdentifier(
+                        columnName
+                    )} {GetQuotedIdentifier(newColumnName)} {columnDefinition}
                     """,
                     tx: tx,
                     cancellationToken: cancellationToken

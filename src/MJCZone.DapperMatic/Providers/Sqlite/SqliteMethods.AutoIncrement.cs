@@ -20,7 +20,7 @@ public partial class SqliteMethods
         {
             bool isAutoIncrement => isAutoIncrement,
             int isAutoIncrement => isAutoIncrement == 1,
-            _ => false
+            _ => false,
         };
     }
 }

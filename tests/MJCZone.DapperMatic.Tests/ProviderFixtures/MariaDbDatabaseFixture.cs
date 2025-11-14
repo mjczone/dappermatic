@@ -15,8 +15,7 @@ public class MariaDb_12_0_DatabaseFixture : MariaDbDatabaseFixture
 
     public override bool IgnoreSqlType(string sqlType)
     {
-        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase)
-            || base.IgnoreSqlType(sqlType);
+        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase) || base.IgnoreSqlType(sqlType);
     }
 }
 
@@ -27,8 +26,7 @@ public class MariaDb_11_8_DatabaseFixture : MariaDbDatabaseFixture
 
     public override bool IgnoreSqlType(string sqlType)
     {
-        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase)
-            || base.IgnoreSqlType(sqlType);
+        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase) || base.IgnoreSqlType(sqlType);
     }
 }
 
@@ -39,8 +37,7 @@ public class MariaDb_11_4_DatabaseFixture : MariaDbDatabaseFixture
 
     public override bool IgnoreSqlType(string sqlType)
     {
-        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase)
-            || base.IgnoreSqlType(sqlType);
+        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase) || base.IgnoreSqlType(sqlType);
     }
 }
 
@@ -51,13 +48,11 @@ public class MariaDb_10_11_DatabaseFixture : MariaDbDatabaseFixture
 
     public override bool IgnoreSqlType(string sqlType)
     {
-        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase)
-            || base.IgnoreSqlType(sqlType);
+        return sqlType.Equals("geomcollection", StringComparison.OrdinalIgnoreCase) || base.IgnoreSqlType(sqlType);
     }
 }
 
-public abstract class MariaDbDatabaseFixture(string imageName)
-    : DatabaseFixtureBase<MariaDbContainer>
+public abstract class MariaDbDatabaseFixture(string imageName) : DatabaseFixtureBase<MariaDbContainer>
 {
     private readonly MariaDbContainer _container = new MariaDbBuilder()
         .WithImage(imageName)

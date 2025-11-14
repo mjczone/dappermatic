@@ -32,9 +32,7 @@ public class DotnetTypeDescriptor
         bool? isFixedLength = null
     )
     {
-        DotnetType =
-            dotnetType?.OrUnderlyingTypeIfNullable()
-            ?? throw new ArgumentNullException(nameof(dotnetType));
+        DotnetType = dotnetType?.OrUnderlyingTypeIfNullable() ?? throw new ArgumentNullException(nameof(dotnetType));
         Length = length;
         Precision = precision;
         Scale = scale;

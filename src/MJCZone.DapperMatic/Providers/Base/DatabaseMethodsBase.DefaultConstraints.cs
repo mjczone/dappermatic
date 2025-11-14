@@ -29,14 +29,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetDefaultConstraintAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetDefaultConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -59,14 +52,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetDefaultConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetDefaultConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -137,30 +123,16 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesDefaultConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesDefaultConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
             return false;
         }
 
-        var sql = SqlAlterTableAddDefaultConstraint(
-            schemaName,
-            tableName,
-            columnName,
-            constraintName,
-            expression
-        );
+        var sql = SqlAlterTableAddDefaultConstraint(schemaName, tableName, columnName, constraintName, expression);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -339,23 +311,18 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Table name is required.", nameof(tableName));
         }
 
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
             return [];
         }
 
-        var filter = string.IsNullOrWhiteSpace(constraintNameFilter)
-            ? null
-            : ToSafeString(constraintNameFilter);
+        var filter = string.IsNullOrWhiteSpace(constraintNameFilter) ? null : ToSafeString(constraintNameFilter);
 
         return string.IsNullOrWhiteSpace(filter)
             ? table.DefaultConstraints
-            : table
-                .DefaultConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter))
-                .ToList();
+            : table.DefaultConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter)).ToList();
     }
 
     /// <summary>
@@ -394,8 +361,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropDefaultConstraint(schemaName, tableName, columnName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -434,15 +400,9 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        var sql = SqlDropDefaultConstraint(
-            schemaName,
-            tableName,
-            defaultConstraint.ColumnName,
-            constraintName
-        );
+        var sql = SqlDropDefaultConstraint(schemaName, tableName, defaultConstraint.ColumnName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

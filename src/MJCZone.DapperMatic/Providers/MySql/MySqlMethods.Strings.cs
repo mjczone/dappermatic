@@ -86,10 +86,7 @@ public partial class MySqlMethods
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="defaultExpression">The default expression.</param>
     /// <returns>The SQL string for inline default column constraint.</returns>
-    protected override string SqlInlineDefaultColumnConstraint(
-        string constraintName,
-        string defaultExpression
-    )
+    protected override string SqlInlineDefaultColumnConstraint(string constraintName, string defaultExpression)
     {
         SqlExpressionValidator.ValidateDefaultExpression(defaultExpression, nameof(defaultExpression));
 
@@ -126,10 +123,7 @@ public partial class MySqlMethods
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="useTableConstraint">Indicates whether to use table constraint.</param>
     /// <returns>The SQL string for inline unique column constraint.</returns>
-    protected override string SqlInlineUniqueColumnConstraint(
-        string constraintName,
-        out bool useTableConstraint
-    )
+    protected override string SqlInlineUniqueColumnConstraint(string constraintName, out bool useTableConstraint)
     {
         useTableConstraint = true;
         return string.Empty;
@@ -166,10 +160,7 @@ public partial class MySqlMethods
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
     /// <returns>The SQL string and parameters to check if a table exists.</returns>
-    protected override (string sql, object parameters) SqlDoesTableExist(
-        string? schemaName,
-        string tableName
-    )
+    protected override (string sql, object parameters) SqlDoesTableExist(string? schemaName, string tableName)
     {
         const string sql = """
             SELECT COUNT(*)
@@ -179,14 +170,7 @@ public partial class MySqlMethods
                 and TABLE_NAME = @tableName
             """;
 
-        return (
-            sql,
-            new
-            {
-                schemaName = NormalizeSchemaName(schemaName),
-                tableName = NormalizeName(tableName),
-            }
-        );
+        return (sql, new { schemaName = NormalizeSchemaName(schemaName), tableName = NormalizeName(tableName) });
     }
 
     /// <summary>
@@ -200,9 +184,7 @@ public partial class MySqlMethods
         string? tableNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? string.Empty
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? string.Empty : ToLikeString(tableNameFilter);
 
         var sql = $"""
             SELECT TABLE_NAME
@@ -289,11 +271,7 @@ public partial class MySqlMethods
     /// <param name="tableName">The table name.</param>
     /// <param name="constraintName">The constraint name.</param>
     /// <returns>The SQL string to drop a primary key constraint from a table.</returns>
-    protected override string SqlDropPrimaryKeyConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected override string SqlDropPrimaryKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP PRIMARY KEY";
     }
@@ -308,11 +286,7 @@ public partial class MySqlMethods
     /// <param name="tableName">The table name.</param>
     /// <param name="constraintName">The constraint name.</param>
     /// <returns>The SQL string to drop a unique constraint from a table.</returns>
-    protected override string SqlDropUniqueConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected override string SqlDropUniqueConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP INDEX {NormalizeName(constraintName)}";
     }
@@ -327,11 +301,7 @@ public partial class MySqlMethods
     /// <param name="tableName">The table name.</param>
     /// <param name="constraintName">The constraint name.</param>
     /// <returns>The SQL string to drop a foreign key constraint from a table.</returns>
-    protected override string SqlDropForeignKeyConstraint(
-        string? schemaName,
-        string tableName,
-        string constraintName
-    )
+    protected override string SqlDropForeignKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
         return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP FOREIGN KEY {NormalizeName(constraintName)}";
     }
@@ -353,9 +323,7 @@ public partial class MySqlMethods
         string? viewNameFilter = null
     )
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
             SELECT
@@ -381,14 +349,9 @@ public partial class MySqlMethods
     /// <param name="schemaName">The schema name.</param>
     /// <param name="viewNameFilter">The view name filter.</param>
     /// <returns>The SQL string and parameters to get views.</returns>
-    protected override (string sql, object parameters) SqlGetViews(
-        string? schemaName,
-        string? viewNameFilter
-    )
+    protected override (string sql, object parameters) SqlGetViews(string? schemaName, string? viewNameFilter)
     {
-        var where = string.IsNullOrWhiteSpace(viewNameFilter)
-            ? string.Empty
-            : ToLikeString(viewNameFilter);
+        var where = string.IsNullOrWhiteSpace(viewNameFilter) ? string.Empty : ToLikeString(viewNameFilter);
 
         var sql = $"""
             SELECT

@@ -95,24 +95,14 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesPrimaryKeyConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesPrimaryKeyConstraintExistAsync(db, schemaName, tableName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
             return false;
         }
 
-        var supportsOrderedKeysInConstraints = await SupportsOrderedKeysInConstraintsAsync(
-                db,
-                tx,
-                cancellationToken
-            )
+        var supportsOrderedKeysInConstraints = await SupportsOrderedKeysInConstraintsAsync(db, tx, cancellationToken)
             .ConfigureAwait(false);
 
         var sql = SqlAlterTableAddPrimaryKeyConstraint(
@@ -123,8 +113,7 @@ public abstract partial class DatabaseMethodsBase
             supportsOrderedKeysInConstraints
         );
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -146,8 +135,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table?.PrimaryKeyConstraint is null)
         {
@@ -174,13 +162,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var primaryKeyConstraint = await GetPrimaryKeyConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                tx,
-                cancellationToken
-            )
+        var primaryKeyConstraint = await GetPrimaryKeyConstraintAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
 
         if (string.IsNullOrWhiteSpace(primaryKeyConstraint?.ConstraintName))
@@ -188,14 +170,9 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        var sql = SqlDropPrimaryKeyConstraint(
-            schemaName,
-            tableName,
-            primaryKeyConstraint.ConstraintName
-        );
+        var sql = SqlDropPrimaryKeyConstraint(schemaName, tableName, primaryKeyConstraint.ConstraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

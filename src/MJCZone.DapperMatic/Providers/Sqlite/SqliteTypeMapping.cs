@@ -3,79 +3,45 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using MJCZone.DapperMatic.Providers.Base;
-
 namespace MJCZone.DapperMatic.Providers.Sqlite;
 
 /// <summary>
 /// SQLite specific type mapping configuration.
 /// </summary>
-public class SqliteTypeMapping : IProviderTypeMapping
+public class SqliteTypeMapping : ProviderTypeMappingBase
 {
     /// <inheritdoc />
-    public string BooleanType => SqliteTypes.sql_boolean;
+    public override string BooleanType => SqliteTypes.sql_boolean;
 
     /// <inheritdoc />
-    public string EnumStringType => SqliteTypes.sql_varchar;
+    public override bool IsUnicodeProvider => false; // SQLite can handle both, but we default to non-Unicode
 
     /// <inheritdoc />
-    public bool IsUnicodeProvider => false; // SQLite can handle both, but we default to non-Unicode
-
-    /// <inheritdoc />
-    public Dictionary<Type, string> NumericTypeMap { get; } = new()
-    {
-        { typeof(byte), SqliteTypes.sql_tinyint },
-        { typeof(sbyte), SqliteTypes.sql_tinyint },
-        { typeof(short), SqliteTypes.sql_smallint },
-        { typeof(ushort), SqliteTypes.sql_smallint },
-        { typeof(int), SqliteTypes.sql_int },
-        { typeof(uint), SqliteTypes.sql_int },
-        { typeof(System.Numerics.BigInteger), SqliteTypes.sql_bigint },
-        { typeof(long), SqliteTypes.sql_bigint },
-        { typeof(ulong), SqliteTypes.sql_bigint },
-        { typeof(float), SqliteTypes.sql_real },
-        { typeof(double), SqliteTypes.sql_double },
-        { typeof(decimal), SqliteTypes.sql_numeric },
-    };
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateGuidType()
-    {
-        return TypeMappingHelpers.CreateGuidStringType(SqliteTypes.sql_varchar, isUnicode: false, isFixedLength: false);
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateObjectType()
-    {
-        return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_clob, isUnicode: false);
-    }
-
-    /// <inheritdoc />
-    public SqlTypeDescriptor CreateTextType(DotnetTypeDescriptor descriptor)
-    {
-        if (descriptor.Length == TypeMappingDefaults.MaxLength)
+    public override Dictionary<Type, string> NumericTypeMap { get; } =
+        new()
         {
-            // max is NOT supported by SQLite, instead, we'll use the text type; however,
-            // using nvarchar and varchar gives DapperMatic a better chance of mapping the
-            // correct type when reading the schema
-            return TypeMappingHelpers.CreateLobType(
-                descriptor.IsUnicode == true ? SqliteTypes.sql_nvarchar : SqliteTypes.sql_varchar,
-                descriptor.IsUnicode.GetValueOrDefault(false));
-        }
+            { typeof(byte), SqliteTypes.sql_tinyint },
+            { typeof(sbyte), SqliteTypes.sql_tinyint },
+            { typeof(short), SqliteTypes.sql_smallint },
+            { typeof(ushort), SqliteTypes.sql_smallint },
+            { typeof(int), SqliteTypes.sql_int },
+            { typeof(uint), SqliteTypes.sql_int },
+            { typeof(System.Numerics.BigInteger), SqliteTypes.sql_bigint },
+            { typeof(long), SqliteTypes.sql_bigint },
+            { typeof(ulong), SqliteTypes.sql_bigint },
+            { typeof(float), SqliteTypes.sql_real },
+            { typeof(double), SqliteTypes.sql_double },
+            { typeof(decimal), SqliteTypes.sql_numeric },
+        };
 
-        var sqlType = descriptor.IsFixedLength == true
-            ? (descriptor.IsUnicode == true ? SqliteTypes.sql_nchar : SqliteTypes.sql_char)
-            : (descriptor.IsUnicode == true ? SqliteTypes.sql_nvarchar : SqliteTypes.sql_varchar);
-
-        return TypeMappingHelpers.CreateStringType(
-            sqlType,
-            descriptor.Length,
-            descriptor.IsUnicode.GetValueOrDefault(false),
-            descriptor.IsFixedLength.GetValueOrDefault(false));
+    /// <inheritdoc />
+    public override SqlTypeDescriptor CreateObjectType(DotnetTypeDescriptor descriptor)
+    {
+        return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateDateTimeType(DotnetTypeDescriptor descriptor)
     {
         return descriptor.DotnetType switch
         {
@@ -89,22 +55,71 @@ public class SqliteTypeMapping : IProviderTypeMapping
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
+    public override SqlTypeDescriptor CreateBinaryType(DotnetTypeDescriptor descriptor)
     {
         // SQLite uses blob for all binary data
         return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_blob, isUnicode: false);
     }
 
     /// <inheritdoc />
-    public SqlTypeDescriptor CreateXmlType()
+    public override SqlTypeDescriptor CreateXmlType(DotnetTypeDescriptor descriptor)
     {
         // SQLite stores XML as text
         return TypeMappingHelpers.CreateLobType(SqliteTypes.sql_text, isUnicode: false);
     }
 
-    /// <inheritdoc />
-    public Type[] GetSupportedGeometryTypes()
+    /// <summary>
+    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
+    /// </summary>
+    /// <param name="length">The length.</param>
+    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
+    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
+    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
+    protected override SqlTypeDescriptor CreateStringTypeInternal(
+        int length,
+        bool isUnicode = false,
+        bool isFixedLength = false
+    )
     {
-        return TypeMappingHelpers.GetGeometryTypesForProvider("sqlite");
+        // Fix the length value
+        if (length <= 0 && length != TypeMappingDefaults.MaxLength)
+        {
+            length = TypeMappingDefaults.DefaultStringLength;
+        }
+
+        string sqlType;
+        if (length == TypeMappingDefaults.MaxLength || length == int.MaxValue)
+        {
+            sqlType = isUnicode
+                ? $"{SqliteTypes.sql_nvarchar}({TypeMappingDefaults.MaxLength})"
+                : $"{SqliteTypes.sql_varchar}({TypeMappingDefaults.MaxLength})";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = TypeMappingDefaults.MaxLength,
+                IsUnicode = isUnicode,
+                IsFixedLength = false,
+            };
+        }
+
+        if (isFixedLength)
+        {
+            sqlType = isUnicode ? $"{SqliteTypes.sql_nchar}({length})" : $"{SqliteTypes.sql_char}({length})";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = length,
+                IsUnicode = isUnicode,
+                IsFixedLength = isFixedLength,
+            };
+        }
+        else
+        {
+            sqlType = isUnicode ? $"{SqliteTypes.sql_nvarchar}({length})" : $"{SqliteTypes.sql_varchar}({length})";
+            return new SqlTypeDescriptor(sqlType)
+            {
+                Length = length,
+                IsUnicode = isUnicode,
+                IsFixedLength = isFixedLength,
+            };
+        }
     }
 }

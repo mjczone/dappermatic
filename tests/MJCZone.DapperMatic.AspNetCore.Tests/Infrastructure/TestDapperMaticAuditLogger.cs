@@ -3,6 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Collections.Concurrent;
 using MJCZone.DapperMatic.AspNetCore.Auditing;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;

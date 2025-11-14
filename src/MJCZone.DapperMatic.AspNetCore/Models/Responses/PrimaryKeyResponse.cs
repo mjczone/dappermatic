@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for primary key constraint operations.
 /// </summary>
-public class PrimaryKeyResponse : ResponseBase<PrimaryKeyConstraintDto?>
+public class PrimaryKeyResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="PrimaryKeyResponse"/> class.
     /// </summary>
-    public PrimaryKeyResponse()
-        : base(null) { }
+    public PrimaryKeyResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PrimaryKeyResponse"/> class.
     /// </summary>
-    /// <param name="primaryKeyConstraint">The primary key constraint information.</param>
-    public PrimaryKeyResponse(PrimaryKeyConstraintDto? primaryKeyConstraint)
-        : base(primaryKeyConstraint) { }
+    /// <param name="result">The primary key constraint information.</param>
+    public PrimaryKeyResponse(PrimaryKeyConstraintDto? result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the primary key constraint data.
+    /// </summary>
+    public PrimaryKeyConstraintDto? Result { get; set; }
 }

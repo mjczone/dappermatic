@@ -37,6 +37,8 @@ builder.Services.AddDapperMatic();
 
 var app = builder.Build();
 
+app.UseRouting();
+
 // Order matters: Authentication must come before DapperMatic endpoints
 app.UseAuthentication();
 app.UseAuthorization();
@@ -74,12 +76,12 @@ public class OperationContext
 
     // HTTP request information
     public string HttpMethod { get; set; }           // GET, POST, etc.
-    public string EndpointPath { get; set; }         // /api/dm/datasources/get
+    public string EndpointPath { get; set; }         // /api/dm/d/get
     public IQueryCollection? QueryParameters { get; set; }
     public object? RequestBody { get; set; }
 
     // Operation identification
-    public string Operation { get; set; }            // e.g., "datasources/add", "tables/create"
+    public string Operation { get; set; }            // e.g., "datasources/post", "tables/put"
 }
 ```
 
@@ -114,25 +116,25 @@ DapperMatic defines specific operation identifiers for all supported operations:
 #### Datasource Operations
 - `datasources/list` - List all datasources
 - `datasources/get` - Get specific datasource details
-- `datasources/add` - Create new datasource
-- `datasources/update` - Modify existing datasource
-- `datasources/remove` - Delete datasource
+- `datasources/post` - Create new datasource
+- `datasources/put` - Modify existing datasource
+- `datasources/delete` - Delete datasource
 - `datasources/test` - Test datasource connection
 
 #### Database Schema Operations
 - `schemas/list` - List schemas in datasource
 - `schemas/get` - Get schema details
-- `schemas/create` - Create new schema
-- `schemas/drop` - Delete schema
+- `schemas/post` - Create new schema
+- `schemas/delete` - Delete schema
 - `schemas/exists` - Check schema existence
 
 #### Table and View Operations
-- `tables/list`, `tables/get`, `tables/create`, `tables/update`, `tables/drop`, `tables/rename`, `tables/exists`, `tables/query`
-- `views/list`, `views/get`, `views/create`, `views/update`, `views/drop`, `views/exists`, `views/query`
+- `tables/list`, `tables/get`, `tables/post`, `tables/put`, `tables/delete`, `tables/exists`, `tables/query`
+- `views/list`, `views/get`, `views/post`, `views/put`, `views/delete`, `views/exists`, `views/query`
 
 #### Column and Index Operations
-- `columns/list`, `columns/get`, `columns/add`, `columns/update`, `columns/drop`
-- `indexes/list`, `indexes/get`, `indexes/create`, `indexes/drop`
+- `columns/list`, `columns/get`, `columns/post`, `columns/put`, `columns/delete`
+- `indexes/list`, `indexes/get`, `indexes/post`, `indexes/delete`
 
 #### Constraint Operations
 - `constraints/primarykey/*` - Primary key operations
@@ -515,6 +517,8 @@ builder.Services.AddRateLimiter(options => {
 });
 
 var app = builder.Build();
+
+app.UseRouting();
 
 // Security middleware order is critical
 app.UseAuthentication();

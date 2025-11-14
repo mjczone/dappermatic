@@ -3,6 +3,9 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Collections;
+using System.Collections.Concurrent;
+using System.Text;
 using MJCZone.DapperMatic.Converters;
 
 namespace MJCZone.DapperMatic.Providers;
@@ -12,28 +15,106 @@ namespace MJCZone.DapperMatic.Providers;
 /// </summary>
 public static class TypeMappingHelpers
 {
+    #region Standard Type Lookups
+
     /// <summary>
-    /// Gets the short form assembly qualified name for a type (Type, Assembly).
-    /// This is commonly used for geometry type identification.
+    /// Gets the standard numeric types that should be registered for numeric conversion.
+    /// These are the core .NET numeric types that all database providers support.
     /// </summary>
-    /// <param name="type">The type to get the short assembly qualified name for.</param>
-    /// <returns>The short assembly qualified name in format "FullTypeName, AssemblyName" or null if type is null.</returns>
-    public static string? GetAssemblyQualifiedShortName(Type? type)
+    /// <returns>Array of standard .NET numeric types.</returns>
+    public static Type[] GetStandardNumericTypes()
     {
-        var assemblyQualifiedName = type?.AssemblyQualifiedName;
-        if (string.IsNullOrWhiteSpace(assemblyQualifiedName))
-        {
-            return null;
-        }
-
-        var assemblyQualifiedNameParts = assemblyQualifiedName.Split(',');
-        if (assemblyQualifiedNameParts.Length < 2)
-        {
-            return assemblyQualifiedName;
-        }
-
-        return assemblyQualifiedNameParts[0] + ", " + assemblyQualifiedNameParts[1];
+        return
+        [
+            typeof(byte),
+            typeof(short),
+            typeof(int),
+            typeof(System.Numerics.BigInteger),
+            typeof(long),
+            typeof(sbyte),
+            typeof(ushort),
+            typeof(uint),
+            typeof(ulong),
+            typeof(decimal),
+            typeof(float),
+            typeof(double),
+        ];
     }
+
+    /// <summary>
+    /// Gets the standard text types that should be registered for text conversion.
+    /// These are the core .NET text types that all database providers support.
+    /// </summary>
+    /// <returns>Array of standard .NET text types.</returns>
+    public static Type[] GetStandardTextTypes()
+    {
+        return [typeof(string), typeof(char[]), typeof(TextReader)];
+    }
+
+    /// <summary>
+    /// Gets the standard DateTime types that should be registered for DateTime conversion.
+    /// These are the core .NET date/time types that all database providers support.
+    /// </summary>
+    /// <returns>Array of standard .NET DateTime types.</returns>
+    public static Type[] GetStandardDateTimeTypes()
+    {
+        return [typeof(DateTime), typeof(DateTimeOffset), typeof(TimeSpan), typeof(DateOnly), typeof(TimeOnly)];
+    }
+
+    /// <summary>
+    /// Gets the standard binary types that should be registered for binary conversion.
+    /// These are the core .NET binary types that all database providers support.
+    /// </summary>
+    /// <returns>Array of standard .NET binary types.</returns>
+    public static Type[] GetStandardBinaryTypes()
+    {
+        return
+        [
+            typeof(byte[]),
+            typeof(ReadOnlyMemory<byte>),
+            typeof(Memory<byte>),
+            typeof(Stream),
+            typeof(MemoryStream),
+            typeof(BinaryReader),
+            typeof(BitArray),
+            typeof(System.Collections.Specialized.BitVector32),
+        ];
+    }
+
+    /// <summary>
+    /// Gets the standard enumerable types that should be registered for enumerable conversion.
+    /// These are common .NET collection types that typically map to JSON or similar storage.
+    /// </summary>
+    /// <returns>Array of standard .NET enumerable types.</returns>
+    public static Type[] GetStandardEnumerableTypes()
+    {
+        return
+        [
+            typeof(System.Collections.Immutable.ImmutableDictionary<string, string>),
+            typeof(Dictionary<string, string>),
+            typeof(IDictionary<string, string>),
+            typeof(Dictionary<string, object>),
+            typeof(IDictionary<string, object>),
+            typeof(HashSet<string>),
+            typeof(List<string>),
+            typeof(IList<string>),
+            typeof(HashSet<>),
+            typeof(ISet<>),
+            typeof(Dictionary<,>),
+            typeof(IDictionary<,>),
+            typeof(List<>),
+            typeof(IList<>),
+            typeof(System.Collections.ObjectModel.Collection<>),
+            typeof(IReadOnlyCollection<>),
+            typeof(IReadOnlySet<>),
+            typeof(ICollection<>),
+            typeof(IEnumerable<>),
+        ];
+    }
+
+    #endregion
+
+    #region SQL Type Descriptor Creation
 
     /// <summary>
     /// Creates a SqlTypeDescriptor for decimal/numeric types with consistent precision and scale handling.
@@ -55,66 +136,6 @@ public static class TypeMappingHelpers
     }
 
     /// <summary>
-    /// Creates a SqlTypeDescriptor for string/text types with consistent length and unicode handling.
-    /// </summary>
-    /// <param name="sqlType">The base SQL type name (e.g., "varchar", "nvarchar", "char").</param>
-    /// <param name="length">The length, or null to use default.</param>
-    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
-    /// <param name="isFixedLength">Whether the type is fixed-length.</param>
-    /// <returns>A SqlTypeDescriptor with properly formatted SQL type name and metadata.</returns>
-    public static SqlTypeDescriptor CreateStringType(
-        string sqlType,
-        int? length = null,
-        bool isUnicode = false,
-        bool isFixedLength = false)
-    {
-        var actualLength = length ?? TypeMappingDefaults.DefaultStringLength;
-
-        string sqlTypeName;
-        if (actualLength == TypeMappingDefaults.MaxLength)
-        {
-            sqlTypeName = $"{sqlType}(max)";
-        }
-        else
-        {
-            sqlTypeName = $"{sqlType}({actualLength})";
-        }
-
-        return new SqlTypeDescriptor(sqlTypeName)
-        {
-            Length = actualLength == TypeMappingDefaults.MaxLength ? null : actualLength,
-            IsUnicode = isUnicode,
-            IsFixedLength = isFixedLength,
-        };
-    }
-
-    /// <summary>
-    /// Creates a SqlTypeDescriptor for GUID types stored as strings.
-    /// </summary>
-    /// <param name="sqlType">The base SQL type name (e.g., "varchar", "char").</param>
-    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
-    /// <param name="isFixedLength">Whether the type is fixed-length (typically true for GUIDs).</param>
-    /// <returns>A SqlTypeDescriptor configured for GUID storage.</returns>
-    public static SqlTypeDescriptor CreateGuidStringType(
-        string sqlType,
-        bool isUnicode = false,
-        bool isFixedLength = true)
-    {
-        return CreateStringType(sqlType, TypeMappingDefaults.GuidStringLength, isUnicode, isFixedLength);
-    }
-
-    /// <summary>
-    /// Creates a SqlTypeDescriptor for enum types stored as strings.
-    /// </summary>
-    /// <param name="sqlType">The base SQL type name (e.g., "varchar").</param>
-    /// <param name="isUnicode">Whether the type supports unicode characters.</param>
-    /// <returns>A SqlTypeDescriptor configured for enum storage.</returns>
-    public static SqlTypeDescriptor CreateEnumStringType(string sqlType, bool isUnicode = false)
-    {
-        return CreateStringType(sqlType, TypeMappingDefaults.DefaultEnumLength, isUnicode, isFixedLength: false);
-    }
-
-    /// <summary>
     /// Determines if a type is a NetTopologySuite geometry type.
     /// </summary>
     /// <param name="type">The type to check.</param>
@@ -126,10 +147,10 @@ public static class TypeMappingHelpers
             return false;
         }
 
-        var shortName = GetAssemblyQualifiedShortName(type);
-        return !string.IsNullOrWhiteSpace(shortName) &&
-               shortName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase) &&
-               shortName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
+        var fullName = type.GetFullTypeName();
+        return !string.IsNullOrWhiteSpace(fullName)
+            && fullName.Contains("NetTopologySuite.Geometries.", StringComparison.OrdinalIgnoreCase)
+            && fullName.Contains(", NetTopologySuite", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>
@@ -144,28 +165,28 @@ public static class TypeMappingHelpers
             return null;
         }
 
-        var shortName = GetAssemblyQualifiedShortName(type);
-        if (string.IsNullOrWhiteSpace(shortName))
+        var fullName = type.GetFullTypeName();
+        if (string.IsNullOrWhiteSpace(fullName))
         {
             return null;
         }
 
         // Extract type name from "NetTopologySuite.Geometries.Point, NetTopologySuite"
         const string prefix = "NetTopologySuite.Geometries.";
-        var startIndex = shortName.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
+        var startIndex = fullName.IndexOf(prefix, StringComparison.OrdinalIgnoreCase);
         if (startIndex == -1)
         {
             return null;
         }
 
         var typeNameStart = startIndex + prefix.Length;
-        var commaIndex = shortName.IndexOf(',', typeNameStart);
+        var commaIndex = fullName.IndexOf(',', typeNameStart);
         if (commaIndex == -1)
         {
-            return shortName[typeNameStart..];
+            return fullName[typeNameStart..];
         }
 
-        return shortName[typeNameStart..commaIndex];
+        return fullName[typeNameStart..commaIndex];
     }
 
     /// <summary>
@@ -188,10 +209,7 @@ public static class TypeMappingHelpers
     {
         if (precision.HasValue)
         {
-            return new SqlTypeDescriptor($"{sqlType}({precision})")
-            {
-                Precision = precision,
-            };
+            return new SqlTypeDescriptor($"{sqlType}({precision})") { Precision = precision };
         }
 
         return new SqlTypeDescriptor(sqlType);
@@ -204,34 +222,20 @@ public static class TypeMappingHelpers
     /// <param name="length">The length, or null to use default.</param>
     /// <param name="isFixedLength">Whether the type is fixed-length.</param>
     /// <returns>A SqlTypeDescriptor configured for binary storage.</returns>
-    public static SqlTypeDescriptor CreateBinaryType(
-        string sqlType,
-        int? length = null,
-        bool isFixedLength = false)
+    public static SqlTypeDescriptor CreateBinaryType(string sqlType, int? length = null, bool isFixedLength = false)
     {
         if (length == TypeMappingDefaults.MaxLength)
         {
-            return new SqlTypeDescriptor($"{sqlType}(max)")
-            {
-                Length = null,
-                IsFixedLength = isFixedLength,
-            };
+            return new SqlTypeDescriptor($"{sqlType}(max)") { Length = null, IsFixedLength = isFixedLength };
         }
 
         if (length.HasValue)
         {
-            return new SqlTypeDescriptor($"{sqlType}({length})")
-            {
-                Length = length,
-                IsFixedLength = isFixedLength,
-            };
+            return new SqlTypeDescriptor($"{sqlType}({length})") { Length = length, IsFixedLength = isFixedLength };
         }
 
         // Default binary types don't typically have length specification
-        return new SqlTypeDescriptor(sqlType)
-        {
-            IsFixedLength = isFixedLength,
-        };
+        return new SqlTypeDescriptor(sqlType) { IsFixedLength = isFixedLength };
     }
 
     /// <summary>
@@ -280,11 +284,7 @@ public static class TypeMappingHelpers
     /// <returns>A SqlTypeDescriptor configured for LOB storage.</returns>
     public static SqlTypeDescriptor CreateLobType(string sqlType, bool isUnicode = false)
     {
-        return new SqlTypeDescriptor(sqlType)
-        {
-            Length = TypeMappingDefaults.MaxLength,
-            IsUnicode = isUnicode,
-        };
+        return new SqlTypeDescriptor(sqlType) { Length = TypeMappingDefaults.MaxLength, IsUnicode = isUnicode };
     }
 
     /// <summary>
@@ -315,10 +315,7 @@ public static class TypeMappingHelpers
     /// <returns>A SqlTypeDescriptor with precision formatting.</returns>
     public static SqlTypeDescriptor CreatePrecisionType(string sqlType, int precision)
     {
-        return new SqlTypeDescriptor($"{sqlType}({precision})")
-        {
-            Precision = precision,
-        };
+        return new SqlTypeDescriptor($"{sqlType}({precision})") { Precision = precision };
     }
 
     /// <summary>
@@ -354,12 +351,12 @@ public static class TypeMappingHelpers
         }
 
         var genericTypeDefinition = type.GetGenericTypeDefinition();
-        return genericTypeDefinition == typeof(List<>) ||
-               genericTypeDefinition == typeof(IList<>) ||
-               genericTypeDefinition == typeof(ICollection<>) ||
-               genericTypeDefinition == typeof(IEnumerable<>) ||
-               genericTypeDefinition == typeof(HashSet<>) ||
-               genericTypeDefinition == typeof(ISet<>);
+        return genericTypeDefinition == typeof(List<>)
+            || genericTypeDefinition == typeof(IList<>)
+            || genericTypeDefinition == typeof(ICollection<>)
+            || genericTypeDefinition == typeof(IEnumerable<>)
+            || genericTypeDefinition == typeof(HashSet<>)
+            || genericTypeDefinition == typeof(ISet<>);
     }
 
     /// <summary>
@@ -377,108 +374,9 @@ public static class TypeMappingHelpers
         return collectionType!.GetGenericArguments().FirstOrDefault();
     }
 
-    /// <summary>
-    /// Gets the standard NetTopologySuite geometry types for registration.
-    /// This provides a consistent set of geometry types across all providers.
-    /// </summary>
-    /// <returns>An array of NetTopologySuite geometry types, filtering out null entries.</returns>
-    public static Type[] GetStandardGeometryTypes()
-    {
-        var types = new[]
-        {
-            Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"),
-            Type.GetType("NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"),
-        };
+    #endregion
 
-        // Filter out null types (in case NetTopologySuite is not available)
-        return types.Where(t => t != null).ToArray()!;
-    }
-
-    /// <summary>
-    /// Gets additional provider-specific geometry types for SQL Server.
-    /// </summary>
-    /// <returns>An array of SQL Server specific geometry types, filtering out null entries.</returns>
-    public static Type[] GetSqlServerGeometryTypes()
-    {
-        var types = new[]
-        {
-            Type.GetType("Microsoft.SqlServer.Types.SqlGeometry, Microsoft.SqlServer.Types"),
-            Type.GetType("Microsoft.SqlServer.Types.SqlGeography, Microsoft.SqlServer.Types"),
-            Type.GetType("Microsoft.SqlServer.Types.SqlHierarchyId, Microsoft.SqlServer.Types"),
-        };
-
-        return types.Where(t => t != null).ToArray()!;
-    }
-
-    /// <summary>
-    /// Gets additional provider-specific geometry types for MySQL.
-    /// </summary>
-    /// <returns>An array of MySQL specific geometry types, filtering out null entries.</returns>
-    public static Type[] GetMySqlGeometryTypes()
-    {
-        var types = new[]
-        {
-            Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data"),
-            Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector"),
-        };
-
-        return types.Where(t => t != null).ToArray()!;
-    }
-
-    /// <summary>
-    /// Gets additional provider-specific geometry and network types for PostgreSQL.
-    /// </summary>
-    /// <returns>An array of PostgreSQL specific types, filtering out null entries.</returns>
-    public static Type[] GetPostgreSqlSpecialTypes()
-    {
-        var types = new[]
-        {
-            // Network types
-            Type.GetType("System.Net.NetworkInformation.PhysicalAddress, System.Net.NetworkInformation"),
-            Type.GetType("System.Net.IPAddress, System.Net.Primitives"),
-            // PostgreSQL specific types
-            Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql"),
-            Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql"),
-        };
-
-        return types.Where(t => t != null).ToArray()!;
-    }
-
-    /// <summary>
-    /// Gets the combined geometry types for a specific provider.
-    /// </summary>
-    /// <param name="provider">The database provider name.</param>
-    /// <returns>An array of all geometry types for the specified provider.</returns>
-    public static Type[] GetGeometryTypesForProvider(string provider)
-    {
-        var standardTypes = GetStandardGeometryTypes();
-
-        return provider.ToLowerInvariant() switch
-        {
-            "sqlserver" => standardTypes.Concat(GetSqlServerGeometryTypes()).ToArray(),
-            "mysql" => standardTypes.Concat(GetMySqlGeometryTypes()).ToArray(),
-            "postgresql" => standardTypes.Concat(GetPostgreSqlSpecialTypes()).ToArray(),
-            "sqlite" => standardTypes, // SQLite only supports NetTopologySuite types
-            _ => standardTypes,
-        };
-    }
+    #region Provider-Specific Type Lookups
 
     /// <summary>
     /// Gets the standard System.Text.Json types that should be registered for JSON handling.
@@ -499,6 +397,25 @@ public static class TypeMappingHelpers
     }
 
     /// <summary>
+    /// Gets the standard network types that should be registered for network conversion.
+    /// This provides a consistent set of network types across all providers.
+    /// </summary>
+    /// <returns>Array of System.Net network types.</returns>
+    public static Type[] GetStandardNetworkTypes()
+    {
+        return
+        [
+            typeof(System.Net.IPAddress),
+            typeof(System.Net.IPEndPoint),
+            typeof(System.Net.NetworkInformation.PhysicalAddress),
+        ];
+    }
+
+    #endregion
+
+    #region Type Converter Creation
+
+    /// <summary>
     /// Creates a standardized JSON type converter for a specific provider.
     /// This handles the different JSON storage strategies across providers.
     /// Note: This method should be used by individual providers who can provide their specific type constants.
@@ -517,7 +434,7 @@ public static class TypeMappingHelpers
                 return CreateJsonType(sqlType, isText: true);
             }),
             "sqlite" => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)),
-            _ => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)) // Default to text storage
+            _ => new DotnetTypeToSqlTypeConverter(d => CreateJsonType("text", isText: true)), // Default to text storage
         };
     }
 
@@ -535,7 +452,7 @@ public static class TypeMappingHelpers
             "postgresql" => CreateJsonType("jsonb", isText: false), // jsonb is preferred over json in PostgreSQL
             "sqlserver" => CreateJsonType(isUnicode ? "nvarchar(max)" : "varchar(max)", isText: true),
             "sqlite" => CreateJsonType("text", isText: true),
-            _ => CreateJsonType("text", isText: true)
+            _ => CreateJsonType("text", isText: true),
         };
     }
 
@@ -559,7 +476,7 @@ public static class TypeMappingHelpers
     {
         return provider.ToLowerInvariant() switch
         {
-            "postgresql" => new DotnetTypeToSqlTypeConverter(d =>
+            "pg" or "postgres" or "pgsql" or "postgresql" => new DotnetTypeToSqlTypeConverter(d =>
             {
                 if (d.DotnetType?.IsArray == true)
                 {
@@ -575,7 +492,7 @@ public static class TypeMappingHelpers
                 return null;
             }),
             // Other providers fall back to JSON
-            _ => CreateJsonConverter(provider)
+            _ => CreateJsonConverter(provider),
         };
     }
 
@@ -609,7 +526,7 @@ public static class TypeMappingHelpers
             Type t when t == typeof(DateOnly) => "date",
             Type t when t == typeof(TimeOnly) => "time",
             Type t when t == typeof(Guid) => "uuid",
-            _ => null // Unsupported type
+            _ => null, // Unsupported type
         };
     }
 
@@ -622,6 +539,10 @@ public static class TypeMappingHelpers
     {
         return string.Equals(provider, "postgresql", StringComparison.OrdinalIgnoreCase);
     }
+
+    #endregion
+
+    #region PostgreSQL Array Support
 
     /// <summary>
     /// Gets the standard PostgreSQL array type names that should be registered for SQL-to-.NET type mapping.
@@ -642,9 +563,11 @@ public static class TypeMappingHelpers
             "numeric[]",
             "text[]",
             "char[]",
+            "\"char\"[]",
             "varchar[]",
             "character varying[]",
             "character[]",
+            "bpchar[]",
             "bytea[]",
             "timestamp[]",
             "timestamp without time zone[]",
@@ -715,8 +638,13 @@ public static class TypeMappingHelpers
                 return null; // Not an array type
             }
 
+            // Strip any parameters from the element type name (e.g., "character(1)" → "character")
+            // This allows matching parameterized types in the switch statement
+            var parenIndex = elementTypeName.IndexOf('(', StringComparison.Ordinal);
+            var baseElementTypeName = parenIndex > 0 ? elementTypeName[..parenIndex] : elementTypeName;
+
             // Map element type to .NET array type
-            return elementTypeName switch
+            return baseElementTypeName switch
             {
                 "boolean" or "bool" => new DotnetTypeDescriptor(typeof(bool[])),
                 "smallint" or "int2" => new DotnetTypeDescriptor(typeof(short[])),
@@ -727,6 +655,7 @@ public static class TypeMappingHelpers
                 "numeric" => new DotnetTypeDescriptor(typeof(decimal[])),
                 "text" => new DotnetTypeDescriptor(typeof(string[])),
                 "char" or "bpchar" => new DotnetTypeDescriptor(typeof(char[])),
+                "\"char\"" => new DotnetTypeDescriptor(typeof(string[])),
                 "varchar" => new DotnetTypeDescriptor(typeof(string[])),
                 "character varying" => new DotnetTypeDescriptor(typeof(string[])),
                 "character" => new DotnetTypeDescriptor(typeof(char[])),
@@ -742,8 +671,152 @@ public static class TypeMappingHelpers
                 "uuid" => new DotnetTypeDescriptor(typeof(Guid[])),
                 "json" => new DotnetTypeDescriptor(typeof(System.Text.Json.JsonDocument[])),
                 "jsonb" => new DotnetTypeDescriptor(typeof(System.Text.Json.JsonDocument[])),
-                _ => null // Unsupported array element type
+                _ => null, // Unsupported array element type
             };
         });
     }
+
+    #endregion
+
+    #region Provider Data Type Parsing
+
+    /// <summary>
+    /// Parses a provider data type string into a dictionary mapping provider types to SQL type names.
+    /// Handles complex formats with parameterized types like: "{mysql:decimal(10,2),sqlserver:decimal(12,4)}".
+    /// </summary>
+    /// <param name="providerDataType">The provider data type string to parse.
+    /// Format: "{provider:type,provider:type,...}" where type can include parameters like "decimal(10,2)".
+    /// Supported delimiters: comma ',' and semicolon ';'.
+    /// Braces '{', '}' and brackets '[', ']' are optional wrappers and will be trimmed.</param>
+    /// <returns>A dictionary mapping DbProviderType to SQL type name, or empty dictionary if input is null/empty.</returns>
+    /// <example>
+    /// Examples:
+    /// - "{mysql:decimal(10,2),sqlserver:decimal(12,4)}" → {MySql: "decimal(10,2)", SqlServer: "decimal(12,4)"}.
+    /// - "{postgresql:integer[],mysql:json}" → {PostgreSql: "integer[]", MySql: "json"}.
+    /// - "{sqlserver:money,mysql:decimal(19,4)}" → {SqlServer: "money", MySql: "decimal(19,4)"}.
+    /// </example>
+    public static Dictionary<DbProviderType, string> ParseProviderDataTypes(string? providerDataType)
+    {
+        var result = new Dictionary<DbProviderType, string>();
+
+        if (string.IsNullOrWhiteSpace(providerDataType))
+        {
+            return result;
+        }
+
+        // Trim outer braces/brackets but preserve array brackets in type names
+        var trimmed = providerDataType.Trim('{', '}', ' ');
+
+        // Parse respecting parentheses and bracket nesting
+        var providers = SplitRespectingParentheses(trimmed, ',', ';');
+
+        foreach (var provider in providers)
+        {
+            var colonIndex = provider.IndexOf(':', StringComparison.Ordinal);
+            if (colonIndex == -1)
+            {
+                continue; // Skip entries without a colon
+            }
+
+            var providerName = provider[..colonIndex].Trim();
+            var typeName = provider[(colonIndex + 1)..].Trim();
+
+            if (string.IsNullOrWhiteSpace(providerName) || string.IsNullOrWhiteSpace(typeName))
+            {
+                continue; // Skip invalid entries
+            }
+
+            // Map provider name to DbProviderType
+            DbProviderType? providerType = null;
+
+            if (
+                providerName.Contains("mysql", StringComparison.OrdinalIgnoreCase)
+                || providerName.Contains("maria", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                providerType = DbProviderType.MySql;
+            }
+            else if (
+                providerName.Contains("postgres", StringComparison.OrdinalIgnoreCase)
+                || providerName.Contains("pg", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                providerType = DbProviderType.PostgreSql;
+            }
+            else if (providerName.Contains("sqlite", StringComparison.OrdinalIgnoreCase))
+            {
+                providerType = DbProviderType.Sqlite;
+            }
+            else if (
+                providerName.Contains("sqlserver", StringComparison.OrdinalIgnoreCase)
+                || providerName.Contains("mssql", StringComparison.OrdinalIgnoreCase)
+            )
+            {
+                providerType = DbProviderType.SqlServer;
+            }
+
+            if (providerType.HasValue)
+            {
+                result[providerType.Value] = typeName;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Splits a string by specified delimiters while respecting parentheses and bracket nesting.
+    /// This ensures that delimiters inside parentheses or brackets are not treated as separators.
+    /// </summary>
+    /// <param name="input">The string to split.</param>
+    /// <param name="delimiters">The delimiter characters to split on (e.g., ',', ';').</param>
+    /// <returns>A list of string segments split by delimiters, with nested content preserved.</returns>
+    /// <example>
+    /// Input: "mysql:decimal(10,2),sqlserver:decimal(12,4)".
+    /// Delimiters: ','.
+    /// Output: ["mysql:decimal(10,2)", "sqlserver:decimal(12,4)"].
+    /// </example>
+    public static List<string> SplitRespectingParentheses(string input, params char[] delimiters)
+    {
+        var result = new List<string>();
+        var current = new StringBuilder();
+        var depth = 0;
+
+        foreach (var ch in input)
+        {
+            if (ch == '(' || ch == '[')
+            {
+                depth++;
+                current.Append(ch);
+            }
+            else if (ch == ')' || ch == ']')
+            {
+                depth--;
+                current.Append(ch);
+            }
+            else if (depth == 0 && delimiters.Contains(ch))
+            {
+                // We're at the top level and hit a delimiter
+                if (current.Length > 0)
+                {
+                    result.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+            }
+            else
+            {
+                current.Append(ch);
+            }
+        }
+
+        // Add the last segment
+        if (current.Length > 0)
+        {
+            result.Add(current.ToString().Trim());
+        }
+
+        return result;
+    }
+
+    #endregion
 }

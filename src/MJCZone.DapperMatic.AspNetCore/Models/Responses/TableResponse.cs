@@ -10,18 +10,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for table operations.
 /// </summary>
-public class TableResponse : ResponseBase<TableDto?>
+public class TableResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="TableResponse"/> class.
     /// </summary>
     public TableResponse()
-        : base(null) { }
+    {
+        Result = null;
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="TableResponse"/> class.
     /// </summary>
     /// <param name="table">The table information.</param>
     public TableResponse(TableDto? table)
-        : base(table) { }
+    {
+        Result = table;
+    }
+
+    /// <summary>
+    /// Gets or sets the table data.
+    /// </summary>
+    public TableDto? Result { get; set; }
 }

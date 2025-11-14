@@ -41,7 +41,7 @@ public sealed class DmColumnAttribute : Attribute
     public DmColumnAttribute(
         string? columnName = null,
         string? providerDataType = null,
-        int length = -1,
+        int length = 0,
         int precision = -1,
         int scale = -1,
         string? checkExpression = null,
@@ -61,9 +61,9 @@ public sealed class DmColumnAttribute : Attribute
     {
         ColumnName = columnName;
         ProviderDataType = providerDataType;
-        Length = length;
-        Precision = precision;
-        Scale = scale;
+        Length = length == 0 ? null : length;
+        Precision = precision == -1 ? null : precision;
+        Scale = scale == -1 ? null : scale;
         CheckExpression = checkExpression;
         DefaultExpression = defaultExpression;
         IsNullable = isNullable;
@@ -93,17 +93,17 @@ public sealed class DmColumnAttribute : Attribute
     /// <summary>
     /// Gets the length of the column.
     /// </summary>
-    public int Length { get; }
+    public int? Length { get; }
 
     /// <summary>
     /// Gets the precision of the column.
     /// </summary>
-    public int Precision { get; }
+    public int? Precision { get; }
 
     /// <summary>
     /// Gets the scale of the column.
     /// </summary>
-    public int Scale { get; }
+    public int? Scale { get; }
 
     /// <summary>
     /// Gets the check expression for the column.

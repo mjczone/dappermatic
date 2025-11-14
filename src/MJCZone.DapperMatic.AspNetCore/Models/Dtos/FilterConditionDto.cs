@@ -45,7 +45,7 @@ public class FilterConditionDto
             "nin" => "NOT IN",
             "isnull" => "IS NULL",
             "notnull" => "IS NOT NULL",
-            _ => "="
+            _ => "=",
         };
     }
 

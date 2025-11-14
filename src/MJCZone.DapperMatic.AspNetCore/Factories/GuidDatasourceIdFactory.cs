@@ -17,11 +17,7 @@ public class GuidDatasourceIdFactory : IDatasourceIdFactory
     {
         ArgumentNullException.ThrowIfNull(datasource);
 
-        if (
-            !string.IsNullOrWhiteSpace(datasource.Id)
-            && Guid.TryParse(datasource.Id, out var uid)
-            && uid != Guid.Empty
-        )
+        if (!string.IsNullOrWhiteSpace(datasource.Id) && Guid.TryParse(datasource.Id, out var uid) && uid != Guid.Empty)
         {
             return uid.ToString();
         }

@@ -14,10 +14,7 @@ namespace Akov.NetDocsProcessor.Helpers;
 
 internal partial class DescriptionHelper
 {
-    public static NamespaceDescription CreateNamespace(
-        string currentNamespace,
-        string rootNamespace
-    ) =>
+    public static NamespaceDescription CreateNamespace(string currentNamespace, string rootNamespace) =>
         new()
         {
             Self = new PageInfo
@@ -28,11 +25,7 @@ internal partial class DescriptionHelper
             },
         };
 
-    public static TypeDescription CreateType(
-        TypeInfo typeInfo,
-        INamedTypeSymbol? symbol,
-        PageInfo @namespace
-    )
+    public static TypeDescription CreateType(TypeInfo typeInfo, INamedTypeSymbol? symbol, PageInfo @namespace)
     {
         var elementType = typeInfo.GetTypeElementType();
 
@@ -43,11 +36,7 @@ internal partial class DescriptionHelper
         if (symbol != null)
         {
             // Get base type (exclude System.Object and System.ValueType)
-            if (
-                symbol.BaseType != null
-                && symbol.BaseType.Name != "Object"
-                && symbol.BaseType.Name != "ValueType"
-            )
+            if (symbol.BaseType != null && symbol.BaseType.Name != "Object" && symbol.BaseType.Name != "ValueType")
             {
                 var baseNamespaceUrl = symbol.BaseType.ContainingNamespace.ToDisplayString();
                 baseType = new PageInfo
@@ -64,8 +53,7 @@ internal partial class DescriptionHelper
                 implementedInterfaces = new List<PageInfo>();
                 foreach (var interfaceSymbol in symbol.Interfaces)
                 {
-                    var interfaceNamespaceUrl =
-                        interfaceSymbol.ContainingNamespace.ToDisplayString();
+                    var interfaceNamespaceUrl = interfaceSymbol.ContainingNamespace.ToDisplayString();
                     implementedInterfaces.Add(
                         new PageInfo
                         {
@@ -114,9 +102,7 @@ internal partial class DescriptionHelper
     )
     {
         string GetMemberFolder() =>
-            memberType == MemberTypes.Property
-                ? "properties"
-                : $"{memberType.ToString().ToLower()}s";
+            memberType == MemberTypes.Property ? "properties" : $"{memberType.ToString().ToLower()}s";
 
         // Generate fallback comment ID from reflection when symbol is null
         var commentId = symbol?.GetDocumentationCommentId();

@@ -30,7 +30,7 @@ public class AssemblyPaths
     /// The path to the assembly file.
     /// </summary>
     public string DllPath { get; }
-    
+
     /// <summary>
     /// The path to the generated documentation file.
     /// </summary>

@@ -34,17 +34,17 @@ internal static class XmlCommentIdGenerator
     public static string GenerateForMethod(MethodBase method)
     {
         var sb = new StringBuilder("M:");
-        
+
         // Append declaring type
         if (method.DeclaringType != null)
         {
             AppendTypeName(sb, method.DeclaringType, includeGenericParameters: true);
             sb.Append('.');
         }
-        
+
         // Append method name
         AppendMethodName(sb, method);
-        
+
         // Append parameters
         var parameters = method.GetParameters();
         if (parameters.Length > 0)
@@ -52,12 +52,13 @@ internal static class XmlCommentIdGenerator
             sb.Append('(');
             for (int i = 0; i < parameters.Length; i++)
             {
-                if (i > 0) sb.Append(',');
+                if (i > 0)
+                    sb.Append(',');
                 AppendParameterType(sb, parameters[i]);
             }
             sb.Append(')');
         }
-        
+
         return sb.ToString();
     }
 
@@ -69,17 +70,17 @@ internal static class XmlCommentIdGenerator
     public static string GenerateForProperty(PropertyInfo property)
     {
         var sb = new StringBuilder("P:");
-        
+
         // Append declaring type
         if (property.DeclaringType != null)
         {
             AppendTypeName(sb, property.DeclaringType, includeGenericParameters: true);
             sb.Append('.');
         }
-        
+
         // Append property name
         sb.Append(property.Name);
-        
+
         // Handle indexer properties
         var indexParameters = property.GetIndexParameters();
         if (indexParameters.Length > 0)
@@ -87,12 +88,13 @@ internal static class XmlCommentIdGenerator
             sb.Append('(');
             for (int i = 0; i < indexParameters.Length; i++)
             {
-                if (i > 0) sb.Append(',');
+                if (i > 0)
+                    sb.Append(',');
                 AppendParameterType(sb, indexParameters[i]);
             }
             sb.Append(')');
         }
-        
+
         return sb.ToString();
     }
 
@@ -104,17 +106,17 @@ internal static class XmlCommentIdGenerator
     public static string GenerateForField(FieldInfo field)
     {
         var sb = new StringBuilder("F:");
-        
+
         // Append declaring type
         if (field.DeclaringType != null)
         {
             AppendTypeName(sb, field.DeclaringType, includeGenericParameters: true);
             sb.Append('.');
         }
-        
+
         // Append field name
         sb.Append(field.Name);
-        
+
         return sb.ToString();
     }
 
@@ -126,17 +128,17 @@ internal static class XmlCommentIdGenerator
     public static string GenerateForEvent(EventInfo eventInfo)
     {
         var sb = new StringBuilder("E:");
-        
+
         // Append declaring type
         if (eventInfo.DeclaringType != null)
         {
             AppendTypeName(sb, eventInfo.DeclaringType, includeGenericParameters: true);
             sb.Append('.');
         }
-        
+
         // Append event name
         sb.Append(eventInfo.Name);
-        
+
         return sb.ToString();
     }
 
@@ -208,13 +210,13 @@ internal static class XmlCommentIdGenerator
         {
             var genericArgs = type.GetGenericArguments();
             var ownGenericParameterCount = genericArgs.Length;
-            
+
             // For nested generic types, subtract parent's generic parameter count
             if (type.DeclaringType?.IsGenericType == true)
             {
                 ownGenericParameterCount -= type.DeclaringType.GetGenericArguments().Length;
             }
-            
+
             if (ownGenericParameterCount > 0)
             {
                 sb.Append('`').Append(ownGenericParameterCount);
@@ -357,7 +359,7 @@ internal static class XmlCommentIdGenerator
     private static void AppendParameterType(StringBuilder sb, ParameterInfo parameter)
     {
         var parameterType = parameter.ParameterType;
-        
+
         // Handle ref and out parameters
         if (parameterType.IsByRef)
         {

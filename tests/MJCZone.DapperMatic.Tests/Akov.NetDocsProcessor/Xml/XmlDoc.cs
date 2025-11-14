@@ -12,7 +12,7 @@ public class XmlDoc
 {
     [XmlElement("assembly")]
     public XmlAssembly? Assembly { get; set; }
-    
+
     [XmlArray("members")]
     [XmlArrayItem("member")]
     public List<XmlMember>? Members { get; set; }

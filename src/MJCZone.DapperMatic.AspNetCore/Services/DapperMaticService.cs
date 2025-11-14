@@ -4,26 +4,22 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
-using System.Security.Claims;
+using System.Runtime.CompilerServices;
 using System.Text;
-
 using Dapper;
-
 using MJCZone.DapperMatic.AspNetCore.Auditing;
 using MJCZone.DapperMatic.AspNetCore.Factories;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-using MJCZone.DapperMatic.AspNetCore.Models.Requests;
-using MJCZone.DapperMatic.AspNetCore.Models.Responses;
 using MJCZone.DapperMatic.AspNetCore.Repositories;
 using MJCZone.DapperMatic.AspNetCore.Security;
-using MJCZone.DapperMatic.Providers;
+using MJCZone.DapperMatic.AspNetCore.Validation;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
 /// <summary>
 /// Implementation of IDapperMaticService for ASP.NET Core applications.
 /// </summary>
-public sealed partial class DapperMaticService : IDapperMaticService
+public partial class DapperMaticService : IDapperMaticService
 {
     private readonly IDapperMaticDatasourceRepository _datasourceRepository;
     private readonly IDbConnectionFactory _connectionFactory;
@@ -50,337 +46,116 @@ public sealed partial class DapperMaticService : IDapperMaticService
         _auditLogger = auditLogger;
     }
 
-    /// <inheritdoc />
-    public async Task<IEnumerable<DatasourceDto>> GetDatasourcesAsync(
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
+    #region Shared Protected Methods
+
+    /// <summary>
+    /// Asserts that the operation context has the necessary permissions.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="methodName">The calling method name (automatically provided).</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    protected virtual async Task AssertPermissionsAsync(
+        IOperationContext context,
+        [CallerMemberName] string methodName = ""
     )
     {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.ListDatasources,
-        };
+        // Only validate what's REQUIRED for authorization
+        ArgumentNullException.ThrowIfNull(context, nameof(context));
+
+        // Always track the current method for rich context
+        context.Properties ??= [];
+        context.Properties["CurrentMethod"] = methodName;
+
+        // Someone could enhance this with a cache of some kind if performance is a concern,
+        // checking for example if we've already authorized this operation
+        // Provided as an example if someone wants to override this method and implement caching,
+        // see commented code below where cache is populated
+        //
+        // const string authCacheKey = "_AuthorizationCache";
+        // if (context.Properties.TryGetValue(authCacheKey, out var cache))
+        // {
+        //     var authCache = (HashSet<string>)cache;
+        //     if (authCache.Contains(context.Operation!))
+        //     {
+        //         return; // Already authorized for this operation
+        //     }
+        // }
 
         if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
         {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException("Access denied to list datasources.");
-        }
-
-        try
-        {
-            var result = await _datasourceRepository.GetDatasourcesAsync().ConfigureAwait(false);
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<DatasourceDto?> GetDatasourceAsync(
-        string datasourceId,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetDatasource,
-            DatasourceId = datasourceId,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to get datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var result = await _datasourceRepository
-                .GetDatasourceAsync(datasourceId)
-                .ConfigureAwait(false);
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<DatasourceDto?> AddDatasourceAsync(
-        DatasourceDto datasource,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.AddDatasource,
-            DatasourceId = datasource.Id,
-            RequestBody = datasource,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to add datasource '{datasource.Id}'."
-            );
-        }
-
-        try
-        {
-            var result = await _datasourceRepository
-                .AddDatasourceAsync(datasource)
-                .ConfigureAwait(false);
-
-            if (!result)
+            var msg = new StringBuilder();
+            msg.Append($"Access denied for operation '{context.Operation}'");
+            if (!string.IsNullOrWhiteSpace(context.DatasourceId))
             {
-                await LogAuditEventAsync(context, false, "Datasource already exists")
-                    .ConfigureAwait(false);
-                return null; // Already exists
+                msg.Append($" on datasource '{context.DatasourceId}'");
+                if (!string.IsNullOrWhiteSpace(context.SchemaName))
+                {
+                    msg.Append($", '{context.SchemaName}'");
+                }
+                if (!string.IsNullOrWhiteSpace(context.TableName))
+                {
+                    msg.Append($", table '{context.TableName}'");
+                }
+                if (!string.IsNullOrWhiteSpace(context.ViewName))
+                {
+                    msg.Append($", view '{context.ViewName}'");
+                }
+                if (context.ColumnNames != null && context.ColumnNames.Count > 0)
+                {
+                    msg.Append($", columns ('{string.Join("', '", context.ColumnNames)}')");
+                }
             }
+            msg.Append('.');
+            throw new UnauthorizedAccessException(msg.ToString());
+        }
 
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-            return await _datasourceRepository
-                .GetDatasourceAsync(datasource.Id!)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
+        // Cache the result (provided as an example if someone wants to override this method and implement caching)
+        //
+        // if (!context.Properties.TryGetValue(authCacheKey, out object? value))
+        // {
+        //     value = new HashSet<string>();
+        //     context.Properties[authCacheKey] = value;
+        // }
+        // ((HashSet<string>)value).Add(context.Operation!);
     }
 
-    /// <inheritdoc />
-    public async Task<DatasourceDto?> UpdateDatasourceAsync(
-        DatasourceDto datasource,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        ArgumentNullException.ThrowIfNull(datasource);
-
-        var datasourceId = datasource?.Id;
-        if (string.IsNullOrWhiteSpace(datasourceId))
-        {
-            throw new ArgumentException("Datasource ID is required.", nameof(datasource));
-        }
-
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.UpdateDatasource,
-            DatasourceId = datasourceId,
-            RequestBody = datasource,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to update datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var result = await _datasourceRepository
-                .UpdateDatasourceAsync(datasource!)
-                .ConfigureAwait(false);
-
-            if (!result)
-            {
-                await LogAuditEventAsync(context, false, "Datasource not found")
-                    .ConfigureAwait(false);
-                return null; // Not found
-            }
-
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-
-            return await _datasourceRepository
-                .GetDatasourceAsync(datasourceId)
-                .ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<bool> RemoveDatasourceAsync(
-        string datasourceId,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.RemoveDatasource,
-            DatasourceId = datasourceId,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to remove datasource '{datasourceId}'."
-            );
-        }
-
-        try
-        {
-            var result = await _datasourceRepository
-                .RemoveDatasourceAsync(datasourceId)
-                .ConfigureAwait(false);
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<bool> DatasourceExistsAsync(
-        string datasourceId,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.GetDatasource,
-            DatasourceId = datasourceId,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to check if datasource '{datasourceId}' exists."
-            );
-        }
-
-        try
-        {
-            var result = await _datasourceRepository
-                .DatasourceExistsAsync(datasourceId)
-                .ConfigureAwait(false);
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-            return result;
-        }
-        catch (Exception ex)
-        {
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-            throw;
-        }
-    }
-
-    /// <inheritdoc />
-    public async Task<DatasourceTestResult> TestDatasourceAsync(
-        string datasourceId,
-        ClaimsPrincipal? user = null,
-        CancellationToken cancellationToken = default
-    )
-    {
-        var context = new OperationContext
-        {
-            User = user,
-            Operation = OperationIdentifiers.TestDatasource,
-            DatasourceId = datasourceId,
-        };
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
-        {
-            await LogAuditEventAsync(context, false, "Access denied").ConfigureAwait(false);
-            throw new UnauthorizedAccessException(
-                $"Access denied to test datasource '{datasourceId}'."
-            );
-        }
-
-        var result = new DatasourceTestResult { DatasourceId = datasourceId };
-
-        var startTime = System.Diagnostics.Stopwatch.StartNew();
-
-        try
-        {
-            using var connection = await CreateConnectionForDatasource(datasourceId)
-                .ConfigureAwait(false);
-            connection.Open();
-
-            result.IsConnected = true;
-            result.DatabaseName = connection.Database;
-            result.Provider = connection.GetDbProviderType().ToString();
-            result.ServerVersion =
-                $"{await connection.GetDatabaseVersionAsync(cancellationToken: cancellationToken)
-                .ConfigureAwait(false)}";
-            result.ResponseTimeMs = startTime.ElapsedMilliseconds;
-            await LogAuditEventAsync(context, true).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            result.IsConnected = false;
-            result.ErrorMessage = ex.Message;
-            result.ResponseTimeMs = startTime.ElapsedMilliseconds;
-            await LogAuditEventAsync(context, false, ex.Message).ConfigureAwait(false);
-        }
-
-        return result;
-    }
-
-    private async Task<IDbConnection> CreateConnectionForDatasource(string datasourceId)
+    /// <summary>
+    /// Creates and opens a database connection for the specified datasource.
+    /// </summary>
+    /// <param name="datasourceId">The ID of the datasource.</param>
+    /// <returns>An open database connection.</returns>
+    /// <exception cref="ArgumentException">Thrown when the datasource is not found.</exception>
+    protected virtual async Task<IDbConnection> CreateConnectionForDatasource(string datasourceId)
     {
         var datasource =
             await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false)
-            ?? throw new ArgumentException(
-                $"Datasource '{datasourceId}' not found.",
-                nameof(datasourceId)
-            );
+            ?? throw new KeyNotFoundException($"Datasource '{datasourceId}' not found.");
 
         if (string.IsNullOrWhiteSpace(datasource.Provider))
         {
-            throw new InvalidOperationException(
-                $"Datasource '{datasourceId}' is missing a provider."
-            );
+            throw new InvalidOperationException($"Datasource '{datasourceId}' is missing a provider.");
         }
 
-        var connectionString = await _datasourceRepository
-            .GetConnectionStringAsync(datasourceId)
-            .ConfigureAwait(false);
+        var connectionString = await _datasourceRepository.GetConnectionStringAsync(datasourceId).ConfigureAwait(false);
 
         if (connectionString == null)
         {
-            throw new InvalidOperationException(
-                $"Connection string for datasource '{datasourceId}' is not available."
-            );
+            throw new InvalidOperationException($"Connection string for datasource '{datasourceId}' is not available.");
         }
 
         return _connectionFactory.CreateConnection(datasource.Provider, connectionString);
     }
 
-    private async Task LogAuditEventAsync(
-        OperationContext operation,
+    /// <summary>
+    /// Logs an audit event for the specified operation context.
+    /// </summary>
+    /// <param name="operation">The operation context.</param>
+    /// <param name="success">Indicates if the operation was successful.</param>
+    /// <param name="errorMessage">Optional error message if the operation failed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    protected virtual async Task LogAuditEventAsync(
+        IOperationContext operation,
         bool success,
         string? errorMessage = null
     )
@@ -393,15 +168,15 @@ public sealed partial class DapperMaticService : IDapperMaticService
     /// Executes a data query with common logic for filtering, sorting, and pagination.
     /// </summary>
     /// <param name="connection">The database connection.</param>
-    /// <param name="qualifiedFromName">The qualified table/view name.</param>
+    /// <param name="schemaQualifiedTableOrViewName">The qualified table/view name.</param>
     /// <param name="request">The query request.</param>
     /// <param name="schemaName">The schema name (optional, for table column introspection).</param>
     /// <param name="tableName">The table name (optional, for table column introspection). If null, falls back to result-based column detection.</param>
     /// <returns>A query result containing data, field information, and pagination details.</returns>
-    private async Task<QueryResultDto> ExecuteDataQueryAsync(
+    protected virtual async Task<QueryResultDto> ExecuteDataQueryAsync(
         IDbConnection connection,
-        string qualifiedFromName,
-        QueryRequest request,
+        string schemaQualifiedTableOrViewName,
+        QueryDto request,
         string? schemaName = null,
         string? tableName = null
     )
@@ -410,7 +185,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
         var selectColumns = request.GetSelectColumns();
         var selectClause = selectColumns.Count > 0 ? string.Join(", ", selectColumns) : "*";
 
-        var sql = new StringBuilder($"SELECT {selectClause} FROM {qualifiedFromName}");
+        var sql = new StringBuilder($"SELECT {selectClause} FROM {schemaQualifiedTableOrViewName}");
         var parameters = new DynamicParameters();
         var parameterIndex = 0;
 
@@ -447,9 +222,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
                             parameters.Add(inParamName, value);
                         }
 
-                        whereConditions.Add(
-                            $"{condition.Column} {sqlOperator} ({string.Join(",", inParams)})"
-                        );
+                        whereConditions.Add($"{condition.Column} {sqlOperator} ({string.Join(",", inParams)})");
                     }
                 }
                 else if (condition.Operator == "like" || condition.Operator == "nlike")
@@ -472,9 +245,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
         if (orderByPairs.Count > 0)
         {
             sql.AppendLine(" ORDER BY");
-            var orderByParts = orderByPairs.Select(pair =>
-                $"{pair.Column} {(pair.IsAscending ? "ASC" : "DESC")}"
-            );
+            var orderByParts = orderByPairs.Select(pair => $"{pair.Column} {(pair.IsAscending ? "ASC" : "DESC")}");
             sql.Append(string.Join(", ", orderByParts));
         }
 
@@ -482,7 +253,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
         long? totalCount = null;
         if (request.IncludeTotal)
         {
-            var countSql = $"SELECT COUNT(*) FROM {qualifiedFromName}";
+            var countSql = $"SELECT COUNT(*) FROM {schemaQualifiedTableOrViewName}";
             if (filterConditions.Count > 0)
             {
                 var sqlString = sql.ToString();
@@ -490,10 +261,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
                 if (whereIndex > 0)
                 {
                     var whereClause = sqlString[whereIndex..];
-                    var orderByIndex = whereClause.IndexOf(
-                        "ORDER BY",
-                        StringComparison.OrdinalIgnoreCase
-                    );
+                    var orderByIndex = whereClause.IndexOf("ORDER BY", StringComparison.OrdinalIgnoreCase);
                     if (orderByIndex > 0)
                     {
                         whereClause = whereClause[..orderByIndex];
@@ -502,9 +270,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
                 }
             }
 
-            totalCount = await connection
-                .QuerySingleAsync<long>(countSql, parameters)
-                .ConfigureAwait(false);
+            totalCount = await connection.QuerySingleAsync<long>(countSql, parameters).ConfigureAwait(false);
         }
 
         // Add pagination - database specific syntax
@@ -546,18 +312,23 @@ public sealed partial class DapperMaticService : IDapperMaticService
             var tableColumns = await connection.GetColumnsAsync(schemaName, tableName).ConfigureAwait(false);
 
             // Filter columns based on SELECT clause if specific columns are requested
-            var targetColumns = selectColumns.Count > 0
-                ? tableColumns.Where(col => selectColumns.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase))
-                : tableColumns;
+            var targetColumns =
+                selectColumns.Count > 0
+                    ? tableColumns.Where(col =>
+                        selectColumns.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase)
+                    )
+                    : tableColumns;
 
             foreach (var col in targetColumns)
             {
-                fields.Add(new FieldDto
-                {
-                    Name = col.ColumnName,
-                    FieldType = col.DotnetType?.GetFriendlyName() ?? "Object",
-                    IsNullable = col.IsNullable,
-                });
+                fields.Add(
+                    new FieldDto
+                    {
+                        Name = col.ColumnName,
+                        FieldType = col.DotnetType?.GetFriendlyName() ?? "Object",
+                        IsNullable = col.IsNullable,
+                    }
+                );
             }
         }
         else
@@ -582,8 +353,7 @@ public sealed partial class DapperMaticService : IDapperMaticService
 
         // Check if there are more records
         var hasMore =
-            results.Count() == request.Take
-            && (totalCount == null || request.Skip + request.Take < totalCount);
+            results.Count() == request.Take && (totalCount == null || request.Skip + request.Take < totalCount);
 
         return new QueryResultDto
         {
@@ -598,4 +368,147 @@ public sealed partial class DapperMaticService : IDapperMaticService
             },
         };
     }
+
+    #endregion // Shared Protected Methods
+
+    #region Shared Private Methods
+
+    private string? NormalizeSchemaName(string? schemaName)
+    {
+        if (string.IsNullOrWhiteSpace(schemaName) || schemaName == "_")
+        {
+            return null; // Normalize to null
+        }
+        return schemaName;
+    }
+
+    private static async Task AssertSchemaExistsIfSpecifiedAsync(
+        string datasourceId,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(schemaName))
+        {
+            var schemaExists = await connection
+                .DoesSchemaExistAsync(schemaName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            if (!schemaExists)
+            {
+                throw new KeyNotFoundException($"Schema '{schemaName}' not found in datasource '{datasourceId}'");
+            }
+        }
+    }
+
+    private static async Task AssertSchemaDoesNotExistAsync(
+        string datasourceId,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (!string.IsNullOrWhiteSpace(schemaName))
+        {
+            var schemaExists = await connection
+                .DoesSchemaExistAsync(schemaName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+
+            if (schemaExists)
+            {
+                throw new DuplicateKeyException($"Schema '{schemaName}' already exists in datasource '{datasourceId}'");
+            }
+        }
+    }
+
+    private static async Task AssertTableExistsAsync(
+        string datasourceId,
+        string tableName,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            !await connection
+                .DoesTableExistAsync(schemaName, tableName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false)
+        )
+        {
+            throw new KeyNotFoundException(
+                !string.IsNullOrWhiteSpace(schemaName)
+                    ? $"Table '{tableName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
+                    : $"Table '{tableName}' not found in datasource '{datasourceId}'"
+            );
+        }
+    }
+
+    private static async Task AssertTableDoesNotExistAsync(
+        string datasourceId,
+        string tableName,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            await connection
+                .DoesTableExistAsync(schemaName, tableName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false)
+        )
+        {
+            throw new DuplicateKeyException(
+                !string.IsNullOrWhiteSpace(schemaName)
+                    ? $"Table '{tableName}' already exists in schema '{schemaName}' of datasource '{datasourceId}'"
+                    : $"Table '{tableName}' already exists in datasource '{datasourceId}'"
+            );
+        }
+    }
+
+    private static async Task AssertViewExistsAsync(
+        string datasourceId,
+        string viewName,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            !await connection
+                .DoesViewExistAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false)
+        )
+        {
+            throw new KeyNotFoundException(
+                !string.IsNullOrWhiteSpace(schemaName)
+                    ? $"View '{viewName}' not found in schema '{schemaName}' of datasource '{datasourceId}'"
+                    : $"View '{viewName}' not found in datasource '{datasourceId}'"
+            );
+        }
+    }
+
+    private static async Task AssertViewDoesNotExistAsync(
+        string datasourceId,
+        string viewName,
+        string? schemaName,
+        IDbConnection connection,
+        CancellationToken cancellationToken
+    )
+    {
+        if (
+            await connection
+                .DoesViewExistAsync(schemaName, viewName, cancellationToken: cancellationToken)
+                .ConfigureAwait(false)
+        )
+        {
+            throw new DuplicateKeyException(
+                !string.IsNullOrWhiteSpace(schemaName)
+                    ? $"View '{viewName}' already exists in schema '{schemaName}' of datasource '{datasourceId}'"
+                    : $"View '{viewName}' already exists in datasource '{datasourceId}'"
+            );
+        }
+    }
+
+    #endregion // Shared Private Methods
 }

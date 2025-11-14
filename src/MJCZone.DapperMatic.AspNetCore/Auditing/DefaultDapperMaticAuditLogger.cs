@@ -42,7 +42,7 @@ public class DefaultDapperMaticAuditLogger : IDapperMaticAuditLogger
                 auditEvent.Operation,
                 auditEvent.UserIdentifier,
                 auditEvent.DatasourceId ?? "N/A",
-                auditEvent.ErrorMessage ?? "Unknown error"
+                auditEvent.Message ?? "Unknown error"
             );
         }
 

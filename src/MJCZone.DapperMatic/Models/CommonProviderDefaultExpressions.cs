@@ -75,9 +75,7 @@ public static class CommonProviderDefaultExpressions
                 DbProviderType.MySql => "UUID()",
                 DbProviderType.Sqlite =>
                     "lower(hex(randomblob(4)) || '-' || hex(randomblob(2)) || '-' || '4' || substr(hex(randomblob(2)),2) || '-' || substr('89ab',abs(random()) % 4 + 1, 1) || substr(hex(randomblob(2)),2) || '-' || hex(randomblob(6)))",
-                _ => throw new NotSupportedException(
-                    $"GUID generation not supported for {provider}"
-                ),
+                _ => throw new NotSupportedException($"GUID generation not supported for {provider}"),
             };
 
     /// <summary>

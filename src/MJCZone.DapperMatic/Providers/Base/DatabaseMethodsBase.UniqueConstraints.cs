@@ -29,14 +29,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetUniqueConstraintAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetUniqueConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -59,14 +52,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetUniqueConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+        return await GetUniqueConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false) != null;
     }
 
@@ -134,25 +120,14 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesUniqueConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
             return false;
         }
 
-        var supportsOrderedKeysInConstraints = await SupportsOrderedKeysInConstraintsAsync(
-                db,
-                tx,
-                cancellationToken
-            )
+        var supportsOrderedKeysInConstraints = await SupportsOrderedKeysInConstraintsAsync(db, tx, cancellationToken)
             .ConfigureAwait(false);
 
         var sql = SqlAlterTableAddUniqueConstraint(
@@ -163,8 +138,7 @@ public abstract partial class DatabaseMethodsBase
             supportsOrderedKeysInConstraints
         );
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -225,14 +199,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         return (
-            await GetUniqueConstraintOnColumnAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            await GetUniqueConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )?.ConstraintName;
     }
@@ -292,19 +259,10 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Column name is required.", nameof(columnName));
         }
 
-        var uniqueConstraints = await GetUniqueConstraintsAsync(
-                db,
-                schemaName,
-                tableName,
-                null,
-                tx,
-                cancellationToken
-            )
+        var uniqueConstraints = await GetUniqueConstraintsAsync(db, schemaName, tableName, null, tx, cancellationToken)
             .ConfigureAwait(false);
         return uniqueConstraints.FirstOrDefault(c =>
-            c.Columns.Any(sc =>
-                sc.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
-            )
+            c.Columns.Any(sc => sc.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase))
         );
     }
 
@@ -327,22 +285,17 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
         if (table == null)
         {
             return [];
         }
 
-        var filter = string.IsNullOrWhiteSpace(constraintNameFilter)
-            ? null
-            : ToSafeString(constraintNameFilter);
+        var filter = string.IsNullOrWhiteSpace(constraintNameFilter) ? null : ToSafeString(constraintNameFilter);
 
         return string.IsNullOrWhiteSpace(filter)
             ? table.UniqueConstraints
-            : table
-                .UniqueConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter))
-                .ToList();
+            : table.UniqueConstraints.Where(c => c.ConstraintName.IsWildcardPatternMatch(filter)).ToList();
     }
 
     /// <summary>
@@ -365,14 +318,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         if (
-            !await DoesUniqueConstraintExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    constraintName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -381,8 +327,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropUniqueConstraint(schemaName, tableName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -423,8 +368,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlDropUniqueConstraint(schemaName, tableName, constraintName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

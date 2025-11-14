@@ -38,9 +38,7 @@ internal static partial class TypeInfoExtensions
             { IsInterface: true } => ElementType.Interface,
             { IsValueType: true, IsEnum: false } => ElementType.Struct,
             { IsEnum: true } => ElementType.Enum,
-            _ => throw new InvalidOperationException(
-                $"Cannot define the element for {typeInfo.FullName}"
-            ),
+            _ => throw new InvalidOperationException($"Cannot define the element for {typeInfo.FullName}"),
         };
     }
 }

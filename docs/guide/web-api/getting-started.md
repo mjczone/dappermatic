@@ -48,6 +48,9 @@ builder.Services.AddDapperMatic(); // Uses in-memory repository by default
 
 var app = builder.Build();
 
+// IMPORTANT: UseRouting must be called before UseDapperMatic
+app.UseRouting();
+
 // Register DapperMatic endpoints
 app.UseDapperMatic();
 
@@ -58,9 +61,9 @@ app.Run();
 
 Your application now has DapperMatic REST endpoints available at:
 
-- `GET /api/dm/datasources/` - List all datasources
-- `POST /api/dm/datasources/` - Add a new datasource
-- `GET /api/dm/datasources/{id}` - Get datasource details
+- `GET /api/dm/d/` - List all datasources
+- `POST /api/dm/d/` - Add a new datasource
+- `GET /api/dm/d/{datasourceId}` - Get datasource details
 - And many more...
 
 ### 4. Explore the API
@@ -73,7 +76,7 @@ Once configured, you can manage your database schemas via HTTP requests:
 
 ```bash
 # Add a datasource
-curl -X POST "/api/dm/datasources/" \
+curl -X POST "/api/dm/d/" \
   -H "Content-Type: application/json" \
   -d '{
     "name": "MyDatabase",

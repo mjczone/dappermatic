@@ -30,8 +30,8 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        return await GetColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
-                .ConfigureAwait(false) != null;
+        return await GetColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken).ConfigureAwait(false)
+            != null;
     }
 
     /// <summary>
@@ -59,13 +59,7 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Column name is required", nameof(column));
         }
 
-        var table = await GetTableAsync(
-                db,
-                column.SchemaName,
-                column.TableName,
-                tx,
-                cancellationToken
-            )
+        var table = await GetTableAsync(db, column.SchemaName, column.TableName, tx, cancellationToken)
             .ConfigureAwait(false);
 
         if (string.IsNullOrWhiteSpace(table?.TableName))
@@ -73,17 +67,12 @@ public abstract partial class DatabaseMethodsBase
             return false;
         }
 
-        if (
-            table.Columns.Any(c =>
-                c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
-            )
-        )
+        if (table.Columns.Any(c => c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)))
         {
             return false;
         }
 
-        var dbVersion = await GetDatabaseVersionAsync(db, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var dbVersion = await GetDatabaseVersionAsync(db, tx, cancellationToken).ConfigureAwait(false);
 
         var tableConstraints = new DmTable(table.SchemaName, table.TableName);
 
@@ -93,20 +82,14 @@ public abstract partial class DatabaseMethodsBase
             tableConstraints.PrimaryKeyConstraint = table.PrimaryKeyConstraint;
         }
 
-        var columnDefinitionSql = SqlInlineColumnDefinition(
-            table,
-            column,
-            tableConstraints,
-            dbVersion
-        );
+        var columnDefinitionSql = SqlInlineColumnDefinition(table, column, tableConstraints, dbVersion);
 
         var sql = new StringBuilder();
         sql.Append(
             $"ALTER TABLE {GetSchemaQualifiedIdentifierName(column.SchemaName, column.TableName)} ADD {columnDefinitionSql}"
         );
 
-        await ExecuteAsync(db, sql.ToString(), tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql.ToString(), tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         // ONLY add the primary key constraint if it didn't exist before and if it wasn't
         // already added as part of the column definition (in which case that tableConstraints.PrimaryKeyConstraint will be null)
@@ -168,12 +151,7 @@ public abstract partial class DatabaseMethodsBase
 
         foreach (var index in tableConstraints.Indexes)
         {
-            await CreateIndexIfNotExistsAsync(
-                    db,
-                    index,
-                    tx: tx,
-                    cancellationToken: cancellationToken
-                )
+            await CreateIndexIfNotExistsAsync(db, index, tx: tx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -244,10 +222,7 @@ public abstract partial class DatabaseMethodsBase
                     dotnetType,
                     providerDataType == null
                         ? null
-                        : new Dictionary<DbProviderType, string>
-                        {
-                            { ProviderType, providerDataType },
-                        },
+                        : new Dictionary<DbProviderType, string> { { ProviderType, providerDataType } },
                     length,
                     precision,
                     scale,
@@ -291,8 +266,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         return (
-            await GetColumnsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
-                .ConfigureAwait(false)
+            await GetColumnsAsync(db, schemaName, tableName, columnName, tx, cancellationToken).ConfigureAwait(false)
         ).FirstOrDefault();
     }
 
@@ -315,14 +289,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var columns = await GetColumnsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnNameFilter,
-                tx,
-                cancellationToken
-            )
+        var columns = await GetColumnsAsync(db, schemaName, tableName, columnNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
         return columns.Select(x => x.ColumnName).ToList();
     }
@@ -351,17 +318,14 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Table name is required.", nameof(tableName));
         }
 
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
             return [];
         }
 
-        var filter = string.IsNullOrWhiteSpace(columnNameFilter)
-            ? null
-            : ToSafeString(columnNameFilter);
+        var filter = string.IsNullOrWhiteSpace(columnNameFilter) ? null : ToSafeString(columnNameFilter);
 
         return string.IsNullOrWhiteSpace(filter)
             ? table.Columns
@@ -387,8 +351,7 @@ public abstract partial class DatabaseMethodsBase
         CancellationToken cancellationToken = default
     )
     {
-        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken)
-            .ConfigureAwait(false);
+        var table = await GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
 
         if (table == null)
         {
@@ -409,13 +372,7 @@ public abstract partial class DatabaseMethodsBase
         // drop any related constraints
         if (column.IsPrimaryKey)
         {
-            await DropPrimaryKeyConstraintIfExistsAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    tx,
-                    cancellationToken
-                )
+            await DropPrimaryKeyConstraintIfExistsAsync(db, schemaName, tableName, tx, cancellationToken)
                 .ConfigureAwait(false);
         }
 
@@ -447,41 +404,19 @@ public abstract partial class DatabaseMethodsBase
 
         if (column.IsIndexed)
         {
-            await DropIndexesOnColumnIfExistsAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    column.ColumnName,
-                    tx,
-                    cancellationToken
-                )
+            await DropIndexesOnColumnIfExistsAsync(db, schemaName, tableName, column.ColumnName, tx, cancellationToken)
                 .ConfigureAwait(false);
         }
 
-        await DropCheckConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+        await DropCheckConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
 
-        await DropDefaultConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+        await DropDefaultConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
 
         var sql = SqlDropColumn(schemaName, tableName, columnName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -508,14 +443,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         if (
-            !await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesColumnExistAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -523,14 +451,7 @@ public abstract partial class DatabaseMethodsBase
         }
 
         if (
-            await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    newColumnName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesColumnExistAsync(db, schemaName, tableName, newColumnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {

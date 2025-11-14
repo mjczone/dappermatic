@@ -11,9 +11,7 @@ namespace MJCZone.DapperMatic.Providers.SqlServer;
 /// <summary>
 /// Provides SQL Server specific database methods.
 /// </summary>
-public partial class SqlServerMethods
-    : DatabaseMethodsBase<SqlServerProviderTypeMap>,
-        ISqlServerMethods
+public partial class SqlServerMethods : DatabaseMethodsBase<SqlServerProviderTypeMap>, ISqlServerMethods
 {
     private static string _defaultSchema = "dbo";
 

@@ -3,7 +3,6 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Text.Json.Serialization;
 using MJCZone.DapperMatic.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,8 +21,9 @@ builder.Services.AddSwaggerGen(options =>
         }
     );
 
+    // WE DO NOT WANT TO FORCE ANY JSON OPTIONS ON THE HOST APPLICATION
     // Configure Swagger to use string values for enums
-    options.UseInlineDefinitionsForEnums();
+    // options.UseInlineDefinitionsForEnums();
 
     // Add support for string enums in Swagger schema
     options.SchemaFilter<JsonStringEnumSchemaFilter>();
@@ -56,6 +56,8 @@ if (app.Environment.IsDevelopment())
 }
 
 // app.UseHttpsRedirection(); // Removed for local testing
+
+app.UseRouting();
 
 // Map DapperMatic endpoints
 app.UseDapperMatic();

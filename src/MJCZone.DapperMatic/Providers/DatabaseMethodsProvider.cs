@@ -14,20 +14,15 @@ namespace MJCZone.DapperMatic.Providers;
 /// </summary>
 public static class DatabaseMethodsProvider
 {
-    private static readonly ConcurrentDictionary<
-        DbProviderType,
-        IDatabaseMethodsFactory
-    > NativeFactories =
-        new()
-        {
-            [DbProviderType.Sqlite] = new Sqlite.SqliteMethodsFactory(),
-            [DbProviderType.SqlServer] = new SqlServer.SqlServerMethodsFactory(),
-            [DbProviderType.MySql] = new MySql.MySqlMethodsFactory(),
-            [DbProviderType.PostgreSql] = new PostgreSql.PostgreSqlMethodsFactory(),
-        };
+    private static readonly ConcurrentDictionary<DbProviderType, IDatabaseMethodsFactory> NativeFactories = new()
+    {
+        [DbProviderType.Sqlite] = new Sqlite.SqliteMethodsFactory(),
+        [DbProviderType.SqlServer] = new SqlServer.SqlServerMethodsFactory(),
+        [DbProviderType.MySql] = new MySql.MySqlMethodsFactory(),
+        [DbProviderType.PostgreSql] = new PostgreSql.PostgreSqlMethodsFactory(),
+    };
 
-    private static readonly ConcurrentDictionary<string, IDatabaseMethodsFactory> CustomFactories =
-        new();
+    private static readonly ConcurrentDictionary<string, IDatabaseMethodsFactory> CustomFactories = new();
 
     /// <summary>
     /// Registers a custom database methods factory.
@@ -79,8 +74,6 @@ public static class DatabaseMethodsProvider
             }
         }
 
-        throw new NotSupportedException(
-            $"No factory found for connection type {db.GetType().FullName}"
-        );
+        throw new NotSupportedException($"No factory found for connection type {db.GetType().FullName}");
     }
 }

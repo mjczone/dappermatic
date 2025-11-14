@@ -12,9 +12,7 @@ public abstract partial class DatabaseMethodsTests
     [Theory]
     [InlineData(null)]
     [InlineData("my_app")]
-    protected virtual async Task Can_perform_simple_CRUD_on_CheckConstraints_Async(
-        string? schemaName
-    )
+    protected virtual async Task Can_perform_simple_crud_on_check_constraints_Async(string? schemaName)
     {
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, schemaName);
@@ -29,11 +27,7 @@ public abstract partial class DatabaseMethodsTests
         );
 
         var constraintName = "ck_testTable";
-        var exists = await db.DoesCheckConstraintExistAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        var exists = await db.DoesCheckConstraintExistAsync(schemaName, testTableName, constraintName);
 
         if (exists)
         {
@@ -51,22 +45,14 @@ public abstract partial class DatabaseMethodsTests
         exists = await db.DoesCheckConstraintExistAsync(schemaName, testTableName, constraintName);
         Assert.True(supportsCheckConstraints ? exists : !exists);
 
-        var existingConstraint = await db.GetCheckConstraintAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        var existingConstraint = await db.GetCheckConstraintAsync(schemaName, testTableName, constraintName);
         if (!supportsCheckConstraints)
         {
             Assert.Null(existingConstraint);
         }
         else
         {
-            Assert.Equal(
-                constraintName,
-                existingConstraint?.ConstraintName,
-                StringComparer.OrdinalIgnoreCase
-            );
+            Assert.Equal(constraintName, existingConstraint?.ConstraintName, StringComparer.OrdinalIgnoreCase);
         }
 
         var checkConstraintNames = await db.GetCheckConstraintNamesAsync(schemaName, testTableName);
@@ -79,11 +65,7 @@ public abstract partial class DatabaseMethodsTests
             Assert.Contains(constraintName, checkConstraintNames, StringComparer.OrdinalIgnoreCase);
         }
 
-        var dropped = await db.DropCheckConstraintIfExistsAsync(
-            schemaName,
-            testTableName,
-            constraintName
-        );
+        var dropped = await db.DropCheckConstraintIfExistsAsync(schemaName, testTableName, constraintName);
         if (!supportsCheckConstraints)
         {
             Assert.False(dropped);
@@ -91,11 +73,7 @@ public abstract partial class DatabaseMethodsTests
         else
         {
             Assert.True(dropped);
-            exists = await db.DoesCheckConstraintExistAsync(
-                schemaName,
-                testTableName,
-                constraintName
-            );
+            exists = await db.DoesCheckConstraintExistAsync(schemaName, testTableName, constraintName);
         }
 
         exists = await db.DoesCheckConstraintExistAsync(schemaName, testTableName, constraintName);
@@ -108,21 +86,11 @@ public abstract partial class DatabaseMethodsTests
             testTableName,
             [
                 new DmColumn(schemaName, testTableName, "testColumn", typeof(int)),
-                new DmColumn(
-                    schemaName,
-                    testTableName,
-                    "testColumn2",
-                    typeof(int),
-                    checkExpression: "testColumn2 > 0"
-                )
+                new DmColumn(schemaName, testTableName, "testColumn2", typeof(int), checkExpression: "testColumn2 > 0"),
             ]
         );
 
-        var checkConstraint = await db.GetCheckConstraintOnColumnAsync(
-            schemaName,
-            testTableName,
-            "testColumn2"
-        );
+        var checkConstraint = await db.GetCheckConstraintOnColumnAsync(schemaName, testTableName, "testColumn2");
         if (!supportsCheckConstraints)
         {
             Assert.Null(checkConstraint);

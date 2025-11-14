@@ -50,9 +50,6 @@ public sealed class DbConnectionFactory : IDbConnectionFactory
         }
 
         return connection
-            ?? throw new ArgumentException(
-                $"Unsupported database provider: {provider}",
-                nameof(provider)
-            );
+            ?? throw new ArgumentException($"Unsupported database provider: {provider}", nameof(provider));
     }
 }

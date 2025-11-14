@@ -37,26 +37,17 @@ public partial class SqliteMethods
 
         if (sourceColumns.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one column must be specified.",
-                nameof(sourceColumns)
-            );
+            throw new ArgumentException("At least one column must be specified.", nameof(sourceColumns));
         }
 
         if (string.IsNullOrWhiteSpace(referencedTableName))
         {
-            throw new ArgumentException(
-                "Referenced table name is required.",
-                nameof(referencedTableName)
-            );
+            throw new ArgumentException("Referenced table name is required.", nameof(referencedTableName));
         }
 
         if (referencedColumns.Length == 0)
         {
-            throw new ArgumentException(
-                "At least one column must be specified.",
-                nameof(referencedColumns)
-            );
+            throw new ArgumentException("At least one column must be specified.", nameof(referencedColumns));
         }
 
         if (sourceColumns.Length != referencedColumns.Length)
@@ -67,11 +58,7 @@ public partial class SqliteMethods
             );
         }
 
-        (schemaName, tableName, constraintName) = NormalizeNames(
-            schemaName,
-            tableName,
-            constraintName
-        );
+        (schemaName, tableName, constraintName) = NormalizeNames(schemaName, tableName, constraintName);
 
         return await AlterTableUsingRecreateTableStrategyAsync(
                 db,
@@ -115,11 +102,7 @@ public partial class SqliteMethods
         CancellationToken cancellationToken = default
     )
     {
-        (schemaName, tableName, constraintName) = NormalizeNames(
-            schemaName,
-            tableName,
-            constraintName
-        );
+        (schemaName, tableName, constraintName) = NormalizeNames(schemaName, tableName, constraintName);
 
         return await AlterTableUsingRecreateTableStrategyAsync(
                 db,
@@ -142,10 +125,7 @@ public partial class SqliteMethods
                         foreach (var column in foreignKey.SourceColumns)
                         {
                             var sc = table.Columns.FirstOrDefault(x =>
-                                x.ColumnName.Equals(
-                                    column.ColumnName,
-                                    StringComparison.OrdinalIgnoreCase
-                                )
+                                x.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)
                             );
                             // ReSharper disable once InvertIf
                             if (sc is not null)

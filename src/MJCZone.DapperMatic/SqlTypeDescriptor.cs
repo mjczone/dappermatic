@@ -24,9 +24,7 @@ public class SqlTypeDescriptor
             throw new ArgumentException("Value cannot be null or whitespace.", nameof(sqlTypeName));
         }
 
-        BaseTypeName = sqlTypeName
-            .DiscardLengthPrecisionAndScaleFromSqlTypeName()
-            .ToLowerInvariant();
+        BaseTypeName = sqlTypeName.DiscardLengthPrecisionAndScaleFromSqlTypeName().ToLowerInvariant();
         SqlTypeName = sqlTypeName;
 
         // set some of the properties using some rudimentary logic

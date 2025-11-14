@@ -10,18 +10,27 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for listing multiple schemas.
 /// </summary>
-public class SchemaListResponse : ResponseBase<IEnumerable<SchemaDto>>
+public class SchemaListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaListResponse"/> class.
     /// </summary>
     public SchemaListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="SchemaListResponse"/> class.
     /// </summary>
-    /// <param name="schemas">The list of schemas.</param>
-    public SchemaListResponse(IEnumerable<SchemaDto> schemas)
-        : base(schemas) { }
+    /// <param name="result">The list of schemas.</param>
+    public SchemaListResponse(IEnumerable<SchemaDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of schemas.
+    /// </summary>
+    public IEnumerable<SchemaDto> Result { get; set; }
 }

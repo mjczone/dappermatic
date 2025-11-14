@@ -9,12 +9,9 @@ using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.SQLite;
 using System.Text.Json;
 using Dapper;
-using DbQueryLogging;
-using Microsoft.Data.SqlClient.DataClassification;
 using Microsoft.Data.Sqlite;
 using MJCZone.DapperMatic.DataAnnotations;
 using MJCZone.DapperMatic.Models;
-using MJCZone.DapperMatic.Providers;
 
 namespace MJCZone.DapperMatic.Tests;
 
@@ -25,7 +22,9 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(TestDao2))]
     [InlineData(typeof(TestDao3))]
     [InlineData(typeof(TestTable4))]
-    protected virtual async Task Can_create_tables_from_model_classes_async(Type type)
+    [InlineData(typeof(TestTable5))]
+    [InlineData(typeof(TestTable6))]
+    protected virtual async Task Can_create_tables_from_model_classes_Async(Type type)
     {
         var tableDef = DmTableFactory.GetTable(type);
 
@@ -49,20 +48,16 @@ public abstract partial class DatabaseMethodsTests
             db is SqliteConnection
             || db is SQLiteConnection
             || (
-                db is LoggedDbConnection ldb
+                db is Logging.DbLoggingConnection ldb
                 && (ldb.Inner is SqliteConnection || ldb.Inner is SQLiteConnection)
             )
         )
         {
             // For SQLite, we can retrieve the table definition using PRAGMA
             // Note: This will not return column data types, only names and nullability
-            var tableDefAsSql = await db.QueryAsync(
-                $"PRAGMA table_info('{dbTableDef.TableName}');"
-            );
+            var tableDefAsSql = await db.QueryAsync($"PRAGMA table_info('{dbTableDef.TableName}');");
             Assert.NotNull(tableDefAsSql);
-            Output.WriteLine(
-                $"Table definition for {tableDef.TableName}:\n{JsonSerializer.Serialize(tableDefAsSql)}"
-            );
+            Output.WriteLine($"Table definition for {tableDef.TableName}:\n{JsonSerializer.Serialize(tableDefAsSql)}");
         }
 
         // Verify the table definition matches the model
@@ -94,10 +89,7 @@ public abstract partial class DatabaseMethodsTests
             }
             else
             {
-                Assert.False(
-                    dbColumn.IsNullable,
-                    $"Column {column.ColumnName} should not be nullable."
-                );
+                Assert.False(dbColumn.IsNullable, $"Column {column.ColumnName} should not be nullable.");
             }
         }
 
@@ -258,13 +250,39 @@ public class TestTable4
     [DmColumn(isNullable: false)]
     public TestConcreteClass ConcreteClass { get; set; } = null!;
     public TestConcreteClass? NullableConcreteClass { get; set; }
+
+    // Modern .NET types (automatic mapping)
+    [DmColumn(isNullable: false)]
+    public JsonDocument JsonDocumentColumn { get; set; } = null!;
+    public JsonDocument? NullableJsonDocumentColumn { get; set; }
+
+    public JsonElement JsonElementColumn { get; set; }
+    public JsonElement? NullableJsonElementColumn { get; set; }
+
+    public DateOnly DateOnlyColumn { get; set; }
+    public DateOnly? NullableDateOnlyColumn { get; set; }
+
+    public TimeOnly TimeOnlyColumn { get; set; }
+    public TimeOnly? NullableTimeOnlyColumn { get; set; }
+
+    [DmColumn(isNullable: false)]
+    public ReadOnlyMemory<byte> ReadOnlyMemoryByteColumn { get; set; }
+    public ReadOnlyMemory<byte>? NullableReadOnlyMemoryByteColumn { get; set; }
+
+    [DmColumn(isNullable: false)]
+    public Memory<byte> MemoryByteColumn { get; set; }
+    public Memory<byte>? NullableMemoryByteColumn { get; set; }
+
+    [DmColumn(isNullable: false)]
+    public Stream StreamColumn { get; set; } = null!;
+    public Stream? NullableStreamColumn { get; set; }
 }
 
 public enum TestEnum
 {
     Value1,
     Value2,
-    Value3
+    Value3,
 }
 
 public struct TestStruct
@@ -290,4 +308,163 @@ public abstract class TestAbstractClass
 public class TestConcreteClass : TestAbstractClass
 {
     public int Value2 { get; set; }
+}
+
+/// <summary>
+/// Test class demonstrating explicit providerDataType designation.
+/// This tests the advanced use case where users need precise control over database column types.
+/// </summary>
+[DmPrimaryKeyConstraint([nameof(Id)])]
+public class TestTable5
+{
+    public Guid Id { get; set; }
+
+    // String type variations with explicit types
+    [DmColumn("FixedLengthString", providerDataType: "nvarchar", length: 50, isNullable: false)]
+    public string FixedLengthString { get; set; } = null!;
+
+    [DmColumn("MaxLengthString", providerDataType: "nvarchar(max)", isNullable: false)]
+    public string MaxLengthString { get; set; } = null!;
+
+    [DmColumn("TextString", providerDataType: "text", isNullable: false)]
+    public string TextString { get; set; } = null!;
+
+    [DmColumn("NonUnicodeString", providerDataType: "varchar", length: 100, isNullable: false)]
+    public string? NonUnicodeString { get; set; }
+
+    // Decimal type variations with different precision/scale
+    [DmColumn("CurrencyDecimal", providerDataType: "decimal", precision: 18, scale: 2, isNullable: false)]
+    public decimal CurrencyDecimal { get; set; }
+
+    [DmColumn("HighPrecisionDecimal", providerDataType: "decimal", precision: 10, scale: 4, isNullable: false)]
+    public decimal HighPrecisionDecimal { get; set; }
+
+    [DmColumn("MoneyType", providerDataType: "money", isNullable: false)]
+    public decimal? MoneyType { get; set; }
+
+    // Provider-specific type mapping for cross-database compatibility
+    [DmColumn(
+        "LargeText",
+        providerDataType: "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}",
+        isNullable: false
+    )]
+    public string LargeText { get; set; } = null!;
+
+    [DmColumn(
+        "JsonData",
+        providerDataType: "{postgresql:jsonb,mysql:json,sqlserver:nvarchar(max),sqlite:text}",
+        isNullable: false
+    )]
+    public string? JsonData { get; set; }
+
+    // Binary type variations
+    [DmColumn("LargeBinary", providerDataType: "varbinary(max)", isNullable: false)]
+    public byte[]? LargeBinary { get; set; }
+
+    [DmColumn("FixedBinary", providerDataType: "varbinary", length: 256, isNullable: false)]
+    public byte[] FixedBinary { get; set; } = null!;
+
+    [DmColumn("ImageBinary", providerDataType: "image", isNullable: false)]
+    public byte[]? ImageBinary { get; set; }
+
+    // DateTime type variations
+    [DmColumn("Date", providerDataType: "date", isNullable: false)]
+    public DateTime Date { get; set; }
+
+    [DmColumn("Time", providerDataType: "time", isNullable: false)]
+    public TimeSpan Time { get; set; }
+
+    [DmColumn("DateTime2", providerDataType: "datetime2", isNullable: false)]
+    public DateTime DateTime2 { get; set; }
+
+    [DmColumn("SmallDateTime", providerDataType: "smalldatetime", isNullable: false)]
+    public DateTime? SmallDateTime { get; set; }
+
+    // Integer type variations
+    [DmColumn("TinyIntColumn", providerDataType: "tinyint", isNullable: false)]
+    public byte TinyIntColumn { get; set; }
+
+    [DmColumn("SmallIntColumn", providerDataType: "smallint", isNullable: false)]
+    public short SmallIntColumn { get; set; }
+
+    [DmColumn("BigIntColumn", providerDataType: "bigint", isNullable: false)]
+    public long BigIntColumn { get; set; }
+
+    // Floating point variations
+    [DmColumn("RealColumn", providerDataType: "real", isNullable: false)]
+    public float RealColumn { get; set; }
+
+    [DmColumn("FloatColumn", providerDataType: "float", isNullable: false)]
+    public double FloatColumn { get; set; }
+
+    // Boolean variations
+    [DmColumn("BitColumn", providerDataType: "bit", isNullable: false)]
+    public bool BitColumn { get; set; }
+
+    // GUID variations
+    [DmColumn("UniqueIdentifier", providerDataType: "uniqueidentifier", isNullable: false)]
+    public Guid UniqueIdentifier { get; set; }
+
+    // XML type (SQL Server specific)
+    [DmColumn("XmlData", providerDataType: "xml", isNullable: false)]
+    public string? XmlData { get; set; }
+}
+
+/// <summary>
+/// Test table specifically for testing parameterized types in multi-provider format.
+/// Tests the bug fix for parsing types like decimal(19,4) that contain commas.
+/// </summary>
+[Table("TestTable6")]
+public class TestTable6
+{
+    [DmColumn("Id", isAutoIncrement: true, isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    // Test case from documentation: {sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}
+    [DmColumn(
+        "Price",
+        providerDataType: "{sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Price { get; set; }
+
+    // Test parameterized decimal types across providers
+    [DmColumn(
+        "Amount",
+        providerDataType: "{mysql:decimal(10,2),sqlserver:decimal(12,4),postgresql:numeric(10,2),sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Amount { get; set; }
+
+    // Test parameterized numeric types with higher precision
+    [DmColumn(
+        "Quantity",
+        providerDataType: "{mysql:numeric(18,6),postgresql:numeric(18,6),sqlserver:decimal(18,6),sqlite:real}",
+        isNullable: false
+    )]
+    public decimal Quantity { get; set; }
+
+    // Test varchar with length parameter (no comma inside parentheses)
+    [DmColumn(
+        "Description",
+        providerDataType: "{mysql:varchar(255),sqlserver:nvarchar(255),postgresql:varchar(255),sqlite:text}",
+        isNullable: false
+    )]
+    public string Description { get; set; } = null!;
+
+    // Test array types for PostgreSQL
+    [DmColumn(
+        "NullableTags",
+        providerDataType: "{postgresql:integer[],mysql:json,sqlserver:nvarchar(max),sqlite:text}",
+        isNullable: true
+    )]
+    public string? Tags { get; set; }
+
+    // Test mixed simple and parameterized types
+    [DmColumn(
+        "Status",
+        providerDataType: "{mysql:varchar(50),sqlserver:nvarchar(50),postgresql:varchar(50),sqlite:text}",
+        isNullable: false
+    )]
+    public string Status { get; set; } = null!;
 }

@@ -34,10 +34,7 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Schema name is required.", nameof(schemaName));
         }
 
-        return (
-                await GetSchemaNamesAsync(db, schemaName, tx, cancellationToken)
-                    .ConfigureAwait(false)
-            ).Count > 0;
+        return (await GetSchemaNamesAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false)).Count > 0;
     }
 
     /// <summary>
@@ -72,8 +69,7 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = SqlCreateSchema(schemaName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }
@@ -100,13 +96,7 @@ public abstract partial class DatabaseMethodsBase
 
         var (sql, parameters) = SqlGetSchemaNames(schemaNameFilter);
 
-        return await QueryAsync<string>(
-                db,
-                sql,
-                parameters,
-                tx: tx,
-                cancellationToken: cancellationToken
-            )
+        return await QueryAsync<string>(db, sql, parameters, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -135,17 +125,14 @@ public abstract partial class DatabaseMethodsBase
             throw new ArgumentException("Schema name is required.", nameof(schemaName));
         }
 
-        if (
-            !await DoesSchemaExistAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false)
-        )
+        if (!await DoesSchemaExistAsync(db, schemaName, tx, cancellationToken).ConfigureAwait(false))
         {
             return false;
         }
 
         var sql = SqlDropSchema(schemaName);
 
-        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken)
-            .ConfigureAwait(false);
+        await ExecuteAsync(db, sql, tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return true;
     }

@@ -19,15 +19,9 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
         RegisterDataType(CreateIntegerType("bit", "Boolean value (0 or 1)", isCommon: true));
         RegisterDataType(CreateIntegerType("tinyint", "0 to 255", isCommon: true));
         RegisterDataType(CreateIntegerType("smallint", "-32,768 to 32,767", isCommon: false));
+        RegisterDataType(CreateIntegerType("int", "-2,147,483,648 to 2,147,483,647", isCommon: true, "integer"));
         RegisterDataType(
-            CreateIntegerType("int", "-2,147,483,648 to 2,147,483,647", isCommon: true, "integer")
-        );
-        RegisterDataType(
-            CreateIntegerType(
-                "bigint",
-                "-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807",
-                isCommon: true
-            )
+            CreateIntegerType("bigint", "-9,223,372,036,854,775,808 to 9,223,372,036,854,775,807", isCommon: true)
         );
 
         // Decimal types
@@ -43,9 +37,7 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
                 "numeric"
             )
         );
-        RegisterDataType(
-            CreateDecimalType("numeric", 38, 38, 18, 2, isCommon: false, "Synonym for decimal")
-        );
+        RegisterDataType(CreateDecimalType("numeric", 38, 38, 18, 2, isCommon: false, "Synonym for decimal"));
         RegisterDataType(
             CreateSimpleType(
                 "float",
@@ -55,12 +47,7 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "real",
-                DataTypeCategory.Decimal,
-                isCommon: false,
-                "Single precision floating point"
-            )
+            CreateSimpleType("real", DataTypeCategory.Decimal, isCommon: false, "Single precision floating point")
         );
 
         // Money types
@@ -73,51 +60,30 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateSimpleType(
-                "smallmoney",
-                DataTypeCategory.Money,
-                isCommon: false,
-                "-214,748.3648 to 214,748.3647"
-            )
+            CreateSimpleType("smallmoney", DataTypeCategory.Money, isCommon: false, "-214,748.3648 to 214,748.3647")
         );
 
         // String types
-        RegisterDataType(
-            CreateStringType("char", 8000, 1, isCommon: false, "Fixed-length non-Unicode string")
-        );
+        RegisterDataType(CreateStringType("char", 8000, 1, isCommon: false, "Fixed-length non-Unicode string"));
+        RegisterDataType(CreateStringType("varchar", 8000, 255, isCommon: true, "Variable-length non-Unicode string"));
         RegisterDataType(
             CreateStringType(
-                "varchar",
-                8000,
-                255,
-                isCommon: true,
-                "Variable-length non-Unicode string"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
                 "varchar(max)",
-                DataTypeCategory.Text,
+                int.MaxValue,
+                -1,
+                // DataTypeCategory.Text,
                 isCommon: true,
                 "Variable-length non-Unicode string up to 2GB"
             )
         );
-        RegisterDataType(
-            CreateStringType("nchar", 4000, 1, isCommon: false, "Fixed-length Unicode string")
-        );
+        RegisterDataType(CreateStringType("nchar", 4000, 1, isCommon: false, "Fixed-length Unicode string"));
+        RegisterDataType(CreateStringType("nvarchar", 4000, 255, isCommon: true, "Variable-length Unicode string"));
         RegisterDataType(
             CreateStringType(
-                "nvarchar",
-                4000,
-                255,
-                isCommon: true,
-                "Variable-length Unicode string"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
                 "nvarchar(max)",
-                DataTypeCategory.Text,
+                int.MaxValue / 2,
+                -1,
+                // DataTypeCategory.Text,
                 isCommon: true,
                 "Variable-length Unicode string up to 2GB"
             )
@@ -141,22 +107,10 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
 
         // Date/Time types
         RegisterDataType(
-            CreateSimpleType(
-                "date",
-                DataTypeCategory.DateTime,
-                isCommon: true,
-                "Date only (0001-01-01 to 9999-12-31)"
-            )
+            CreateSimpleType("date", DataTypeCategory.DateTime, isCommon: true, "Date only (0001-01-01 to 9999-12-31)")
         );
         RegisterDataType(
-            CreateDateTimeType(
-                "time",
-                true,
-                7,
-                7,
-                isCommon: false,
-                "Time only (00:00:00.0000000 to 23:59:59.9999999)"
-            )
+            CreateDateTimeType("time", true, 7, 7, isCommon: false, "Time only (00:00:00.0000000 to 23:59:59.9999999)")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -177,14 +131,7 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
             )
         );
         RegisterDataType(
-            CreateDateTimeType(
-                "datetimeoffset",
-                true,
-                7,
-                7,
-                isCommon: false,
-                "Date and time with time zone awareness"
-            )
+            CreateDateTimeType("datetimeoffset", true, 7, 7, isCommon: false, "Date and time with time zone awareness")
         );
         RegisterDataType(
             CreateSimpleType(
@@ -196,16 +143,14 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
         );
 
         // Binary types
+        RegisterDataType(CreateBinaryType("binary", 8000, 1, isCommon: false, "Fixed-length binary data"));
+        RegisterDataType(CreateBinaryType("varbinary", 8000, 1, isCommon: true, "Variable-length binary data"));
         RegisterDataType(
-            CreateBinaryType("binary", 8000, 1, isCommon: false, "Fixed-length binary data")
-        );
-        RegisterDataType(
-            CreateBinaryType("varbinary", 8000, 1, isCommon: true, "Variable-length binary data")
-        );
-        RegisterDataType(
-            CreateSimpleType(
+            CreateBinaryType(
                 "varbinary(max)",
-                DataTypeCategory.Binary,
+                int.MaxValue,
+                -1,
+                // DataTypeCategory.Binary,
                 isCommon: true,
                 "Variable-length binary data up to 2GB"
             )
@@ -228,17 +173,7 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
                 "GUID (globally unique identifier)"
             )
         );
-        RegisterDataType(
-            CreateSimpleType("xml", DataTypeCategory.Xml, isCommon: false, "XML data")
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "json",
-                DataTypeCategory.Json,
-                isCommon: true,
-                "JSON data (stored as nvarchar)"
-            )
-        );
+        RegisterDataType(CreateSimpleType("xml", DataTypeCategory.Xml, isCommon: false, "XML data"));
         RegisterDataType(
             CreateSimpleType(
                 "sql_variant",
@@ -247,30 +182,25 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
                 "Stores values of various data types"
             )
         );
-        RegisterDataType(
-            CreateSimpleType(
-                "hierarchyid",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Represents position in a hierarchy"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "geography",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Spatial data type for geographical data"
-            )
-        );
-        RegisterDataType(
-            CreateSimpleType(
-                "geometry",
-                DataTypeCategory.Spatial,
-                isCommon: false,
-                "Spatial data type for planar data"
-            )
-        );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "hierarchyid",
+        //         DataTypeCategory.Other,
+        //         isCommon: false,
+        //         "Represents position in a hierarchy"
+        //     )
+        // );
+        // RegisterDataType(
+        //     CreateSimpleType(
+        //         "geography",
+        //         DataTypeCategory.Spatial,
+        //         isCommon: false,
+        //         "Spatial data type for geographical data"
+        //     )
+        // );
+        // RegisterDataType(
+        //     CreateSimpleType("geometry", DataTypeCategory.Spatial, isCommon: false, "Spatial data type for planar data")
+        // );
         RegisterDataType(
             CreateSimpleType(
                 "timestamp",
@@ -286,26 +216,6 @@ public class SqlServerDataTypeRegistry : ProviderDataTypeRegistryBase
                 DataTypeCategory.Other,
                 isCommon: false,
                 "Automatically generated unique binary number"
-            )
-        );
-
-        // Table types (for table-valued parameters)
-        RegisterDataType(
-            CreateSimpleType(
-                "table",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Special data type for table-valued parameters"
-            )
-        );
-
-        // Cursor (for stored procedures)
-        RegisterDataType(
-            CreateSimpleType(
-                "cursor",
-                DataTypeCategory.Other,
-                isCommon: false,
-                "Reference to a cursor"
             )
         );
     }

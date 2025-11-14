@@ -35,17 +35,231 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     protected override string GetProviderName() => "postgresql";
 
     /// <inheritdoc />
-    protected override void RegisterDotnetTypeToSqlTypeConverters()
+    protected override void RegisterNetTopologySuiteTypes()
     {
-        RegisterStandardDotnetTypeToSqlTypeConverters();
+        // NetTopologySuite types map to PostgreSQL/PostGIS geometry types
+        var ntsGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var ntsPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var ntsLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var ntsPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var ntsMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
+        var ntsMultiLineStringType = Type.GetType("NetTopologySuite.Geometries.MultiLineString, NetTopologySuite");
+        var ntsMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
+        var ntsGeometryCollectionType = Type.GetType(
+            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
+        );
+
+        if (ntsGeometryType != null)
+        {
+            RegisterConverter(
+                ntsGeometryType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry)
+                )
+            );
+        }
+
+        if (ntsPointType != null)
+        {
+            RegisterConverter(
+                ntsPointType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_point)
+                )
+            );
+        }
+
+        if (ntsLineStringType != null)
+        {
+            RegisterConverter(
+                ntsLineStringType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_linestring)
+                )
+            );
+        }
+
+        if (ntsPolygonType != null)
+        {
+            RegisterConverter(
+                ntsPolygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_polygon)
+                )
+            );
+        }
+
+        if (ntsMultiPointType != null)
+        {
+            RegisterConverter(
+                ntsMultiPointType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multipoint)
+                )
+            );
+        }
+
+        if (ntsMultiLineStringType != null)
+        {
+            RegisterConverter(
+                ntsMultiLineStringType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multilinestring)
+                )
+            );
+        }
+
+        if (ntsMultiPolygonType != null)
+        {
+            RegisterConverter(
+                ntsMultiPolygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_multipolygon)
+                )
+            );
+        }
+
+        if (ntsGeometryCollectionType != null)
+        {
+            RegisterConverter(
+                ntsGeometryCollectionType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry_collection)
+                )
+            );
+        }
     }
 
     /// <inheritdoc />
-    protected override void RegisterProviderSpecificConverters()
+    protected override void RegisterNpgsqlTypes()
     {
-        var rangeConverter = GetRangeToSqlTypeConverter();
+        // PostgreSQL native Npgsql geometric types
+        var npgsqlPointType = Type.GetType("NpgsqlTypes.NpgsqlPoint, Npgsql");
+        var npgsqlLSegType = Type.GetType("NpgsqlTypes.NpgsqlLSeg, Npgsql");
+        var npgsqlPathType = Type.GetType("NpgsqlTypes.NpgsqlPath, Npgsql");
+        var npgsqlPolygonType = Type.GetType("NpgsqlTypes.NpgsqlPolygon, Npgsql");
+        var npgsqlLineType = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
+        var npgsqlCircleType = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
+        var npgsqlBoxType = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
 
-        // Range types (PostgreSQL is jacked up with range types)
+        if (npgsqlPointType != null)
+        {
+            RegisterConverter(
+                npgsqlPointType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point))
+            );
+        }
+
+        if (npgsqlLSegType != null)
+        {
+            RegisterConverter(
+                npgsqlLSegType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg))
+            );
+        }
+
+        if (npgsqlPathType != null)
+        {
+            RegisterConverter(
+                npgsqlPathType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path))
+            );
+        }
+
+        if (npgsqlPolygonType != null)
+        {
+            RegisterConverter(
+                npgsqlPolygonType,
+                new DotnetTypeToSqlTypeConverter(d =>
+                    TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon)
+                )
+            );
+        }
+
+        if (npgsqlLineType != null)
+        {
+            RegisterConverter(
+                npgsqlLineType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line))
+            );
+        }
+
+        if (npgsqlCircleType != null)
+        {
+            RegisterConverter(
+                npgsqlCircleType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle))
+            );
+        }
+
+        if (npgsqlBoxType != null)
+        {
+            RegisterConverter(
+                npgsqlBoxType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box))
+            );
+        }
+
+        // PostgreSQL network types
+        var npgsqlInetType = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
+        var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
+
+        if (npgsqlInetType != null)
+        {
+            RegisterConverter(
+                npgsqlInetType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet))
+            );
+        }
+
+        if (npgsqlCidrType != null)
+        {
+            RegisterConverter(
+                npgsqlCidrType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr))
+            );
+        }
+
+        // PostgreSQL special types
+        var npgsqlIntervalType = Type.GetType("NpgsqlTypes.NpgsqlInterval, Npgsql");
+        var npgsqlTidType = Type.GetType("NpgsqlTypes.NpgsqlTid, Npgsql");
+        var npgsqlTsQueryType = Type.GetType("NpgsqlTypes.NpgsqlTsQuery, Npgsql");
+        var npgsqlTsVectorType = Type.GetType("NpgsqlTypes.NpgsqlTsVector, Npgsql");
+
+        if (npgsqlIntervalType != null)
+        {
+            RegisterConverter(
+                npgsqlIntervalType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval))
+            );
+        }
+
+        if (npgsqlTidType != null)
+        {
+            RegisterConverter(
+                npgsqlTidType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid))
+            );
+        }
+
+        if (npgsqlTsQueryType != null)
+        {
+            RegisterConverter(
+                npgsqlTsQueryType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery))
+            );
+        }
+
+        if (npgsqlTsVectorType != null)
+        {
+            RegisterConverter(
+                npgsqlTsVectorType,
+                new DotnetTypeToSqlTypeConverter(d => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector))
+            );
+        }
+
+        // PostgreSQL range types (both scalar and array)
+        var rangeConverter = GetRangeToSqlTypeConverter();
         var rangeType = Type.GetType("NpgsqlTypes.NpgsqlRange`1, Npgsql");
         if (rangeType != null)
         {
@@ -56,8 +270,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                     typeof(DateOnly),
                     typeof(int),
                     typeof(long),
-                    typeof(double),
-                    typeof(float),
                     typeof(decimal),
                     typeof(DateTime),
                     typeof(DateTimeOffset),
@@ -91,44 +303,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     }
 
     /// <inheritdoc />
-    protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
-    {
-        return shortName switch
-        {
-            // NetTopologySuite types - PostgreSQL has specific geometry types
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry),
-            "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry),
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" or
-            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" or
-            "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_geometry),
-            // PostgreSQL specific types
-            "System.Net.NetworkInformation.PhysicalAddress, System.Net.NetworkInformation" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_macaddr8),
-            "System.Net.IPAddress, System.Net.Primitives" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
-            "NpgsqlTypes.NpgsqlInet, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
-            "NpgsqlTypes.NpgsqlCidr, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
-            "NpgsqlTypes.NpgsqlPoint, Npgsql" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_point),
-            "NpgsqlTypes.NpgsqlLSeg, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_lseg),
-            "NpgsqlTypes.NpgsqlPath, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_path),
-            "NpgsqlTypes.NpgsqlPolygon, Npgsql" => TypeMappingHelpers.CreateGeometryType(PostgreSqlTypes.sql_polygon),
-            "NpgsqlTypes.NpgsqlLine, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_line),
-            "NpgsqlTypes.NpgsqlCircle, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_circle),
-            "NpgsqlTypes.NpgsqlBox, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_box),
-            "NpgsqlTypes.NpgsqlInterval, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_interval),
-            "NpgsqlTypes.NpgsqlTid, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tid),
-            "NpgsqlTypes.NpgsqlTsQuery, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsquery),
-            "NpgsqlTypes.NpgsqlTsVector, Npgsql" => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_tsvector),
-            _ => null
-        };
-    }
-
-    /// <inheritdoc />
     protected override void RegisterSqlTypeToDotnetTypeConverters()
     {
         var booleanConverter = GetBooleanToDotnetTypeConverter();
-        var numericConverter = GetNumbericToDotnetTypeConverter();
+        var numericConverter = GetNumberToDotnetTypeConverter();
         var guidConverter = GetGuidToDotnetTypeConverter();
         var textConverter = GetTextToDotnetTypeConverter();
         var xmlConverter = GetXmlToDotnetTypeConverter();
@@ -141,11 +319,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         var arrayConverter = TypeMappingHelpers.CreatePostgreSqlArrayTypeConverter();
 
         // Boolean affinity
-        RegisterConverterForTypes(
-            booleanConverter,
-            PostgreSqlTypes.sql_bool,
-            PostgreSqlTypes.sql_boolean
-        );
+        RegisterConverterForTypes(booleanConverter, PostgreSqlTypes.sql_bool, PostgreSqlTypes.sql_boolean);
 
         // Numeric affinity
         RegisterConverterForTypes(
@@ -201,6 +375,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             PostgreSqlTypes.sql_character,
             PostgreSqlTypes.sql_char,
             PostgreSqlTypes.sql_bpchar,
+            PostgreSqlTypes.sql_quoted_char,
             PostgreSqlTypes.sql_text,
             PostgreSqlTypes.sql_name
         );
@@ -257,6 +432,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             PostgreSqlTypes.sql_regconfig,
             PostgreSqlTypes.sql_regdictionary,
             PostgreSqlTypes.sql_regnamespace,
+            PostgreSqlTypes.sql_regoper,
+            PostgreSqlTypes.sql_regoperator,
+            PostgreSqlTypes.sql_regproc,
+            PostgreSqlTypes.sql_regprocedure,
             PostgreSqlTypes.sql_regrole,
             PostgreSqlTypes.sql_regtype,
             PostgreSqlTypes.sql_tid,
@@ -285,10 +464,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         );
 
         // Native Array types (PostgreSQL specific)
-        RegisterConverterForTypes(
-            arrayConverter,
-            TypeMappingHelpers.GetPostgreSqlStandardArrayTypes()
-        );
+        RegisterConverterForTypes(arrayConverter, TypeMappingHelpers.GetPostgreSqlStandardArrayTypes());
     }
 
     #region DotnetTypeToSqlTypeConverters
@@ -300,69 +476,46 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             var isArray = d.DotnetType != null && d.DotnetType.IsArray;
 
             var dotnetType = isArray ? d.DotnetType!.GetElementType() : d.DotnetType;
-
             if (dotnetType == null)
             {
                 return null;
             }
 
-            var assemblyQualifiedName = dotnetType.AssemblyQualifiedName!;
-
-            var assemblyQualifiedNameParts = assemblyQualifiedName.Split(',');
-            var fullNameWithAssemblyName =
-                assemblyQualifiedNameParts[0] + ", " + assemblyQualifiedNameParts[1];
-
-            switch (fullNameWithAssemblyName)
+            var fullName = d.DotnetType.GetFullTypeName();
+            if (string.IsNullOrWhiteSpace(fullName))
             {
-                case "NpgsqlTypes.NpgsqlRange`1, Npgsql":
+                return null;
+            }
+
+            switch (fullName)
+            {
+                // Match any NpgsqlRange<T> type using StartsWith pattern
+                // New format: "NpgsqlTypes.NpgsqlRange<System.Int32>" (no assembly info)
+                case var s when s?.StartsWith("NpgsqlTypes.NpgsqlRange<", StringComparison.Ordinal) == true:
                     var genericType = dotnetType.GetGenericArguments()[0];
                     if (genericType == typeof(DateOnly))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_datemultirange)
-                            : new(PostgreSqlTypes.sql_daterange);
+                        return isArray ? new(PostgreSqlTypes.sql_datemultirange) : new(PostgreSqlTypes.sql_daterange);
                     }
                     if (genericType == typeof(int))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_int4multirange)
-                            : new(PostgreSqlTypes.sql_int4range);
+                        return isArray ? new(PostgreSqlTypes.sql_int4multirange) : new(PostgreSqlTypes.sql_int4range);
                     }
                     if (genericType == typeof(long))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_int8multirange)
-                            : new(PostgreSqlTypes.sql_int8range);
-                    }
-                    if (genericType == typeof(double))
-                    {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_nummultirange)
-                            : new(PostgreSqlTypes.sql_numrange);
-                    }
-                    if (genericType == typeof(float))
-                    {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_nummultirange)
-                            : new(PostgreSqlTypes.sql_numrange);
+                        return isArray ? new(PostgreSqlTypes.sql_int8multirange) : new(PostgreSqlTypes.sql_int8range);
                     }
                     if (genericType == typeof(decimal))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_nummultirange)
-                            : new(PostgreSqlTypes.sql_numrange);
+                        return isArray ? new(PostgreSqlTypes.sql_nummultirange) : new(PostgreSqlTypes.sql_numrange);
                     }
                     if (genericType == typeof(DateTime))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_tsmultirange)
-                            : new(PostgreSqlTypes.sql_tsrange);
+                        return isArray ? new(PostgreSqlTypes.sql_tsmultirange) : new(PostgreSqlTypes.sql_tsrange);
                     }
                     if (genericType == typeof(DateTimeOffset))
                     {
-                        return isArray
-                            ? new(PostgreSqlTypes.sql_tstzmultirange)
-                            : new(PostgreSqlTypes.sql_tstzrange);
+                        return isArray ? new(PostgreSqlTypes.sql_tstzmultirange) : new(PostgreSqlTypes.sql_tstzrange);
                     }
                     break;
             }
@@ -385,7 +538,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         });
     }
 
-    private static SqlTypeToDotnetTypeConverter GetNumbericToDotnetTypeConverter()
+    private static SqlTypeToDotnetTypeConverter GetNumberToDotnetTypeConverter()
     {
         return new(d =>
         {
@@ -411,12 +564,12 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_serial8:
                     return new DotnetTypeDescriptor(typeof(long), isAutoIncrementing: true);
                 case PostgreSqlTypes.sql_real:
-                    return new DotnetTypeDescriptor(typeof(float));
                 case PostgreSqlTypes.sql_float4:
+                    return new DotnetTypeDescriptor(typeof(float));
                 case PostgreSqlTypes.sql_double_precision:
+                case PostgreSqlTypes.sql_float8:
                     return new DotnetTypeDescriptor(typeof(double));
                 case PostgreSqlTypes.sql_decimal:
-                case PostgreSqlTypes.sql_float8:
                 case PostgreSqlTypes.sql_money:
                 case PostgreSqlTypes.sql_numeric:
                     return new DotnetTypeDescriptor(typeof(decimal))
@@ -473,6 +626,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             {
                 case PostgreSqlTypes.sql_char:
                 case PostgreSqlTypes.sql_character:
+                case PostgreSqlTypes.sql_quoted_char:
                     return new DotnetTypeDescriptor(
                         typeof(string),
                         d.Length,
@@ -514,7 +668,7 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         {
             return new DotnetTypeDescriptor(
                 typeof(byte[]),
-                d.Length ?? int.MaxValue,
+                d.Length,
                 isFixedLength: d.IsFixedLength.GetValueOrDefault(false)
             );
         });
@@ -523,27 +677,15 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
     {
         // NetTopologySuite types
-        var sqlNetTopologyGeometryType = Type.GetType(
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
-        );
-        var sqlNetTopologyPointType = Type.GetType(
-            "NetTopologySuite.Geometries.Point, NetTopologySuite"
-        );
-        var sqlNetTopologyLineStringType = Type.GetType(
-            "NetTopologySuite.Geometries.LineString, NetTopologySuite"
-        );
-        var sqlNetTopologyPolygonType = Type.GetType(
-            "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
-        );
-        var sqlNetTopologyMultiPointType = Type.GetType(
-            "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-        );
+        var sqlNetTopologyGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+        var sqlNetTopologyPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+        var sqlNetTopologyLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+        var sqlNetTopologyPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+        var sqlNetTopologyMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
         var sqlNetTopologyMultLineStringType = Type.GetType(
             "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
         );
-        var sqlNetTopologyMultiPolygonType = Type.GetType(
-            "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite"
-        );
+        var sqlNetTopologyMultiPolygonType = Type.GetType("NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite");
         var sqlNetTopologyGeometryCollectionType = Type.GetType(
             "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite"
         );
@@ -556,17 +698,19 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         var sqlNpgsqlLine = Type.GetType("NpgsqlTypes.NpgsqlLine, Npgsql");
         var sqlNpgsqlCircle = Type.GetType("NpgsqlTypes.NpgsqlCircle, Npgsql");
         var sqlNpgsqlBox = Type.GetType("NpgsqlTypes.NpgsqlBox, Npgsql");
-        var sqlGeometry = Type.GetType(
-            "NetTopologySuite.Geometries.Geometry, NetTopologySuite",
-            false,
-            false
-        );
+        var sqlGeometry = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite", false, false);
 
         return new(d =>
         {
             switch (d.BaseTypeName)
             {
                 case PostgreSqlTypes.sql_box:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyPolygonType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
+                    }
+
                     if (sqlNetTopologyGeometryType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
@@ -577,13 +721,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlBox);
                     }
 
-                    if (sqlNetTopologyGeometryType != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
-                    }
-
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_circle:
+                    // Prefer NTS for portability
                     if (sqlNetTopologyGeometryType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyGeometryType);
@@ -594,7 +735,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlCircle);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_geography:
                     if (sqlNetTopologyGeometryType != null)
                     {
@@ -606,7 +748,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlGeometry);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT (Well-Known Text) format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_geometry:
                     if (sqlNetTopologyGeometryType != null)
                     {
@@ -618,8 +761,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlGeometry);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT (Well-Known Text) format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_line:
+                    // Prefer NTS for portability
                     if (sqlNetTopologyLineStringType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
@@ -630,22 +775,38 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlLine);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_lseg:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyLineStringType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
+                    }
+
                     if (sqlNpgsqlLSeg != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlLSeg);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_path:
+                    // Prefer NTS for portability
+                    if (sqlNetTopologyLineStringType != null)
+                    {
+                        return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
+                    }
+
                     if (sqlNpgsqlPath != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlPath);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_point:
+                    // Prefer NTS for portability
                     if (sqlNetTopologyPointType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyPointType);
@@ -656,8 +817,10 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlPoint);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_polygon:
+                    // Prefer NTS for portability
                     if (sqlNetTopologyPolygonType != null)
                     {
                         return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
@@ -668,7 +831,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlPolygon);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: WKT format as string
+                    return new DotnetTypeDescriptor(typeof(string));
             }
 
             return null;
@@ -699,7 +863,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlCidr);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: CIDR notation as string (e.g., "192.168.0.0/24")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_citext:
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_hstore:
@@ -709,7 +874,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_lquery:
                 case PostgreSqlTypes.sql_ltree:
                 case PostgreSqlTypes.sql_ltxtquery:
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // ltree types store hierarchical data as text (e.g., "Top.Science.Astronomy")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_macaddr:
                 case PostgreSqlTypes.sql_macaddr8:
                     return new DotnetTypeDescriptor(typeof(PhysicalAddress));
@@ -719,7 +885,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                         return new DotnetTypeDescriptor(sqlNpgsqlInterval);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: PostgreSQL interval format as string (e.g., "1 day 02:03:04")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_int2vector:
                     return new DotnetTypeDescriptor(typeof(int[]));
                 case PostgreSqlTypes.sql_oid:
@@ -729,35 +896,44 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
                 case PostgreSqlTypes.sql_pg_lsn:
                 case PostgreSqlTypes.sql_pg_snapshot:
                 case PostgreSqlTypes.sql_refcursor:
+                    return new DotnetTypeDescriptor(typeof(object));
                 case PostgreSqlTypes.sql_regclass:
                 case PostgreSqlTypes.sql_regcollation:
                 case PostgreSqlTypes.sql_regconfig:
                 case PostgreSqlTypes.sql_regdictionary:
                 case PostgreSqlTypes.sql_regnamespace:
+                case PostgreSqlTypes.sql_regoper:
+                case PostgreSqlTypes.sql_regoperator:
+                case PostgreSqlTypes.sql_regproc:
+                case PostgreSqlTypes.sql_regprocedure:
                 case PostgreSqlTypes.sql_regrole:
                 case PostgreSqlTypes.sql_regtype:
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // OID (Object Identifier) types - internally they're unsigned integers
+                    return new DotnetTypeDescriptor(typeof(uint));
                 case PostgreSqlTypes.sql_tid:
                     if (sqlNpgsqlTid != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTid);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Tuple identifier as string (e.g., "(0,1)")
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_tsquery:
                     if (sqlNpgsqlTsQuery != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTsQuery);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Text search query as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_tsvector:
                     if (sqlNpgsqlTsVector != null)
                     {
                         return new DotnetTypeDescriptor(sqlNpgsqlTsVector);
                     }
 
-                    return new DotnetTypeDescriptor(typeof(object));
+                    // Fallback: Text search vector as string
+                    return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_txid_snapshot:
                 case PostgreSqlTypes.sql_xid:
                 case PostgreSqlTypes.sql_xid8:
@@ -780,44 +956,32 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
         {
             switch (d.BaseTypeName)
             {
+                // Using DateOnly for semantic correctness
+                // SmartNpgsqlRangeTypeHandler will convert from DateTime (Npgsql 9.x) to DateOnly automatically
                 case PostgreSqlTypes.sql_datemultirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(DateOnly)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)).MakeArrayType());
                 case PostgreSqlTypes.sql_daterange:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateOnly)));
                 case PostgreSqlTypes.sql_int4multirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(int)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(int)).MakeArrayType());
                 case PostgreSqlTypes.sql_int4range:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(int)));
                 case PostgreSqlTypes.sql_int8multirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(long)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(long)).MakeArrayType());
                 case PostgreSqlTypes.sql_int8range:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(long)));
                 case PostgreSqlTypes.sql_nummultirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(double)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(decimal)).MakeArrayType());
                 case PostgreSqlTypes.sql_numrange:
-                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(double)));
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(decimal)));
                 case PostgreSqlTypes.sql_tsrange:
                     return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTime)));
                 case PostgreSqlTypes.sql_tsmultirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(DateTime)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTime)).MakeArrayType());
                 case PostgreSqlTypes.sql_tstzrange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(DateTimeOffset))
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTimeOffset)));
                 case PostgreSqlTypes.sql_tstzmultirange:
-                    return new DotnetTypeDescriptor(
-                        rangeType.MakeGenericType(typeof(DateTimeOffset)).MakeArrayType()
-                    );
+                    return new DotnetTypeDescriptor(rangeType.MakeGenericType(typeof(DateTimeOffset)).MakeArrayType());
             }
 
             return null;

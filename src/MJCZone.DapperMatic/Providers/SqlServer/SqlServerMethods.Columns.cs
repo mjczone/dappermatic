@@ -32,14 +32,7 @@ public partial class SqlServerMethods
     {
         // Check if the column exists
         if (
-            !await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    columnName,
-                    tx,
-                    cancellationToken
-                )
+            !await DoesColumnExistAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {
@@ -48,14 +41,7 @@ public partial class SqlServerMethods
 
         // Check if a column with the new name already exists
         if (
-            await DoesColumnExistAsync(
-                    db,
-                    schemaName,
-                    tableName,
-                    newColumnName,
-                    tx,
-                    cancellationToken
-                )
+            await DoesColumnExistAsync(db, schemaName, tableName, newColumnName, tx, cancellationToken)
                 .ConfigureAwait(false)
         )
         {

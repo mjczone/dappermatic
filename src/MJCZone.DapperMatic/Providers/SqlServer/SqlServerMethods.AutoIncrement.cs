@@ -19,7 +19,7 @@ public partial class SqlServerMethods
         {
             bool isIdentity => isIdentity,
             int isIdentity => isIdentity == 1,
-            _ => false
+            _ => false,
         };
     }
 }

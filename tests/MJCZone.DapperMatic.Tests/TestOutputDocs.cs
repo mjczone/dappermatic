@@ -6,8 +6,8 @@
 using System.Reflection;
 using System.Text.Json;
 using System.Xml.Linq;
-using MJCZone.DapperMatic.Providers.Base;
 using MJCZone.DapperMatic.AspNetCore;
+using MJCZone.DapperMatic.Providers.Base;
 using Xunit.Abstractions;
 
 namespace MJCZone.DapperMatic.Tests;
@@ -30,12 +30,7 @@ public class TestOutputDocs
         {
             WriteIndented = true,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = System
-                .Text
-                .Json
-                .Serialization
-                .JsonIgnoreCondition
-                .WhenWritingNull,
+            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
         };
         serializationSettings.Converters.Add(stringEnumConverter);
         return serializationSettings;
@@ -88,7 +83,7 @@ public class TestOutputDocs
                 new Akov.NetDocsProcessor.Input.GenerationSettings
                 {
                     // AccessLevel = Akov.NetDocsProcessor.Input.AccessLevel.Protected
-                    AccessLevel = Akov.NetDocsProcessor.Input.AccessLevel.Public
+                    AccessLevel = Akov.NetDocsProcessor.Input.AccessLevel.Public,
                 }
             )
             .ToList();
@@ -126,10 +121,7 @@ public class TestOutputDocs
             }
         }
         var packagesDirectory = Path.Combine(rootDirectory, "docs", "packages");
-        var docsAssemblyJsonFile = Path.Combine(
-            packagesDirectory,
-            $"{assembly.GetName().Name}.json"
-        );
+        var docsAssemblyJsonFile = Path.Combine(packagesDirectory, $"{assembly.GetName().Name}.json");
         Directory.CreateDirectory(packagesDirectory);
 
         // Write directly to the destination instead of copying to avoid file locking issues
@@ -345,25 +337,18 @@ public static class DocsExtensions
             return docs;
 
         if (string.IsNullOrWhiteSpace(docs.Title))
-            docs.Title = (
-                assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? assemblyName
-            ).Trim();
+            docs.Title = (assembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? assemblyName).Trim();
 
         if (string.IsNullOrEmpty(docs.Description))
             docs.Description = (
-                assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description
-                ?? string.Empty
+                assembly.GetCustomAttribute<AssemblyDescriptionAttribute>()?.Description ?? string.Empty
             ).Trim();
 
         if (string.IsNullOrEmpty(docs.Product))
-            docs.Product = (
-                assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product ?? string.Empty
-            ).Trim();
+            docs.Product = (assembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product ?? string.Empty).Trim();
 
         if (string.IsNullOrEmpty(docs.Company))
-            docs.Company = (
-                assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? string.Empty
-            ).Trim();
+            docs.Company = (assembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company ?? string.Empty).Trim();
 
         if (string.IsNullOrEmpty(docs.Copyright))
             docs.Copyright = (
@@ -453,9 +438,7 @@ public class TypeDocs
     internal static TypeDocs Generate(Type type, XDocument docsXml)
     {
         var memberNodes = docsXml.Root!.Element("members")?.Elements("member").ToArray() ?? [];
-        var typeNode = memberNodes.FirstOrDefault(e =>
-            e.Attribute("name")?.Value == $"T:{type.FullName}"
-        );
+        var typeNode = memberNodes.FirstOrDefault(e => e.Attribute("name")?.Value == $"T:{type.FullName}");
 
         Assert.NotNull(typeNode);
 
@@ -488,16 +471,10 @@ public class TypeDocs
             )
             .ToArray();
 
-        var bindingFlags =
-            BindingFlags.Public
-            | BindingFlags.NonPublic
-            | BindingFlags.Instance
-            | BindingFlags.Static;
+        var bindingFlags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
 
         // only the constructors WITH parameters
-        var constructors = type.GetConstructors(bindingFlags)
-            .Where(c => c.GetParameters().Length > 0)
-            .ToArray();
+        var constructors = type.GetConstructors(bindingFlags).Where(c => c.GetParameters().Length > 0).ToArray();
         var fields = type.GetFields(bindingFlags)
             .Where(m => !m.IsSpecialName && !m.IsPrivate && !(m.IsStatic && m.IsPrivate))
             .ToArray();
@@ -565,8 +542,7 @@ public class TypeDocs
             if (propertyNode == null)
             {
                 propertyNode = propertyNodes.FirstOrDefault(e =>
-                    e.Attribute("name")?.Value
-                    == $"P:{property.DeclaringType!.FullName}.{property.Name}"
+                    e.Attribute("name")?.Value == $"P:{property.DeclaringType!.FullName}.{property.Name}"
                 );
                 if (propertyNode == null)
                     continue;
@@ -614,8 +590,7 @@ public class TypeDocs
                 var paramNode = methodNode
                     .Elements("param")
                     .FirstOrDefault(e =>
-                        e.Attribute("name")?.Value
-                        == $"M:{type.FullName}.{method.Name}({param.ParameterType.Name})"
+                        e.Attribute("name")?.Value == $"M:{type.FullName}.{method.Name}({param.ParameterType.Name})"
                     );
 
                 var paramDocs = new TypeParamDocs

@@ -14,24 +14,24 @@ public enum AccessLevel
     /// Only public members to documentation.
     /// </summary>
     Public,
-    
+
     /// <summary>
     /// Public + protected members to documentation.
     /// </summary>
     Protected,
-    
+
     /// <summary>
     /// Public + internal members to documentation.
     /// </summary>
     Internal,
-    
+
     /// <summary>
-    /// Public + protected + internal members to documentation. 
+    /// Public + protected + internal members to documentation.
     /// </summary>
     ProtectedInternal,
-    
+
     /// <summary>
     /// All members to documentation.
     /// </summary>
-    Private
+    Private,
 }

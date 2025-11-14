@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for view operations.
 /// </summary>
-public class ViewResponse : ResponseBase<ViewDto?>
+public class ViewResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewResponse"/> class.
     /// </summary>
-    public ViewResponse()
-        : base(null) { }
+    public ViewResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ViewResponse"/> class.
     /// </summary>
-    /// <param name="view">The view information.</param>
-    public ViewResponse(ViewDto? view)
-        : base(view) { }
+    /// <param name="result">The view information.</param>
+    public ViewResponse(ViewDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the view data.
+    /// </summary>
+    public ViewDto? Result { get; set; }
 }

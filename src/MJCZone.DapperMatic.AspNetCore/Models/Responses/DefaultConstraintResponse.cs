@@ -10,18 +10,24 @@ namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 /// <summary>
 /// Response model for default constraint operations.
 /// </summary>
-public class DefaultConstraintResponse : ResponseBase<DefaultConstraintDto?>
+public class DefaultConstraintResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultConstraintResponse"/> class.
     /// </summary>
-    public DefaultConstraintResponse()
-        : base(null) { }
+    public DefaultConstraintResponse() { }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultConstraintResponse"/> class.
     /// </summary>
-    /// <param name="defaultConstraint">The default constraint information.</param>
-    public DefaultConstraintResponse(DefaultConstraintDto? defaultConstraint)
-        : base(defaultConstraint) { }
+    /// <param name="result">The default constraint information.</param>
+    public DefaultConstraintResponse(DefaultConstraintDto result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the default constraint data.
+    /// </summary>
+    public DefaultConstraintDto? Result { get; set; }
 }

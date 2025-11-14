@@ -3,14 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using System.Collections;
-using System.Collections.Immutable;
-using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.Numerics;
 using System.Text.Json;
-using System.Text.Json.Nodes;
-using System.Xml.Linq;
 using MJCZone.DapperMatic.Converters;
 using MJCZone.DapperMatic.Providers.Base;
 
@@ -39,34 +32,25 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return "mysql";
         }
 
-        /// <summary>
-        /// Registers .NET types to SQL types converters.
-        /// </summary>
-        protected override void RegisterDotnetTypeToSqlTypeConverters()
-        {
-            // Use the standardized registration from base class
-            RegisterStandardDotnetTypeToSqlTypeConverters();
-        }
+        // NetTopologySuite types use base class implementation (TEXT storage with WKT format)
+        // This matches SQL Server and SQLite behavior for cross-provider consistency
+        // Base class RegisterNetTopologySuiteTypes() will handle registration
 
         /// <inheritdoc/>
-        protected override SqlTypeDescriptor? CreateGeometryTypeForShortName(string shortName)
+        protected override void RegisterMySqlTypes()
         {
-            return shortName switch
-            {
-                // NetTopologySuite types - MySQL supports specific geometry types
-                "NetTopologySuite.Geometries.Geometry, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                "NetTopologySuite.Geometries.Point, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_point),
-                "NetTopologySuite.Geometries.LineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_linestring),
-                "NetTopologySuite.Geometries.Polygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_polygon),
-                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipoint),
-                "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multilinestring),
-                "NetTopologySuite.Geometries.MultiPolygon, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_multipolygon),
-                "NetTopologySuite.Geometries.GeometryCollection, NetTopologySuite" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometrycollection),
-                // MySQL types
-                "MySql.Data.Types.MySqlGeometry, MySql.Data" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                "MySqlConnector.MySqlGeometry, MySqlConnector" => TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry),
-                _ => null
-            };
+            var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data");
+            var sqlMySqlConnectorGeometryType = Type.GetType("MySqlConnector.MySqlGeometry, MySqlConnector");
+
+            // MySQL native geometry types
+            var mySqlGeometryConverter = new DotnetTypeToSqlTypeConverter(d =>
+                TypeMappingHelpers.CreateGeometryType(MySqlTypes.sql_geometry)
+            );
+
+            RegisterConverterForTypes(
+                mySqlGeometryConverter,
+                [sqlMySqlDataGeometryType, sqlMySqlConnectorGeometryType]
+            );
         }
 
         /// <summary>
@@ -84,11 +68,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             var geometricConverter = GetGeometricToDotnetTypeConverter();
 
             // Boolean affinity (in MySQL, bool and boolean are the same, they are synonyms of tinyint(1))
-            RegisterConverterForTypes(
-                booleanConverter,
-                MySqlTypes.sql_bool,
-                MySqlTypes.sql_boolean
-            );
+            RegisterConverterForTypes(booleanConverter, MySqlTypes.sql_bool, MySqlTypes.sql_boolean);
 
             // Numeric affinity
             RegisterConverterForTypes(
@@ -171,8 +151,8 @@ namespace MJCZone.DapperMatic.Providers.MySql
                 MySqlTypes.sql_multipoint,
                 MySqlTypes.sql_multilinestring,
                 MySqlTypes.sql_multipolygon,
-                MySqlTypes.sql_geomcollection,
-                MySqlTypes.sql_geometrycollection
+                MySqlTypes.sql_geometrycollection,
+                MySqlTypes.sql_geomcollection
             );
         }
 
@@ -186,10 +166,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
         {
             return new(d =>
             {
-                if (
-                    d.BaseTypeName == MySqlTypes.sql_bool
-                    || d.BaseTypeName == MySqlTypes.sql_boolean
-                )
+                if (d.BaseTypeName == MySqlTypes.sql_bool || d.BaseTypeName == MySqlTypes.sql_boolean)
                 {
                     return new DotnetTypeDescriptor(typeof(bool));
                 }
@@ -237,8 +214,16 @@ namespace MJCZone.DapperMatic.Providers.MySql
                         // make it a long if no recognizable length is specified
                         return new DotnetTypeDescriptor(typeof(long));
                     case MySqlTypes.sql_tinyint:
+                        if (d.Precision == 1)
+                        {
+                            return new DotnetTypeDescriptor(typeof(bool));
+                        }
                         return new DotnetTypeDescriptor(typeof(sbyte));
                     case MySqlTypes.sql_tinyint_unsigned:
+                        if (d.Precision == 1)
+                        {
+                            return new DotnetTypeDescriptor(typeof(bool));
+                        }
                         return new DotnetTypeDescriptor(typeof(byte));
                     case MySqlTypes.sql_smallint:
                         return new DotnetTypeDescriptor(typeof(short));
@@ -348,10 +333,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             return new(d =>
             {
                 if (
-                    (
-                        d.BaseTypeName == MySqlTypes.sql_char
-                        || d.BaseTypeName == MySqlTypes.sql_varchar
-                    )
+                    (d.BaseTypeName == MySqlTypes.sql_char || d.BaseTypeName == MySqlTypes.sql_varchar)
                     && d.Length == 36
                 )
                 {
@@ -437,21 +419,11 @@ namespace MJCZone.DapperMatic.Providers.MySql
         private static SqlTypeToDotnetTypeConverter GetGeometricToDotnetTypeConverter()
         {
             // NetTopologySuite types
-            var sqlNetTopologyGeometryType = Type.GetType(
-                "NetTopologySuite.Geometries.Geometry, NetTopologySuite"
-            );
-            var sqlNetTopologyPointType = Type.GetType(
-                "NetTopologySuite.Geometries.Point, NetTopologySuite"
-            );
-            var sqlNetTopologyLineStringType = Type.GetType(
-                "NetTopologySuite.Geometries.LineString, NetTopologySuite"
-            );
-            var sqlNetTopologyPolygonType = Type.GetType(
-                "NetTopologySuite.Geometries.Polygon, NetTopologySuite"
-            );
-            var sqlNetTopologyMultiPointType = Type.GetType(
-                "NetTopologySuite.Geometries.MultiPoint, NetTopologySuite"
-            );
+            var sqlNetTopologyGeometryType = Type.GetType("NetTopologySuite.Geometries.Geometry, NetTopologySuite");
+            var sqlNetTopologyPointType = Type.GetType("NetTopologySuite.Geometries.Point, NetTopologySuite");
+            var sqlNetTopologyLineStringType = Type.GetType("NetTopologySuite.Geometries.LineString, NetTopologySuite");
+            var sqlNetTopologyPolygonType = Type.GetType("NetTopologySuite.Geometries.Polygon, NetTopologySuite");
+            var sqlNetTopologyMultiPointType = Type.GetType("NetTopologySuite.Geometries.MultiPoint, NetTopologySuite");
             var sqlNetTopologyMultLineStringType = Type.GetType(
                 "NetTopologySuite.Geometries.MultiLineString, NetTopologySuite"
             );
@@ -463,11 +435,7 @@ namespace MJCZone.DapperMatic.Providers.MySql
             );
 
             // Geometry affinity
-            var sqlMySqlDataGeometryType = Type.GetType(
-                "MySql.Data.Types.MySqlGeometry, MySql.Data",
-                false,
-                false
-            );
+            var sqlMySqlDataGeometryType = Type.GetType("MySql.Data.Types.MySqlGeometry, MySql.Data", false, false);
             var sqlMySqlConnectorGeometryType = Type.GetType(
                 "MySqlConnector.MySqlGeometry, MySqlConnector",
                 false,
@@ -494,49 +462,116 @@ namespace MJCZone.DapperMatic.Providers.MySql
                             return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        // Fallback: WKT (Well-Known Text) format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_point:
                         if (sqlNetTopologyPointType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyPointType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_linestring:
                         if (sqlNetTopologyLineStringType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyLineStringType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_polygon:
                         if (sqlNetTopologyPolygonType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyPolygonType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multipoint:
                         if (sqlNetTopologyMultiPointType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultiPointType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multilinestring:
                         if (sqlNetTopologyMultLineStringType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultLineStringType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_multipolygon:
                         if (sqlNetTopologyMultiPolygonType != null)
                         {
                             return new DotnetTypeDescriptor(sqlNetTopologyMultiPolygonType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                     case MySqlTypes.sql_geomcollection:
                     case MySqlTypes.sql_geometrycollection:
                         if (sqlNetTopologyGeometryCollectionType != null)
@@ -544,7 +579,18 @@ namespace MJCZone.DapperMatic.Providers.MySql
                             return new DotnetTypeDescriptor(sqlNetTopologyGeometryCollectionType);
                         }
 
-                        return new DotnetTypeDescriptor(typeof(object));
+                        if (sqlMySqlDataGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlDataGeometryType);
+                        }
+
+                        if (sqlMySqlConnectorGeometryType != null)
+                        {
+                            return new DotnetTypeDescriptor(sqlMySqlConnectorGeometryType);
+                        }
+
+                        // Fallback: WKT format as string
+                        return new DotnetTypeDescriptor(typeof(string));
                 }
 
                 return null;

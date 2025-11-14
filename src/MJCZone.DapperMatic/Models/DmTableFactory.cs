@@ -5,6 +5,7 @@
 
 using System.Collections.Concurrent;
 using System.Data;
+using System.Linq.Expressions;
 using System.Reflection;
 using MJCZone.DapperMatic.DataAnnotations;
 using MJCZone.DapperMatic.Providers;
@@ -17,10 +18,7 @@ namespace MJCZone.DapperMatic.Models;
 public static class DmTableFactory
 {
     private static readonly ConcurrentDictionary<Type, DmTable> _cache = new();
-    private static readonly ConcurrentDictionary<
-        Type,
-        Dictionary<string, DmColumn>
-    > _propertyCache = new();
+    private static readonly ConcurrentDictionary<Type, Dictionary<string, DmColumn>> _propertyCache = new();
 
     private static Action<Type, DmTable>? _customMappingAction;
 
@@ -93,10 +91,7 @@ public static class DmTableFactory
     /// If false, the cache will be checked first, and if the type is found in the cache, the cached values will be returned.
     /// </param>
     /// <returns>A tuple containing the schema name and table name for the type.</returns>
-    public static (string? schemaName, string tableName) GetTableName(
-        Type type,
-        bool ignoreCache = false
-    )
+    public static (string? schemaName, string tableName) GetTableName(Type type, bool ignoreCache = false)
     {
         ArgumentNullException.ThrowIfNull(type, nameof(type));
 
@@ -107,8 +102,7 @@ public static class DmTableFactory
 
         var classAttributes = type.GetCustomAttributes().ToArray();
 
-        var tableAttribute =
-            type.GetCustomAttribute<DmTableAttribute>() ?? new DmTableAttribute(null, type.Name);
+        var tableAttribute = type.GetCustomAttribute<DmTableAttribute>() ?? new DmTableAttribute(null, type.Name);
 
         var schemaName =
             classAttributes
@@ -128,10 +122,7 @@ public static class DmTableFactory
                         return ta.Schema;
                     }
                     // ServiceStack.OrmLite
-                    if (
-                        paType.Name == "SchemaAttribute"
-                        && ca.TryGetPropertyValue<string>("Name", out var name)
-                    )
+                    if (paType.Name == "SchemaAttribute" && ca.TryGetPropertyValue<string>("Name", out var name))
                     {
                         return name;
                     }
@@ -171,7 +162,8 @@ public static class DmTableFactory
 
                     return null;
                 })
-                .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n)) ?? tableAttribute?.TableName;
+                .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
+            ?? tableAttribute?.TableName;
 
         if (string.IsNullOrWhiteSpace(tableName))
         {
@@ -180,6 +172,114 @@ public static class DmTableFactory
         }
 
         return (schemaName, tableName);
+    }
+
+    /// <summary>
+    /// Gets the PropertyInfo for a property, given an expression.
+    /// </summary>
+    /// <typeparam name="T">The type containing the property.</typeparam>
+    /// <param name="propertyExpression">An expression that selects the property.</param>
+    /// <returns>The column name for the property.</returns>
+    public static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertyExpression)
+    {
+        MemberExpression? memberExpression;
+
+        // Handle UnaryExpression (boxing conversion for value types)
+        if (propertyExpression.Body is UnaryExpression unaryExpression)
+        {
+            memberExpression = unaryExpression.Operand as MemberExpression;
+        }
+        else
+        {
+            memberExpression = propertyExpression.Body as MemberExpression;
+        }
+
+        if (memberExpression == null)
+        {
+            throw new ArgumentException("Expression must be a property expression");
+        }
+
+        var propertyInfo = memberExpression.Member as PropertyInfo;
+        if (propertyInfo == null)
+        {
+            throw new ArgumentException("Expression must refer to a property");
+        }
+
+        return propertyInfo;
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <param name="property">The property to get the column name for.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName(PropertyInfo property)
+    {
+        return GetColumnName(property, out var _);
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <typeparam name="T">The type containing the property.</typeparam>
+    /// <param name="propertyExpression">An expression that selects the property.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName<T>(Expression<Func<T, object>> propertyExpression)
+    {
+        var propertyInfo = GetPropertyInfo(propertyExpression);
+        return propertyInfo == null
+            ? throw new ArgumentException("Expression must refer to a property")
+            : GetColumnName(propertyInfo, out var _);
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <param name="property">The property to get the column name for.</param>
+    /// <param name="columnAttribute">The DmColumnAttribute applied to the property, if any.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName(PropertyInfo property, out DmColumnAttribute? columnAttribute)
+    {
+        var propertyAttributes = property.GetCustomAttributes().ToArray();
+        columnAttribute = property.GetCustomAttribute<DmColumnAttribute>();
+        var columnName =
+            propertyAttributes
+                .Select(pa =>
+                {
+                    var paType = pa.GetType();
+                    if (pa is DmColumnAttribute dca && !string.IsNullOrWhiteSpace(dca.ColumnName))
+                    {
+                        return dca.ColumnName;
+                    }
+                    // EF Core
+                    else if (
+                        pa is System.ComponentModel.DataAnnotations.Schema.ColumnAttribute ca
+                        && !string.IsNullOrWhiteSpace(ca.Name)
+                    )
+                    {
+                        return ca.Name;
+                    }
+                    // ServiceStack.OrmLite
+                    else if (
+                        paType.Name == "AliasAttribute"
+                        && pa.TryGetPropertyValue<string>("Name", out var name)
+                        && !string.IsNullOrWhiteSpace(name)
+                    )
+                    {
+                        return name;
+                    }
+
+                    return null;
+                })
+                .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
+            ?? columnAttribute?.ColumnName;
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            // If no column name is specified, use the property name as the column name
+            columnName = property.Name;
+        }
+
+        return columnName;
     }
 
     /// <summary>
@@ -199,10 +299,7 @@ public static class DmTableFactory
     /// <param name="type">The type to map to a DmTable instance.</param>
     /// <param name="propertyMappings">A dictionary to store property to column mappings.</param>
     /// <returns>A DmTable instance representing the type.</returns>
-    private static DmTable GetTableInternal(
-        Type type,
-        Dictionary<string, DmColumn> propertyMappings
-    )
+    private static DmTable GetTableInternal(Type type, Dictionary<string, DmColumn> propertyMappings)
     {
         var (schemaName, tableName) = GetTableName(type, ignoreCache: true);
 
@@ -237,47 +334,7 @@ public static class DmTableFactory
                 continue;
             }
 
-            var columnAttribute = property.GetCustomAttribute<DmColumnAttribute>();
-            var columnName =
-                propertyAttributes
-                    .Select(pa =>
-                    {
-                        var paType = pa.GetType();
-                        if (
-                            pa is DmColumnAttribute dca
-                            && !string.IsNullOrWhiteSpace(dca.ColumnName)
-                        )
-                        {
-                            return dca.ColumnName;
-                        }
-                        // EF Core
-                        else if (
-                            pa is System.ComponentModel.DataAnnotations.Schema.ColumnAttribute ca
-                            && !string.IsNullOrWhiteSpace(ca.Name)
-                        )
-                        {
-                            return ca.Name;
-                        }
-                        // ServiceStack.OrmLite
-                        else if (
-                            paType.Name == "AliasAttribute"
-                            && pa.TryGetPropertyValue<string>("Name", out var name)
-                            && !string.IsNullOrWhiteSpace(name)
-                        )
-                        {
-                            return name;
-                        }
-
-                        return null;
-                    })
-                    .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
-                ?? columnAttribute?.ColumnName;
-
-            if (string.IsNullOrWhiteSpace(columnName))
-            {
-                // If no column name is specified, use the property name as the column name
-                columnName = property.Name;
-            }
+            var columnName = GetColumnName(property, out var columnAttribute);
 
             var isPrimaryKey =
                 columnAttribute?.IsPrimaryKey == true
@@ -302,55 +359,11 @@ public static class DmTableFactory
             });
 
             // Format of provider data types: {mysql:varchar(255),sqlserver:nvarchar(255)}
-            var providerDataTypes = new Dictionary<DbProviderType, string>();
-            if (!string.IsNullOrWhiteSpace(columnAttribute?.ProviderDataType))
-            {
-                var pdts = columnAttribute
-                    .ProviderDataType.Trim('{', '}', '[', ']', ' ')
-                    .Split([',', ';']);
-                foreach (var pdt in pdts)
-                {
-                    var pdtParts = pdt.Split(':');
-                    if (
-                        pdtParts.Length == 2
-                        && !string.IsNullOrWhiteSpace(pdtParts[0])
-                        && !string.IsNullOrWhiteSpace(pdtParts[1])
-                    )
-                    {
-                        if (
-                            pdtParts[0].Contains("mysql", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("maria", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.MySql, pdtParts[1]);
-                        }
-                        else if (
-                            pdtParts[0].Contains("pg", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("postgres", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.PostgreSql, pdtParts[1]);
-                        }
-                        else if (pdtParts[0].Contains("sqlite", StringComparison.OrdinalIgnoreCase))
-                        {
-                            providerDataTypes.Add(DbProviderType.Sqlite, pdtParts[1]);
-                        }
-                        else if (
-                            pdtParts[0].Contains("sqlserver", StringComparison.OrdinalIgnoreCase)
-                            || pdtParts[0].Contains("mssql", StringComparison.OrdinalIgnoreCase)
-                        )
-                        {
-                            providerDataTypes.Add(DbProviderType.SqlServer, pdtParts[1]);
-                        }
-                    }
-                }
-            }
+            // Parse using helper that properly handles parameterized types like decimal(10,2)
+            var providerDataTypes = TypeMappingHelpers.ParseProviderDataTypes(columnAttribute?.ProviderDataType);
 
             // If there is no DmColumnAttribute, the property is nullable by default, IF it's a reference type or a nullable type.
-            var isNullable =
-                columnAttribute == null
-                    ? property.PropertyType.IsNullable()
-                    : columnAttribute.IsNullable;
+            var isNullable = columnAttribute == null ? property.PropertyType.IsNullable() : columnAttribute.IsNullable;
 
             // If the property is required, it cannot be nullable.
             if (isRequired && isNullable)
@@ -412,8 +425,7 @@ public static class DmTableFactory
             }
 
             // set primary key if present
-            var columnPrimaryKeyAttribute =
-                property.GetCustomAttribute<DmPrimaryKeyConstraintAttribute>();
+            var columnPrimaryKeyAttribute = property.GetCustomAttribute<DmPrimaryKeyConstraintAttribute>();
             if (columnPrimaryKeyAttribute != null)
             {
                 column.IsPrimaryKey = true;
@@ -430,10 +442,7 @@ public static class DmTableFactory
                 }
                 else
                 {
-                    primaryKey.Columns =
-                    [
-                        .. new List<DmOrderedColumn>(primaryKey.Columns) { new(columnName) }
-                    ];
+                    primaryKey.Columns = [.. new List<DmOrderedColumn>(primaryKey.Columns) { new(columnName) }];
                     if (!string.IsNullOrWhiteSpace(columnPrimaryKeyAttribute.ConstraintName))
                     {
                         primaryKey.ConstraintName = columnPrimaryKeyAttribute.ConstraintName;
@@ -445,25 +454,16 @@ public static class DmTableFactory
                 column.IsPrimaryKey = true;
                 if (primaryKey == null)
                 {
-                    primaryKey = new DmPrimaryKeyConstraint(
-                        schemaName,
-                        tableName,
-                        string.Empty,
-                        [new(columnName)]
-                    );
+                    primaryKey = new DmPrimaryKeyConstraint(schemaName, tableName, string.Empty, [new(columnName)]);
                 }
                 else
                 {
-                    primaryKey.Columns =
-                    [
-                        .. new List<DmOrderedColumn>(primaryKey.Columns) { new(columnName) }
-                    ];
+                    primaryKey.Columns = [.. new List<DmOrderedColumn>(primaryKey.Columns) { new(columnName) }];
                 }
             }
 
             // set check expression if present
-            var columnCheckConstraintAttribute =
-                property.GetCustomAttribute<DmCheckConstraintAttribute>();
+            var columnCheckConstraintAttribute = property.GetCustomAttribute<DmCheckConstraintAttribute>();
             if (columnCheckConstraintAttribute != null)
             {
                 var checkConstraint = new DmCheckConstraint(
@@ -481,8 +481,7 @@ public static class DmTableFactory
             }
 
             // set default expression if present
-            var columnDefaultConstraintAttribute =
-                property.GetCustomAttribute<DmDefaultConstraintAttribute>();
+            var columnDefaultConstraintAttribute = property.GetCustomAttribute<DmDefaultConstraintAttribute>();
             if (columnDefaultConstraintAttribute != null)
             {
                 var defaultConstraint = new DmDefaultConstraint(
@@ -500,8 +499,7 @@ public static class DmTableFactory
             }
 
             // set unique constraint if present
-            var columnUniqueConstraintAttribute =
-                property.GetCustomAttribute<DmUniqueConstraintAttribute>();
+            var columnUniqueConstraintAttribute = property.GetCustomAttribute<DmUniqueConstraintAttribute>();
             if (columnUniqueConstraintAttribute != null)
             {
                 var uniqueConstraint = new DmUniqueConstraint(
@@ -545,22 +543,12 @@ public static class DmTableFactory
                 );
                 if (indexAttribute != null)
                 {
-                    var isUnique =
-                        indexAttribute.TryGetPropertyValue<bool>("IsUnique", out var u) && u;
+                    var isUnique = indexAttribute.TryGetPropertyValue<bool>("IsUnique", out var u) && u;
                     var indexName =
-                        (
-                            indexAttribute.TryGetPropertyValue<string>("Name", out var n)
-                            && !string.IsNullOrWhiteSpace(n)
-                        )
+                        (indexAttribute.TryGetPropertyValue<string>("Name", out var n) && !string.IsNullOrWhiteSpace(n))
                             ? n
                             : DbProviderUtils.GenerateIndexName(tableName, columnName);
-                    var index = new DmIndex(
-                        schemaName,
-                        tableName,
-                        indexName,
-                        [new(columnName)],
-                        isUnique
-                    );
+                    var index = new DmIndex(schemaName, tableName, indexName, [new(columnName)], isUnique);
                     indexes.Add(index);
 
                     column.IsIndexed = true;
@@ -572,8 +560,7 @@ public static class DmTableFactory
             }
 
             // set foreign key constraint if present
-            var columnForeignKeyConstraintAttribute =
-                property.GetCustomAttribute<DmForeignKeyConstraintAttribute>();
+            var columnForeignKeyConstraintAttribute = property.GetCustomAttribute<DmForeignKeyConstraintAttribute>();
             if (columnForeignKeyConstraintAttribute != null)
             {
                 var referencedTableName = columnForeignKeyConstraintAttribute.ReferencedTableName;
@@ -589,8 +576,7 @@ public static class DmTableFactory
                     );
                     referencedTableName = referencedTypeInfo.tableName;
                 }
-                var referencedColumnNames =
-                    columnForeignKeyConstraintAttribute.ReferencedColumnNames;
+                var referencedColumnNames = columnForeignKeyConstraintAttribute.ReferencedColumnNames;
                 var onDelete = columnForeignKeyConstraintAttribute.OnDelete;
                 var onUpdate = columnForeignKeyConstraintAttribute.OnUpdate;
                 if (
@@ -600,9 +586,7 @@ public static class DmTableFactory
                     && !string.IsNullOrWhiteSpace(referencedColumnNames[0])
                 )
                 {
-                    var constraintName = !string.IsNullOrWhiteSpace(
-                        columnForeignKeyConstraintAttribute.ConstraintName
-                    )
+                    var constraintName = !string.IsNullOrWhiteSpace(columnForeignKeyConstraintAttribute.ConstraintName)
                         ? columnForeignKeyConstraintAttribute.ConstraintName
                         : DbProviderUtils.GenerateForeignKeyConstraintName(
                             tableName,
@@ -639,10 +623,7 @@ public static class DmTableFactory
                         property.GetCustomAttribute<System.ComponentModel.DataAnnotations.Schema.InversePropertyAttribute>();
                     var referencedTableName = foreignKeyAttribute.Name;
                     // TODO: figure out a way to derive the referenced column name
-                    var referencedColumnNames = new[]
-                    {
-                        inversePropertyAttribute?.Property ?? "id",
-                    };
+                    var referencedColumnNames = new[] { inversePropertyAttribute?.Property ?? "id" };
                     var onDelete = DmForeignKeyAction.NoAction;
                     var onUpdate = DmForeignKeyAction.NoAction;
                     var constraintName = DbProviderUtils.GenerateForeignKeyConstraintName(
@@ -678,9 +659,7 @@ public static class DmTableFactory
         var cpa = type.GetCustomAttribute<DmPrimaryKeyConstraintAttribute>();
         if (cpa != null && cpa.Columns != null && cpa.Columns.Length > 0)
         {
-            var constraintName = !string.IsNullOrWhiteSpace(cpa.ConstraintName)
-                ? cpa.ConstraintName
-                : string.Empty;
+            var constraintName = !string.IsNullOrWhiteSpace(cpa.ConstraintName) ? cpa.ConstraintName : string.Empty;
 
             primaryKey = new DmPrimaryKeyConstraint(
                 schemaName,
@@ -723,9 +702,7 @@ public static class DmTableFactory
                 ? cca.ConstraintName
                 : DbProviderUtils.GenerateCheckConstraintName(tableName, $"{ccaId++}");
 
-            checkConstraints.Add(
-                new DmCheckConstraint(schemaName, tableName, null, constraintName, cca.Expression)
-            );
+            checkConstraints.Add(new DmCheckConstraint(schemaName, tableName, null, constraintName, cca.Expression));
         }
 
         var ucas = type.GetCustomAttributes<DmUniqueConstraintAttribute>();
@@ -849,9 +826,7 @@ public static class DmTableFactory
             for (var i = 0; i < cfk.SourceColumnNames.Length; i++)
             {
                 var sc = cfk.SourceColumnNames[i];
-                var column = columns.FirstOrDefault(c =>
-                    c.ColumnName.Equals(sc, StringComparison.OrdinalIgnoreCase)
-                );
+                var column = columns.FirstOrDefault(c => c.ColumnName.Equals(sc, StringComparison.OrdinalIgnoreCase));
                 if (column != null)
                 {
                     column.IsForeignKey = true;

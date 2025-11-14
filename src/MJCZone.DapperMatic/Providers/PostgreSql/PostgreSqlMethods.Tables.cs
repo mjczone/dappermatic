@@ -29,9 +29,7 @@ public partial class PostgreSqlMethods
     {
         schemaName = NormalizeSchemaName(schemaName);
 
-        var where = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
+        var where = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
 
         // columns
         // we could use information_schema but it's SOOO SLOW! unbearable really,
@@ -82,14 +80,7 @@ public partial class PostgreSqlMethods
             .ConfigureAwait(false);
 
         // get indexes
-        var indexes = await GetIndexesInternalAsync(
-                db,
-                schemaName,
-                tableNameFilter,
-                null,
-                tx,
-                cancellationToken
-            )
+        var indexes = await GetIndexesInternalAsync(db, schemaName, tableNameFilter, null, tx, cancellationToken)
             .ConfigureAwait(false);
 
         // get primary key, unique key, foreign key and check constraints in a single query
@@ -183,12 +174,7 @@ public partial class PostgreSqlMethods
         var referencedColumnsResults =
             referencedTableNames.Length == 0
                 ? []
-                : await QueryAsync<(
-                    string schema_name,
-                    string table_name,
-                    string column_name,
-                    int column_ordinal
-                )>(
+                : await QueryAsync<(string schema_name, string table_name, string column_name, int column_ordinal)>(
                         db,
                         referencedColumnsSql,
                         new { schemaName, referencedTableNames },
@@ -199,13 +185,7 @@ public partial class PostgreSqlMethods
 
         var tables = new List<DmTable>();
 
-        foreach (
-            var tableColumnResults in columnResults.GroupBy(r => new
-            {
-                r.schema_name,
-                r.table_name,
-            })
-        )
+        foreach (var tableColumnResults in columnResults.GroupBy(r => new { r.schema_name, r.table_name }))
         {
             schemaName = tableColumnResults.Key.schema_name;
             var tableName = tableColumnResults.Key.table_name;
@@ -217,9 +197,7 @@ public partial class PostgreSqlMethods
                 .ToArray();
 
             var tableForeignKeyConstraints = tableConstraintResults
-                .Where(t =>
-                    t.constraint_type.Equals("FOREIGN KEY", StringComparison.OrdinalIgnoreCase)
-                )
+                .Where(t => t.constraint_type.Equals("FOREIGN KEY", StringComparison.OrdinalIgnoreCase))
                 .Select(row =>
                 {
                     var sourceColumns = row
@@ -227,9 +205,7 @@ public partial class PostgreSqlMethods
                         .Select(r =>
                         {
                             return new DmOrderedColumn(
-                                tableColumnResults
-                                    .First(c => c.column_ordinal == int.Parse(r))
-                                    .column_name
+                                tableColumnResults.First(c => c.column_ordinal == int.Parse(r)).column_name
                             );
                         })
                         .ToArray();
@@ -266,10 +242,7 @@ public partial class PostgreSqlMethods
             var tableCheckConstraints = tableConstraintResults
                 .Where(t =>
                     t.constraint_type.Equals("CHECK", StringComparison.OrdinalIgnoreCase)
-                    && t.constraint_definition.StartsWith(
-                        "CHECK (",
-                        StringComparison.OrdinalIgnoreCase
-                    )
+                    && t.constraint_definition.StartsWith("CHECK (", StringComparison.OrdinalIgnoreCase)
                 )
                 .Select(c =>
                 {
@@ -277,9 +250,7 @@ public partial class PostgreSqlMethods
                         .column_ordinals_csv.Split(',')
                         .Select(r =>
                         {
-                            return tableColumnResults
-                                .First(tcr => tcr.column_ordinal == int.Parse(r))
-                                .column_name;
+                            return tableColumnResults.First(tcr => tcr.column_ordinal == int.Parse(r)).column_name;
                         })
                         .ToArray();
                     return new DmCheckConstraint(
@@ -311,9 +282,7 @@ public partial class PostgreSqlMethods
                 .ToArray();
 
             var tablePrimaryKeyConstraint = tableConstraintResults
-                .Where(t =>
-                    t.constraint_type.Equals("PRIMARY KEY", StringComparison.OrdinalIgnoreCase)
-                )
+                .Where(t => t.constraint_type.Equals("PRIMARY KEY", StringComparison.OrdinalIgnoreCase))
                 .Select(row =>
                 {
                     var columns = row
@@ -321,18 +290,11 @@ public partial class PostgreSqlMethods
                         .Select(r =>
                         {
                             return new DmOrderedColumn(
-                                tableColumnResults
-                                    .First(c => c.column_ordinal == int.Parse(r))
-                                    .column_name
+                                tableColumnResults.First(c => c.column_ordinal == int.Parse(r)).column_name
                             );
                         })
                         .ToArray();
-                    return new DmPrimaryKeyConstraint(
-                        row.schema_name,
-                        row.table_name,
-                        row.constraint_name,
-                        columns
-                    );
+                    return new DmPrimaryKeyConstraint(row.schema_name, row.table_name, row.constraint_name, columns);
                 })
                 .FirstOrDefault();
 
@@ -345,27 +307,18 @@ public partial class PostgreSqlMethods
                         .Select(r =>
                         {
                             return new DmOrderedColumn(
-                                tableColumnResults
-                                    .First(c => c.column_ordinal == int.Parse(r))
-                                    .column_name
+                                tableColumnResults.First(c => c.column_ordinal == int.Parse(r)).column_name
                             );
                         })
                         .ToArray();
-                    return new DmUniqueConstraint(
-                        row.schema_name,
-                        row.table_name,
-                        row.constraint_name,
-                        columns
-                    );
+                    return new DmUniqueConstraint(row.schema_name, row.table_name, row.constraint_name, columns);
                 })
                 .ToArray();
 
             var tableIndexes = indexes
                 .Where(i =>
-                    (i.SchemaName ?? string.Empty).Equals(
-                        schemaName,
-                        StringComparison.OrdinalIgnoreCase
-                    ) && i.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)
+                    (i.SchemaName ?? string.Empty).Equals(schemaName, StringComparison.OrdinalIgnoreCase)
+                    && i.TableName.Equals(tableName, StringComparison.OrdinalIgnoreCase)
                 )
                 .ToArray();
 
@@ -376,48 +329,31 @@ public partial class PostgreSqlMethods
                     tableUniqueConstraints.Any(c =>
                         c.Columns.Count == 1
                         && c.Columns.Any(col =>
-                            col.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            col.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     )
                     || indexes.Any(i =>
                         i.IsUnique
                         && i.Columns.Count == 1
                         && i.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                     );
 
                 var columnIsPartOfIndex = indexes.Any(i =>
-                    i.Columns.Any(c =>
-                        c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
-                    )
+                    i.Columns.Any(c => c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase))
                 );
 
                 var foreignKeyConstraint = tableForeignKeyConstraints.FirstOrDefault(c =>
                     c.SourceColumns.Any(scol =>
-                        scol.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        scol.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                 );
 
                 var foreignKeyColumnIndex = foreignKeyConstraint
                     ?.SourceColumns.Select((scol, i) => new { c = scol, i })
                     .FirstOrDefault(c =>
-                        c.c.ColumnName.Equals(
-                            tableColumn.column_name,
-                            StringComparison.OrdinalIgnoreCase
-                        )
+                        c.c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                     )
                     ?.i;
 
@@ -430,15 +366,19 @@ public partial class PostgreSqlMethods
 
                 var isUnicode =
                     dotnetTypeDescriptor.IsUnicode == true
-                    || tableColumn.data_type.StartsWith(
-                        "nvarchar",
-                        StringComparison.OrdinalIgnoreCase
-                    )
+                    || tableColumn.data_type.StartsWith("nvarchar", StringComparison.OrdinalIgnoreCase)
                     || tableColumn.data_type.StartsWith("nchar", StringComparison.OrdinalIgnoreCase)
-                    || tableColumn.data_type.StartsWith(
-                        "ntext",
-                        StringComparison.OrdinalIgnoreCase
-                    );
+                    || tableColumn.data_type.StartsWith("ntext", StringComparison.OrdinalIgnoreCase);
+
+                // Normalize PostgreSQL TEXT type (unlimited) to -1
+                int? normalizedLength = dotnetTypeDescriptor.Length;
+                if (
+                    normalizedLength == null
+                    && tableColumn.data_type.Equals("text", StringComparison.OrdinalIgnoreCase)
+                )
+                {
+                    normalizedLength = -1;
+                }
 
                 var column = new DmColumn(
                     tableColumn.schema_name,
@@ -447,18 +387,15 @@ public partial class PostgreSqlMethods
                     dotnetTypeDescriptor.DotnetType,
                     new Dictionary<DbProviderType, string>
                     {
-                        { ProviderType, tableColumn.data_type },
+                        { ProviderType, tableColumn.data_type_ext ?? tableColumn.data_type },
                     },
-                    dotnetTypeDescriptor.Length,
+                    normalizedLength,
                     dotnetTypeDescriptor.Precision,
                     dotnetTypeDescriptor.Scale,
                     tableColumn.is_nullable,
                     tablePrimaryKeyConstraint != null
                         && tablePrimaryKeyConstraint.Columns.Any(c =>
-                            c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         ),
                     tableColumn.is_identity,
                     columnIsUniqueViaUniqueConstraintOrIndex,
@@ -466,27 +403,19 @@ public partial class PostgreSqlMethods
                     columnIsPartOfIndex,
                     foreignKeyConstraint != null,
                     foreignKeyConstraint?.ReferencedTableName,
-                    foreignKeyConstraint
-                        ?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)
-                        ?.ColumnName,
+                    foreignKeyConstraint?.ReferencedColumns.ElementAtOrDefault(foreignKeyColumnIndex ?? 0)?.ColumnName,
                     foreignKeyConstraint?.OnDelete,
                     foreignKeyConstraint?.OnUpdate,
                     checkExpression: tableCheckConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression,
                     defaultExpression: tableDefaultConstraints
                         .FirstOrDefault(c =>
                             !string.IsNullOrWhiteSpace(c.ColumnName)
-                            && c.ColumnName.Equals(
-                                tableColumn.column_name,
-                                StringComparison.OrdinalIgnoreCase
-                            )
+                            && c.ColumnName.Equals(tableColumn.column_name, StringComparison.OrdinalIgnoreCase)
                         )
                         ?.Expression
                 );
@@ -537,15 +466,9 @@ public partial class PostgreSqlMethods
         CancellationToken cancellationToken = default
     )
     {
-        var whereSchemaLike = string.IsNullOrWhiteSpace(schemaName)
-            ? null
-            : ToLikeString(schemaName);
-        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter)
-            ? null
-            : ToLikeString(tableNameFilter);
-        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter)
-            ? null
-            : ToLikeString(indexNameFilter);
+        var whereSchemaLike = string.IsNullOrWhiteSpace(schemaName) ? null : ToLikeString(schemaName);
+        var whereTableLike = string.IsNullOrWhiteSpace(tableNameFilter) ? null : ToLikeString(tableNameFilter);
+        var whereIndexLike = string.IsNullOrWhiteSpace(indexNameFilter) ? null : ToLikeString(indexNameFilter);
 
         var indexesSql = $"""
 
@@ -627,10 +550,7 @@ public partial class PostgreSqlMethods
                 .Select(c =>
                 {
                     var columnName = c.Trim()
-                        .Split(
-                            ' ',
-                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-                        )
+                        .Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                         .First();
                     var isDescending = c.Contains("desc", StringComparison.OrdinalIgnoreCase);
                     return new DmOrderedColumn(
@@ -640,13 +560,7 @@ public partial class PostgreSqlMethods
                 })
                 .ToArray();
 
-            var index = new DmIndex(
-                ir.schema_name,
-                ir.table_name,
-                ir.index_name,
-                columns,
-                ir.is_unique
-            );
+            var index = new DmIndex(ir.schema_name, ir.table_name, ir.index_name, columns, ir.is_unique);
             indexes.Add(index);
         }
 

@@ -17,11 +17,11 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Services;
 
 /// <summary>
 /// Test to verify connection string encryption/decryption works correctly.
-/// </summary>
+/// /// </summary>
 public class ConnectionStringEncryptionTest
 {
     [Fact]
-    public async Task Repository_EncryptsAndDecryptsConnectionStrings_Correctly()
+    public async Task Should_require_repository_encrypts_and_decrypts_connection_strings_correctly_Async()
     {
         // Arrange
         var encryptionKey = CryptoUtils.GenerateEncryptionKey();
@@ -31,11 +31,7 @@ public class ConnectionStringEncryptionTest
         var logger = new LoggerFactory().CreateLogger<InMemoryDapperMaticDatasourceRepository>();
         var idFactory = new GuidDatasourceIdFactory();
 
-        var repository = new InMemoryDapperMaticDatasourceRepository(
-            optionsWrapper,
-            idFactory,
-            logger
-        );
+        var repository = new InMemoryDapperMaticDatasourceRepository(optionsWrapper, idFactory, logger);
 
         var testDatasource = new DatasourceDto
         {
@@ -48,9 +44,7 @@ public class ConnectionStringEncryptionTest
 
         // Act
         var addResult = await repository.AddDatasourceAsync(testDatasource);
-        var retrievedConnectionString = await repository.GetConnectionStringAsync(
-            "Test-Encryption"
-        );
+        var retrievedConnectionString = await repository.GetConnectionStringAsync("Test-Encryption");
 
         // Assert
         addResult.Should().BeTrue();
@@ -59,7 +53,7 @@ public class ConnectionStringEncryptionTest
     }
 
     [Fact]
-    public async Task Repository_HandlesNullConnectionString_Correctly()
+    public async Task Should_require_repository_handles_null_connection_string_correctly_Async()
     {
         // Arrange
         var encryptionKey = CryptoUtils.GenerateEncryptionKey();
@@ -69,11 +63,7 @@ public class ConnectionStringEncryptionTest
         var logger = new LoggerFactory().CreateLogger<InMemoryDapperMaticDatasourceRepository>();
         var idFactory = new GuidDatasourceIdFactory();
 
-        var repository = new InMemoryDapperMaticDatasourceRepository(
-            optionsWrapper,
-            idFactory,
-            logger
-        );
+        var repository = new InMemoryDapperMaticDatasourceRepository(optionsWrapper, idFactory, logger);
 
         // Act
         var retrievedConnectionString = await repository.GetConnectionStringAsync("NonExistent");

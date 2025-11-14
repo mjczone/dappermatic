@@ -15,12 +15,12 @@ public class JsonStringEnumSchemaFilter : ISchemaFilter
         {
             schema.Enum.Clear();
             var enumNames = Enum.GetNames(context.Type);
-            
+
             foreach (var enumName in enumNames)
             {
                 schema.Enum.Add(new OpenApiString(enumName));
             }
-            
+
             schema.Type = "string";
             schema.Format = null;
         }

@@ -4,14 +4,25 @@
 // See LICENSE in the project root for license information.
 
 using System.Reflection;
-
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
-
 using Testcontainers.MsSql;
 using Testcontainers.MySql;
 using Testcontainers.PostgreSql;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests;
+
+/// <summary>
+/// Flags to control which containers are initialized.
+/// </summary>
+[Flags]
+public enum ContainerTypes
+{
+    None = 0,
+    SqlServer = 1,
+    MySql = 2,
+    PostgreSql = 4,
+    All = SqlServer | MySql | PostgreSql,
+}
 
 /// <summary>
 /// Testcontainers assembly fixture for setting up and tearing down test containers.
@@ -24,34 +35,49 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
     public const string DatasourceId_PostgreSql = "Test-PostgreSQL";
     public const string DatasourceId_Sqlite = "Test-SQLite";
 
-    private readonly MsSqlContainer _sqlServerContainer;
-    private readonly MySqlContainer _mySqlContainer;
-    private readonly PostgreSqlContainer _postgreSqlContainer;
+    private readonly ContainerTypes _containerTypes;
+    private readonly MsSqlContainer? _sqlServerContainer;
+    private readonly MySqlContainer? _mySqlContainer;
+    private readonly PostgreSqlContainer? _postgreSqlContainer;
     private readonly string _tempFilePath;
     private readonly string _sqliteFilePath;
 
     public TestcontainersAssemblyFixture()
+        : this(ContainerTypes.All) { }
+
+    private TestcontainersAssemblyFixture(ContainerTypes containerTypes)
     {
-        _sqlServerContainer = new MsSqlBuilder()
-            .WithImage("mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04")
-            .WithPassword("Strong_password_123!")
-            .WithAutoRemove(true)
-            .WithCleanUp(true)
-            .Build();
+        _containerTypes = containerTypes;
 
-        _mySqlContainer = new MySqlBuilder()
-            .WithImage("mysql:8.4")
-            .WithPassword("Strong_password_123!")
-            .WithAutoRemove(true)
-            .WithCleanUp(true)
-            .Build();
+        if (containerTypes.HasFlag(ContainerTypes.SqlServer))
+        {
+            _sqlServerContainer = new MsSqlBuilder()
+                .WithImage("mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04")
+                .WithPassword("Strong_password_123!")
+                .WithAutoRemove(true)
+                .WithCleanUp(true)
+                .Build();
+        }
 
-        _postgreSqlContainer = new PostgreSqlBuilder()
-            .WithImage("postgres:16")
-            .WithPassword("Strong_password_123!")
-            .WithAutoRemove(true)
-            .WithCleanUp(true)
-            .Build();
+        if (containerTypes.HasFlag(ContainerTypes.MySql))
+        {
+            _mySqlContainer = new MySqlBuilder()
+                .WithImage("mysql:8.4")
+                .WithPassword("Strong_password_123!")
+                .WithAutoRemove(true)
+                .WithCleanUp(true)
+                .Build();
+        }
+
+        if (containerTypes.HasFlag(ContainerTypes.PostgreSql))
+        {
+            _postgreSqlContainer = new PostgreSqlBuilder()
+                .WithImage("postgres:16")
+                .WithPassword("Strong_password_123!")
+                .WithAutoRemove(true)
+                .WithCleanUp(true)
+                .Build();
+        }
 
         var uniqueHandle = Guid.NewGuid().ToString("N");
 
@@ -62,12 +88,21 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
         _sqliteFilePath = Path.Combine(assemblyDirectory, $"dappermatic-testdb-{uniqueHandle}.db");
     }
 
-    public virtual string SqlServerConnectionString => _sqlServerContainer.GetConnectionString();
-    public virtual string MySqlConnectionString => _mySqlContainer.GetConnectionString();
-    public virtual string PostgreSqlConnectionString => _postgreSqlContainer.GetConnectionString();
-    public virtual string SqlServerContainerId => $"{_sqlServerContainer.Id}";
-    public virtual string MySqlContainerId => $"{_mySqlContainer.Id}";
-    public virtual string PostgreSqlContainerId => $"{_postgreSqlContainer.Id}";
+    public virtual string SqlServerConnectionString =>
+        _sqlServerContainer?.GetConnectionString()
+        ?? throw new InvalidOperationException("SQL Server container not initialized");
+    public virtual string MySqlConnectionString =>
+        _mySqlContainer?.GetConnectionString()
+        ?? throw new InvalidOperationException("MySQL container not initialized");
+    public virtual string PostgreSqlConnectionString =>
+        _postgreSqlContainer?.GetConnectionString()
+        ?? throw new InvalidOperationException("PostgreSQL container not initialized");
+    public virtual string SqlServerContainerId =>
+        _sqlServerContainer?.Id ?? throw new InvalidOperationException("SQL Server container not initialized");
+    public virtual string MySqlContainerId =>
+        _mySqlContainer?.Id ?? throw new InvalidOperationException("MySQL container not initialized");
+    public virtual string PostgreSqlContainerId =>
+        _postgreSqlContainer?.Id ?? throw new InvalidOperationException("PostgreSQL container not initialized");
 
     public virtual string TempFilePath => _tempFilePath;
 
@@ -80,69 +115,84 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
             return _testDatasources.AsReadOnly();
         }
 
-        _testDatasources =
-        [
-            new DatasourceDto
-            {
-                Id = DatasourceId_SqlServer,
-                Provider = "SqlServer",
-                ConnectionString = SqlServerConnectionString,
-                DisplayName = "Test SQL Server",
-                Description = "SQL Server test container",
-                Tags = ["test", "sqlserver"],
-            },
-            new DatasourceDto
-            {
-                Id = DatasourceId_MySql,
-                Provider = "MySql",
-                ConnectionString = MySqlConnectionString,
-                DisplayName = "Test MySQL",
-                Description = "MySQL test container",
-                Tags = ["test", "mysql"],
-            },
-            new DatasourceDto
-            {
-                Id = DatasourceId_PostgreSql,
-                Provider = "PostgreSql",
-                ConnectionString = PostgreSqlConnectionString,
-                DisplayName = "Test PostgreSQL",
-                Description = "PostgreSQL test container",
-                Tags = ["test", "postgresql"],
-            },
-            // The problem with in-memory SQLite is that the connection must remain open for the lifetime of the database.
-            // This makes it difficult to use in tests where connections are opened and closed frequently.
-            // new DatasourceDto
-            // {
-            //     Id = DatasourceId_Sqlite,
-            //     Provider = "Sqlite",
-            //     ConnectionString = "Data Source=:memory:",
-            //     DisplayName = "Test SQLite",
-            //     Description = "In-memory SQLite database",
-            //     Tags = ["test", "sqlite"],
-            // },
+        var datasources = new List<DatasourceDto>();
+
+        if (_containerTypes.HasFlag(ContainerTypes.SqlServer))
+        {
+            datasources.Add(
+                new DatasourceDto
+                {
+                    Id = DatasourceId_SqlServer,
+                    Provider = "SqlServer",
+                    ConnectionString = SqlServerConnectionString,
+                    DisplayName = "Test SQL Server",
+                    Description = "SQL Server test container",
+                    Tags = ["test", "sqlserver"],
+                }
+            );
+        }
+
+        if (_containerTypes.HasFlag(ContainerTypes.MySql))
+        {
+            datasources.Add(
+                new DatasourceDto
+                {
+                    Id = DatasourceId_MySql,
+                    Provider = "MySql",
+                    ConnectionString = MySqlConnectionString,
+                    DisplayName = "Test MySQL",
+                    Description = "MySQL test container",
+                    Tags = ["test", "mysql"],
+                }
+            );
+        }
+
+        if (_containerTypes.HasFlag(ContainerTypes.PostgreSql))
+        {
+            datasources.Add(
+                new DatasourceDto
+                {
+                    Id = DatasourceId_PostgreSql,
+                    Provider = "PostgreSql",
+                    ConnectionString = PostgreSqlConnectionString,
+                    DisplayName = "Test PostgreSQL",
+                    Description = "PostgreSQL test container",
+                    Tags = ["test", "postgresql"],
+                }
+            );
+        }
+
+        // SQLite is always available (no container needed)
+        // The problem with in-memory SQLite is that the connection must remain open for the lifetime of the database.
+        // This makes it difficult to use in tests where connections are opened and closed frequently.
+        // new DatasourceDto
+        // {
+        //     Id = DatasourceId_Sqlite,
+        //     Provider = "Sqlite",
+        //     ConnectionString = "Data Source=:memory:",
+        //     DisplayName = "Test SQLite",
+        //     Description = "In-memory SQLite database",
+        //     Tags = ["test", "sqlite"],
+        // },
+        datasources.Add(
             new DatasourceDto
             {
                 Id = DatasourceId_Sqlite,
                 Provider = "Sqlite",
                 ConnectionString = new System.Data.SQLite.SQLiteConnectionStringBuilder
                 {
-                    DataSource = string.IsNullOrWhiteSpace(sqliteFile)
-                        ? _sqliteFilePath
-                        : sqliteFile,
-                    // ForeignKeys = true,
-                    // JournalMode = System.Data.SQLite.SQLiteJournalModeEnum.Off,
-                    // SyncMode = System.Data.SQLite.SynchronizationModes.Full,
-                    // Pooling = false,
-                    // CacheSize = 0, // 10 MB
-                    // PageSize = 4096,
-                    // DefaultTimeout = 5000, // 5 seconds
+                    DataSource = string.IsNullOrWhiteSpace(sqliteFile) ? _sqliteFilePath : sqliteFile,
+                    ForeignKeys = true,
+                    BinaryGUID = false,
                     FailIfMissing = false,
                 }.ToString(),
                 DisplayName = "Test SQLite",
                 Description = "SQLite database file",
                 Tags = ["test", "sqlite"],
-            },
-        ];
+            }
+        );
+
+        _testDatasources = datasources;
         return _testDatasources.AsReadOnly();
     }
 
@@ -158,22 +208,40 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        await Task.WhenAll(
-                _sqlServerContainer.StartAsync(),
-                _mySqlContainer.StartAsync(),
-                _postgreSqlContainer.StartAsync()
-            )
-            .ConfigureAwait(false);
+        var tasks = new List<Task>();
+
+        if (_sqlServerContainer != null)
+            tasks.Add(_sqlServerContainer.StartAsync());
+
+        if (_mySqlContainer != null)
+            tasks.Add(_mySqlContainer.StartAsync());
+
+        if (_postgreSqlContainer != null)
+            tasks.Add(_postgreSqlContainer.StartAsync());
+
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
     }
 
     public async Task DisposeAsync()
     {
-        await Task.WhenAll(
-                _sqlServerContainer.DisposeAsync().AsTask(),
-                _mySqlContainer.DisposeAsync().AsTask(),
-                _postgreSqlContainer.DisposeAsync().AsTask()
-            )
-            .ConfigureAwait(false);
+        var tasks = new List<Task>();
+
+        if (_sqlServerContainer != null)
+            tasks.Add(_sqlServerContainer.DisposeAsync().AsTask());
+
+        if (_mySqlContainer != null)
+            tasks.Add(_mySqlContainer.DisposeAsync().AsTask());
+
+        if (_postgreSqlContainer != null)
+            tasks.Add(_postgreSqlContainer.DisposeAsync().AsTask());
+
+        if (tasks.Count > 0)
+        {
+            await Task.WhenAll(tasks).ConfigureAwait(false);
+        }
 
         if (File.Exists(_tempFilePath))
         {

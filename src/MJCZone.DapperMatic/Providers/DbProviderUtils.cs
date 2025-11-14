@@ -51,10 +51,7 @@ public static partial class DbProviderUtils
     /// <param name="tableName">The name of the table.</param>
     /// <param name="columnNames">The names of the columns.</param>
     /// <returns>The generated primary key constraint name.</returns>
-    public static string GeneratePrimaryKeyConstraintName(
-        string tableName,
-        params string[] columnNames
-    )
+    public static string GeneratePrimaryKeyConstraintName(string tableName, params string[] columnNames)
     {
         return "pk".ToRawIdentifier([tableName, .. columnNames]);
     }
@@ -125,9 +122,6 @@ public static partial class DbProviderUtils
         var version = m.Value;
         return Version.TryParse(version, out var vs)
             ? vs
-            : throw new ArgumentException(
-                $"Could not extract version from: {versionString}",
-                nameof(versionString)
-            );
+            : throw new ArgumentException($"Could not extract version from: {versionString}", nameof(versionString));
     }
 }

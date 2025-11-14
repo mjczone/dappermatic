@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
+using System.Linq.Expressions;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic;
@@ -11,6 +12,57 @@ namespace MJCZone.DapperMatic;
 public static partial class DbConnectionExtensions
 {
     #region IDatabaseUniqueConstraintMethods
+
+    /// <summary>
+    /// Checks if a unique constraint exists on a specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint exists.</returns>
+    public static async Task<bool> DoesUniqueConstraintExistOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesUniqueConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a unique constraint exists on a specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">The column expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint exists.</returns>
+    public static async Task<bool> DoesUniqueConstraintExistOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesUniqueConstraintExistOnColumnAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Checks if a unique constraint exists on a specified column.
@@ -32,14 +84,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesUniqueConstraintExistOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DoesUniqueConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a unique constraint exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint exists.</returns>
+    public static async Task<bool> DoesUniqueConstraintExistAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -63,14 +130,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DoesUniqueConstraintExistAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -91,6 +151,38 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .CreateUniqueConstraintIfNotExistsAsync(db, constraint, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Creates a unique constraint if it does not exist.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="columns">The columns.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint was created.</returns>
+    public static async Task<bool> CreateUniqueConstraintIfNotExistsAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        DmOrderedColumn[] columns,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .CreateUniqueConstraintIfNotExistsAsync(
+                db,
+                schemaName,
+                tableName,
+                constraintName,
+                columns,
+                tx,
+                cancellationToken
+            )
             .ConfigureAwait(false);
     }
 
@@ -131,6 +223,57 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Gets the unique constraint on a specified column.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the unique constraint.</returns>
+    public static async Task<DmUniqueConstraint?> GetUniqueConstraintOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint on a specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">The column expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the unique constraint.</returns>
+    public static async Task<DmUniqueConstraint?> GetUniqueConstraintOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintOnColumnAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint on a specified column.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -148,14 +291,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the unique constraint.</returns>
+    public static async Task<DmUniqueConstraint?> GetUniqueConstraintAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -179,14 +337,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraints.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the list of unique constraints.</returns>
+    public static async Task<List<DmUniqueConstraint>> GetUniqueConstraintsAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -210,11 +383,55 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintsAsync(
+            .GetUniqueConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint name on a specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the unique constraint name.</returns>
+    public static async Task<string?> GetUniqueConstraintNameOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint name on a specified column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">The column expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the unique constraint name.</returns>
+    public static async Task<string?> GetUniqueConstraintNameOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintNameOnColumnAsync(
                 db,
                 schemaName,
                 tableName,
-                constraintNameFilter,
+                DmTableFactory.GetColumnName(columnExpression),
                 tx,
                 cancellationToken
             )
@@ -241,14 +458,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintNameOnColumnAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .GetUniqueConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the unique constraint names.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the list of unique constraint names.</returns>
+    public static async Task<List<string>> GetUniqueConstraintNamesAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetUniqueConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -272,11 +504,55 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .GetUniqueConstraintNamesAsync(
+            .GetUniqueConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the unique constraint on a specified column if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint was dropped.</returns>
+    public static async Task<bool> DropUniqueConstraintOnColumnIfExistsAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropUniqueConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the unique constraint on a specified column if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">The column expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint was dropped.</returns>
+    public static async Task<bool> DropUniqueConstraintOnColumnIfExistsAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropUniqueConstraintOnColumnIfExistsAsync(
                 db,
                 schemaName,
                 tableName,
-                constraintNameFilter,
+                DmTableFactory.GetColumnName(columnExpression),
                 tx,
                 cancellationToken
             )
@@ -303,14 +579,29 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropUniqueConstraintOnColumnIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                columnName,
-                tx,
-                cancellationToken
-            )
+            .DropUniqueConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the unique constraint if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains a boolean indicating whether the unique constraint was dropped.</returns>
+    public static async Task<bool> DropUniqueConstraintIfExistsAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropUniqueConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -334,14 +625,7 @@ public static partial class DbConnectionExtensions
     )
     {
         return await Database(db)
-            .DropUniqueConstraintIfExistsAsync(
-                db,
-                schemaName,
-                tableName,
-                constraintName,
-                tx,
-                cancellationToken
-            )
+            .DropUniqueConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
     #endregion // IDatabaseUniqueConstraintMethods

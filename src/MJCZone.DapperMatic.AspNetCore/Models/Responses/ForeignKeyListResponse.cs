@@ -8,20 +8,29 @@ using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 namespace MJCZone.DapperMatic.AspNetCore.Models.Responses;
 
 /// <summary>
-/// Response model for foreign key list operations.
+/// Response model for listing multiple foreign key constraints.
 /// </summary>
-public class ForeignKeyListResponse : ResponseBase<IEnumerable<ForeignKeyConstraintDto>>
+public class ForeignKeyListResponse
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="ForeignKeyListResponse"/> class.
     /// </summary>
     public ForeignKeyListResponse()
-        : base([]) { }
+    {
+        Result = [];
+    }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="ForeignKeyListResponse"/> class.
     /// </summary>
-    /// <param name="foreignKeysConstraints">The list of foreign key constraints.</param>
-    public ForeignKeyListResponse(IEnumerable<ForeignKeyConstraintDto> foreignKeysConstraints)
-        : base(foreignKeysConstraints) { }
+    /// <param name="result">The list of foreign key constraints.</param>
+    public ForeignKeyListResponse(IEnumerable<ForeignKeyConstraintDto> result)
+    {
+        Result = result;
+    }
+
+    /// <summary>
+    /// Gets or sets the list of foreign key constraints.
+    /// </summary>
+    public IEnumerable<ForeignKeyConstraintDto> Result { get; set; }
 }
