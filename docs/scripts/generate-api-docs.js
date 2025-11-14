@@ -43,8 +43,31 @@ function sanitizeInheritanceUrl(url) {
 // Helper to format documentation text
 function formatDocumentation(text) {
   if (!text) return "";
+
   // Convert <see cref="T:TypeName" /> to inline code
-  return text.replace(/<see cref="[A-Z]:([^"]+)" \/>/g, "`$1`");
+  let result = text.replace(/<see cref="[A-Z]:([^"]+)" \/>/g, (match, typeName) => {
+    // Clean up the type name (remove namespace prefixes, handle generics)
+    const cleanName = typeName
+      .split('.')
+      .pop()
+      .replace(/`\d+$/, ''); // Remove generic arity markers like `1
+    return `\`${cleanName}\``;
+  });
+
+  // Escape ALL remaining angle brackets
+  let escaped = '';
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+    if (char === '<') {
+      escaped += '&lt;';
+    } else if (char === '>') {
+      escaped += '&gt;';
+    } else {
+      escaped += char;
+    }
+  }
+
+  return escaped;
 }
 
 // Helper to format text for use in markdown tables (removes line breaks)
@@ -145,7 +168,21 @@ function formatTypeWithLinks(
     result = result.replace(regex, link);
   }
 
-  return wrapInCode ? `\`${result}\`` : result;
+  // Escape ALL angle brackets - they shouldn't appear in type names outside code blocks
+  // Even inside markdown links, generic type parameters like <T> need escaping
+  let escaped = '';
+  for (let i = 0; i < result.length; i++) {
+    const char = result[i];
+    if (char === '<') {
+      escaped += '&lt;';
+    } else if (char === '>') {
+      escaped += '&gt;';
+    } else {
+      escaped += char;
+    }
+  }
+
+  return wrapInCode ? `\`${escaped}\`` : escaped;
 }
 
 // Helper to check if a type is primitive
@@ -239,17 +276,17 @@ function createDisplayName(namespaceName, assemblyName) {
 // Helper to create clickable type links for parameters
 function createTypeLink(typeName, assemblyName, documentedTypes) {
   if (!typeName || isPrimitiveType(typeName)) {
-    return typeName;
+    return escapeAngleBrackets(typeName);
   }
 
   // Reuse the same logic as inheritance links
   const foundTypeKey = findDocumentedTypeKey(typeName, documentedTypes);
   if (foundTypeKey) {
     const typeUrl = `/api/${sanitizeUrlName(assemblyName)}/${foundTypeKey}`;
-    return `[${typeName}](${typeUrl})`;
+    return escapeAngleBrackets(`[${typeName}](${typeUrl})`);
   }
 
-  return typeName;
+  return escapeAngleBrackets(typeName);
 }
 
 // Helper to extract parameter types from commentId
@@ -293,6 +330,24 @@ function extractParameterTypes(commentId) {
 
     return cleanType;
   });
+}
+
+// Helper to escape angle brackets for use in markdown (simple character-by-character)
+function escapeAngleBrackets(text) {
+  if (!text) return text;
+
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    if (char === '<') {
+      result += '&lt;';
+    } else if (char === '>') {
+      result += '&gt;';
+    } else {
+      result += char;
+    }
+  }
+  return result;
 }
 
 // Helper to shorten type names for better readability
@@ -346,12 +401,13 @@ function getMethodSignature(method) {
 
   // If signature is short enough, use single line (80 chars is a good threshold)
   if (singleLineSignature.length <= 80) {
-    return singleLineSignature;
+    return escapeAngleBrackets(singleLineSignature);
   }
 
   // For long signatures, use multi-line format
   if (params.length === 0) {
-    return returnType ? `${returnType} ${methodName}()` : `${methodName}()`;
+    const signature = returnType ? `${returnType} ${methodName}()` : `${methodName}()`;
+    return escapeAngleBrackets(signature);
   }
 
   const multiLineParams = paramStrings
@@ -362,9 +418,11 @@ function getMethodSignature(method) {
     })
     .join("\n");
 
-  return returnType
+  const signature = returnType
     ? `${returnType} ${methodName}(\n${multiLineParams})`
     : `${methodName}(\n${multiLineParams})`;
+
+  return escapeAngleBrackets(signature);
 }
 
 // Generate markdown for a type (class, interface, enum, etc.)
@@ -519,7 +577,7 @@ function generateTypeMarkdown(
             documentedTypes
           );
           markdown += `- **${param.name}** (${typeLink}) - ${
-            param.text || "No description"
+            escapeAngleBrackets(param.text) || "No description"
           }\n`;
         });
         markdown += "\n";
@@ -569,7 +627,7 @@ function generateTypeMarkdown(
             documentedTypes
           );
           markdown += `- **${param.name}** (${typeLink}) - ${
-            param.text || "No description"
+            escapeAngleBrackets(param.text) || "No description"
           }\n`;
         });
         markdown += "\n";
