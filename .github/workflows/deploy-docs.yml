@@ -49,7 +49,7 @@ jobs:
       # artifacts used in the documentation
       - name: Build docs assets
         run: |
-          dotnet test --configuration Release /p:Version=${VERSION_NUMBER} --filter "MJCZone.DapperMatic.Tests.TestOutputDocs" --no-build
+          dotnet test tests/MJCZone.DapperMatic.Tests --configuration Release /p:Version=${VERSION_NUMBER} --filter "Can_generate_docs" --no-build
           # Replace VERSION_NUMBER in docs/index.md with actual version
           sed -i "s/VERSION_NUMBER/${VERSION_NUMBER}/g" docs/index.md
 

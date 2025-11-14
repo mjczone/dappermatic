@@ -33,6 +33,7 @@ docs/api/**/*.md
 !docs/api/.gitkeep
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/packages/*.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
