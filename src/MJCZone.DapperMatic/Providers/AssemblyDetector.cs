@@ -35,7 +35,8 @@ public static class AssemblyDetector
 
     /// <summary>
     /// Gets a value indicating whether Microsoft.SqlServer.Types assembly is available.
-    /// Used for SqlGeography, SqlGeometry, SqlHierarchyId type support.
+    /// Note: SQL Server native spatial types (SqlGeography, SqlGeometry, SqlHierarchyId) are NOT currently supported
+    /// due to platform-specific native library dependencies. Use NetTopologySuite for cross-platform spatial support.
     /// </summary>
     public static bool HasSqlServerTypes
     {

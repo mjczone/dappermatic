@@ -275,21 +275,21 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(NpgsqlTsVector), "varchar(max)", "text", "tsvector", "varchar(-1)")]
     // NetTopologySuite Geometry Types
     // SQL Server uses VARCHAR(MAX) for NTS types (WKT text format, no native SqlGeometry support)
-    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "varchar(max)", "geometry", "geometry", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "varchar(max)", "geomcollection", "geometry(GeometryCollection)", "varchar(-1)", false, null, null, null, false, "geometrycollection", "geometrycollection")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Point), "varchar(max)", "point", "geometry(Point)", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "varchar(max)", "linestring", "geometry(LineString)", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "varchar(max)", "polygon", "geometry(Polygon)", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "varchar(max)", "multipoint", "geometry(MultiPoint)", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "varchar(max)", "multilinestring", "geometry(MultiLineString)", "varchar(-1)")]
-    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "varchar(max)", "multipolygon", "geometry(MultiPolygon)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Geometry), "varchar(max)", "text", "geometry", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.GeometryCollection), "varchar(max)", "text", "geometry(GeometryCollection)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Point), "varchar(max)", "text", "geometry(Point)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.LineString), "varchar(max)", "text", "geometry(LineString)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.Polygon), "varchar(max)", "text", "geometry(Polygon)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPoint), "varchar(max)", "text", "geometry(MultiPoint)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiLineString), "varchar(max)", "text", "geometry(MultiLineString)", "varchar(-1)")]
+    [InlineData(typeof(NetTopologySuite.Geometries.MultiPolygon), "varchar(max)", "text", "geometry(MultiPolygon)", "varchar(-1)")]
     // Network Types
     [InlineData(typeof(IPAddress), "varchar(17)", "varchar(17)", "inet", "varchar(17)", false, 17)]
     [InlineData(typeof(PhysicalAddress), "varchar(43)", "varchar(43)", "macaddr", "varchar(43)", false, 43)]
     // MySqlConnector Spatial Types
     // SQL Server uses VARCHAR(MAX) for MySQL geometric types (no native SqlGeometry support)
-    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)", false, null, null, null, false, null, "geometry")]
-    [InlineData(typeof(MySqlConnector.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)", false, null, null, null, false, null, "geometry")]
+    [InlineData(typeof(MySql.Data.Types.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)")]
+    [InlineData(typeof(MySqlConnector.MySqlGeometry), "varchar(max)", "geometry", "text", "varchar(-1)")]
     // csharpier-ignore-end
     protected virtual async Task Should_map_dotnet_types_to_expected_provider_data_types(
         Type type,

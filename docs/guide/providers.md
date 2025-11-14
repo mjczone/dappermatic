@@ -36,7 +36,7 @@ await connection.CreateTableIfNotExistsAsync(table);
 
 - Full DDL support including all constraint types
 - Auto-increment columns via `IDENTITY`
-- Rich data type support including spatial types
+- Rich data type support
 - Computed columns and check constraints
 - Filtered indexes and included columns
 
@@ -833,7 +833,7 @@ You get the same .NET type with the same metadata (length/precision/scale).
 When reverse-engineering database schemas (DDL operations), DapperMatic uses a **priority-based type selection** strategy for advanced types like spatial data, hierarchical data, and specialized PostgreSQL types. This ensures the best possible .NET type is selected based on available assemblies:
 
 **Priority Order:**
-1. **Native provider types** (if assembly available) - e.g., `Microsoft.SqlServer.Types`, `MySql.Data.Types`
+1. **Native provider types** (if assembly available) - e.g., `MySql.Data.Types`
 2. **Cross-platform types** (if assembly available) - e.g., `NetTopologySuite.Geometries.*`
 3. **Fallback to primitives** - `string` (text serialization) or `byte[]` (binary serialization)
 
@@ -842,17 +842,12 @@ When reverse-engineering database schemas (DDL operations), DapperMatic uses a *
 DapperMatic automatically detects these optional assemblies at runtime:
 
 - **NetTopologySuite** (`NetTopologySuite` NuGet package) - Cross-database spatial types
-- **Microsoft.SqlServer.Types** (`Microsoft.SqlServer.Types` NuGet package) - SQL Server spatial/hierarchical types
 - **MySql.Data** (`MySql.Data` NuGet package) - MySQL spatial types (alternative to MySqlConnector)
 
 **Examples:**
 
 | Database Type | Available Assemblies | Selected .NET Type | Fallback (if not available) |
 | ------------- | -------------------- | ------------------ | --------------------------- |
-| **SQL Server `geometry`** | NetTopologySuite | `NetTopologySuite.Geometries.Geometry` | `byte[]` (WKB format) |
-| **SQL Server `geometry`** | SqlServer.Types (no NTS) | `Microsoft.SqlServer.Types.SqlGeometry` | `byte[]` (WKB format) |
-| **SQL Server `geography`** | SqlServer.Types | `Microsoft.SqlServer.Types.SqlGeography` | `byte[]` (WKB format) |
-| **SQL Server `hierarchyid`** | SqlServer.Types | `Microsoft.SqlServer.Types.SqlHierarchyId` | `string` (e.g., "/1/2/3/") |
 | **MySQL `point`** | NetTopologySuite | `NetTopologySuite.Geometries.Point` | `string` (WKT format) |
 | **MySQL `geometry`** | MySql.Data (no NTS) | `MySql.Data.Types.MySqlGeometry` | `string` (WKT format) |
 | **PostgreSQL `geometry`** (PostGIS) | NetTopologySuite | `NetTopologySuite.Geometries.Geometry` | `string` (WKT format) |
@@ -890,9 +885,6 @@ This gives you consistent `Geometry`, `Point`, `LineString`, etc. types regardle
 | `datetimeoffset` | `DateTimeOffset` | | | | | Date, time, and timezone offset |
 | `decimal` | `decimal` | | 18 | 2 | | Fixed-point decimal |
 | `float` | `double` | | | | | 64-bit floating point |
-| `geography` | `SqlGeography` or `byte[]` | | | | | Spatial geography type (requires Microsoft.SqlServer.Types) |
-| `geometry` | `Geometry` or `SqlGeometry` or `byte[]` | | | | | Spatial geometry type (NetTopologySuite or Microsoft.SqlServer.Types) |
-| `hierarchyid` | `SqlHierarchyId` or `string` | | | | | Hierarchical data type (requires Microsoft.SqlServer.Types) |
 | `image` | `byte[]` | | | | | Legacy binary type (deprecated) |
 | `int` | `int` | | | | | 32-bit integer |
 | `money` | `decimal` | | | | | Currency type |
