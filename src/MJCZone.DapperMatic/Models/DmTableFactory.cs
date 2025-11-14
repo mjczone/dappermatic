@@ -5,6 +5,7 @@
 
 using System.Collections.Concurrent;
 using System.Data;
+using System.Linq.Expressions;
 using System.Reflection;
 using MJCZone.DapperMatic.DataAnnotations;
 using MJCZone.DapperMatic.Providers;
@@ -174,6 +175,114 @@ public static class DmTableFactory
     }
 
     /// <summary>
+    /// Gets the PropertyInfo for a property, given an expression.
+    /// </summary>
+    /// <typeparam name="T">The type containing the property.</typeparam>
+    /// <param name="propertyExpression">An expression that selects the property.</param>
+    /// <returns>The column name for the property.</returns>
+    public static PropertyInfo GetPropertyInfo<T>(Expression<Func<T, object>> propertyExpression)
+    {
+        MemberExpression? memberExpression;
+
+        // Handle UnaryExpression (boxing conversion for value types)
+        if (propertyExpression.Body is UnaryExpression unaryExpression)
+        {
+            memberExpression = unaryExpression.Operand as MemberExpression;
+        }
+        else
+        {
+            memberExpression = propertyExpression.Body as MemberExpression;
+        }
+
+        if (memberExpression == null)
+        {
+            throw new ArgumentException("Expression must be a property expression");
+        }
+
+        var propertyInfo = memberExpression.Member as PropertyInfo;
+        if (propertyInfo == null)
+        {
+            throw new ArgumentException("Expression must refer to a property");
+        }
+
+        return propertyInfo;
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <param name="property">The property to get the column name for.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName(PropertyInfo property)
+    {
+        return GetColumnName(property, out var _);
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <typeparam name="T">The type containing the property.</typeparam>
+    /// <param name="propertyExpression">An expression that selects the property.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName<T>(Expression<Func<T, object>> propertyExpression)
+    {
+        var propertyInfo = GetPropertyInfo(propertyExpression);
+        return propertyInfo == null
+            ? throw new ArgumentException("Expression must refer to a property")
+            : GetColumnName(propertyInfo, out var _);
+    }
+
+    /// <summary>
+    /// Gets the column name for a property, considering various attributes that may specify the column name.
+    /// </summary>
+    /// <param name="property">The property to get the column name for.</param>
+    /// <param name="columnAttribute">The DmColumnAttribute applied to the property, if any.</param>
+    /// <returns>The column name for the property.</returns>
+    public static string GetColumnName(PropertyInfo property, out DmColumnAttribute? columnAttribute)
+    {
+        var propertyAttributes = property.GetCustomAttributes().ToArray();
+        columnAttribute = property.GetCustomAttribute<DmColumnAttribute>();
+        var columnName =
+            propertyAttributes
+                .Select(pa =>
+                {
+                    var paType = pa.GetType();
+                    if (pa is DmColumnAttribute dca && !string.IsNullOrWhiteSpace(dca.ColumnName))
+                    {
+                        return dca.ColumnName;
+                    }
+                    // EF Core
+                    else if (
+                        pa is System.ComponentModel.DataAnnotations.Schema.ColumnAttribute ca
+                        && !string.IsNullOrWhiteSpace(ca.Name)
+                    )
+                    {
+                        return ca.Name;
+                    }
+                    // ServiceStack.OrmLite
+                    else if (
+                        paType.Name == "AliasAttribute"
+                        && pa.TryGetPropertyValue<string>("Name", out var name)
+                        && !string.IsNullOrWhiteSpace(name)
+                    )
+                    {
+                        return name;
+                    }
+
+                    return null;
+                })
+                .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
+            ?? columnAttribute?.ColumnName;
+        if (string.IsNullOrWhiteSpace(columnName))
+        {
+            // If no column name is specified, use the property name as the column name
+            columnName = property.Name;
+        }
+
+        return columnName;
+    }
+
+    /// <summary>
     /// Internal method to clear the cache for testing purposes only.
     /// This is not part of the public API and should not be used in production code.
     /// </summary>
@@ -225,44 +334,7 @@ public static class DmTableFactory
                 continue;
             }
 
-            var columnAttribute = property.GetCustomAttribute<DmColumnAttribute>();
-            var columnName =
-                propertyAttributes
-                    .Select(pa =>
-                    {
-                        var paType = pa.GetType();
-                        if (pa is DmColumnAttribute dca && !string.IsNullOrWhiteSpace(dca.ColumnName))
-                        {
-                            return dca.ColumnName;
-                        }
-                        // EF Core
-                        else if (
-                            pa is System.ComponentModel.DataAnnotations.Schema.ColumnAttribute ca
-                            && !string.IsNullOrWhiteSpace(ca.Name)
-                        )
-                        {
-                            return ca.Name;
-                        }
-                        // ServiceStack.OrmLite
-                        else if (
-                            paType.Name == "AliasAttribute"
-                            && pa.TryGetPropertyValue<string>("Name", out var name)
-                            && !string.IsNullOrWhiteSpace(name)
-                        )
-                        {
-                            return name;
-                        }
-
-                        return null;
-                    })
-                    .FirstOrDefault(n => !string.IsNullOrWhiteSpace(n))
-                ?? columnAttribute?.ColumnName;
-
-            if (string.IsNullOrWhiteSpace(columnName))
-            {
-                // If no column name is specified, use the property name as the column name
-                columnName = property.Name;
-            }
+            var columnName = GetColumnName(property, out var columnAttribute);
 
             var isPrimaryKey =
                 columnAttribute?.IsPrimaryKey == true

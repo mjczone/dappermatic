@@ -6,11 +6,9 @@
 
 **Model-first database schema management and query compatibility for .NET applications**
 
-DapperMatic extends `IDbConnection` with extension methods for:
-- **DDL operations** (Data Definition Language) - Create, modify, and inspect database schemas
-- **DML query compatibility** - Enhanced Dapper queries with attribute-based column mapping
+DapperMatic extends `IDbConnection` with extension methods for **DDL operations** (create/modify/inspect schemas) and **DML query compatibility** (enhanced Dapper queries with attribute-based column mapping) across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.
 
-Define database schemas using strongly-typed C# models and execute them across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite. Your Dapper queries automatically work with the same attribute-based mappings used for schema management.
+📚 **[Full Documentation](https://mjczone.github.io/dappermatic/)**
 
 ## Installation
 
@@ -24,212 +22,438 @@ dotnet add package MJCZone.DapperMatic
 dotnet add package MJCZone.DapperMatic.AspNetCore
 ```
 
+## Supported Database Providers
+
+| Provider | Versions Tested | Connection Types |
+|----------|----------|------------------|
+| **SQL Server** | 2017, 2019, 2022 | `Microsoft.Data.SqlClient`, `System.Data.SqlClient` |
+| **PostgreSQL** | 15, 16, 17 | `Npgsql` |
+| **MySQL** | 5.7, 8.4, 9.0+ | `MySqlConnector`, `MySQL.Data` |
+| **MariaDB** | 10.11, 11.4, 11.8, 12.0 | `MySqlConnector`, `MySQL.Data` |
+| **SQLite** | 3.x | `Microsoft.Data.Sqlite`, `System.Data.SQLite` |
+
 ## Quick Start
 
-### Basic Table Operations
+### 1. Define Your Models with Attributes
+
+```csharp
+using MJCZone.DapperMatic.DataAnnotations;
+using System.Text.Json;
+
+[DmTable("products")]
+[DmIndex(false, new[] { "product_name" }, "IX_Product_Name")] // Non-unique index on product name
+public class Product
+{
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_name", length: 200, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("price", precision: 18, scale: 2, isNullable: false)]
+    public decimal Price { get; set; }
+
+    [DmColumn("category", isNullable: false)]
+    public DayOfWeek Category { get; set; } // Enum stored as string
+
+    [DmColumn("tags", isNullable: true)]
+    public string[]? Tags { get; set; } // Smart array handling (native on PostgreSQL, JSON elsewhere)
+
+    [DmColumn("metadata", isNullable: true)]
+    public JsonDocument? Metadata { get; set; } // JSON storage
+
+    [DmColumn("attributes", isNullable: true)]
+    public Dictionary<string, object>? Attributes { get; set; } // Dictionary stored as JSON
+
+    [DmColumn("created_at", isNullable: false)]
+    public DateTime CreatedAt { get; set; }
+
+    [DmColumn("shipping_time", isNullable: true)]
+    public TimeSpan? ShippingTime { get; set; }
+
+    // Navigation property - not mapped to database
+    [DmIgnore]
+    public List<ProductDetails>? Details { get; set; }
+}
+
+[DmTable("ProductDetails")]
+public class ProductDetails
+{
+    [DmColumn("detail_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_id", isNullable: false)]
+    [DmForeignKeyConstraint(
+        referencedType: typeof(Product),
+        referencedColumnNames: new[] { "product_id" }
+    )] // Can be applied to Class as well
+    public int ProductId { get; set; }
+
+    [DmColumn("description", isNullable: false)]
+    public string Description { get; set; } = string.Empty;
+
+    [DmColumn("specs", isNullable: true)]
+    public Dictionary<string, object>? Specifications { get; set; }
+}
+```
+
+### 2. Create Tables from Models (DDL)
+
+There are hundreds of extension methods available for schema management, using typed, untyped, and expression-based APIs.
+
+Here are a few examples to get you started:
 
 ```csharp
 using MJCZone.DapperMatic;
-using MJCZone.DapperMatic.Models;
-using System.Data.SqlClient;
+using Microsoft.Data.SqlClient;
 
 // Connect to your database
 using var connection = new SqlConnection("your-connection-string");
 await connection.OpenAsync();
 
-// Define a table structure
-var table = new DmTable(
-    "dbo",
-    "Users",
-    [
-        new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
-        new DmColumn("name", typeof(string), isUnique: true),
-        new DmColumn("email", typeof(string), length: 255),
-        new DmColumn("created_at", typeof(DateTime))
-    ]
+// Create a schema
+await connection.CreateSchemaIfNotExistsAsync("public");
+
+// Create tables from your models (automatically handles relationships, without
+// needing to worry about the order of type creation)
+await connection.CreateTablesIfNotExistsAsync([typeof(Product), typeof(ProductDetails)]);
+// Or individually
+await connection.CreateTableIfNotExistsAsync<Product>();
+await connection.CreateTableIfNotExistsAsync(typeof(ProductDetails));
+
+// Untyped version
+await connection.CreateTableIfNotExistsAsync(
+    /*schemaName or null for default*/ "public", 
+    /*tableName*/ "products", 
+    /*columns*/ new[]
+    {
+        new DmColumn("product_id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+        new DmColumn("product_name", typeof(string), length: 200, isNullable: false),
+        new DmColumn("price", typeof(decimal), precision: 18, scale: 2, isNullable: false),
+        // Additional columns...
+    },
+    /* Optional indexes, constraints, etc. */
+    // , primaryKey:  new DmPrimaryKeyConstraint(...) { ...},
+    // , checkConstraints:  [ new DmCheckConstraint(...) { ... }, ... ],
+    // , defaultConstraints:  [ new DmDefaultConstraint(...) { ... }, ... ],
+    // , uniqueConstraints:  [ new DmUniqueConstraint(...) { ... }, ... ],
+    // , foreignKeyConstraints:  [ new DmForeignKeyConstraint(...) { ... }, ... ]
+    // , indexes:  [ new DmIndex(...) { ... }, ... ]
 );
 
-// Create the table
-await connection.CreateTableIfNotExistsAsync(table);
+// Verify tables exist
+bool productTableExists = await connection.DoesTableExistAsync<Product>();
+bool detailsTableExists = await connection.DoesTableExistAsync<ProductDetails>();
 
-// Verify it exists
-bool exists = await connection.DoesTableExistAsync("dbo", "Users");
+// Add a missing column
+await connection.CreateColumnIfNotExistsAsync<Product>(
+    new DmColumn("last_updated", typeof(DateTime), isNullable: true, /* additional optional arguments */)
+);
+// Or using expressions
+await connection.CreateColumnIfNotExistsAsync<Product>(
+    p => p.LastUpdated, 
+    // Optional additional configuration
+    col => 
+    {
+        col.IsNullable = true;
+    }
+);
+// Or untyped version
+await connection.CreateColumnIfNotExistsAsync(
+    /*schemaName or null for default*/ "public", 
+    /*tableName*/ "products", 
+    /*columnName*/ "discount",
+    /*dotnetType*/ typeof(decimal),
+    configureColumn: col =>
+    {
+        /* Optional customizations */
+        col.IsNullable = true;
+        col.Precision = 5;
+        col.Scale = 2;
 
-// Retrieve the table definition
-var existingTable = await connection.GetTableAsync("dbo", "Users");
+        /* Additional provider-specific data types */
+        col.ProviderDataTypes[DbProviderType.SqlServer] = "DECIMAL(5, 2)";
+        col.ProviderDataTypes[DbProviderType.PostgreSql] = "NUMERIC(5, 2)";
+
+        // Or use a custom types (e.g. with PostGIS extension)
+        // See DML documentation for spatial type support
+        //column.ProviderDataTypes[DbProviderType.PostgreSql] = "geometry(Point)";
+    }
+);
+
+// Drop a column
+await connection.DropColumnAsync<Product>("discount");
 ```
 
-### DML Query Compatibility
+### 3. Use with Dapper Queries (DML)
 
 ```csharp
 using MJCZone.DapperMatic.TypeMapping;
-using MJCZone.DapperMatic.DataAnnotations;
 using Dapper;
+using System.Text.Json;
 
-// Initialize once at application startup
+// Initialize type mappings once at application startup
 DapperMaticTypeMapping.Initialize();
 
-// Define a class with column mappings
-public class User
+// Insert with Dapper (column names are automatically mapped via DmColumn attributes)
+var product = new Product
 {
-    [DmColumn("user_id")]
-    public int UserId { get; set; }
+    Name = "Laptop",
+    Price = 999.99m,
+    Category = DayOfWeek.Monday,
+    Tags = new[] { "electronics", "computers" },
+    Metadata = JsonDocument.Parse(@"{""brand"": ""TechCorp""}"),
+    Attributes = new Dictionary<string, object>
+    {
+        ["warranty"] = "2 years",
+        ["inStock"] = true,
+    },
+    CreatedAt = DateTime.UtcNow,
+    ShippingTime = TimeSpan.FromDays(3),
+};
 
-    [DmColumn("full_name")]
-    public string FullName { get; set; } = string.Empty;
-
-    [DmColumn("email_address")]
-    public string EmailAddress { get; set; } = string.Empty;
-
-    [DmIgnore] // Not mapped from database
-    public string DisplayName { get; set; } = string.Empty;
-}
-
-// Dapper queries work automatically with attribute mappings
-var users = await connection.QueryAsync<User>(
-    "SELECT user_id, full_name, email_address FROM users WHERE user_id = @id",
-    new { id = 123 }
+await connection.ExecuteAsync(
+    @"INSERT INTO products (product_name, price, category, tags, metadata, attributes, created_at, shipping_time)
+      VALUES (@Name, @Price, @Category, @Tags, @Metadata, @Attributes, @CreatedAt, @ShippingTime)",
+    product
 );
 
-// Works with modern C# records too
-public record Product(int Id, string Name, decimal Price);
-
+// Query with Dapper (DmColumn attributes automatically map database columns to properties)
 var products = await connection.QueryAsync<Product>(
-    "SELECT id, name, price FROM products"
+    @"SELECT product_id, product_name, price, category, tags, metadata, attributes, created_at, shipping_time
+      FROM products
+      WHERE price > @MinPrice",
+    new { MinPrice = 500m }
 );
+
+foreach (var p in products)
+{
+    Console.WriteLine($"{p.Name}: ${p.Price}");
+    Console.WriteLine($"  Tags: {string.Join(", ", p.Tags ?? Array.Empty<string>())}");
+}
 ```
 
-### Schema Inspection
+### 4. Cross-Provider Support (Same Code, Any Database)
 
 ```csharp
-// Get all table names in a schema
-var tableNames = await connection.GetTableNamesAsync("dbo");
+using Microsoft.Data.SqlClient;
+using Npgsql;
+using MySqlConnector;
+using Microsoft.Data.Sqlite;
 
-// Get complete table definition with columns, constraints, and indexes
-var fullTable = await connection.GetTableAsync("dbo", "Users");
-
-// Get specific column information
-var columns = await connection.GetColumnsAsync("dbo", "Users");
-
-// Check for constraints and indexes
-var primaryKeys = await connection.GetPrimaryKeyConstraintsAsync("dbo", "Users");
-var indexes = await connection.GetIndexesAsync("dbo", "Users");
-```
-
-### Working with Multiple Providers
-
-```csharp
 // Same API works across all supported databases
 using var sqlServer = new SqlConnection(sqlServerConnectionString);
 using var postgres = new NpgsqlConnection(postgresConnectionString);
 using var mysql = new MySqlConnection(mysqlConnectionString);
 using var sqlite = new SqliteConnection(sqliteConnectionString);
 
-// Identical operations across providers
-await sqlServer.CreateTableIfNotExistsAsync(table);
-await postgres.CreateTableIfNotExistsAsync(table);
-await mysql.CreateTableIfNotExistsAsync(table);
-await sqlite.CreateTableIfNotExistsAsync(table);
+// Identical DDL operations across providers
+await sqlServer.CreateTableIfNotExistsAsync<Product>();
+await postgres.CreateTableIfNotExistsAsync<Product>();  // Arrays stored as native PostgreSQL arrays
+await mysql.CreateTableIfNotExistsAsync<Product>();     // Arrays stored as JSON
+await sqlite.CreateTableIfNotExistsAsync<Product>();    // Arrays stored as JSON
 ```
 
-## Key Capabilities
+## Key Capabilities at a Glance
 
-**Cross-Database Operations**
-- SQL Server (2019+), MySQL (8.0+), MariaDB (10.5+), PostgreSQL (13+), SQLite (3.35+)
-- Provider-specific SQL generation with consistent API
-- Automatic type mapping between .NET types and database-specific types
+| DDL Operations | DML Operations | ASP.NET Core Integration |
+|----------------|----------------|--------------------------|
+| Create/Drop Tables | Smart Type Handlers | REST API Endpoints |
+| Indexes & Constraints | Dapper Integration | Multi-Datasource Management |
+| Schema Inspection | Array/JSON/XML Support | Authorization Hooks |
+| Foreign Keys | Attribute-Based Mapping | Audit Logging |
+| Type Mapping | Modern C# (Records) | Encrypted Connection Strings |
 
-**Schema Management (DDL)**
-- Create, modify, and drop tables, columns, indexes, and constraints
-- Runtime schema inspection and validation
-- Support for complex column types including JSON, arrays (PostgreSQL), and spatial data
+### DDL Operations - Complete Schema Management
 
-**Query Compatibility (DML)**
-- Attribute-based column mapping for Dapper queries
-- Supports DapperMatic, EF Core, and ServiceStack.OrmLite attributes
-- Modern C# support: records with parameterized constructors
-- Advanced type handlers: XML (`XDocument`), JSON (`JsonDocument`), Collections (`Dictionary`, `List`)
-- Smart arrays: 15 array types with PostgreSQL native arrays (10-50x faster) and JSON fallback
-- Zero configuration after one-time initialization
+```csharp
+// Inspect existing schemas
+var tableNames = await connection.GetTableNamesAsync("dbo");
+var table = await connection.GetTableAsync("dbo", "products");
+var columns = await connection.GetColumnsAsync("dbo", "products");
+var indexes = await connection.GetIndexesAsync("dbo", "products");
+var foreignKeys = await connection.GetForeignKeyConstraintsAsync("dbo", "products");
 
-**Model-First Approach**
-- Define schemas using strongly-typed C# classes
-- Data annotations support (`[Table]`, `[Key]`, `[Column]`, `[DmColumn]` attributes)
-- Programmatic model building with `DmTable`, `DmColumn`, etc.
-- Same models work for both DDL and DML operations
+// Modify schemas
+await connection.AddColumnAsync("dbo", "products", new DmColumn("discount", typeof(decimal)));
+await connection.DropColumnAsync("dbo", "products", "discount");
 
-**Production-Ready**
-- SQL injection protection with expression validation
-- Comprehensive test coverage across all database providers
-- Transaction support for atomic schema changes
-- Performance-optimized type mapping with caching
+// Drop tables
+await connection.DropTableIfExistsAsync("dbo", "products");
+```
+
+### DML Operations - Advanced Type Support
+
+DapperMatic provides smart type handlers for seamless Dapper query compatibility:
+
+**Basic Types**: `int`, `long`, `string`, `decimal`, `DateTime`, `DateTimeOffset`, `TimeSpan`, `Guid`, `byte[]`
+
+**Advanced Types**:
+- **XML**: `XDocument` - Serialized across all providers
+- **JSON**: `JsonDocument` - Native JSON on supported providers
+- **Collections**: `Dictionary<TKey, TValue>`, `List<T>` - JSON serialization
+- **Arrays**: `string[]`, `int[]`, `DateTime[]`, etc. - Native PostgreSQL arrays, JSON fallback
+- **Network**: `IPAddress`, `PhysicalAddress`, `NpgsqlCidr` - PostgreSQL native, string elsewhere
+- **Spatial**: NetTopologySuite types, PostgreSQL geometric types, MySQL geometry
+- **Enums**: String-based storage with custom handlers
+
+**Example with complex types**:
+```csharp
+[DmTable("articles")]
+public class Article
+{
+    [DmColumn("article_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+    [DmColumn("content", isNullable: false)]
+    public XDocument Content { get; set; } = null!;      // XML storage
+    [DmColumn("settings", isNullable: false)]
+    public JsonDocument Settings { get; set; } = null!;   // JSON storage
+    [DmColumn("authors", isNullable: false)]
+    public string[] Authors { get; set; } = null!;        // Array (native PG, JSON elsewhere)
+    [DmColumn("source_ip", isNullable: true)]
+    public IPAddress? SourceIp { get; set; }              // Network type
+}
+
+// After DapperMaticTypeMapping.Initialize(/* configureOptions */), Dapper queries just work
+var articles = await connection.QueryAsync<Article>("SELECT * FROM articles");
+```
 
 ## ASP.NET Core Integration
 
-The ASP.NET Core integration package (`MJCZone.DapperMatic.AspNetCore`) provides REST API endpoints for database schema management:
+### Basic Setup
 
 ```csharp
+using MJCZone.DapperMatic.AspNetCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Register DapperMatic services
+// Register DapperMatic services with default in-memory datasource repositories
 builder.Services.AddDapperMatic();
 
 var app = builder.Build();
 
-// Add DapperMatic endpoints
+// Map DapperMatic API endpoints
 app.UseDapperMatic();
 
 app.Run();
 ```
 
-This creates REST endpoints for managing database schemas via HTTP API. Complete ASP.NET Core documentation will be available in future releases.
+This creates REST endpoints for managing database connections (datasources):
+- `POST /api/dappermatic/datasources/list` - List all datasources
+- `POST /api/dappermatic/datasources/get` - Get datasource by name
+- `POST /api/dappermatic/datasources/add` - Add new datasource
+- `POST /api/dappermatic/datasources/update` - Update existing datasource
+- `POST /api/dappermatic/datasources/remove` - Remove datasource
 
-## Database Provider Support
+### Custom Permission Handling
 
-| Provider | Versions | Connection Types |
-|----------|----------|------------------|
-| **SQL Server** | 2019+ | `Microsoft.Data.SqlClient`, `System.Data.SqlClient` |
-| **PostgreSQL** | 13+ | `Npgsql` |
-| **MySQL** | 8.0+ | `MySqlConnector`, `MySQL.Data` |
-| **MariaDB** | 10.5+ | `MySqlConnector`, `MySQL.Data` |
-| **SQLite** | 3.35+ | `Microsoft.Data.Sqlite`, `System.Data.SQLite` |
+```csharp
+using MJCZone.DapperMatic.AspNetCore.Interfaces;
 
-## Use Cases
+// Implement custom permissions (e.g., check user roles from database)
+public class CustomPermissions : IDapperMaticPermissions
+{
+    public CustomPermissions(/* Inject your dependencies here */)
+    {
+        // ...
+    }
 
-**Application Deployment**
-- Create database schemas during application startup
-- Validate existing database structure against expected schema
-- Handle schema migrations in applications that manage their own database structure
+    public async Task<bool> IsAuthorizedAsync(IOperationContext context)
+    {
+        // Example: Check if user is authenticated
+        if(context.User?.Identity?.IsAuthenticated != true)
+            return false;
 
-**Multi-Tenant Applications**
-- Create tenant-specific schemas and tables at runtime
-- Manage database structures for SaaS applications with dynamic schemas
+        //
+        // Add additional checks as needed
+        // 
+        // The context has information about the current datasource,
+        // operation, user, and access to critical request information.
+        //
 
-**Database Administration Tools**
-- Build tools for database schema management and inspection
-- Create utilities for comparing and synchronizing database structures
+        return true;
+    }
+}
 
-**Testing and Development**
-- Set up test databases with specific schema requirements
-- Create development tools for rapid database prototyping
+// Configure DapperMatic options from the appsettings.json file
+builder.Services.Configure<DapperMaticOptions>(builder.Configuration.GetSection("DapperMatic"));
 
-## Documentation
+// Override the datasource repository
+builder.Services.AddSingleton<IDapperMaticDatasourceRepository, CustomDatasourceRepository>();
 
-- **[DML Query Support Guide](https://mjczone.github.io/dappermatic/guide/dml-query-support.html)** - Complete guide to using Dapper queries with attribute mapping
-- **[API Reference](https://mjczone.github.io/dappermatic/)** - Comprehensive guides and examples
-- **[Database Providers](https://mjczone.github.io/dappermatic/guide/providers.html)** - Supported databases and type mappings
-- **Source Code**: Browse the codebase for implementation details
-- **Test Examples**: The `tests/` directory contains extensive usage examples
+// Register in DI
+builder.Services.AddSingleton<IDapperMaticPermissions, CustomPermissions>();
+builder.Services.AddDapperMatic();
+
+// Or use the builder
+builder.Services.AddDapperMatic(options =>
+{
+    // Optionally use static datasource definitions
+    options.WithDatasources( ... );
+
+    // Optionally customize a datasource ID factory
+    options.UseCustomDatasourceIdFactory( ... );
+
+    // Optional use a custom permissions implementation (by default is registered as Singleton)
+    options.UseCustomPermissions<CustomPermissions>();
+
+    // Optionally override the audity logger
+    options.UseCustomAuditLogger<CustomAuditLogger>();
+
+    // Optionally override the datasource repository
+    options.UseCustomDatasourceRepository<CustomDatasourceRepository>();
+
+    // Or use an existing datasource repository instance
+    // ConnectionStrings are stored encrypted
+    options.UseFileDatasourceRepository("path/to/datasources.json");
+    options.UseDatabaseDatasourceRepository("postgresql" /*mysql,sqlite,sqlserver*/, "Host=...;Database=...;Username=...;Password=...;");
+})
+```
+
+## Why Choose DapperMatic?
+
+DapperMatic offers an **alternative approach** to database schema management and query mapping for .NET applications. 
+
+How DapperMatic might fit your needs:
+
+- **Lightweight & Flexible**: You want a lightweight library that extends Dapper without the overhead of a full ORM
+- **Extremely Fast to get started**: You want to define your database schema using C# models with attributes and create/modify schemas with an intuitive API
+- **Runtime Schema Management**: You need to create or modify database schemas at runtime (multi-tenant apps, dynamic schema generation, deployment-time setup)
+- **Dapper + Attributes**: You prefer Dapper for queries but want attribute-based column mapping without writing repetitive property-to-column code
+- **Cross-Provider Portability**: You need the same models and code to work across SQL Server, PostgreSQL, MySQL, and SQLite with provider-specific SQL generation
+
+**Existing Tools**:
+- **Entity Framework Core**: Full-featured ORM with change tracking, LINQ queries, and comprehensive migration tooling - could be your better choice for complex LINQ scenarios
+- **FluentMigrator**: Version-controlled, code-based migrations with rollback support - better choice for team-based migration workflows
+
+DapperMatic can coexist in the same application as your other data access tools.
+The only DapperMatic dependency in the core library is Dapper.
+
+## Production-Ready Features (this is early days!)
+
+- **SQL Injection Protection**: Expression validation for view definitions, check constraints, and default values
+- **Comprehensive Testing**: Full test coverage across all database providers
+- **Transaction Support**: Atomic schema changes with rollback capability
+- **Performance Optimized**: Type mapping with caching, provider-specific optimizations
+- **AES-256 Encryption**: Secure connection string storage in ASP.NET Core package
+
+## Documentation & Resources
+
+- 📚 **[Full Documentation](https://mjczone.github.io/dappermatic/)** - Comprehensive guides and API reference
+- 📖 **[DML Query Support Guide](https://mjczone.github.io/dappermatic/guide/dml-query-support.html)** - Complete guide to Dapper integration
+- 🗄️ **[Database Providers](https://mjczone.github.io/dappermatic/guide/providers.html)** - Supported databases and type mappings
+- 💡 **[Getting Started](https://mjczone.github.io/dappermatic/guide/getting-started.html)** - Step-by-step tutorial
+- 🧪 **[Test Examples](tests/)** - Extensive usage examples in the test suite
 
 ## License
 
 This project is licensed under the GNU Lesser General Public License v3.0 or later (LGPL-3.0-or-later) - see the [LICENSE](LICENSE) file for details.
 
 **What this means:**
-- You can use DapperMatic in commercial applications
-- You can modify and distribute DapperMatic
-- Changes to DapperMatic itself must be contributed back under LGPL
-- Your application code remains under your chosen license
+- ✅ You can use DapperMatic in commercial applications
+- ✅ You can modify and distribute DapperMatic
+- ✅ Your application code remains under your chosen license
+- ⚠️ Changes to DapperMatic itself must be contributed back under LGPL
 
 ## Contributing
 
@@ -237,4 +461,4 @@ This library is in active development. While the API is stabilizing, please see 
 
 ---
 
-For questions and support, please use GitHub Issues or check the documentation site for detailed guides and examples.
+For questions and support, please use [GitHub Issues](https://github.com/mjczone/dappermatic/issues) or check the [documentation site](https://mjczone.github.io/dappermatic/) for detailed guides and examples.

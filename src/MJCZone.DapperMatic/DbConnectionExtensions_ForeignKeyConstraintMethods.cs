@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
+using System.Linq.Expressions;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic;
@@ -11,6 +12,57 @@ namespace MJCZone.DapperMatic;
 public static partial class DbConnectionExtensions
 {
     #region IDatabaseForeignKeyConstraintMethods
+
+    /// <summary>
+    /// Checks if a foreign key constraint exists on a specific column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesForeignKeyConstraintExistOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesForeignKeyConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a foreign key constraint exists on a specific column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">An expression representing the column.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesForeignKeyConstraintExistOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesForeignKeyConstraintExistOnColumnAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Checks if a foreign key constraint exists on a specific column.
@@ -33,6 +85,28 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .DoesForeignKeyConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Checks if a foreign key constraint exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesForeignKeyConstraintExistAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DoesForeignKeyConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -77,6 +151,50 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .CreateForeignKeyConstraintIfNotExistsAsync(db, constraint, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Creates a foreign key constraint if it does not exist.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="sourceColumns">The source columns.</param>
+    /// <param name="referencedTableName">The referenced table name.</param>
+    /// <param name="referencedColumns">The referenced columns.</param>
+    /// <param name="onDelete">The action on delete.</param>
+    /// <param name="onUpdate">The action on update.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint was created, otherwise false.</returns>
+    public static async Task<bool> CreateForeignKeyConstraintIfNotExistsAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        DmOrderedColumn[] sourceColumns,
+        string referencedTableName,
+        DmOrderedColumn[] referencedColumns,
+        DmForeignKeyAction onDelete = DmForeignKeyAction.NoAction,
+        DmForeignKeyAction onUpdate = DmForeignKeyAction.NoAction,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .CreateForeignKeyConstraintIfNotExistsAsync(
+                db,
+                schemaName,
+                tableName,
+                constraintName,
+                sourceColumns,
+                referencedTableName,
+                referencedColumns,
+                onDelete,
+                onUpdate,
+                tx,
+                cancellationToken
+            )
             .ConfigureAwait(false);
     }
 
@@ -129,6 +247,57 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Gets the foreign key constraint on a specific column.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The foreign key constraint if it exists, otherwise null.</returns>
+    public static async Task<DmForeignKeyConstraint?> GetForeignKeyConstraintOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint on a specific column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">An expression representing the column.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The foreign key constraint if it exists, otherwise null.</returns>
+    public static async Task<DmForeignKeyConstraint?> GetForeignKeyConstraintOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintOnColumnAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint on a specific column.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -147,6 +316,28 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .GetForeignKeyConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The foreign key constraint if it exists, otherwise null.</returns>
+    public static async Task<DmForeignKeyConstraint?> GetForeignKeyConstraintAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -177,6 +368,28 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Gets the foreign key constraints.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of foreign key constraints.</returns>
+    public static async Task<List<DmForeignKeyConstraint>> GetForeignKeyConstraintsAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraints.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -195,6 +408,57 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .GetForeignKeyConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint name on a specific column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The foreign key constraint name if it exists, otherwise null.</returns>
+    public static async Task<string?> GetForeignKeyConstraintNameOnColumnAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint name on a specific column.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">An expression representing the column.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The foreign key constraint name if it exists, otherwise null.</returns>
+    public static async Task<string?> GetForeignKeyConstraintNameOnColumnAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintNameOnColumnAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
             .ConfigureAwait(false);
     }
 
@@ -225,6 +489,28 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Gets the foreign key constraint names.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of foreign key constraint names.</returns>
+    public static async Task<List<string>> GetForeignKeyConstraintNamesAsync<T>(
+        this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .GetForeignKeyConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Gets the foreign key constraint names.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -249,6 +535,57 @@ public static partial class DbConnectionExtensions
     /// <summary>
     /// Drops the foreign key constraint on a specific column if it exists.
     /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropForeignKeyConstraintOnColumnIfExistsAsync<T>(
+        this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropForeignKeyConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the foreign key constraint on a specific column if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="columnExpression">An expression representing the column.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropForeignKeyConstraintOnColumnIfExistsAsync<T>(
+        this IDbConnection db,
+        Expression<Func<T, object>> columnExpression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropForeignKeyConstraintOnColumnIfExistsAsync(
+                db,
+                schemaName,
+                tableName,
+                DmTableFactory.GetColumnName(columnExpression),
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the foreign key constraint on a specific column if it exists.
+    /// </summary>
     /// <param name="db">The database connection.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="tableName">The table name.</param>
@@ -267,6 +604,28 @@ public static partial class DbConnectionExtensions
     {
         return await Database(db)
             .DropForeignKeyConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Drops the foreign key constraint if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the foreign key constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropForeignKeyConstraintIfExistsAsync<T>(
+        this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        return await Database(db)
+            .DropForeignKeyConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
 
