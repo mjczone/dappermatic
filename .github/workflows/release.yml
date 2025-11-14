@@ -89,6 +89,7 @@ jobs:
         run: dotnet nuget push nupkgs/${PACKAGE_ID}.${VERSION_NUMBER}.nupkg --skip-duplicate
         env:
           PACKAGE_ID: "MJCZone.DapperMatic"
+          NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
 
   # Deploy to Nuget.org
   deploy-nuget:
