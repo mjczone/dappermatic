@@ -8,7 +8,7 @@
 
 DapperMatic extends `IDbConnection` with extension methods for **DDL operations** (create/modify/inspect schemas) and **DML query compatibility** (enhanced Dapper queries with attribute-based column mapping) across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.
 
-📚 **[Full Documentation](https://mjczone.github.io/dappermatic/)**
+📚 **[Full Documentation](https://dappermatic.mjczone.com/)**
 
 ## Installation
 
@@ -439,10 +439,10 @@ The only DapperMatic dependency in the core library is Dapper.
 
 ## Documentation & Resources
 
-- 📚 **[Full Documentation](https://mjczone.github.io/dappermatic/)** - Comprehensive guides and API reference
-- 📖 **[DML Query Support Guide](https://mjczone.github.io/dappermatic/guide/dml-query-support.html)** - Complete guide to Dapper integration
-- 🗄️ **[Database Providers](https://mjczone.github.io/dappermatic/guide/providers.html)** - Supported databases and type mappings
-- 💡 **[Getting Started](https://mjczone.github.io/dappermatic/guide/getting-started.html)** - Step-by-step tutorial
+- 📚 **[Full Documentation](https://dappermatic.mjczone.com/)** - Comprehensive guides and API reference
+- 📖 **[DML Query Support Guide](https://dappermatic.mjczone.com/guide/dml-query-support.html)** - Complete guide to Dapper integration
+- 🗄️ **[Database Providers](https://dappermatic.mjczone.com/guide/providers.html)** - Supported databases and type mappings
+- 💡 **[Getting Started](https://dappermatic.mjczone.com/guide/getting-started.html)** - Step-by-step tutorial
 - 🧪 **[Test Examples](tests/)** - Extensive usage examples in the test suite
 
 ## License
@@ -461,4 +461,4 @@ This library is in active development. While the API is stabilizing, please see 
 
 ---
 
-For questions and support, please use [GitHub Issues](https://github.com/mjczone/dappermatic/issues) or check the [documentation site](https://mjczone.github.io/dappermatic/) for detailed guides and examples.
+For questions and support, please use [GitHub Issues](https://github.com/mjczone/dappermatic/issues) or check the [documentation site](https://dappermatic.mjczone.com/) for detailed guides and examples.

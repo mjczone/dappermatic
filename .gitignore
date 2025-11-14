@@ -15,9 +15,12 @@
 __delete/
 nuget.config
 
+/*.md
+!README.md
+!CONTRIBUTING.md
+
 # Claude Code AI assistant files (user-specific)
 .claude/
-CLAUDE.md
 
 # DocFx generated files
 docs/**/toc.yml
@@ -30,6 +33,7 @@ docs/api/**/*.md
 !docs/api/.gitkeep
 docs/.vitepress/dist/
 docs/.vitepress/cache/
+docs/packages/*.json
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

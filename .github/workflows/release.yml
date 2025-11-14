@@ -32,7 +32,7 @@ jobs:
       # artifacts used in the documentation
       - name: Build docs assets
         run: |
-          dotnet test --configuration Release /p:Version=${VERSION_NUMBER} --filter "MJCZone.DapperMatic.Tests.TestOutputDocs" --no-build
+          dotnet test tests/MJCZone.DapperMatic.Tests --configuration Release /p:Version=${VERSION_NUMBER} --filter "Can_generate_docs" --no-build
           # replace VERSION_NUMBER in docs/index.md with ${VERSION_NUMBER}
           sed -i "s/VERSION_NUMBER/${VERSION_NUMBER}/g" docs/index.md
 
@@ -60,11 +60,6 @@ jobs:
           name: nupkgs-artifact
           path: nupkgs
           retention-days: 1
-
-      - name: Upload Pages Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: docs/.vitepress/dist
 
   # Deploy to Github Packages Repository
   deploy-github-packages:
@@ -124,17 +119,8 @@ jobs:
         env:
           NUGET_API_KEY: ${{secrets.NUGET_API_KEY}} # nuget.org API key stored in GitHub organization secrets
 
-  # Deploy to GitHub Pages
-  deploy-pages:
-    needs: build
-    runs-on: ubuntu-22.04
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+  # Deploy documentation to Cloudflare Pages after successful NuGet publish
+  deploy-docs:
+    needs: [deploy-github-packages, deploy-nuget]
+    uses: ./.github/workflows/deploy-docs.yml
+    secrets: inherit

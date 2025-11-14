@@ -6,7 +6,7 @@ export default defineConfig({
   description:
     "IDbConnection extension methods for DDL operations across multiple database providers",
 
-  base: "/dappermatic/",
+  base: "/",
   ignoreDeadLinks: true,
 
   markdown: { theme: { light: "github-light", dark: "github-dark" } },
