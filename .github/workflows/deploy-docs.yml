@@ -1,0 +1,82 @@
+name: Deploy Documentation
+
+on:
+  # Trigger on push to main when docs or source files change
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - 'src/**'
+      - '.github/workflows/deploy-docs.yml'
+
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+  # Allow being called by other workflows (e.g., release.yml)
+  workflow_call:
+
+jobs:
+  deploy-docs:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history to get tags
+
+      - name: Get latest version tag
+        id: get_version
+        run: |
+          # Get the latest tag matching version pattern
+          LATEST_TAG=$(git describe --tags --match "v[0-9]*.[0-9]*.[0-9]*" --abbrev=0 2>/dev/null || echo "v0.0.0")
+          VERSION_NUMBER=${LATEST_TAG/v/}
+          echo "VERSION_NUMBER=${VERSION_NUMBER}" >> $GITHUB_ENV
+          echo "LATEST_TAG=${LATEST_TAG}" >> $GITHUB_ENV
+          echo "📦 Building docs for version: ${VERSION_NUMBER} (from tag ${LATEST_TAG})"
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8
+            9
+
+      - name: Build
+        run: dotnet build --configuration Release /p:Version=${VERSION_NUMBER}
+
+      # Tests are required before we can deploy, as they also generate
+      # artifacts used in the documentation
+      - name: Build docs assets
+        run: |
+          dotnet test --configuration Release /p:Version=${VERSION_NUMBER} --filter "MJCZone.DapperMatic.Tests.TestOutputDocs" --no-build
+          # Replace VERSION_NUMBER in docs/index.md with actual version
+          sed -i "s/VERSION_NUMBER/${VERSION_NUMBER}/g" docs/index.md
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: docs/package-lock.json
+
+      - name: Install VitePress dependencies
+        working-directory: docs
+        run: npm ci
+
+      - name: Build VitePress documentation
+        working-directory: docs
+        run: npm run docs:build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs/.vitepress/dist --project-name=${{ secrets.CLOUDFLARE_PROJECT_NAME }}
+
+      - name: Deployment Complete
+        run: |
+          echo "✅ Documentation deployed successfully!"
+          echo "📚 Version: ${VERSION_NUMBER}"
+          echo "🔗 URL: https://dappermatic.mjczone.com"
