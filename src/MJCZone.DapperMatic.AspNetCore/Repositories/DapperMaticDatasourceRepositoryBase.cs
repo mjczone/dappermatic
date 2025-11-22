@@ -10,7 +10,7 @@ using MJCZone.DapperMatic.AspNetCore.Security;
 namespace MJCZone.DapperMatic.AspNetCore.Repositories;
 
 /// <summary>
-/// Base class for database-based implementations of IDapperMaticDatasourceRepository.
+/// Base class for implementations of IDapperMaticDatasourceRepository.
 /// </summary>
 public abstract class DapperMaticDatasourceRepositoryBase : IDapperMaticDatasourceRepository
 {
