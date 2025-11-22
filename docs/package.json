@@ -18,6 +18,6 @@
     "esbuild": ">=0.25.0"
   },
   "dependencies": {
-    "@scalar/api-reference": "^1.35.6"
+    "@scalar/api-reference": "1.35.6"
   }
 }
