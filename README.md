@@ -1,14 +1,22 @@
 # DapperMatic
 
-[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-[![.github/workflows/build-and-test.yml](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml)
-[![.github/workflows/release.yml](https://github.com/mjczone/dappermatic/actions/workflows/release.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/release.yml)
+> ⚠️ **UNDER DEVELOPMENT - BREAKING CHANGES EXPECTED**
+>
+> This library is in active development (v0.x.x). The API is not yet stable and breaking changes may occur between releases. Do not use in production until v1.0.0 is released.
 
 **Model-first database schema management and query compatibility for .NET applications**
 
 DapperMatic extends `IDbConnection` with extension methods for **DDL operations** (create/modify/inspect schemas) and **DML query compatibility** (enhanced Dapper queries with attribute-based column mapping) across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.
 
+[![.github/workflows/build-and-test.yml](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/build-and-test.yml)
+[![.github/workflows/release.yml](https://github.com/mjczone/dappermatic/actions/workflows/release.yml/badge.svg)](https://github.com/mjczone/dappermatic/actions/workflows/release.yml)
+[![NuGet](https://img.shields.io/nuget/v/MJCZone.DapperMatic.svg?label=NuGet)](https://www.nuget.org/packages/MJCZone.DapperMatic/)
+[![.NET](https://img.shields.io/badge/.NET-8.0+-purple.svg)](https://dotnet.microsoft.com/download)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](LICENSE)
+
 📚 **[Full Documentation](https://dappermatic.mjczone.com/)**
+
+---
 
 ## Installation
 
@@ -31,6 +39,8 @@ dotnet add package MJCZone.DapperMatic.AspNetCore
 | **MySQL** | 5.7, 8.4, 9.0+ | `MySqlConnector`, `MySQL.Data` |
 | **MariaDB** | 10.11, 11.4, 11.8, 12.0 | `MySqlConnector`, `MySQL.Data` |
 | **SQLite** | 3.x | `Microsoft.Data.Sqlite`, `System.Data.SQLite` |
+
+---
 
 ## Quick Start
 
@@ -254,6 +264,8 @@ await mysql.CreateTableIfNotExistsAsync<Product>();     // Arrays stored as JSON
 await sqlite.CreateTableIfNotExistsAsync<Product>();    // Arrays stored as JSON
 ```
 
+---
+
 ## Key Capabilities at a Glance
 
 | DDL Operations | DML Operations | ASP.NET Core Integration |
@@ -317,6 +329,8 @@ public class Article
 // After DapperMaticTypeMapping.Initialize(/* configureOptions */), Dapper queries just work
 var articles = await connection.QueryAsync<Article>("SELECT * FROM articles");
 ```
+
+---
 
 ## ASP.NET Core Integration
 
@@ -410,6 +424,8 @@ builder.Services.AddDapperMatic(options =>
 })
 ```
 
+---
+
 ## Why Choose DapperMatic?
 
 DapperMatic offers an **alternative approach** to database schema management and query mapping for .NET applications. 
@@ -429,6 +445,8 @@ How DapperMatic might fit your needs:
 DapperMatic can coexist in the same application as your other data access tools.
 The only DapperMatic dependency in the core library is Dapper.
 
+---
+
 ## Production-Ready Features (this is early days!)
 
 - **SQL Injection Protection**: Expression validation for view definitions, check constraints, and default values
@@ -437,6 +455,8 @@ The only DapperMatic dependency in the core library is Dapper.
 - **Performance Optimized**: Type mapping with caching, provider-specific optimizations
 - **AES-256 Encryption**: Secure connection string storage in ASP.NET Core package
 
+---
+
 ## Documentation & Resources
 
 - 📚 **[Full Documentation](https://dappermatic.mjczone.com/)** - Comprehensive guides and API reference
@@ -444,6 +464,8 @@ The only DapperMatic dependency in the core library is Dapper.
 - 🗄️ **[Database Providers](https://dappermatic.mjczone.com/guide/providers.html)** - Supported databases and type mappings
 - 💡 **[Getting Started](https://dappermatic.mjczone.com/guide/getting-started.html)** - Step-by-step tutorial
 - 🧪 **[Test Examples](tests/)** - Extensive usage examples in the test suite
+
+---
 
 ## License
 
@@ -455,10 +477,20 @@ This project is licensed under the GNU Lesser General Public License v3.0 or lat
 - ✅ Your application code remains under your chosen license
 - ⚠️ Changes to DapperMatic itself must be contributed back under LGPL
 
-## Contributing
+---
 
-This library is in active development. While the API is stabilizing, please see [CONTRIBUTING.md](CONTRIBUTING.md) for current contribution guidelines and project status.
+## Support
+
+- 🐛 **Bug Reports** - [GitHub Issues](https://github.com/mjczone/dappermatic/issues)
+- 💬 **Discussions** - [GitHub Discussions](https://github.com/mjczone/dappermatic/discussions)
+- 💻 **Contributing** - See [CONTRIBUTING.md](CONTRIBUTING.md) for current contribution guidelines
 
 ---
 
-For questions and support, please use [GitHub Issues](https://github.com/mjczone/dappermatic/issues) or check the [documentation site](https://dappermatic.mjczone.com/) for detailed guides and examples.
+<div align="center">
+
+**Built with ❤️ by MJCZone Inc.**
+
+[Website](https://mjczone.com) • [GitHub](https://github.com/mjczone) • [NuGet](https://www.nuget.org/profiles/mjczone)
+
+</div>
