@@ -18,6 +18,27 @@ DapperMatic extends `IDbConnection` with extension methods for **DDL operations*
 
 ---
 
+## Why DapperMatic?
+
+DapperMatic offers an **alternative approach** to database schema management and query mapping for .NET applications. 
+
+How DapperMatic might fit your needs:
+
+- **Lightweight & Flexible**: You want a lightweight library that extends Dapper without the overhead of a full ORM
+- **Extremely Fast to get started**: You want to define your database schema using C# models with attributes and create/modify schemas with an intuitive API
+- **Runtime Schema Management**: You need to create or modify database schemas at runtime (multi-tenant apps, dynamic schema generation, deployment-time setup)
+- **Dapper + Attributes**: You prefer Dapper for queries but want attribute-based column mapping without writing repetitive property-to-column code
+- **Cross-Provider Portability**: You need the same models and code to work across SQL Server, PostgreSQL, MySQL, and SQLite with provider-specific SQL generation
+
+**Existing Tools**:
+- **Entity Framework Core**: Full-featured ORM with change tracking, LINQ queries, and comprehensive migration tooling - could be your better choice for complex LINQ scenarios
+- **FluentMigrator**: Version-controlled, code-based migrations with rollback support - better choice for team-based migration workflows
+
+DapperMatic can coexist in the same application as your other data access tools.
+The only DapperMatic dependency in the core library is Dapper.
+
+---
+
 ## Installation
 
 ### Core Library
@@ -29,6 +50,12 @@ dotnet add package MJCZone.DapperMatic
 ```bash
 dotnet add package MJCZone.DapperMatic.AspNetCore
 ```
+
+### Prerequisites
+
+- **.NET 8.0** or later
+
+---
 
 ## Supported Database Providers
 
@@ -423,37 +450,6 @@ builder.Services.AddDapperMatic(options =>
     options.UseDatabaseDatasourceRepository("postgresql" /*mysql,sqlite,sqlserver*/, "Host=...;Database=...;Username=...;Password=...;");
 })
 ```
-
----
-
-## Why Choose DapperMatic?
-
-DapperMatic offers an **alternative approach** to database schema management and query mapping for .NET applications. 
-
-How DapperMatic might fit your needs:
-
-- **Lightweight & Flexible**: You want a lightweight library that extends Dapper without the overhead of a full ORM
-- **Extremely Fast to get started**: You want to define your database schema using C# models with attributes and create/modify schemas with an intuitive API
-- **Runtime Schema Management**: You need to create or modify database schemas at runtime (multi-tenant apps, dynamic schema generation, deployment-time setup)
-- **Dapper + Attributes**: You prefer Dapper for queries but want attribute-based column mapping without writing repetitive property-to-column code
-- **Cross-Provider Portability**: You need the same models and code to work across SQL Server, PostgreSQL, MySQL, and SQLite with provider-specific SQL generation
-
-**Existing Tools**:
-- **Entity Framework Core**: Full-featured ORM with change tracking, LINQ queries, and comprehensive migration tooling - could be your better choice for complex LINQ scenarios
-- **FluentMigrator**: Version-controlled, code-based migrations with rollback support - better choice for team-based migration workflows
-
-DapperMatic can coexist in the same application as your other data access tools.
-The only DapperMatic dependency in the core library is Dapper.
-
----
-
-## Production-Ready Features (this is early days!)
-
-- **SQL Injection Protection**: Expression validation for view definitions, check constraints, and default values
-- **Comprehensive Testing**: Full test coverage across all database providers
-- **Transaction Support**: Atomic schema changes with rollback capability
-- **Performance Optimized**: Type mapping with caching, provider-specific optimizations
-- **AES-256 Encryption**: Secure connection string storage in ASP.NET Core package
 
 ---
 
