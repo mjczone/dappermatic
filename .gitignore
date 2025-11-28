@@ -21,6 +21,7 @@ nuget.config
 
 # Claude Code AI assistant files (user-specific)
 .claude/
+CLAUDE.md
 
 # DocFx generated files
 docs/**/toc.yml
