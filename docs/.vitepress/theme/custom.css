@@ -424,7 +424,7 @@
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: -webkit-linear-gradient(
     120deg,
-    var(--q-deep-purple-5) 30%,
+    var(--q-blue-5) 30%,
     var(--q-blue-10)
   );
   /* --vp-code-block-bg: var(--q-blue-grey-10); */
@@ -432,7 +432,7 @@
 .dark {
   --vp-home-hero-name-background: -webkit-linear-gradient(
     120deg,
-    var(--q-deep-purple-3) 30%,
+    var(--q-blue-3) 30%,
     var(--q-blue-10)
   );
   /* --vp-code-block-bg: var(--q-code-block); */
