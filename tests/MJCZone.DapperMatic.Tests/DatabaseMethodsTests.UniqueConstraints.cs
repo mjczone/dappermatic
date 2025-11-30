@@ -143,4 +143,222 @@ public abstract partial class DatabaseMethodsTests
         }
         await db.DropTableIfExistsAsync(schemaName, tableName);
     }
+
+    /// <summary>
+    /// Tests that a unique constraint on a nullable column preserves the column's nullability.
+    /// This is a regression test to ensure that adding a unique constraint does not
+    /// incorrectly force the column to become NOT NULL.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("my_app")]
+    protected virtual async Task Unique_constraint_on_nullable_column_preserves_nullability_Async(string? schemaName)
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, schemaName);
+
+        var tableName = "testNullableUc" + DateTime.Now.Ticks;
+        var idColumnName = "id";
+        var nullableColumnName = "phone_number";
+        var uniqueConstraintName = "uq_phone";
+
+        // Create table with a nullable column that has a unique constraint
+        await db.CreateTableIfNotExistsAsync(
+            schemaName,
+            tableName,
+            [
+                new DmColumn(
+                    schemaName,
+                    tableName,
+                    idColumnName,
+                    typeof(int),
+                    isPrimaryKey: true,
+                    isAutoIncrement: true
+                ),
+                new DmColumn(schemaName, tableName, nullableColumnName, typeof(string), length: 20, isNullable: true),
+            ],
+            uniqueConstraints:
+            [
+                new DmUniqueConstraint(
+                    schemaName,
+                    tableName,
+                    uniqueConstraintName,
+                    [new DmOrderedColumn(nullableColumnName)]
+                ),
+            ]
+        );
+
+        // Verify the table was created
+        var tableExists = await db.DoesTableExistAsync(schemaName, tableName);
+        Assert.True(tableExists);
+
+        // Verify the unique constraint exists
+        var ucExists = await db.DoesUniqueConstraintExistAsync(schemaName, tableName, uniqueConstraintName);
+        Assert.True(ucExists);
+
+        // CRITICAL: Verify the column is still nullable after adding the unique constraint
+        var table = await db.GetTableAsync(schemaName, tableName);
+        Assert.NotNull(table);
+
+        var nullableColumn = table.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals(nullableColumnName, StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(nullableColumn);
+        Assert.True(
+            nullableColumn.IsNullable,
+            $"Column '{nullableColumnName}' should remain nullable even with a unique constraint"
+        );
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(schemaName, tableName);
+    }
+
+    /// <summary>
+    /// Tests that a unique index on a nullable column preserves the column's nullability.
+    /// This is a regression test to ensure that adding a unique index does not
+    /// incorrectly force the column to become NOT NULL.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("my_app")]
+    protected virtual async Task Unique_index_on_nullable_column_preserves_nullability_Async(string? schemaName)
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, schemaName);
+
+        var tableName = "testNullableIdx" + DateTime.Now.Ticks;
+        var idColumnName = "id";
+        var nullableColumnName = "phone_number";
+        var uniqueIndexName = "ix_phone_unique";
+
+        // Create table with a nullable column
+        await db.CreateTableIfNotExistsAsync(
+            schemaName,
+            tableName,
+            [
+                new DmColumn(
+                    schemaName,
+                    tableName,
+                    idColumnName,
+                    typeof(int),
+                    isPrimaryKey: true,
+                    isAutoIncrement: true
+                ),
+                new DmColumn(schemaName, tableName, nullableColumnName, typeof(string), length: 20, isNullable: true),
+            ]
+        );
+
+        // Add a unique index on the nullable column
+        await db.CreateIndexIfNotExistsAsync(
+            schemaName,
+            tableName,
+            uniqueIndexName,
+            [new DmOrderedColumn(nullableColumnName)],
+            isUnique: true
+        );
+
+        // Verify the table was created
+        var tableExists = await db.DoesTableExistAsync(schemaName, tableName);
+        Assert.True(tableExists);
+
+        // Verify the unique index exists
+        var indexExists = await db.DoesIndexExistAsync(schemaName, tableName, uniqueIndexName);
+        Assert.True(indexExists);
+
+        // CRITICAL: Verify the column is still nullable after adding the unique index
+        var table = await db.GetTableAsync(schemaName, tableName);
+        Assert.NotNull(table);
+
+        var nullableColumn = table.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals(nullableColumnName, StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(nullableColumn);
+        Assert.True(
+            nullableColumn.IsNullable,
+            $"Column '{nullableColumnName}' should remain nullable even with a unique index"
+        );
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(schemaName, tableName);
+    }
+
+    /// <summary>
+    /// Tests that a composite unique constraint with nullable columns preserves nullability.
+    /// This tests the scenario from the User class with tenant_id + phone_number composite unique.
+    /// </summary>
+    [Theory]
+    [InlineData(null)]
+    [InlineData("my_app")]
+    protected virtual async Task Composite_unique_constraint_with_nullable_column_preserves_nullability_Async(
+        string? schemaName
+    )
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, schemaName);
+
+        var tableName = "testCompositeNullableUc" + DateTime.Now.Ticks;
+        var idColumnName = "id";
+        var tenantIdColumnName = "tenant_id";
+        var phoneColumnName = "phone_number";
+        var uniqueConstraintName = "uq_tenant_phone";
+
+        // Create table with a composite unique constraint where one column is nullable
+        await db.CreateTableIfNotExistsAsync(
+            schemaName,
+            tableName,
+            [
+                new DmColumn(
+                    schemaName,
+                    tableName,
+                    idColumnName,
+                    typeof(int),
+                    isPrimaryKey: true,
+                    isAutoIncrement: true
+                ),
+                new DmColumn(schemaName, tableName, tenantIdColumnName, typeof(Guid), isNullable: false),
+                new DmColumn(schemaName, tableName, phoneColumnName, typeof(string), length: 20, isNullable: true),
+            ],
+            uniqueConstraints:
+            [
+                new DmUniqueConstraint(
+                    schemaName,
+                    tableName,
+                    uniqueConstraintName,
+                    [new DmOrderedColumn(tenantIdColumnName), new DmOrderedColumn(phoneColumnName)]
+                ),
+            ]
+        );
+
+        // Verify the table was created
+        var tableExists = await db.DoesTableExistAsync(schemaName, tableName);
+        Assert.True(tableExists);
+
+        // Verify the unique constraint exists
+        var ucExists = await db.DoesUniqueConstraintExistAsync(schemaName, tableName, uniqueConstraintName);
+        Assert.True(ucExists);
+
+        // Get the table definition
+        var table = await db.GetTableAsync(schemaName, tableName);
+        Assert.NotNull(table);
+
+        // Verify tenant_id is NOT nullable (as specified)
+        var tenantColumn = table.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals(tenantIdColumnName, StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(tenantColumn);
+        Assert.False(tenantColumn.IsNullable, $"Column '{tenantIdColumnName}' should be NOT NULL as specified");
+
+        // CRITICAL: Verify phone_number is still nullable
+        var phoneColumn = table.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals(phoneColumnName, StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(phoneColumn);
+        Assert.True(
+            phoneColumn.IsNullable,
+            $"Column '{phoneColumnName}' should remain nullable even in a composite unique constraint"
+        );
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(schemaName, tableName);
+    }
 }
