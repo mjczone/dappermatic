@@ -96,6 +96,84 @@ public abstract partial class DatabaseMethodsTests
         var dropped = await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
         Assert.True(dropped);
     }
+
+    /// <summary>
+    /// Tests that DmTableFactory.GetTable() correctly preserves nullable columns
+    /// even when they are part of a unique index. This is a regression test for
+    /// a reported issue where nullable columns in unique indexes were being
+    /// created as NOT NULL.
+    /// </summary>
+    [Fact]
+    protected virtual async Task DmTableFactory_preserves_nullable_columns_in_unique_indexes_Async()
+    {
+        // Step 1: Verify DmTableFactory.GetTable() correctly interprets the model
+        var tableDef = DmTableFactory.GetTable(typeof(TestTableWithNullableUniqueIndex));
+
+        // Verify the table definition has the expected columns
+        Assert.Equal("test_users_with_nullable_unique", tableDef.TableName, ignoreCase: true);
+        Assert.Equal(5, tableDef.Columns.Count);
+
+        // CRITICAL: Verify phone_number is nullable in the DmTable definition
+        var phoneColumn = tableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("phone_number", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(phoneColumn);
+        Assert.True(
+            phoneColumn.IsNullable,
+            "phone_number column should be nullable in DmTableFactory.GetTable() result"
+        );
+
+        // Verify display_name is also nullable
+        var displayNameColumn = tableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("display_name", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(displayNameColumn);
+        Assert.True(
+            displayNameColumn.IsNullable,
+            "display_name column should be nullable in DmTableFactory.GetTable() result"
+        );
+
+        // Verify the unique indexes exist
+        Assert.Single(tableDef.UniqueConstraints);
+        var phoneUniqueConstraint = tableDef.UniqueConstraints.FirstOrDefault(i =>
+            i.ConstraintName.Equals("UX_test_users_tenant_phone", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(phoneUniqueConstraint);
+        Assert.Equal(2, phoneUniqueConstraint.Columns.Count);
+
+        // Step 2: Create the table in the database and verify the column is still nullable
+        using var db = await OpenConnectionAsync();
+
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var tableExists = await db.DoesTableExistAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.True(tableExists);
+
+        // Retrieve the table definition from the database
+        var dbTableDef = await db.GetTableAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.NotNull(dbTableDef);
+
+        // CRITICAL: Verify phone_number is still nullable in the actual database table
+        var dbPhoneColumn = dbTableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("phone_number", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(dbPhoneColumn);
+        Assert.True(
+            dbPhoneColumn.IsNullable,
+            "phone_number column should remain nullable in the database even with a unique constraint"
+        );
+
+        // Verify display_name is also nullable in the database
+        var dbDisplayNameColumn = dbTableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("display_name", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(dbDisplayNameColumn);
+        Assert.True(dbDisplayNameColumn.IsNullable, "display_name column should remain nullable in the database");
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+    }
 }
 
 [Table("TestTable1")]
@@ -467,4 +545,33 @@ public class TestTable6
         isNullable: false
     )]
     public string Status { get; set; } = null!;
+}
+
+/// <summary>
+/// Test table for verifying that nullable columns in unique indexes remain nullable.
+/// This mirrors a real-world scenario where a user has a unique index on a nullable column.
+/// </summary>
+[DmTable(tableName: "test_users_with_nullable_unique")]
+[DmIndex(columnNames: new[] { "tenant_id", "email" }, isUnique: true, indexName: "IX_test_users_tenant_email")]
+[DmUniqueConstraint(columnNames: new[] { "tenant_id", "phone_number" }, constraintName: "UX_test_users_tenant_phone")]
+public class TestTableWithNullableUniqueIndex
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+
+    [DmColumn("tenant_id")]
+    public Guid TenantId { get; set; }
+
+    [DmColumn("email", length: 320)]
+    public string Email { get; set; } = string.Empty;
+
+    /// <summary>
+    /// This nullable column is part of a unique index.
+    /// It should remain nullable when the table is created.
+    /// </summary>
+    [DmColumn("phone_number", length: 20, isNullable: true)]
+    public string? PhoneNumber { get; set; }
+
+    [DmColumn("display_name", length: 200, isNullable: true)]
+    public string? DisplayName { get; set; }
 }
