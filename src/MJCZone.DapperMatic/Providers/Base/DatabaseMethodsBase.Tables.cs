@@ -471,12 +471,7 @@ public abstract partial class DatabaseMethodsBase
         tableName = table.TableName;
 
         // drop all related objects
-        foreach (var index in table.Indexes)
-        {
-            await DropIndexIfExistsAsync(db, schemaName, tableName, index.IndexName, tx, cancellationToken)
-                .ConfigureAwait(false);
-        }
-
+        // IMPORTANT: Drop foreign keys BEFORE indexes because MySQL creates implicit indexes for FKs
         foreach (var fk in table.ForeignKeyConstraints)
         {
             await DropForeignKeyConstraintIfExistsAsync(
@@ -487,6 +482,12 @@ public abstract partial class DatabaseMethodsBase
                     tx,
                     cancellationToken
                 )
+                .ConfigureAwait(false);
+        }
+
+        foreach (var index in table.Indexes)
+        {
+            await DropIndexIfExistsAsync(db, schemaName, tableName, index.IndexName, tx, cancellationToken)
                 .ConfigureAwait(false);
         }
 

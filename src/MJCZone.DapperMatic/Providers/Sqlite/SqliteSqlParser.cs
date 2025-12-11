@@ -432,6 +432,28 @@ internal static partial class SqliteSqlParser
                         }
                     }
                 }
+
+                // SQLite defaults columns to nullable unless explicitly marked NOT NULL
+                // Microsoft.Data.Sqlite omits the NULL keyword from CREATE TABLE statements
+                // so we need to default to nullable if neither NULL nor NOT NULL was specified
+                var hasNullabilityKeyword = false;
+                for (var i = remainingWordsIndex; i < columnDefinition.Children.Count; i++)
+                {
+                    if (columnDefinition.Children[i] is SqlWordClause swc)
+                    {
+                        var text = swc.Text.ToUpperInvariant();
+                        if (text == "NULL" || text == "NOT NULL")
+                        {
+                            hasNullabilityKeyword = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hasNullabilityKeyword)
+                {
+                    // No explicit NULL or NOT NULL keyword found - use SQLite's default (nullable)
+                    column.IsNullable = true;
+                }
             }
             else
             {
