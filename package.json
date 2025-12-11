@@ -1,7 +1,7 @@
 {
   "name": "mjczone.dappermatic",
   "version": "1.0.0",
-  "description": "",
+  "description": "Database schema management library for .NET applications using Dapper.",
   "main": "index.js",
   "scripts": {
     "build": "dotnet build",
@@ -13,6 +13,6 @@
     "format": "dotnet tool install -g csharpier && csharpier format ./src/ && csharpier format ./tests/"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC"
+  "author": "mjczone",
+  "license": "LGPL-3.0-or-later"
 }

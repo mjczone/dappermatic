@@ -104,8 +104,10 @@ public partial class SqliteMethods
                 );
                 if (column is { IsIndexed: true, IsUnique: false })
                 {
+                    // Only set IsUnique = true if the column is part of a SINGLE-COLUMN unique index
+                    // Columns in composite unique indexes should remain nullable
                     column.IsUnique = table
-                        .Indexes.Where(i => i.IsUnique)
+                        .Indexes.Where(i => i.IsUnique && i.Columns.Count == 1)
                         .Any(i =>
                             i.Columns.Any(c =>
                                 c.ColumnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase)

@@ -36,9 +36,22 @@ public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseM
 
     public override void Dispose()
     {
+        // Clear all connection pools to release file locks
+        SQLiteConnection.ClearAllPools();
+
+        // Give the OS a moment to release the file lock
+        System.Threading.Thread.Sleep(100);
+
         if (File.Exists("sqlite_tests.sqlite"))
         {
-            File.Delete("sqlite_tests.sqlite");
+            try
+            {
+                File.Delete("sqlite_tests.sqlite");
+            }
+            catch (IOException)
+            {
+                // File might still be locked, ignore
+            }
         }
 
         base.Dispose();
