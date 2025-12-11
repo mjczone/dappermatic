@@ -174,6 +174,98 @@ public abstract partial class DatabaseMethodsTests
         // Cleanup
         await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
     }
+
+    /// <summary>
+    /// Tests the exact RoleMember scenario with nullable Guid columns in unique indexes with foreign keys.
+    /// This validates that nullable Guid? columns remain nullable even when part of complex constraints.
+    /// </summary>
+    [Fact]
+    protected virtual async Task DmTableFactory_preserves_nullable_guid_columns_in_indexes_and_fks_Async()
+    {
+        // Clear cache to ensure fresh table generation
+        // DmTableFactory.ClearCacheForTesting();
+
+        using var db = await OpenConnectionAsync();
+
+        await db.CreateTablesIfNotExistsAsync([
+            typeof(TestTenant),
+            typeof(TestRole),
+            typeof(TestUser),
+            typeof(TestGroup),
+            typeof(TestRoleMember),
+        ]);
+
+        // Step 1: Create the referenced tables first
+        var tenantTableDef = DmTableFactory.GetTable(typeof(TestTenant));
+        var roleTableDef = DmTableFactory.GetTable(typeof(TestRole));
+        var userTableDef = DmTableFactory.GetTable(typeof(TestUser));
+        var groupTableDef = DmTableFactory.GetTable(typeof(TestGroup));
+
+        // Step 2: Get the RoleMember table definition
+        var tableDef = DmTableFactory.GetTable(typeof(TestRoleMember));
+
+        // await db.CreateTableIfNotExistsAsync(tenantTableDef);
+        // await db.CreateTableIfNotExistsAsync(roleTableDef);
+        // await db.CreateTableIfNotExistsAsync(userTableDef);
+        // await db.CreateTableIfNotExistsAsync(groupTableDef);
+
+        // Verify the table definition has the expected columns
+        Assert.Equal("test_role_members", tableDef.TableName, ignoreCase: true);
+
+        // CRITICAL: Verify user_id is nullable in the DmTable definition
+        var userIdColumn = tableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("user_id", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(userIdColumn);
+        Assert.True(userIdColumn.IsNullable, "user_id column should be nullable in DmTableFactory.GetTable() result");
+
+        // CRITICAL: Verify group_id is nullable in the DmTable definition
+        var groupIdColumn = tableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("group_id", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(groupIdColumn);
+        Assert.True(groupIdColumn.IsNullable, "group_id column should be nullable in DmTableFactory.GetTable() result");
+
+        // Step 3: Create the table in the database
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var tableExists = await db.DoesTableExistAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.True(tableExists);
+
+        // Retrieve the table definition from the database
+        var dbTableDef = await db.GetTableAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.NotNull(dbTableDef);
+
+        // CRITICAL: Verify user_id is still nullable in the actual database table
+        var dbUserIdColumn = dbTableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("user_id", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(dbUserIdColumn);
+        Assert.True(
+            dbUserIdColumn.IsNullable,
+            "user_id column should remain nullable in the database even with unique index and FK"
+        );
+
+        // CRITICAL: Verify group_id is still nullable in the actual database table
+        var dbGroupIdColumn = dbTableDef.Columns.FirstOrDefault(c =>
+            c.ColumnName.Equals("group_id", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.NotNull(dbGroupIdColumn);
+        Assert.True(
+            dbGroupIdColumn.IsNullable,
+            "group_id column should remain nullable in the database even with unique index and FK"
+        );
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.DropTableIfExistsAsync(groupTableDef.SchemaName, groupTableDef.TableName);
+        await db.DropTableIfExistsAsync(userTableDef.SchemaName, userTableDef.TableName);
+        await db.DropTableIfExistsAsync(roleTableDef.SchemaName, roleTableDef.TableName);
+        await db.DropTableIfExistsAsync(tenantTableDef.SchemaName, tenantTableDef.TableName);
+
+        DmTableFactory.ClearCacheForTesting();
+    }
 }
 
 [Table("TestTable1")]
@@ -574,4 +666,107 @@ public class TestTableWithNullableUniqueIndex
 
     [DmColumn("display_name", length: 200, isNullable: true)]
     public string? DisplayName { get; set; }
+}
+
+/// <summary>
+/// Test models that mirror the RoleMember class structure with Guid? columns in unique indexes and foreign keys.
+/// </summary>
+[DmTable(tableName: "test_tenants")]
+public class TestTenant
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+}
+
+[DmTable(tableName: "test_roles")]
+public class TestRole
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+}
+
+[DmTable(tableName: "test_users")]
+public class TestUser
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+}
+
+[DmTable(tableName: "test_groups")]
+public class TestGroup
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+}
+
+/// <summary>
+/// Test table that mirrors the RoleMember class with:
+/// - Nullable Guid? columns (user_id, group_id)
+/// - Multiple unique indexes containing nullable columns
+/// - Foreign key constraints on nullable columns
+/// </summary>
+[DmTable(tableName: "test_role_members")]
+[DmIndex(columnNames: ["role_id", "user_id"], isUnique: true, indexName: "UX_test_role_members_role_id_user_id")]
+[DmIndex(columnNames: ["role_id", "group_id"], isUnique: true, indexName: "UX_test_role_members_role_id_group_id")]
+[DmIndex(columnNames: ["tenant_id", "role_id", "user_id"], indexName: "IX_test_role_members_tenant_id_role_id_user_id")]
+[DmIndex(
+    columnNames: ["tenant_id", "role_id", "group_id"],
+    indexName: "IX_test_role_members_tenant_id_role_id_group_id"
+)]
+[DmIndex(columnNames: ["tenant_id", "is_tenant_group"], indexName: "IX_test_role_members_tenant_id_is_tenant_group")]
+[DmForeignKeyConstraint(
+    sourceColumnNames: ["tenant_id"],
+    referencedType: typeof(TestTenant),
+    referencedColumnNames: ["id"],
+    constraintName: "FK_test_role_members_tenant_id",
+    onDelete: DmForeignKeyAction.Cascade
+)]
+[DmForeignKeyConstraint(
+    sourceColumnNames: ["user_id"],
+    referencedType: typeof(TestUser),
+    referencedColumnNames: ["id"],
+    constraintName: "FK_test_role_members_user_id",
+    onDelete: DmForeignKeyAction.Cascade
+)]
+[DmForeignKeyConstraint(
+    sourceColumnNames: ["group_id"],
+    referencedType: typeof(TestGroup),
+    referencedColumnNames: ["id"],
+    constraintName: "FK_test_role_members_group_id",
+    onDelete: DmForeignKeyAction.Cascade
+)]
+[DmForeignKeyConstraint(
+    sourceColumnNames: ["role_id"],
+    referencedType: typeof(TestRole),
+    referencedColumnNames: ["id"],
+    constraintName: "FK_test_role_members_role_id",
+    onDelete: DmForeignKeyAction.Cascade
+)]
+public class TestRoleMember
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+
+    [DmColumn("tenant_id")]
+    public Guid TenantId { get; set; }
+
+    [DmColumn("role_id")]
+    public Guid RoleId { get; set; }
+
+    /// <summary>
+    /// This nullable Guid? column is part of a unique index and has a foreign key.
+    /// It should remain nullable when the table is created.
+    /// </summary>
+    [DmColumn("user_id", isNullable: true)]
+    public Guid? UserId { get; set; }
+
+    /// <summary>
+    /// This nullable Guid? column is part of a unique index and has a foreign key.
+    /// It should remain nullable when the table is created.
+    /// </summary>
+    [DmColumn("group_id", isNullable: true)]
+    public Guid? GroupId { get; set; }
+
+    [DmColumn("is_tenant_group", isNullable: true)]
+    public bool? IsTenantGroup { get; set; }
 }
