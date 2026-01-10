@@ -11,7 +11,27 @@ namespace MJCZone.DapperMatic.DataAnnotations;
 /// Attribute to define a database index.
 /// </summary>
 /// <example>
-/// [DmIndex(true, "Col1", "Col2")]
+/// Property-level usage (column name inferred from property):
+/// <code>
+/// public class User
+/// {
+///     [DmIndex]
+///     public string? Email { get; set; }
+///
+///     [DmIndex(isUnique: true)]
+///     public string? UserName { get; set; }
+/// }
+/// </code>
+///
+/// Class-level usage (multi-column indexes):
+/// <code>
+/// [DmIndex(columnNames: new[] { "TenantId", "Email" }, isUnique: true)]
+/// public class User
+/// {
+///     public string? TenantId { get; set; }
+///     public string? Email { get; set; }
+/// }
+/// </code>
 /// </example>
 [AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true, Inherited = false)]
 public sealed class DmIndexAttribute : Attribute
@@ -20,15 +40,13 @@ public sealed class DmIndexAttribute : Attribute
     /// Initializes a new instance of the <see cref="DmIndexAttribute"/> class.
     /// </summary>
     /// <param name="isUnique">A value indicating whether the index is unique.</param>
-    /// <param name="columnNames">The names of the columns included in the index.</param>
+    /// <param name="columnNames">
+    /// The names of the columns included in the index.
+    /// Required when applied to a class. Optional when applied to a property (the property's column name will be used).
+    /// </param>
     /// <param name="indexName">The name of the index constraint.</param>
     public DmIndexAttribute(bool isUnique = false, string[]? columnNames = null, string? indexName = null)
     {
-        if (columnNames == null || columnNames.Length == 0)
-        {
-            throw new ArgumentException("At least one column name is required", nameof(columnNames));
-        }
-
         IsUnique = isUnique;
         Columns = columnNames;
         IndexName = indexName;
