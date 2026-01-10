@@ -80,6 +80,8 @@ public static class DapperMaticTypeMapping
 
         // Lists - JSON on ALL providers
         TryAddTypeHandler(new ListTypeHandler<string>());
+        TryAddTypeHandler(new ListTypeHandler<object>());
+        TryAddTypeHandler(new ListTypeHandler<Dictionary<string, object>>());
 
         // Read-only collections
         // TryAddTypeHandler(new ReadOnlyListTypeHandler<string>());

@@ -714,6 +714,193 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
     }
 
     [Fact]
+    protected virtual async Task Should_support_list_of_objects_for_json_data_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with ListTypeHandler<object>
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Create table with TEXT/VARCHAR column for list data
+        var table = new DmTable
+        {
+            TableName = "test_list_of_objects",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("title", typeof(string), length: 100),
+                new DmColumn("mixed_data", typeof(List<object>), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Create test list with mixed types (primitives, null)
+        var testList = new List<object> { 1, "hello", true, 3.14, null };
+
+        // Insert data using List<object> - handler should serialize to JSON array string
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_objects (title, mixed_data) VALUES (@title, @mixedData)",
+            new { title = "Mixed Data Document", mixedData = testList }
+        );
+
+        // Query data - handler should deserialize JSON array string back to List<object>
+        var documents = (
+            await db.QueryAsync<TestDocumentWithListOfObjects>("SELECT id, title, mixed_data FROM test_list_of_objects")
+        ).ToList();
+
+        // Verify results
+        Assert.Single(documents);
+        Assert.True(documents[0].Id > 0);
+        Assert.Equal("Mixed Data Document", documents[0].Title);
+        Assert.NotNull(documents[0].MixedData);
+        Assert.Equal(5, documents[0].MixedData!.Count);
+
+        // Note: Deserialized values will be JsonElement (System.Text.Json limitation with object type)
+        // Verify list structure (values are JsonElement, accessed via GetInt32(), GetString(), etc.)
+        Assert.NotNull(documents[0].MixedData![0]);
+        Assert.NotNull(documents[0].MixedData![1]);
+        Assert.NotNull(documents[0].MixedData![2]);
+        Assert.NotNull(documents[0].MixedData![3]);
+        Assert.Null(documents[0].MixedData![4]);
+
+        // Test null handling
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_objects (title, mixed_data) VALUES (@title, @mixedData)",
+            new { title = "Document Without Data", mixedData = (List<object>?)null }
+        );
+
+        var documentsWithNull = (
+            await db.QueryAsync<TestDocumentWithListOfObjects>(
+                "SELECT id, title, mixed_data FROM test_list_of_objects WHERE title = @title",
+                new { title = "Document Without Data" }
+            )
+        ).ToList();
+
+        Assert.Single(documentsWithNull);
+        Assert.Null(documentsWithNull[0].MixedData);
+
+        // Test empty list handling
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_objects (title, mixed_data) VALUES (@title, @mixedData)",
+            new { title = "Document With Empty List", mixedData = new List<object>() }
+        );
+
+        var documentsWithEmptyList = (
+            await db.QueryAsync<TestDocumentWithListOfObjects>(
+                "SELECT id, title, mixed_data FROM test_list_of_objects WHERE title = @title",
+                new { title = "Document With Empty List" }
+            )
+        ).ToList();
+
+        Assert.Single(documentsWithEmptyList);
+        Assert.NotNull(documentsWithEmptyList[0].MixedData);
+        Assert.Empty(documentsWithEmptyList[0].MixedData!);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_list_of_objects");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_list_of_nested_dictionaries_for_json_data_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping with ListTypeHandler<Dictionary<string, object>>
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Create table with TEXT/VARCHAR column for list data
+        var table = new DmTable
+        {
+            TableName = "test_list_of_dictionaries",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("title", typeof(string), length: 100),
+                new DmColumn("records", typeof(List<Dictionary<string, object>>), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Create test list with nested dictionary structures
+        var testList = new List<Dictionary<string, object>>
+        {
+            new() { ["name"] = "John", ["age"] = 30, ["active"] = true },
+            new() { ["name"] = "Jane", ["age"] = 25, ["score"] = 95.5 },
+            new() { ["name"] = "Bob", ["nested"] = new Dictionary<string, object> { ["key"] = "value" } }
+        };
+
+        // Insert data using List<Dictionary<string, object>> - handler should serialize to JSON array string
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_dictionaries (title, records) VALUES (@title, @records)",
+            new { title = "User Records", records = testList }
+        );
+
+        // Query data - handler should deserialize JSON array string back to List<Dictionary<string, object>>
+        var documents = (
+            await db.QueryAsync<TestDocumentWithListOfDictionaries>("SELECT id, title, records FROM test_list_of_dictionaries")
+        ).ToList();
+
+        // Verify results
+        Assert.Single(documents);
+        Assert.True(documents[0].Id > 0);
+        Assert.Equal("User Records", documents[0].Title);
+        Assert.NotNull(documents[0].Records);
+        Assert.Equal(3, documents[0].Records!.Count);
+
+        // Verify nested structure exists
+        Assert.NotNull(documents[0].Records![0]);
+        Assert.NotNull(documents[0].Records![1]);
+        Assert.NotNull(documents[0].Records![2]);
+        Assert.True(documents[0].Records![0].ContainsKey("name"));
+        Assert.True(documents[0].Records![0].ContainsKey("age"));
+        Assert.True(documents[0].Records![2].ContainsKey("nested"));
+
+        // Test null handling
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_dictionaries (title, records) VALUES (@title, @records)",
+            new { title = "Document Without Records", records = (List<Dictionary<string, object>>?)null }
+        );
+
+        var documentsWithNull = (
+            await db.QueryAsync<TestDocumentWithListOfDictionaries>(
+                "SELECT id, title, records FROM test_list_of_dictionaries WHERE title = @title",
+                new { title = "Document Without Records" }
+            )
+        ).ToList();
+
+        Assert.Single(documentsWithNull);
+        Assert.Null(documentsWithNull[0].Records);
+
+        // Test empty list handling
+        await db.ExecuteAsync(
+            "INSERT INTO test_list_of_dictionaries (title, records) VALUES (@title, @records)",
+            new { title = "Document With Empty Records", records = new List<Dictionary<string, object>>() }
+        );
+
+        var documentsWithEmptyList = (
+            await db.QueryAsync<TestDocumentWithListOfDictionaries>(
+                "SELECT id, title, records FROM test_list_of_dictionaries WHERE title = @title",
+                new { title = "Document With Empty Records" }
+            )
+        ).ToList();
+
+        Assert.Single(documentsWithEmptyList);
+        Assert.NotNull(documentsWithEmptyList[0].Records);
+        Assert.Empty(documentsWithEmptyList[0].Records!);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_list_of_dictionaries");
+    }
+
+    [Fact]
     protected virtual async Task Should_support_string_array_with_smart_handler_Async()
     {
         using var db = await OpenConnectionAsync();
@@ -2344,6 +2531,38 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
 
         [DmColumn("polygon_geom")]
         public NetTopologySuite.Geometries.Polygon? PolygonGeom { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for List&lt;object&gt; type handler.
+    /// Used to verify ListTypeHandler with mixed-type object arrays.
+    /// </summary>
+    public class TestDocumentWithListOfObjects
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [DmColumn("mixed_data")]
+        public List<object>? MixedData { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for List&lt;Dictionary&lt;string, object&gt;&gt; type handler.
+    /// Used to verify ListTypeHandler with nested dictionary structures.
+    /// </summary>
+    public class TestDocumentWithListOfDictionaries
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("title")]
+        public string Title { get; set; } = string.Empty;
+
+        [DmColumn("records")]
+        public List<Dictionary<string, object>>? Records { get; set; }
     }
 
     #endregion // #region Test Helper Classes
