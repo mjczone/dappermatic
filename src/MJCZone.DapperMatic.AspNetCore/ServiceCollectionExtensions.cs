@@ -131,7 +131,16 @@ internal class DateTimeOffsetHandler : DapperTypeHandlerBase<DateTimeOffset>
     /// </summary>
     /// <param name="value">The database value to parse.</param>
     /// <returns>The parsed DateTimeOffset.</returns>
-    public override DateTimeOffset Parse(object value) => DateTimeOffset.Parse((string)value);
+    public override DateTimeOffset Parse(object value)
+    {
+        return value switch
+        {
+            DateTimeOffset dto => dto,
+            DateTime dt => new DateTimeOffset(dt),
+            string s => DateTimeOffset.Parse(s),
+            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to DateTimeOffset")
+        };
+    }
 }
 
 /// <summary>
@@ -144,7 +153,16 @@ internal class GuidHandler : DapperTypeHandlerBase<Guid>
     /// </summary>
     /// <param name="value">The database value to parse.</param>
     /// <returns>The parsed Guid.</returns>
-    public override Guid Parse(object value) => Guid.Parse((string)value);
+    public override Guid Parse(object value)
+    {
+        return value switch
+        {
+            Guid guid => guid,
+            string s => Guid.Parse(s),
+            byte[] bytes when bytes.Length == 16 => new Guid(bytes),
+            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to Guid")
+        };
+    }
 }
 
 /// <summary>
@@ -157,5 +175,14 @@ internal class TimeSpanHandler : DapperTypeHandlerBase<TimeSpan>
     /// </summary>
     /// <param name="value">The database value to parse.</param>
     /// <returns>The parsed TimeSpan.</returns>
-    public override TimeSpan Parse(object value) => TimeSpan.Parse((string)value);
+    public override TimeSpan Parse(object value)
+    {
+        return value switch
+        {
+            TimeSpan ts => ts,
+            string s => TimeSpan.Parse(s),
+            long ticks => TimeSpan.FromTicks(ticks),
+            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to TimeSpan")
+        };
+    }
 }

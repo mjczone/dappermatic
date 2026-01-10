@@ -266,6 +266,69 @@ public abstract partial class DatabaseMethodsTests
 
         DmTableFactory.ClearCacheForTesting();
     }
+
+    /// <summary>
+    /// Tests that DmIndexAttribute can be applied to properties without specifying column names.
+    /// The column name should be automatically inferred from the property name.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Should_create_indexes_from_property_level_attributes()
+    {
+        // Arrange
+        var table = DmTableFactory.GetTable(typeof(TestPropertyLevelIndexes));
+
+        // Assert - Should have 3 indexes total
+        Assert.Equal(3, table.Indexes.Count);
+
+        // Verify UserName index
+        var userNameIndex = table.Indexes.FirstOrDefault(i => i.Columns.Any(c => c.ColumnName == "UserName"));
+        Assert.NotNull(userNameIndex);
+        Assert.False(userNameIndex.IsUnique);
+        Assert.Single(userNameIndex.Columns);
+
+        // Verify Email unique index
+        var emailIndex = table.Indexes.FirstOrDefault(i => i.Columns.Any(c => c.ColumnName == "Email"));
+        Assert.NotNull(emailIndex);
+        Assert.True(emailIndex.IsUnique);
+        Assert.Single(emailIndex.Columns);
+
+        // Verify Status index with custom name
+        var statusIndex = table.Indexes.FirstOrDefault(i => i.IndexName == "IX_custom_status");
+        Assert.NotNull(statusIndex);
+        Assert.False(statusIndex.IsUnique);
+        Assert.Single(statusIndex.Columns);
+        Assert.Equal("Status", statusIndex.Columns[0].ColumnName);
+
+        // Also verify that the columns are marked as indexed
+        var userNameColumn = table.Columns.FirstOrDefault(c => c.ColumnName == "UserName");
+        Assert.NotNull(userNameColumn);
+        Assert.True(userNameColumn.IsIndexed);
+
+        var emailColumn = table.Columns.FirstOrDefault(c => c.ColumnName == "Email");
+        Assert.NotNull(emailColumn);
+        Assert.True(emailColumn.IsIndexed);
+        Assert.True(emailColumn.IsUnique);
+
+        var statusColumn = table.Columns.FirstOrDefault(c => c.ColumnName == "Status");
+        Assert.NotNull(statusColumn);
+        Assert.True(statusColumn.IsIndexed);
+
+        // Now test that we can actually create the table with these indexes in the database
+        using var db = await OpenConnectionAsync();
+
+        await db.DropTableIfExistsAsync(table.SchemaName, table.TableName);
+        await db.CreateTableIfNotExistsAsync(table);
+
+        var tableExists = await db.DoesTableExistAsync(table.SchemaName, table.TableName);
+        Assert.True(tableExists);
+
+        // Verify indexes exist in the database
+        var dbIndexes = await db.GetIndexesAsync(table.SchemaName, table.TableName);
+        Assert.NotEmpty(dbIndexes);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(table.SchemaName, table.TableName);
+    }
 }
 
 [Table("TestTable1")]
@@ -769,4 +832,29 @@ public class TestRoleMember
 
     [DmColumn("is_tenant_group", isNullable: true)]
     public bool? IsTenantGroup { get; set; }
+}
+
+[DmTable(tableName: "test_property_indexes")]
+public class TestPropertyLevelIndexes
+{
+    [DmColumn(isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    // Property-level index without specifying column names
+    [DmColumn(length: 255)]
+    [DmIndex]
+    public string? UserName { get; set; }
+
+    // Property-level unique index
+    [DmColumn(length: 255)]
+    [DmIndex(isUnique: true)]
+    public string? Email { get; set; }
+
+    // Property-level index with custom name
+    [DmColumn(length: 255)]
+    [DmIndex(indexName: "IX_custom_status")]
+    public string? Status { get; set; }
+
+    // Regular property without index
+    public DateTime CreatedAt { get; set; }
 }

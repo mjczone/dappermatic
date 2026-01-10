@@ -5,6 +5,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
+    <!-- Compatible with both Swashbuckle 9.x (OpenApi 1.x) and 10.x (OpenApi 2.x) -->
+    <!-- Test website uses 9.0.6 by default, but users can use any version 6.5.0+ -->
     <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
   <ItemGroup>
