@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.OpenApi.Any;
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
@@ -75,17 +74,7 @@ public static class ViewEndpoints
             .MapGet("/", isSchemaSpecific ? ListSchemaViewsAsync : ListViewsAsync)
             .WithName($"List{namePrefix}Views")
             .WithSummary($"Gets all views for {schemaText}")
-            .WithOpenApi(operation =>
-            {
-                var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
-                if (includeParam != null)
-                {
-                    includeParam.Description =
-                        "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.";
-                    includeParam.Example = new OpenApiString("definition");
-                }
-                return operation;
-            })
+            .WithDescription("Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.")
             .Produces<ViewListResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
@@ -95,17 +84,7 @@ public static class ViewEndpoints
             .MapGet("/{viewName}", isSchemaSpecific ? GetSchemaViewAsync : GetViewAsync)
             .WithName($"Get{namePrefix}View")
             .WithSummary($"Gets a view by name from {schemaText}")
-            .WithOpenApi(operation =>
-            {
-                var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
-                if (includeParam != null)
-                {
-                    includeParam.Description =
-                        "Comma-separated list of fields to include in the response. Use 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.";
-                    includeParam.Example = new OpenApiString("definition");
-                }
-                return operation;
-            })
+            .WithDescription("Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.")
             .Produces<ViewResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);

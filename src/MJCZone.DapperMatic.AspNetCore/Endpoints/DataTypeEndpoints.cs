@@ -45,17 +45,6 @@ public static class DataTypeEndpoints
             .WithDescription(
                 "Returns a list of data types available in the specified datasource, including provider-specific types, extensions, and custom types. Use include=customTypes to discover user-defined types from the database."
             )
-            .WithOpenApi(operation =>
-            {
-                var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
-                if (includeParam != null)
-                {
-                    includeParam.Description =
-                        "Optional parameter to include additional data. Use 'customTypes' to discover user-defined types from the database (PostgreSQL domains, enums, composite types).";
-                    includeParam.Example = new Microsoft.OpenApi.Any.OpenApiString("customTypes");
-                }
-                return operation;
-            })
             .Produces<ProviderDataTypeListResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);

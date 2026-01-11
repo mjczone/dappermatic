@@ -49,7 +49,7 @@ internal static class EndpointExtensions
     /// <returns>The configured route group.</returns>
     private static RouteGroupBuilder WithDapperMaticConventions(this RouteGroupBuilder group, string tag)
     {
-        return group.WithTags(tag).AddEndpointFilter<DapperMaticExceptionFilter>().WithOpenApi();
+        return group.WithTags(tag).AddEndpointFilter<DapperMaticExceptionFilter>();
     }
 
     /// <summary>

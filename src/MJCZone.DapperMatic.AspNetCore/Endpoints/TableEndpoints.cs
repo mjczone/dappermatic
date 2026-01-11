@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.OpenApi.Any;
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
@@ -74,17 +73,7 @@ public static class TableEndpoints
             .MapGet("/", isSchemaSpecific ? ListSchemaTablesAsync : ListTablesAsync)
             .WithName($"List{namePrefix}Tables")
             .WithSummary($"Gets all tables for {schemaText}")
-            .WithOpenApi(operation =>
-            {
-                var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
-                if (includeParam != null)
-                {
-                    includeParam.Description =
-                        "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.";
-                    includeParam.Example = new OpenApiString("columns,indexes");
-                }
-                return operation;
-            })
+            .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.")
             .Produces<TableListResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
@@ -94,17 +83,7 @@ public static class TableEndpoints
             .MapGet("/{tableName}", isSchemaSpecific ? GetSchemaTableAsync : GetTableAsync)
             .WithName($"Get{namePrefix}Table")
             .WithSummary($"Gets a table by name from {schemaText}")
-            .WithOpenApi(operation =>
-            {
-                var includeParam = operation.Parameters.FirstOrDefault(p => p.Name == "include");
-                if (includeParam != null)
-                {
-                    includeParam.Description =
-                        "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields.";
-                    includeParam.Example = new OpenApiString("columns,indexes,constraints");
-                }
-                return operation;
-            })
+            .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.")
             .Produces<TableResponse>((int)HttpStatusCode.OK)
             .Produces((int)HttpStatusCode.NotFound)
             .Produces((int)HttpStatusCode.Forbidden);
