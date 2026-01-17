@@ -55,13 +55,9 @@ public abstract partial class DatabaseMethodsBase
 
         foreach (var table in tables)
         {
-            var created = await CreateTableIfNotExistsAsync(db, table, afterAllTablesConstraints, tx, cancellationToken)
+            // CreateTableIfNotExistsAsync returns false if table already exists - that's OK, continue to next table
+            await CreateTableIfNotExistsAsync(db, table, afterAllTablesConstraints, tx, cancellationToken)
                 .ConfigureAwait(false);
-
-            if (!created)
-            {
-                return;
-            }
         }
 
         // Add foreign keys AFTER all tables are created
