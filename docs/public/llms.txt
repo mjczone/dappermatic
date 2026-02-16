@@ -1,0 +1,307 @@
+# DapperMatic
+
+> Model-first database schema management and query compatibility for .NET applications
+
+DapperMatic extends IDbConnection with extension methods for DDL operations (create/modify/inspect schemas) and DML query compatibility (enhanced Dapper queries with attribute-based column mapping) across SQL Server, MySQL/MariaDB, PostgreSQL, and SQLite.
+
+⚠️ **UNDER DEVELOPMENT - v0.x.x** - Breaking changes expected until v1.0.0
+
+## Quick Links
+
+- Documentation: https://dappermatic.mjczone.com/
+- GitHub: https://github.com/mjczone/dappermatic
+- NuGet: https://www.nuget.org/packages/MJCZone.DapperMatic/
+- Full LLM Context: https://dappermatic.mjczone.com/llms-full.txt
+
+## Installation
+
+```bash
+dotnet add package MJCZone.DapperMatic
+```
+
+## Quick Start (Copy-Paste Ready)
+
+```csharp
+using MJCZone.DapperMatic;
+using MJCZone.DapperMatic.DataAnnotations;
+using MJCZone.DapperMatic.TypeMapping;
+using Dapper;
+
+// Define model with attributes
+[DmTable("products")]
+public class Product
+{
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_name", length: 200, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("price", precision: 18, scale: 2, isNullable: false)]
+    public decimal Price { get; set; }
+
+    [DmColumn("tags")]
+    public string[]? Tags { get; set; } // PostgreSQL: native arrays, Others: JSON
+}
+
+// DDL - Create table (NO initialization needed)
+using var connection = new SqlConnection(connectionString);
+await connection.CreateTableIfNotExistsAsync<Product>();
+
+// DML - Enable Dapper query compatibility (call ONCE at startup)
+DapperMaticTypeMapping.Initialize();
+
+// Now use Dapper with attribute mappings
+var products = await connection.QueryAsync<Product>(
+    "SELECT product_id, product_name, price, tags FROM products WHERE price > @minPrice",
+    new { minPrice = 10.0m }
+);
+```
+
+## Core Concepts
+
+### Two Distinct Features
+
+1. **DDL (Schema Management)** - Extension methods on IDbConnection
+   - Create/modify database schemas at runtime
+   - Model-first approach using C# classes with attributes
+   - No initialization required - just use the extension methods
+   - Methods: CreateTableIfNotExistsAsync<T>, AddColumnAsync, CreateIndexAsync, etc.
+
+2. **DML (Query Compatibility)** - Attribute-based column mapping for Dapper
+   - Requires `DapperMaticTypeMapping.Initialize()` once at startup
+   - Custom type handlers for arrays, JSON, XML, spatial types
+   - Works with DmColumn, DmIgnore, EF Core, and ServiceStack.OrmLite attributes
+
+### Supported Database Providers
+
+- **SQL Server** 2017, 2019, 2022 (`Microsoft.Data.SqlClient`, `System.Data.SqlClient`)
+- **PostgreSQL** 15, 16, 17 (`Npgsql`)
+- **MySQL** 5.7, 8.4, 9.0+ (`MySqlConnector`, `MySQL.Data`)
+- **MariaDB** 10.11, 11.4, 11.8, 12.0 (`MySqlConnector`, `MySQL.Data`)
+- **SQLite** 3.x (`Microsoft.Data.Sqlite`, `System.Data.SQLite`)
+
+## Available Attributes
+
+- `[DmTable(schemaName?, tableName?)]` - Define table name and schema
+- `[DmColumn(columnName?, providerDataType?, ...)]` - Define column mapping
+- `[DmIgnore]` - Exclude property from mapping
+- `[DmIndex(isUnique, columnNames?, indexName?)]` - Define indexes
+- `[DmPrimaryKeyConstraint(columnNames)]` - Define primary key
+- `[DmForeignKeyConstraint(...)]` - Define foreign key
+- `[DmUniqueConstraint(...)]` - Define unique constraint
+- `[DmCheckConstraint(...)]` - Define check constraint
+- `[DmDefaultConstraint(...)]` - Define default value
+
+## Common Patterns
+
+### Pattern 1: Create Table from Attributes
+
+```csharp
+[DmTable("users")]
+[DmIndex(isUnique: true, columnNames: new[] { "email" })]
+public class User
+{
+    [DmColumn("user_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("username", length: 50, isNullable: false)]
+    public string Username { get; set; } = string.Empty;
+
+    [DmColumn("email", length: 255, isNullable: false)]
+    public string Email { get; set; } = string.Empty;
+}
+
+await connection.CreateTableIfNotExistsAsync<User>();
+```
+
+### Pattern 2: Get DmTable from Type (DmTableFactory)
+
+```csharp
+using MJCZone.DapperMatic.Models;
+
+// Get table definition from type with attributes
+var productTable = DmTableFactory.GetTable(typeof(Product));
+
+// Customize before creating
+DmTableFactory.Configure<Product>(table =>
+{
+    table.TableName = "prod_items";
+    // Add/modify columns, indexes, constraints
+});
+
+// Use the generated table definition
+await connection.CreateTableIfNotExistsAsync(productTable);
+
+// Or just get table/column names
+var (schema, tableName) = DmTableFactory.GetTableName(typeof(Product));
+```
+
+### Pattern 3: Explicit Provider Data Types
+
+```csharp
+public class Product
+{
+    // Simple provider type
+    [DmColumn("description", providerDataType: "text")]
+    public string? Description { get; set; }
+
+    // Provider type with length
+    [DmColumn("name", providerDataType: "nvarchar", length: 200)]
+    public string Name { get; set; } = string.Empty;
+
+    // Cross-database compatibility
+    [DmColumn("data", providerDataType: "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}")]
+    public string Data { get; set; } = string.Empty;
+}
+```
+
+### Pattern 4: Arrays and JSON
+
+```csharp
+public class Product
+{
+    // Smart array handling (native on PostgreSQL, JSON elsewhere)
+    [DmColumn("tags")]
+    public string[]? Tags { get; set; }
+
+    [DmColumn("categories")]
+    public int[]? CategoryIds { get; set; }
+
+    // JSON storage (all providers)
+    [DmColumn("metadata")]
+    public JsonDocument? Metadata { get; set; }
+
+    [DmColumn("settings")]
+    public Dictionary<string, object>? Settings { get; set; }
+}
+```
+
+### Pattern 5: Multiple Tables
+
+```csharp
+await connection.CreateTablesIfNotExistsAsync(new[] {
+    typeof(User),
+    typeof(Product),
+    typeof(Order)
+});
+```
+
+## Key Extension Methods (IDbConnection)
+
+### Table Methods
+- `DoesTableExistAsync<T>()` - Check if table exists
+- `CreateTableIfNotExistsAsync<T>()` - Create table from model
+- `CreateTablesIfNotExistsAsync(Type[])` - Create multiple tables
+- `GetTableAsync<T>()` - Get table metadata
+- `GetTableNamesAsync()` - List all tables
+- `DropTableIfExistsAsync<T>()` - Drop table
+- `TruncateTableIfExistsAsync<T>()` - Truncate table
+- `RenameTableIfExistsAsync<T>(newName)` - Rename table
+
+### DmTableFactory (Programmatic Table Definition)
+- `DmTableFactory.GetTable(typeof(Product))` - Create DmTable from type
+- `DmTableFactory.GetTableName(typeof(Product))` - Get (schema, tableName) tuple
+- `DmTableFactory.GetColumnName(propertyInfo)` - Get column name from property
+- `DmTableFactory.Configure<T>(table => { ... })` - Customize table mapping
+
+### Column Methods
+- `DoesColumnExistAsync<T>(propertyName)` - Check if column exists
+- `CreateColumnIfNotExistsAsync<T>(propertyName)` - Add column
+- `DropColumnIfExistsAsync<T>(propertyName)` - Drop column
+- `RenameColumnIfExistsAsync<T>(oldName, newName)` - Rename column
+- `GetColumnsAsync<T>()` - Get column metadata
+
+### Index Methods
+- `DoesIndexExistAsync<T>(indexName)` - Check if index exists
+- `CreateIndexIfNotExistsAsync(...)` - Create index
+- `DropIndexIfExistsAsync<T>(indexName)` - Drop index
+
+### Constraint Methods
+- `CreateForeignKeyConstraintIfNotExistsAsync(...)` - Add foreign key
+- `DropForeignKeyConstraintIfExistsAsync<T>(constraintName)` - Drop foreign key
+- `CreateUniqueConstraintIfNotExistsAsync(...)` - Add unique constraint
+- `CreateCheckConstraintIfNotExistsAsync(...)` - Add check constraint
+- `CreateDefaultConstraintIfNotExistsAsync(...)` - Add default value
+
+## DML Type Mapping - Automatic .NET to SQL Type Conversions
+
+### Initialization
+
+```csharp
+// Call ONCE at application startup (Program.cs/Startup.cs)
+using MJCZone.DapperMatic.TypeMapping;
+
+DapperMaticTypeMapping.Initialize();
+
+// Or with options
+DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions
+{
+    HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting,
+    EnableRecordSupport = true
+});
+```
+
+### Automatic Type Mappings
+
+**Numeric Types:**
+- `byte` → SQL Server: tinyint, PostgreSQL: smallint, MySQL: tinyint, SQLite: integer
+- `short` → SQL Server: smallint, PostgreSQL: smallint, MySQL: smallint, SQLite: integer
+- `int` → SQL Server: int, PostgreSQL: integer, MySQL: int, SQLite: integer
+- `long` → SQL Server: bigint, PostgreSQL: bigint, MySQL: bigint, SQLite: bigint
+- `float` → SQL Server: real, PostgreSQL: real, MySQL: float, SQLite: real
+- `double` → SQL Server: float, PostgreSQL: double precision, MySQL: double, SQLite: real
+- `decimal` → SQL Server: decimal(18,2), PostgreSQL: numeric(18,2), MySQL: decimal(18,2), SQLite: numeric
+
+**Text Types:**
+- `string` → SQL Server: nvarchar(255), PostgreSQL: varchar(255), MySQL: varchar(255), SQLite: text
+- `char` → SQL Server: nchar(1), PostgreSQL: char(1), MySQL: char(1), SQLite: char(1)
+
+**Date/Time Types:**
+- `DateTime` → SQL Server: datetime2, PostgreSQL: timestamp, MySQL: datetime, SQLite: datetime
+- `DateTimeOffset` → SQL Server: datetimeoffset, PostgreSQL: timestamptz, MySQL: datetime, SQLite: text
+- `DateOnly` → SQL Server: date, PostgreSQL: date, MySQL: date, SQLite: date
+- `TimeOnly` → SQL Server: time, PostgreSQL: time, MySQL: time, SQLite: time
+- `TimeSpan` → SQL Server: time, PostgreSQL: interval, MySQL: time, SQLite: integer
+
+**Other Types:**
+- `bool` → SQL Server: bit, PostgreSQL: boolean, MySQL: boolean, SQLite: integer
+- `Guid` → SQL Server: uniqueidentifier, PostgreSQL: uuid, MySQL: char(36), SQLite: text
+- `byte[]` → SQL Server: varbinary(max), PostgreSQL: bytea, MySQL: longblob, SQLite: blob
+- `enum` → Stored as underlying integer type (or string with providerDataType)
+
+**Special Types:**
+- `JsonDocument`, `JsonElement` → SQL Server: nvarchar(max), PostgreSQL: jsonb, MySQL: json, SQLite: text
+- `XDocument`, `XElement` → SQL Server: xml, PostgreSQL: xml, MySQL: text, SQLite: text
+- `string[]`, `int[]`, etc. → PostgreSQL: native arrays (text[], int4[]), Others: JSON
+- `Dictionary<string, object>` → JSON on all providers
+- `List<T>`, `IEnumerable<T>` → JSON on all providers
+
+## Important Notes for LLMs
+
+### Critical Distinctions
+1. **DDL vs DML**: Two separate features with different initialization requirements
+2. **DDL**: No initialization needed - extension methods work immediately
+3. **DML**: MUST call `DapperMaticTypeMapping.Initialize()` once at startup
+4. **Connection type**: Auto-detects provider (SqlConnection, NpgsqlConnection, MySqlConnection, SqliteConnection)
+
+### Common Mistakes to Avoid
+- ❌ Forgetting `DapperMaticTypeMapping.Initialize()` for DML queries
+- ❌ Using `CreateTableAsync()` instead of `CreateTableIfNotExistsAsync()`
+- ❌ Mixing DDL and DML concepts (they're separate features)
+- ❌ Calling Initialize() multiple times (only needed once)
+- ✅ Use `CreateTableIfNotExistsAsync<T>()` not `CreateTableFromModelAsync<T>()` (doesn't exist)
+- ✅ Check existence with `DoesTableExistAsync<T>()` before operations
+- ✅ Use proper connection type for your database provider
+
+### Version Note
+- Pre-release (v0.x.x) - Breaking changes expected
+- Not recommended for production until v1.0.0
+
+## See Also
+
+- Full Documentation: https://dappermatic.mjczone.com/
+- Getting Started: https://dappermatic.mjczone.com/guide/getting-started
+- Data Annotations: https://dappermatic.mjczone.com/guide/data-annotations
+- DML Query Support: https://dappermatic.mjczone.com/guide/dml-query-support
+- Extension Methods: https://dappermatic.mjczone.com/guide/extension-methods/

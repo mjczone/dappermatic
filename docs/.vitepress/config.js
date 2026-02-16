@@ -9,6 +9,13 @@ export default defineConfig({
   base: "/",
   ignoreDeadLinks: true,
 
+  head: [
+    ['meta', { name: 'ai-docs', content: 'https://dappermatic.mjczone.com/llms.txt' }],
+    ['meta', { name: 'llm-context', content: 'https://dappermatic.mjczone.com/llms-full.txt' }],
+    ['link', { rel: 'alternate', type: 'text/plain', href: '/llms.txt', title: 'LLM Quick Reference' }],
+    ['link', { rel: 'alternate', type: 'text/plain', href: '/llms-full.txt', title: 'LLM Complete Guide' }],
+  ],
+
   markdown: { theme: { light: "github-light", dark: "github-dark" } },
 
   themeConfig: {

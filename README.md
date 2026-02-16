@@ -16,6 +16,8 @@ DapperMatic extends `IDbConnection` with extension methods for **DDL operations*
 
 📚 **[Full Documentation](https://dappermatic.mjczone.com/)**
 
+🤖 **For AI Assistants:** [llms.txt](https://dappermatic.mjczone.com/llms.txt) | [llms-full.txt](https://dappermatic.mjczone.com/llms-full.txt)
+
 ---
 
 ## Why DapperMatic?
