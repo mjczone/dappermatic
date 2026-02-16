@@ -3,6 +3,9 @@ using MJCZone.DapperMatic.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure to listen on port 5000
+builder.WebHost.UseUrls("http://localhost:5000");
+
 // Add services to the container
 builder.Services.AddDapperMatic();
 

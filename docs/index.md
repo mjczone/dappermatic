@@ -34,6 +34,11 @@ features:
   - icon: 📦
     title: NuGet Package
     details: Easy installation via NuGet with minimal dependencies - just add to your .NET project
+  - icon: 🤖
+    title: AI/LLM Optimized Docs
+    details: Comprehensive LLM-friendly documentation - llms.txt for quick reference, llms-full.txt for complete guide
+    link: /llms
+    linkText: View AI Docs
 ---
 
 ## Choose Your Development Path

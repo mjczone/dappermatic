@@ -1,0 +1,1925 @@
+# DapperMatic - Complete LLM Context
+
+**Generated:** 2026-02-16
+**Status:** v0.x.x (Pre-release - Breaking changes expected until v1.0.0)
+**NuGet:** https://www.nuget.org/packages/MJCZone.DapperMatic/
+**GitHub:** https://github.com/mjczone/dappermatic
+**Docs:** https://dappermatic.mjczone.com/
+
+---
+
+## Table of Contents
+
+1. Overview
+2. Installation
+3. Complete DDL (Schema Management) Guide
+4. Complete DML (Query Compatibility) Guide
+5. All Data Annotation Attributes
+6. All Extension Methods Reference
+7. Provider-Specific Type Mappings
+8. Advanced: providerDataType Usage
+9. Common Patterns and Recipes
+10. Error Prevention
+11. FAQ
+
+---
+
+## 1. Overview
+
+DapperMatic is a .NET library that provides TWO distinct features:
+
+### Feature 1: DDL (Data Definition Language) - Schema Management
+- Extension methods on `IDbConnection` for creating/modifying database schemas
+- Create tables, columns, indexes, constraints, views at runtime
+- Model-first approach using C# classes with attributes
+- **NO initialization required** - just use the extension methods
+- Multi-provider support (SQL Server, PostgreSQL, MySQL, SQLite)
+
+### Feature 2: DML (Data Manipulation Language) - Query Compatibility
+- Attribute-based column mapping for Dapper's QueryAsync/ExecuteAsync
+- Custom type handlers for advanced types (arrays, JSON, XML, spatial)
+- **Requires `DapperMaticTypeMapping.Initialize()` once at application startup**
+- Enables [DmColumn] attributes to work with Dapper queries
+
+### Supported Database Providers
+
+| Provider | Versions | Connection Types |
+|----------|----------|------------------|
+| **SQL Server** | 2017, 2019, 2022 | Microsoft.Data.SqlClient, System.Data.SqlClient |
+| **PostgreSQL** | 15, 16, 17 | Npgsql |
+| **MySQL** | 5.7, 8.4, 9.0+ | MySqlConnector, MySQL.Data |
+| **MariaDB** | 10.11, 11.4, 11.8, 12.0 | MySqlConnector, MySQL.Data |
+| **SQLite** | 3.x | Microsoft.Data.Sqlite, System.Data.SQLite |
+
+Provider is auto-detected from connection type.
+
+---
+
+## 2. Installation
+
+### Core Library
+```bash
+dotnet add package MJCZone.DapperMatic
+```
+
+### ASP.NET Core Integration (Optional)
+```bash
+dotnet add package MJCZone.DapperMatic.AspNetCore
+```
+
+### Requirements
+- .NET 8.0 or later
+- Appropriate database provider package (e.g., Npgsql, Microsoft.Data.SqlClient)
+- Dapper (automatically included as dependency)
+
+---
+
+## 3. Complete DDL (Schema Management) Guide
+
+### Initialization
+**NONE REQUIRED** - Extension methods work immediately on any IDbConnection.
+
+### Table Operations
+
+#### Create Table from Model
+
+```csharp
+using MJCZone.DapperMatic;
+using MJCZone.DapperMatic.DataAnnotations;
+
+[DmTable("products")]
+public class Product
+{
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_name", length: 200, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("price", precision: 18, scale: 2)]
+    public decimal Price { get; set; }
+}
+
+// Create table
+using var connection = new SqlConnection(connectionString);
+await connection.CreateTableIfNotExistsAsync<Product>();
+
+// Check if exists first
+if (!await connection.DoesTableExistAsync<Product>())
+{
+    await connection.CreateTableIfNotExistsAsync<Product>();
+}
+```
+
+#### Create Multiple Tables
+
+```csharp
+await connection.CreateTablesIfNotExistsAsync(new[] {
+    typeof(User),
+    typeof(Product),
+    typeof(Order),
+    typeof(OrderItem)
+});
+```
+
+#### Create DmTable from Type using DmTableFactory
+
+```csharp
+using MJCZone.DapperMatic.Models;
+
+// Get table definition from a type with attributes
+var productTable = DmTableFactory.GetTable(typeof(Product));
+
+// Use it to create the table
+await connection.CreateTableIfNotExistsAsync(productTable);
+
+// Customize table mapping globally (runs on first GetTable call)
+DmTableFactory.Configure((type, table) =>
+{
+    if (type == typeof(Product))
+    {
+        table.TableName = "prod_items";
+    }
+});
+
+// Customize specific type mapping
+DmTableFactory.Configure<Product>(table =>
+{
+    table.TableName = "products_v2";
+    table.SchemaName = "catalog";
+    // Modify columns, add indexes, etc.
+});
+
+// Just get table/column names without full table definition
+var (schema, tableName) = DmTableFactory.GetTableName(typeof(Product));
+var columnName = DmTableFactory.GetColumnName<Product>(p => p.Name);
+
+// Get column name from property
+var propertyInfo = typeof(Product).GetProperty(nameof(Product.Name));
+var colName = DmTableFactory.GetColumnName(propertyInfo);
+```
+
+#### Programmatic Table Creation (Manual)
+
+```csharp
+using MJCZone.DapperMatic.Models;
+
+var table = new DmTable("dbo", "Users")
+{
+    Columns = new[]
+    {
+        new DmColumn("Id", typeof(int))
+        {
+            IsNullable = false,
+            IsAutoIncrement = true
+        },
+        new DmColumn("Username", typeof(string))
+        {
+            MaxLength = 50,
+            IsNullable = false
+        },
+        new DmColumn("Email", typeof(string))
+        {
+            MaxLength = 100,
+            IsNullable = false
+        },
+        new DmColumn("CreatedAt", typeof(DateTime))
+        {
+            IsNullable = false
+        }
+    },
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id"),
+    Indexes = new[]
+    {
+        new DmIndex("IX_Users_Email", isUnique: true, "Email"),
+        new DmIndex("IX_Users_Username", isUnique: false, "Username")
+    }
+};
+
+await connection.CreateTableIfNotExistsAsync(table);
+```
+
+#### Get Table Metadata
+
+```csharp
+// Get table definition
+DmTable? table = await connection.GetTableAsync<Product>();
+
+// List all tables
+List<DmTable> tables = await connection.GetTablesAsync();
+
+// List table names only
+List<string> tableNames = await connection.GetTableNamesAsync();
+```
+
+#### Drop and Truncate
+
+```csharp
+// Drop table
+await connection.DropTableIfExistsAsync<Product>();
+
+// Truncate table (delete all rows)
+await connection.TruncateTableIfExistsAsync<Product>();
+
+// Rename table
+await connection.RenameTableIfExistsAsync<Product>("new_products");
+```
+
+### Column Operations
+
+#### Check Column Existence
+
+```csharp
+bool exists = await connection.DoesColumnExistAsync<Product>(nameof(Product.Price));
+```
+
+#### Add Column
+
+```csharp
+// Add column using property name
+await connection.CreateColumnIfNotExistsAsync<Product>(nameof(Product.Description));
+
+// Add column programmatically
+var column = new DmColumn("description", typeof(string))
+{
+    MaxLength = 500,
+    IsNullable = true
+};
+await connection.CreateColumnIfNotExistsAsync("products", column);
+```
+
+#### Drop Column
+
+```csharp
+await connection.DropColumnIfExistsAsync<Product>(nameof(Product.Description));
+```
+
+#### Rename Column
+
+```csharp
+await connection.RenameColumnIfExistsAsync<Product>("old_name", "new_name");
+```
+
+#### Get Column Metadata
+
+```csharp
+// Get specific column
+DmColumn? column = await connection.GetColumnAsync<Product>(nameof(Product.Price));
+
+// Get all columns
+List<DmColumn> columns = await connection.GetColumnsAsync<Product>();
+
+// Get column names only
+List<string> columnNames = await connection.GetColumnNamesAsync<Product>();
+```
+
+### Index Operations
+
+#### Create Index
+
+```csharp
+// Simple index
+var index = new DmIndex("IX_Product_Name", isUnique: false, "product_name");
+await connection.CreateIndexIfNotExistsAsync("products", index);
+
+// Composite index
+var compositeIndex = new DmIndex("IX_Product_Category_Price",
+    isUnique: false,
+    "category", "price");
+await connection.CreateIndexIfNotExistsAsync("products", compositeIndex);
+
+// Unique index
+var uniqueIndex = new DmIndex("IX_User_Email", isUnique: true, "email");
+await connection.CreateIndexIfNotExistsAsync("users", uniqueIndex);
+```
+
+#### Drop Index
+
+```csharp
+await connection.DropIndexIfExistsAsync<Product>("IX_Product_Name");
+```
+
+#### Check Index Existence
+
+```csharp
+bool exists = await connection.DoesIndexExistAsync<Product>("IX_Product_Name");
+
+// Check index on specific column
+bool existsOnColumn = await connection.DoesIndexExistOnColumnAsync<Product>(nameof(Product.Name));
+```
+
+### Foreign Key Constraints
+
+#### Create Foreign Key
+
+```csharp
+var foreignKey = new DmForeignKeyConstraint(
+    constraintName: "FK_OrderItem_Product",
+    sourceColumns: new[] { "product_id" },
+    referencedSchemaName: null,
+    referencedTableName: "products",
+    referencedColumns: new[] { "product_id" },
+    onDelete: DmForeignKeyAction.Cascade,
+    onUpdate: DmForeignKeyAction.NoAction
+);
+
+await connection.CreateForeignKeyConstraintIfNotExistsAsync("order_items", foreignKey);
+```
+
+#### Drop Foreign Key
+
+```csharp
+await connection.DropForeignKeyConstraintIfExistsAsync<OrderItem>("FK_OrderItem_Product");
+```
+
+### Unique Constraints
+
+```csharp
+var uniqueConstraint = new DmUniqueConstraint("UQ_User_Email", "email");
+await connection.CreateUniqueConstraintIfNotExistsAsync("users", uniqueConstraint);
+
+await connection.DropUniqueConstraintIfExistsAsync<User>("UQ_User_Email");
+```
+
+### Check Constraints
+
+```csharp
+var checkConstraint = new DmCheckConstraint("CK_Product_Price", "price >= 0");
+await connection.CreateCheckConstraintIfNotExistsAsync("products", checkConstraint);
+
+await connection.DropCheckConstraintIfExistsAsync<Product>("CK_Product_Price");
+```
+
+### Default Constraints
+
+```csharp
+var defaultConstraint = new DmDefaultConstraint("DF_Product_CreatedAt", "created_at", "GETDATE()");
+await connection.CreateDefaultConstraintIfNotExistsAsync("products", defaultConstraint);
+
+await connection.DropDefaultConstraintIfExistsAsync<Product>("DF_Product_CreatedAt");
+```
+
+---
+
+## 4. Complete DML (Query Compatibility) Guide
+
+### Initialization (REQUIRED for DML)
+
+```csharp
+using MJCZone.DapperMatic.TypeMapping;
+
+// In Program.cs or Startup.cs - call ONCE at application startup
+DapperMaticTypeMapping.Initialize();
+
+// Or with options
+DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions
+{
+    // Override existing Dapper type handlers
+    HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting,
+
+    // Enable support for C# records with parameterized constructors
+    EnableRecordSupport = true
+});
+```
+
+**TypeHandlerPrecedence Options:**
+- `SkipIfExists` - Don't register if handler already exists (default)
+- `OverrideExisting` - Replace existing handlers
+- `ThrowIfExists` - Throw exception if handler exists
+
+### Basic Query Mapping
+
+```csharp
+using Dapper;
+
+// Define class with DmColumn attributes
+public class User
+{
+    [DmColumn("user_id")]
+    public int UserId { get; set; }
+
+    [DmColumn("username")]
+    public string Username { get; set; } = string.Empty;
+
+    [DmColumn("email")]
+    public string Email { get; set; } = string.Empty;
+
+    // Property ignored in DML queries
+    [DmIgnore]
+    public string ComputedProperty => $"{Username} ({Email})";
+}
+
+// Dapper queries now work with attribute mappings
+var users = await connection.QueryAsync<User>(
+    "SELECT user_id, username, email FROM users WHERE user_id = @id",
+    new { id = 123 }
+);
+```
+
+### Records Support
+
+```csharp
+// C# record with parameterized constructor
+public record ProductRecord(
+    [property: DmColumn("id")] int Id,
+    [property: DmColumn("name")] string Name,
+    [property: DmColumn("price")] decimal Price
+);
+
+// Works with Dapper after Initialize() is called
+var products = await connection.QueryAsync<ProductRecord>(
+    "SELECT id, name, price FROM products"
+);
+```
+
+### Array and Collection Handling
+
+```csharp
+public class Product
+{
+    [DmColumn("product_id")]
+    public int Id { get; set; }
+
+    // Smart array handler
+    // PostgreSQL: Native array type (text[]) - 10-50x faster
+    // SQL Server/MySQL/SQLite: JSON array
+    [DmColumn("tags")]
+    public string[]? Tags { get; set; }
+
+    // Numeric arrays
+    [DmColumn("category_ids")]
+    public int[]? CategoryIds { get; set; }
+
+    // Lists work too
+    [DmColumn("related_ids")]
+    public List<int>? RelatedIds { get; set; }
+}
+
+// Insert with arrays
+await connection.ExecuteAsync(
+    "INSERT INTO products (tags, category_ids) VALUES (@tags, @categoryIds)",
+    new { tags = new[] { "new", "featured" }, categoryIds = new[] { 1, 2, 3 } }
+);
+
+// Query with arrays
+var products = await connection.QueryAsync<Product>(
+    "SELECT product_id, tags, category_ids FROM products"
+);
+```
+
+### JSON Handling
+
+```csharp
+using System.Text.Json;
+
+public class Product
+{
+    [DmColumn("product_id")]
+    public int Id { get; set; }
+
+    // JsonDocument
+    [DmColumn("metadata")]
+    public JsonDocument? Metadata { get; set; }
+
+    // Dictionary (stored as JSON)
+    [DmColumn("settings")]
+    public Dictionary<string, object>? Settings { get; set; }
+
+    // Complex objects (stored as JSON)
+    [DmColumn("details")]
+    public ProductDetails? Details { get; set; }
+}
+
+public class ProductDetails
+{
+    public string? Description { get; set; }
+    public List<string>? Features { get; set; }
+}
+
+// Insert with JSON
+await connection.ExecuteAsync(
+    "INSERT INTO products (metadata, settings, details) VALUES (@metadata, @settings, @details)",
+    new
+    {
+        metadata = JsonDocument.Parse("{\"key\":\"value\"}"),
+        settings = new Dictionary<string, object> { ["theme"] = "dark" },
+        details = new ProductDetails { Description = "Great product" }
+    }
+);
+```
+
+### XML Handling
+
+```csharp
+using System.Xml.Linq;
+
+public class Document
+{
+    [DmColumn("doc_id")]
+    public int Id { get; set; }
+
+    // XDocument (SQL Server: xml type, Others: text)
+    [DmColumn("content")]
+    public XDocument? Content { get; set; }
+}
+
+// Insert XML
+await connection.ExecuteAsync(
+    "INSERT INTO documents (content) VALUES (@content)",
+    new { content = XDocument.Parse("<root><item>value</item></root>") }
+);
+```
+
+### Enum Handling
+
+```csharp
+public enum ProductStatus
+{
+    Draft = 0,
+    Published = 1,
+    Archived = 2
+}
+
+public class Product
+{
+    [DmColumn("product_id")]
+    public int Id { get; set; }
+
+    // Stored as integer (0, 1, 2) by default
+    [DmColumn("status")]
+    public ProductStatus Status { get; set; }
+}
+
+// Enums work automatically - stored as underlying integer type
+var products = await connection.QueryAsync<Product>(
+    "SELECT product_id, status FROM products WHERE status = @status",
+    new { status = ProductStatus.Published }
+);
+```
+
+### Spatial Types (Advanced)
+
+```csharp
+// NetTopologySuite geometry types
+using NetTopologySuite.Geometries;
+
+public class Location
+{
+    [DmColumn("location_id")]
+    public int Id { get; set; }
+
+    // PostgreSQL: native geometry type
+    // SQL Server: geometry type (requires Microsoft.SqlServer.Types)
+    // MySQL: geometry type
+    // SQLite: WKT text
+    [DmColumn("coordinates")]
+    public Point? Coordinates { get; set; }
+}
+```
+
+---
+
+## 5. All Data Annotation Attributes
+
+### [DmTable] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class DmTableAttribute : Attribute
+{
+    public DmTableAttribute(string? schemaName = null, string? tableName = null);
+
+    public string? SchemaName { get; }
+    public string? TableName { get; }
+}
+```
+
+**Usage:**
+```csharp
+// Table name only (schema defaults to dbo/public/none depending on provider)
+[DmTable("products")]
+public class Product { }
+
+// With schema
+[DmTable("dbo", "products")]
+public class Product { }
+
+// Schema only (table name from class name)
+[DmTable(schemaName: "sales")]
+public class Product { }
+```
+
+### [DmColumn] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class DmColumnAttribute : Attribute
+{
+    public DmColumnAttribute(
+        string? columnName = null,
+        string? providerDataType = null,
+        int length = 0,
+        int precision = -1,
+        int scale = -1,
+        string? checkExpression = null,
+        string? defaultExpression = null,
+        bool isNullable = false,
+        bool isPrimaryKey = false,
+        bool isAutoIncrement = false,
+        bool isUnique = false,
+        bool isUnicode = false,
+        bool isIndexed = false,
+        bool isForeignKey = false,
+        string? referencedTableName = null,
+        string? referencedColumnName = null,
+        DmForeignKeyAction onDelete = DmForeignKeyAction.NoAction,
+        DmForeignKeyAction onUpdate = DmForeignKeyAction.NoAction
+    );
+}
+```
+
+**Properties:**
+- `ColumnName` - Database column name (defaults to property name)
+- `ProviderDataType` - Explicit SQL type (see section 8 for details)
+- `Length` - For string/binary types (varchar(length), varbinary(length))
+- `Precision` - For decimal types (total digits)
+- `Scale` - For decimal types (digits after decimal point)
+- `CheckExpression` - Check constraint expression
+- `DefaultExpression` - Default value expression
+- `IsNullable` - Allow NULL values
+- `IsPrimaryKey` - Part of primary key
+- `IsAutoIncrement` - Auto-increment/identity column
+- `IsUnique` - Unique constraint
+- `IsUnicode` - Use Unicode types (nvarchar vs varchar)
+- `IsIndexed` - Create index on this column
+- `IsForeignKey` - Foreign key column
+- `ReferencedTableName` - Referenced table for foreign key
+- `ReferencedColumnName` - Referenced column for foreign key
+- `OnDelete` - Foreign key delete action
+- `OnUpdate` - Foreign key update action
+
+**Usage Examples:**
+```csharp
+// Basic column mapping
+[DmColumn("product_name")]
+public string Name { get; set; }
+
+// Primary key with auto-increment
+[DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+public int Id { get; set; }
+
+// String with length
+[DmColumn("email", length: 255, isNullable: false, isUnique: true)]
+public string Email { get; set; }
+
+// Decimal with precision and scale
+[DmColumn("price", precision: 18, scale: 2, isNullable: false)]
+public decimal Price { get; set; }
+
+// Check constraint
+[DmColumn("age", checkExpression: "age >= 18")]
+public int Age { get; set; }
+
+// Default value
+[DmColumn("created_at", defaultExpression: "GETDATE()")]
+public DateTime CreatedAt { get; set; }
+
+// Foreign key
+[DmColumn("category_id", isForeignKey: true,
+    referencedTableName: "categories",
+    referencedColumnName: "category_id",
+    onDelete: DmForeignKeyAction.Cascade)]
+public int CategoryId { get; set; }
+
+// Explicit provider type
+[DmColumn("description", providerDataType: "text")]
+public string? Description { get; set; }
+
+// Cross-database type
+[DmColumn("large_text",
+    providerDataType: "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}")]
+public string LargeText { get; set; }
+```
+
+### [DmIgnore] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property)]
+public sealed class DmIgnoreAttribute : Attribute { }
+```
+
+**Usage:**
+```csharp
+public class User
+{
+    [DmColumn("user_id")]
+    public int Id { get; set; }
+
+    [DmColumn("first_name")]
+    public string FirstName { get; set; }
+
+    // Ignored in both DDL and DML
+    [DmIgnore]
+    public string FullName => $"{FirstName} {LastName}";
+}
+```
+
+### [DmIndex] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
+public sealed class DmIndexAttribute : Attribute
+{
+    public DmIndexAttribute(
+        bool isUnique = false,
+        string[]? columnNames = null,
+        string? indexName = null
+    );
+
+    public string? IndexName { get; }
+    public bool IsUnique { get; }
+    public string[]? Columns { get; }
+}
+```
+
+**Usage:**
+```csharp
+// Property-level (single column index)
+public class User
+{
+    [DmIndex]  // Non-unique index on email
+    public string? Email { get; set; }
+
+    [DmIndex(isUnique: true)]  // Unique index on username
+    public string? Username { get; set; }
+}
+
+// Class-level (multi-column index)
+[DmIndex(isUnique: false, columnNames: new[] { "last_name", "first_name" })]
+[DmIndex(isUnique: true, columnNames: new[] { "tenant_id", "email" }, indexName: "IX_User_TenantEmail")]
+public class User
+{
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? TenantId { get; set; }
+    public string? Email { get; set; }
+}
+```
+
+### [DmPrimaryKeyConstraint] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Class)]
+public sealed class DmPrimaryKeyConstraintAttribute : Attribute
+{
+    public DmPrimaryKeyConstraintAttribute(
+        string[] columnNames,
+        string? constraintName = null
+    );
+}
+```
+
+**Usage:**
+```csharp
+// Single column primary key
+[DmPrimaryKeyConstraint(new[] { nameof(Id) })]
+public class Product
+{
+    public int Id { get; set; }
+}
+
+// Composite primary key
+[DmPrimaryKeyConstraint(new[] { nameof(TenantId), nameof(UserId) }, "PK_TenantUser")]
+public class TenantUser
+{
+    public string TenantId { get; set; }
+    public int UserId { get; set; }
+}
+```
+
+### [DmForeignKeyConstraint] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
+public sealed class DmForeignKeyConstraintAttribute : Attribute
+{
+    public DmForeignKeyConstraintAttribute(
+        string[]? sourceColumnNames = null,
+        Type? referencedType = null,
+        string? referencedTableName = null,
+        string[]? referencedColumnNames = null,
+        string? constraintName = null,
+        DmForeignKeyAction onDelete = DmForeignKeyAction.NoAction,
+        DmForeignKeyAction onUpdate = DmForeignKeyAction.NoAction
+    );
+}
+```
+
+**DmForeignKeyAction Enum:**
+- `NoAction` - No action
+- `Cascade` - Cascade delete/update
+- `SetNull` - Set to NULL
+- `SetDefault` - Set to default value
+- `Restrict` - Restrict (similar to NoAction but checked immediately)
+
+**Usage:**
+```csharp
+// Property-level
+public class OrderItem
+{
+    [DmForeignKeyConstraint(
+        referencedType: typeof(Product),
+        referencedColumnNames: new[] { "Id" },
+        onDelete: DmForeignKeyAction.Cascade
+    )]
+    public int ProductId { get; set; }
+}
+
+// Class-level
+[DmForeignKeyConstraint(
+    sourceColumnNames: new[] { "product_id" },
+    referencedTableName: "products",
+    referencedColumnNames: new[] { "product_id" },
+    constraintName: "FK_OrderItem_Product",
+    onDelete: DmForeignKeyAction.Cascade
+)]
+public class OrderItem
+{
+    public int ProductId { get; set; }
+}
+```
+
+### [DmUniqueConstraint] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
+public sealed class DmUniqueConstraintAttribute : Attribute
+{
+    public DmUniqueConstraintAttribute(
+        string[]? columnNames = null,
+        string? constraintName = null
+    );
+}
+```
+
+### [DmCheckConstraint] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
+public sealed class DmCheckConstraintAttribute : Attribute
+{
+    public DmCheckConstraintAttribute(
+        string checkExpression,
+        string[]? columnNames = null,
+        string? constraintName = null
+    );
+}
+```
+
+### [DmDefaultConstraint] Attribute
+
+```csharp
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Class, AllowMultiple = true)]
+public sealed class DmDefaultConstraintAttribute : Attribute
+{
+    public DmDefaultConstraintAttribute(
+        string defaultExpression,
+        string[]? columnNames = null,
+        string? constraintName = null
+    );
+}
+```
+
+---
+
+## 6. All Extension Methods Reference
+
+All extension methods are on `IDbConnection`. Most have both generic `<T>` and non-generic overloads.
+
+### Table Methods
+
+```csharp
+// Existence check
+Task<bool> DoesTableExistAsync<T>(IDbTransaction? tx = null, CancellationToken cancellationToken = default)
+Task<bool> DoesTableExistAsync(string? schemaName, string tableName, ...)
+
+// Create
+Task<bool> CreateTableIfNotExistsAsync<T>(IDbTransaction? tx = null, ...)
+Task<bool> CreateTableIfNotExistsAsync(DmTable table, ...)
+Task CreateTablesIfNotExistsAsync(IEnumerable<Type> tables, ...)
+Task CreateTablesIfNotExistsAsync(IEnumerable<DmTable> tables, ...)
+
+// Get metadata
+Task<DmTable?> GetTableAsync<T>(IDbTransaction? tx = null, ...)
+Task<DmTable?> GetTableAsync(string? schemaName, string tableName, ...)
+Task<List<DmTable>> GetTablesAsync(IDbTransaction? tx = null, ...)
+Task<List<string>> GetTableNamesAsync(IDbTransaction? tx = null, ...)
+
+// Modify
+Task<bool> DropTableIfExistsAsync<T>(IDbTransaction? tx = null, ...)
+Task<bool> DropTableIfExistsAsync(string? schemaName, string tableName, ...)
+Task<bool> RenameTableIfExistsAsync<T>(string newTableName, ...)
+Task<bool> RenameTableIfExistsAsync(string? schemaName, string oldTableName, string newTableName, ...)
+Task<bool> TruncateTableIfExistsAsync<T>(IDbTransaction? tx = null, ...)
+Task<bool> TruncateTableIfExistsAsync(string? schemaName, string tableName, ...)
+```
+
+### Column Methods
+
+```csharp
+// Existence check
+Task<bool> DoesColumnExistAsync<T>(string propertyName, ...)
+Task<bool> DoesColumnExistAsync(string? schemaName, string tableName, string columnName, ...)
+
+// Create
+Task<bool> CreateColumnIfNotExistsAsync<T>(string propertyName, ...)
+Task<bool> CreateColumnIfNotExistsAsync(string? schemaName, string tableName, DmColumn column, ...)
+
+// Get metadata
+Task<DmColumn?> GetColumnAsync<T>(string propertyName, ...)
+Task<DmColumn?> GetColumnAsync(string? schemaName, string tableName, string columnName, ...)
+Task<List<DmColumn>> GetColumnsAsync<T>(IDbTransaction? tx = null, ...)
+Task<List<DmColumn>> GetColumnsAsync(string? schemaName, string tableName, ...)
+Task<List<string>> GetColumnNamesAsync<T>(IDbTransaction? tx = null, ...)
+Task<List<string>> GetColumnNamesAsync(string? schemaName, string tableName, ...)
+
+// Modify
+Task<bool> DropColumnIfExistsAsync<T>(string propertyName, ...)
+Task<bool> DropColumnIfExistsAsync(string? schemaName, string tableName, string columnName, ...)
+Task<bool> RenameColumnIfExistsAsync<T>(string oldPropertyName, string newPropertyName, ...)
+Task<bool> RenameColumnIfExistsAsync(string? schemaName, string tableName, string oldColumnName, string newColumnName, ...)
+```
+
+### Index Methods
+
+```csharp
+// Existence check
+Task<bool> DoesIndexExistAsync<T>(string indexName, ...)
+Task<bool> DoesIndexExistAsync(string? schemaName, string tableName, string indexName, ...)
+Task<bool> DoesIndexExistOnColumnAsync<T>(string propertyName, ...)
+Task<bool> DoesIndexExistOnColumnAsync(string? schemaName, string tableName, string columnName, ...)
+
+// Create
+Task<bool> CreateIndexIfNotExistsAsync(string? schemaName, string tableName, DmIndex index, ...)
+
+// Get metadata
+Task<DmIndex?> GetIndexAsync<T>(string indexName, ...)
+Task<DmIndex?> GetIndexAsync(string? schemaName, string tableName, string indexName, ...)
+Task<List<DmIndex>> GetIndexesAsync<T>(IDbTransaction? tx = null, ...)
+Task<List<DmIndex>> GetIndexesAsync(string? schemaName, string tableName, ...)
+
+// Modify
+Task<bool> DropIndexIfExistsAsync<T>(string indexName, ...)
+Task<bool> DropIndexIfExistsAsync(string? schemaName, string tableName, string indexName, ...)
+```
+
+### Foreign Key Constraint Methods
+
+```csharp
+// Existence check
+Task<bool> DoesForeignKeyConstraintExistAsync<T>(string constraintName, ...)
+Task<bool> DoesForeignKeyConstraintExistAsync(string? schemaName, string tableName, string constraintName, ...)
+Task<bool> DoesForeignKeyConstraintExistOnColumnAsync<T>(string propertyName, ...)
+Task<bool> DoesForeignKeyConstraintExistOnColumnAsync(string? schemaName, string tableName, string columnName, ...)
+
+// Create
+Task<bool> CreateForeignKeyConstraintIfNotExistsAsync(string? schemaName, string tableName, DmForeignKeyConstraint constraint, ...)
+
+// Get metadata
+Task<DmForeignKeyConstraint?> GetForeignKeyConstraintAsync<T>(string constraintName, ...)
+Task<DmForeignKeyConstraint?> GetForeignKeyConstraintAsync(string? schemaName, string tableName, string constraintName, ...)
+Task<List<DmForeignKeyConstraint>> GetForeignKeyConstraintsAsync<T>(...)
+Task<List<DmForeignKeyConstraint>> GetForeignKeyConstraintsAsync(string? schemaName, string tableName, ...)
+
+// Modify
+Task<bool> DropForeignKeyConstraintIfExistsAsync<T>(string constraintName, ...)
+Task<bool> DropForeignKeyConstraintIfExistsAsync(string? schemaName, string tableName, string constraintName, ...)
+```
+
+### Unique Constraint Methods
+
+```csharp
+// Similar pattern to foreign keys
+Task<bool> DoesUniqueConstraintExistAsync<T>(string constraintName, ...)
+Task<bool> CreateUniqueConstraintIfNotExistsAsync(string? schemaName, string tableName, DmUniqueConstraint constraint, ...)
+Task<bool> DropUniqueConstraintIfExistsAsync<T>(string constraintName, ...)
+// ... (full list similar to FK methods)
+```
+
+### Check Constraint Methods
+
+```csharp
+// Similar pattern
+Task<bool> DoesCheckConstraintExistAsync<T>(string constraintName, ...)
+Task<bool> CreateCheckConstraintIfNotExistsAsync(string? schemaName, string tableName, DmCheckConstraint constraint, ...)
+Task<bool> DropCheckConstraintIfExistsAsync<T>(string constraintName, ...)
+// ... (full list similar to FK methods)
+```
+
+### Default Constraint Methods
+
+```csharp
+// Similar pattern
+Task<bool> DoesDefaultConstraintExistAsync<T>(string constraintName, ...)
+Task<bool> CreateDefaultConstraintIfNotExistsAsync(string? schemaName, string tableName, DmDefaultConstraint constraint, ...)
+Task<bool> DropDefaultConstraintIfExistsAsync<T>(string constraintName, ...)
+// ... (full list similar to FK methods)
+```
+
+### View Methods
+
+```csharp
+Task<bool> DoesViewExistAsync(string? schemaName, string viewName, ...)
+Task<bool> CreateViewIfNotExistsAsync(string? schemaName, string viewName, string selectStatement, ...)
+Task<bool> UpdateViewIfExistsAsync(string? schemaName, string viewName, string selectStatement, ...)
+Task<DmView?> GetViewAsync(string? schemaName, string viewName, ...)
+Task<List<DmView>> GetViewsAsync(IDbTransaction? tx = null, ...)
+Task<List<string>> GetViewNamesAsync(IDbTransaction? tx = null, ...)
+Task<bool> DropViewIfExistsAsync(string? schemaName, string viewName, ...)
+Task<bool> RenameViewIfExistsAsync(string? schemaName, string oldViewName, string newViewName, ...)
+```
+
+### Database Methods
+
+```csharp
+Task<Version> GetDatabaseVersionAsync(IDbTransaction? tx = null, ...)
+```
+
+### DmTableFactory Methods (Static Helpers)
+
+```csharp
+// Get DmTable from Type with attributes
+DmTable GetTable(Type type)
+
+// Get table name and schema
+(string? schemaName, string tableName) GetTableName(Type type, bool ignoreCache = false)
+
+// Get column name from property
+string GetColumnName(PropertyInfo property)
+string GetColumnName(PropertyInfo property, out DmColumnAttribute? columnAttribute)
+string GetColumnName<T>(Expression<Func<T, object>> propertyExpression)
+
+// Configure table mappings
+void Configure(Action<Type, DmTable> configure)  // Global configuration
+void Configure<T>(Action<DmTable> configure)      // Type-specific configuration
+void Configure(Type type, Action<DmTable> configure)  // Type-specific configuration
+```
+
+**Usage Examples:**
+```csharp
+using MJCZone.DapperMatic.Models;
+
+// Get table from type
+var table = DmTableFactory.GetTable(typeof(Product));
+await connection.CreateTableIfNotExistsAsync(table);
+
+// Get just names
+var (schema, tableName) = DmTableFactory.GetTableName(typeof(Product));
+
+// Get column name
+var columnName = DmTableFactory.GetColumnName<Product>(p => p.Name);
+
+// Configure globally (runs on first GetTable)
+DmTableFactory.Configure((type, table) =>
+{
+    // Apply naming conventions to all tables
+    table.TableName = table.TableName?.ToLower();
+});
+
+// Configure specific type
+DmTableFactory.Configure<Product>(table =>
+{
+    table.TableName = "prod_items";
+    table.SchemaName = "catalog";
+});
+```
+
+---
+
+## 7. Provider-Specific Type Mappings
+
+### SQL Server Type Mappings
+
+**Numeric Types:**
+- `byte` → tinyint
+- `short` → smallint
+- `int` → int
+- `long` → bigint
+- `float` → real
+- `double` → float
+- `decimal` → decimal(18,2)
+
+**Text Types:**
+- `string` → nvarchar(255) [Unicode by default]
+- `char` → nchar(1)
+
+**Date/Time Types:**
+- `DateTime` → datetime2
+- `DateTimeOffset` → datetimeoffset
+- `DateOnly` → date
+- `TimeOnly` → time
+- `TimeSpan` → time
+
+**Other Types:**
+- `bool` → bit
+- `Guid` → uniqueidentifier
+- `byte[]` → varbinary(max)
+
+**Special Types:**
+- `XDocument`, `XElement` → xml
+- `JsonDocument` → nvarchar(max)
+- Arrays → nvarchar(max) as JSON
+
+**Provider-Specific Types:**
+```csharp
+// SQL Server has these available via providerDataType:
+// Numeric: bit, tinyint, smallint, int, bigint, real, float, decimal, numeric, money, smallmoney
+// Date: date, datetime, datetime2, smalldatetime, datetimeoffset, time
+// Text: char, varchar, text, nchar, nvarchar, ntext
+// Binary: binary, varbinary, image
+// Other: uniqueidentifier, xml
+```
+
+### PostgreSQL Type Mappings
+
+**Numeric Types:**
+- `byte`, `short` → smallint
+- `int` → integer
+- `long` → bigint
+- `float` → real
+- `double` → double precision
+- `decimal` → numeric(18,2)
+
+**Text Types:**
+- `string` → varchar(255) [NOT Unicode by default]
+- `char` → char(1)
+
+**Date/Time Types:**
+- `DateTime` → timestamp
+- `DateTimeOffset` → timestamptz
+- `DateOnly` → date
+- `TimeOnly` → time
+- `TimeSpan` → interval
+
+**Other Types:**
+- `bool` → boolean
+- `Guid` → uuid
+- `byte[]` → bytea
+
+**Special Types:**
+- `XDocument`, `XElement` → xml
+- `JsonDocument` → jsonb
+- `string[]` → text[] [Native array!]
+- `int[]` → int4[] [Native array!]
+- `IPAddress` → inet [Native network type!]
+
+**PostgreSQL-Specific Types:**
+```csharp
+// Numeric: smallint, int2, integer, int4, bigint, int8, real, float4, double precision, float8, numeric, decimal, money
+// Date: date, timestamp, timestamptz, time, timetz, interval
+// Text: char, varchar, text, uuid
+// Binary: bytea
+// JSON: json, jsonb
+// Arrays: text[], int4[], int8[], numeric[], etc.
+// Network: inet, cidr, macaddr
+// Geometric: point, line, lseg, box, path, polygon, circle
+// Range: int4range, int8range, numrange, tsrange, tstzrange, daterange
+```
+
+### MySQL Type Mappings
+
+**Numeric Types:**
+- `byte` → tinyint
+- `short` → smallint
+- `int` → int
+- `long` → bigint
+- `float` → float
+- `double` → double
+- `decimal` → decimal(18,2)
+
+**Text Types:**
+- `string` → varchar(255) [NOT Unicode by default]
+- `char` → char(1)
+
+**Date/Time Types:**
+- `DateTime` → datetime
+- `DateTimeOffset` → datetime [No offset support]
+- `DateOnly` → date
+- `TimeOnly` → time
+- `TimeSpan` → time
+
+**Other Types:**
+- `bool` → boolean (tinyint(1))
+- `Guid` → char(36)
+- `byte[]` → longblob
+
+**Special Types:**
+- `XDocument`, `XElement` → text
+- `JsonDocument` → json [Native JSON type!]
+- Arrays → json [Stored as JSON]
+
+**MySQL-Specific Types:**
+```csharp
+// Numeric: bit, tinyint, smallint, mediumint, int, bigint, float, double, decimal, numeric
+// Date: date, datetime, timestamp, time, year
+// Text: char, varchar, tinytext, text, mediumtext, longtext
+// Binary: binary, varbinary, tinyblob, blob, mediumblob, longblob
+// JSON: json
+// Spatial: geometry, point, linestring, polygon, multipoint, multilinestring, multipolygon, geometrycollection
+```
+
+### SQLite Type Mappings
+
+SQLite has type affinity (flexible types), but DapperMatic uses these mappings:
+
+**Numeric Types:**
+- `byte`, `short`, `int`, `long` → integer
+- `float`, `double` → real
+- `decimal` → numeric
+
+**Text Types:**
+- `string` → text
+- `char` → char(1)
+
+**Date/Time Types:**
+- `DateTime` → datetime [Stored as text or numeric]
+- `DateTimeOffset` → text
+- `DateOnly` → date
+- `TimeOnly` → time
+- `TimeSpan` → integer [Ticks]
+
+**Other Types:**
+- `bool` → integer (0/1)
+- `Guid` → text
+- `byte[]` → blob
+
+**Special Types:**
+- `XDocument`, `XElement` → text
+- `JsonDocument` → text
+- Arrays → text [Stored as JSON]
+
+**SQLite Types:**
+```csharp
+// Numeric: integer, real, numeric
+// Text: text, char, varchar, nchar, nvarchar
+// Binary: blob
+// Date: date, datetime, timestamp (all stored as text or numeric)
+```
+
+---
+
+## 8. Advanced: providerDataType Usage
+
+The `providerDataType` parameter in `[DmColumn]` allows explicit control over the database column type.
+
+### Format Options
+
+#### Single Provider Type
+```csharp
+// Just the type name
+[DmColumn("description", providerDataType: "text")]
+public string? Description { get; set; }
+
+// Type with size
+[DmColumn("name", providerDataType: "nvarchar", length: 200)]
+public string Name { get; set; }
+
+// Type with size in the type itself
+[DmColumn("data", providerDataType: "nvarchar(max)")]
+public string Data { get; set; }
+
+// Decimal with precision/scale
+[DmColumn("price", providerDataType: "decimal", precision: 10, scale: 4)]
+public decimal Price { get; set; }
+```
+
+#### Multi-Provider Type (Cross-Database)
+```csharp
+// Format: {provider:type,provider:type,...}
+[DmColumn(
+    "large_text",
+    providerDataType: "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}"
+)]
+public string LargeText { get; set; }
+
+// Provider names: sqlserver, mysql, postgresql, sqlite
+// Also accepts: mssql, postgres, pg, maria, mariadb
+[DmColumn(
+    "json_data",
+    providerDataType: "{sqlserver:nvarchar(max),postgresql:jsonb,mysql:json,sqlite:text}"
+)]
+public string JsonData { get; set; }
+```
+
+### Common providerDataType Examples
+
+#### SQL Server Specific
+```csharp
+// Text types
+[DmColumn("code", providerDataType: "varchar", length: 10)]  // Non-Unicode
+[DmColumn("name", providerDataType: "nvarchar", length: 255)]  // Unicode
+[DmColumn("description", providerDataType: "nvarchar(max)")]  // Unlimited
+[DmColumn("legacy_notes", providerDataType: "text")]  // Legacy large text
+[DmColumn("fixed", providerDataType: "char", length: 5)]  // Fixed length
+[DmColumn("fixed_unicode", providerDataType: "nchar", length: 5)]  // Fixed Unicode
+
+// Numeric types
+[DmColumn("amount", providerDataType: "money")]  // Money type
+[DmColumn("small_amount", providerDataType: "smallmoney")]
+[DmColumn("precise", providerDataType: "decimal", precision: 38, scale: 10)]
+
+// Date/Time types
+[DmColumn("legacy_date", providerDataType: "datetime")]  // Legacy datetime
+[DmColumn("small_date", providerDataType: "smalldatetime")]
+[DmColumn("created", providerDataType: "datetime2", precision: 7)]  // Recommended
+[DmColumn("birth_date", providerDataType: "date")]
+
+// Binary types
+[DmColumn("data", providerDataType: "varbinary(max)")]
+[DmColumn("hash", providerDataType: "binary", length: 32)]
+
+// Special types
+[DmColumn("id", providerDataType: "uniqueidentifier")]
+[DmColumn("document", providerDataType: "xml")]
+```
+
+#### PostgreSQL Specific
+```csharp
+// Integer types
+[DmColumn("small_num", providerDataType: "smallint")]  // 2 bytes
+[DmColumn("num", providerDataType: "integer")]  // 4 bytes
+[DmColumn("big_num", providerDataType: "bigint")]  // 8 bytes
+[DmColumn("auto_id", providerDataType: "serial")]  // Auto-increment int
+[DmColumn("auto_big_id", providerDataType: "bigserial")]  // Auto-increment bigint
+
+// Real types
+[DmColumn("approx", providerDataType: "real")]  // 4 bytes
+[DmColumn("precise", providerDataType: "double precision")]  // 8 bytes
+[DmColumn("exact", providerDataType: "numeric", precision: 10, scale: 2)]
+[DmColumn("currency", providerDataType: "money")]
+
+// Text types
+[DmColumn("code", providerDataType: "varchar", length: 10)]
+[DmColumn("description", providerDataType: "text")]  // Unlimited
+[DmColumn("fixed", providerDataType: "char", length: 5)]
+
+// Date/Time types
+[DmColumn("created", providerDataType: "timestamp")]
+[DmColumn("created_tz", providerDataType: "timestamptz")]  // With timezone
+[DmColumn("birth_date", providerDataType: "date")]
+[DmColumn("wake_time", providerDataType: "time")]
+[DmColumn("duration", providerDataType: "interval")]
+
+// JSON types
+[DmColumn("data", providerDataType: "json")]  // Regular JSON
+[DmColumn("data_indexed", providerDataType: "jsonb")]  // Binary JSON (recommended)
+
+// Array types (PostgreSQL native!)
+[DmColumn("tags", providerDataType: "text[]")]
+[DmColumn("numbers", providerDataType: "integer[]")]
+[DmColumn("prices", providerDataType: "numeric[]")]
+
+// Network types
+[DmColumn("ip", providerDataType: "inet")]  // IP address
+[DmColumn("network", providerDataType: "cidr")]  // Network
+[DmColumn("mac", providerDataType: "macaddr")]  // MAC address
+
+// Geometric types
+[DmColumn("location", providerDataType: "point")]
+[DmColumn("area", providerDataType: "box")]
+[DmColumn("boundary", providerDataType: "polygon")]
+
+// Range types
+[DmColumn("int_range", providerDataType: "int4range")]
+[DmColumn("date_range", providerDataType: "daterange")]
+[DmColumn("time_range", providerDataType: "tsrange")]
+
+// UUID
+[DmColumn("id", providerDataType: "uuid")]
+
+// Binary
+[DmColumn("data", providerDataType: "bytea")]
+
+// Boolean
+[DmColumn("active", providerDataType: "boolean")]
+```
+
+#### MySQL Specific
+```csharp
+// Integer types
+[DmColumn("tiny", providerDataType: "tinyint")]  // 1 byte
+[DmColumn("small", providerDataType: "smallint")]  // 2 bytes
+[DmColumn("medium", providerDataType: "mediumint")]  // 3 bytes
+[DmColumn("normal", providerDataType: "int")]  // 4 bytes
+[DmColumn("big", providerDataType: "bigint")]  // 8 bytes
+
+// Real types
+[DmColumn("approx", providerDataType: "float")]
+[DmColumn("precise", providerDataType: "double")]
+[DmColumn("exact", providerDataType: "decimal", precision: 10, scale: 2)]
+
+// Text types
+[DmColumn("code", providerDataType: "varchar", length: 10)]
+[DmColumn("tiny_text", providerDataType: "tinytext")]  // 255 bytes
+[DmColumn("normal_text", providerDataType: "text")]  // 65,535 bytes
+[DmColumn("medium_text", providerDataType: "mediumtext")]  // 16 MB
+[DmColumn("large_text", providerDataType: "longtext")]  // 4 GB
+[DmColumn("fixed", providerDataType: "char", length: 5)]
+
+// Date/Time types
+[DmColumn("created", providerDataType: "datetime")]
+[DmColumn("modified", providerDataType: "timestamp")]
+[DmColumn("birth_date", providerDataType: "date")]
+[DmColumn("wake_time", providerDataType: "time")]
+[DmColumn("birth_year", providerDataType: "year")]
+
+// Binary types
+[DmColumn("tiny_data", providerDataType: "tinyblob")]
+[DmColumn("normal_data", providerDataType: "blob")]
+[DmColumn("medium_data", providerDataType: "mediumblob")]
+[DmColumn("large_data", providerDataType: "longblob")]
+[DmColumn("fixed_binary", providerDataType: "binary", length: 16)]
+[DmColumn("var_binary", providerDataType: "varbinary", length: 255)]
+
+// JSON type
+[DmColumn("data", providerDataType: "json")]  // Native JSON!
+
+// Spatial types
+[DmColumn("location", providerDataType: "point")]
+[DmColumn("line", providerDataType: "linestring")]
+[DmColumn("area", providerDataType: "polygon")]
+[DmColumn("shape", providerDataType: "geometry")]
+```
+
+#### SQLite Specific
+```csharp
+// SQLite is flexible - these are type affinities
+
+// Numeric affinity
+[DmColumn("id", providerDataType: "integer")]
+[DmColumn("approx", providerDataType: "real")]
+[DmColumn("exact", providerDataType: "numeric")]
+
+// Text affinity
+[DmColumn("name", providerDataType: "text")]
+[DmColumn("code", providerDataType: "varchar")]
+[DmColumn("fixed", providerDataType: "char")]
+
+// Binary affinity
+[DmColumn("data", providerDataType: "blob")]
+```
+
+### Cross-Database Examples
+
+```csharp
+// Example 1: Large text field
+[DmColumn(
+    "description",
+    providerDataType: "{sqlserver:nvarchar(max),mysql:longtext,postgresql:text,sqlite:text}"
+)]
+public string Description { get; set; }
+
+// Example 2: JSON data
+[DmColumn(
+    "metadata",
+    providerDataType: "{sqlserver:nvarchar(max),mysql:json,postgresql:jsonb,sqlite:text}"
+)]
+public string Metadata { get; set; }
+
+// Example 3: Large binary
+[DmColumn(
+    "file_data",
+    providerDataType: "{sqlserver:varbinary(max),mysql:longblob,postgresql:bytea,sqlite:blob}"
+)]
+public byte[] FileData { get; set; }
+
+// Example 4: Auto-increment ID
+[DmColumn(
+    "id",
+    isPrimaryKey: true,
+    isAutoIncrement: true,
+    providerDataType: "{sqlserver:int,mysql:int,postgresql:serial,sqlite:integer}"
+)]
+public int Id { get; set; }
+
+// Example 5: Money/Currency
+[DmColumn(
+    "price",
+    providerDataType: "{sqlserver:money,mysql:decimal(19,4),postgresql:money,sqlite:numeric}"
+)]
+public decimal Price { get; set; }
+```
+
+---
+
+## 9. Common Patterns and Recipes
+
+### Pattern: Using DmTableFactory for Dynamic Table Creation
+
+```csharp
+using MJCZone.DapperMatic.Models;
+
+// Scenario: Generate tables from types at runtime
+public async Task CreateTablesFromTypesAsync(IDbConnection connection, Type[] entityTypes)
+{
+    foreach (var type in entityTypes)
+    {
+        // Get table definition from type
+        var table = DmTableFactory.GetTable(type);
+
+        // Create if doesn't exist
+        await connection.CreateTableIfNotExistsAsync(table);
+    }
+}
+
+// Scenario: Apply naming conventions across all tables
+DmTableFactory.Configure((type, table) =>
+{
+    // Convert PascalCase to snake_case
+    table.TableName = ToSnakeCase(table.TableName);
+
+    // Add tenant-specific prefix
+    if (type.GetCustomAttribute<TenantSpecificAttribute>() != null)
+    {
+        table.SchemaName = $"tenant_{tenantId}";
+    }
+});
+
+// Scenario: Get column mappings for dynamic queries
+var productType = typeof(Product);
+var (schema, tableName) = DmTableFactory.GetTableName(productType);
+var nameColumn = DmTableFactory.GetColumnName<Product>(p => p.Name);
+
+// Build dynamic query
+var sql = $"SELECT {nameColumn} FROM {schema}.{tableName}";
+```
+
+### Pattern: Multi-Tenant Database Setup
+
+```csharp
+public async Task SetupTenantSchemaAsync(IDbConnection connection, string tenantId)
+{
+    // Create tenant-specific tables
+    var userTable = new DmTable(tenantId, "users")
+    {
+        Columns = new[]
+        {
+            new DmColumn("user_id", typeof(int)) { IsNullable = false, IsAutoIncrement = true },
+            new DmColumn("username", typeof(string)) { MaxLength = 50, IsNullable = false },
+            new DmColumn("email", typeof(string)) { MaxLength = 255, IsNullable = false }
+        },
+        PrimaryKeyConstraint = new DmPrimaryKeyConstraint($"PK_{tenantId}_Users", "user_id"),
+        Indexes = new[]
+        {
+            new DmIndex($"IX_{tenantId}_Users_Email", isUnique: true, "email")
+        }
+    };
+
+    await connection.CreateTableIfNotExistsAsync(userTable);
+}
+```
+
+### Pattern: Audit Columns
+
+```csharp
+public abstract class AuditableEntity
+{
+    [DmColumn("created_at", defaultExpression: "GETDATE()", isNullable: false)]
+    public DateTime CreatedAt { get; set; }
+
+    [DmColumn("created_by", length: 100)]
+    public string? CreatedBy { get; set; }
+
+    [DmColumn("modified_at")]
+    public DateTime? ModifiedAt { get; set; }
+
+    [DmColumn("modified_by", length: 100)]
+    public string? ModifiedBy { get; set; }
+}
+
+[DmTable("products")]
+public class Product : AuditableEntity
+{
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_name", length: 200, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+}
+```
+
+### Pattern: Soft Delete
+
+```csharp
+[DmTable("products")]
+public class Product
+{
+    [DmColumn("product_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("product_name", length: 200, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("is_deleted", defaultExpression: "0")]
+    public bool IsDeleted { get; set; }
+
+    [DmColumn("deleted_at")]
+    public DateTime? DeletedAt { get; set; }
+}
+
+// Query only active records
+var activeProducts = await connection.QueryAsync<Product>(
+    "SELECT product_id, product_name, is_deleted, deleted_at FROM products WHERE is_deleted = 0"
+);
+```
+
+### Pattern: Composite Primary Key
+
+```csharp
+[DmTable("user_roles")]
+[DmPrimaryKeyConstraint(new[] { nameof(UserId), nameof(RoleId) }, "PK_UserRoles")]
+public class UserRole
+{
+    [DmColumn("user_id", isNullable: false)]
+    public int UserId { get; set; }
+
+    [DmColumn("role_id", isNullable: false)]
+    public int RoleId { get; set; }
+
+    [DmColumn("assigned_at", defaultExpression: "GETDATE()")]
+    public DateTime AssignedAt { get; set; }
+}
+```
+
+### Pattern: Hierarchical Data (Self-Referencing FK)
+
+```csharp
+[DmTable("categories")]
+public class Category
+{
+    [DmColumn("category_id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("category_name", length: 100, isNullable: false)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("parent_category_id")]
+    [DmForeignKeyConstraint(
+        referencedTableName: "categories",
+        referencedColumnNames: new[] { "category_id" },
+        onDelete: DmForeignKeyAction.Cascade
+    )]
+    public int? ParentCategoryId { get; set; }
+}
+```
+
+### Pattern: Database Migration at Startup
+
+```csharp
+public class DatabaseMigration
+{
+    public static async Task MigrateAsync(IDbConnection connection)
+    {
+        // Create all tables
+        await connection.CreateTablesIfNotExistsAsync(new[]
+        {
+            typeof(User),
+            typeof(Product),
+            typeof(Order),
+            typeof(OrderItem)
+        });
+
+        // Add columns that might be missing (for upgrades)
+        if (!await connection.DoesColumnExistAsync<Product>(nameof(Product.Tags)))
+        {
+            await connection.CreateColumnIfNotExistsAsync<Product>(nameof(Product.Tags));
+        }
+
+        // Add indexes
+        if (!await connection.DoesIndexExistAsync<User>("IX_User_Email"))
+        {
+            var index = new DmIndex("IX_User_Email", isUnique: true, "email");
+            await connection.CreateIndexIfNotExistsAsync(null, "users", index);
+        }
+    }
+}
+
+// In Program.cs
+using var connection = new SqlConnection(connectionString);
+await DatabaseMigration.MigrateAsync(connection);
+```
+
+### Pattern: Working with Transactions
+
+```csharp
+using var connection = new SqlConnection(connectionString);
+await connection.OpenAsync();
+
+using var transaction = connection.BeginTransaction();
+try
+{
+    // DDL operations with transaction
+    await connection.CreateTableIfNotExistsAsync<User>(transaction);
+    await connection.CreateTableIfNotExistsAsync<Product>(transaction);
+
+    // DML operations with transaction
+    await connection.ExecuteAsync(
+        "INSERT INTO users (username, email) VALUES (@username, @email)",
+        new { username = "john", email = "john@example.com" },
+        transaction
+    );
+
+    transaction.Commit();
+}
+catch
+{
+    transaction.Rollback();
+    throw;
+}
+```
+
+---
+
+## 10. Error Prevention
+
+### Common Mistakes
+
+#### Mistake 1: Forgetting DML Initialization
+```csharp
+// ❌ WRONG - DapperMaticTypeMapping.Initialize() not called
+var users = await connection.QueryAsync<User>(
+    "SELECT user_id, username FROM users"
+);
+// Result: DmColumn attributes don't work, properties won't map
+
+// ✅ CORRECT - Initialize first
+DapperMaticTypeMapping.Initialize();  // In Program.cs
+var users = await connection.QueryAsync<User>(
+    "SELECT user_id, username FROM users"
+);
+```
+
+#### Mistake 2: Using Wrong Method Name
+```csharp
+// ❌ WRONG - This method doesn't exist
+await connection.CreateTableFromModelAsync<Product>();
+
+// ✅ CORRECT
+await connection.CreateTableIfNotExistsAsync<Product>();
+```
+
+#### Mistake 3: Not Checking Existence
+```csharp
+// ❌ RISKY - Might fail if table exists
+await connection.CreateTableAsync<Product>();
+
+// ✅ CORRECT - Safe
+await connection.CreateTableIfNotExistsAsync<Product>();
+
+// ✅ ALSO CORRECT - Explicit check
+if (!await connection.DoesTableExistAsync<Product>())
+{
+    await connection.CreateTableIfNotExistsAsync<Product>();
+}
+```
+
+#### Mistake 4: Mixing DDL and DML Concepts
+```csharp
+// ❌ WRONG - These are separate features
+// DDL creates schema, DML maps queries
+// Don't expect DML to create tables!
+
+DapperMaticTypeMapping.Initialize();
+await connection.CreateTableIfNotExistsAsync<Product>();  // DDL operation
+var products = await connection.QueryAsync<Product>(...); // DML operation
+```
+
+#### Mistake 5: Wrong providerDataType Format
+```csharp
+// ❌ WRONG - Missing braces for multi-provider
+[DmColumn("data", providerDataType: "sqlserver:nvarchar(max),postgresql:text")]
+
+// ✅ CORRECT - With braces
+[DmColumn("data", providerDataType: "{sqlserver:nvarchar(max),postgresql:text}")]
+
+// ✅ ALSO CORRECT - Single provider, no braces needed
+[DmColumn("data", providerDataType: "text")]
+```
+
+### Debugging Tips
+
+#### Enable Logging
+```csharp
+// SQL Server
+var builder = new SqlConnectionStringBuilder(connectionString);
+// No built-in logging, use profiler or query events
+
+// PostgreSQL (Npgsql)
+NpgsqlLogManager.Provider = new ConsoleLoggingProvider(NpgsqlLogLevel.Debug, true, true);
+
+// Check actual SQL generated
+// Set breakpoint and inspect connection.LastCommand (if using logging)
+```
+
+#### Verify Table Structure
+```csharp
+// Get table metadata
+var table = await connection.GetTableAsync<Product>();
+if (table != null)
+{
+    Console.WriteLine($"Table: {table.TableName}");
+    foreach (var column in table.Columns)
+    {
+        Console.WriteLine($"  {column.ColumnName}: {column.ProviderDataType}");
+    }
+}
+```
+
+#### Test Type Mappings
+```csharp
+// Create a test table and insert/query to verify type mappings work
+[DmTable("type_test")]
+public class TypeTest
+{
+    [DmColumn("id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("tags")]
+    public string[]? Tags { get; set; }
+
+    [DmColumn("metadata")]
+    public JsonDocument? Metadata { get; set; }
+}
+
+// Initialize DML
+DapperMaticTypeMapping.Initialize();
+
+// Create table
+await connection.CreateTableIfNotExistsAsync<TypeTest>();
+
+// Insert
+await connection.ExecuteAsync(
+    "INSERT INTO type_test (tags, metadata) VALUES (@tags, @metadata)",
+    new
+    {
+        tags = new[] { "test", "debug" },
+        metadata = JsonDocument.Parse("{\"test\":true}")
+    }
+);
+
+// Query back
+var results = await connection.QueryAsync<TypeTest>("SELECT * FROM type_test");
+// Verify arrays and JSON are correctly deserialized
+```
+
+---
+
+## 11. FAQ
+
+### Q: Do I need to call Initialize() for DDL operations?
+**A:** No! DDL operations (CreateTableIfNotExistsAsync, etc.) work immediately without initialization.
+
+### Q: Do I need to call Initialize() for DML operations?
+**A:** Yes! You must call `DapperMaticTypeMapping.Initialize()` once at application startup for DmColumn attributes to work with Dapper queries.
+
+### Q: Can I use DapperMatic with Entity Framework?
+**A:** Yes! They can coexist. DapperMatic can create schemas, and you can use EF for queries, or vice versa. The `[DmColumn]` attribute works alongside EF attributes.
+
+### Q: What happens if I call Initialize() multiple times?
+**A:** It's safe - subsequent calls are ignored. The initialization is thread-safe and executes only once.
+
+### Q: Does DapperMatic support migrations like EF Core?
+**A:** Not in the traditional sense. DapperMatic is designed for runtime schema management. For version-controlled migrations, consider FluentMigrator. DapperMatic excels at dynamic/runtime scenarios.
+
+### Q: Can I use providerDataType for cross-database compatibility?
+**A:** Yes! Use the format `{sqlserver:type,mysql:type,postgresql:type,sqlite:type}` to specify different types per provider.
+
+### Q: How do arrays work across different databases?
+**A:** PostgreSQL uses native arrays (text[], int4[], etc.) which are 10-50x faster. Other providers store arrays as JSON. This is handled automatically by the smart array type handlers.
+
+### Q: Are spatial types supported?
+**A:** Yes! NetTopologySuite geometry types are supported. PostgreSQL and MySQL use native geometry types, while SQL Server requires Microsoft.SqlServer.Types, and SQLite uses WKT text.
+
+### Q: Can I use GUID/UUID primary keys?
+**A:** Yes! Use `Guid` type with `isPrimaryKey: true`. SQL Server uses `uniqueidentifier`, PostgreSQL uses `uuid`, MySQL/SQLite use `char(36)`.
+
+### Q: How do I handle database-specific features?
+**A:** Use `providerDataType` for database-specific types. For functionality, check the connection type and use conditional logic or the Database methods.
+
+### Q: Is there ASP.NET Core integration?
+**A:** Yes! Install `MJCZone.DapperMatic.AspNetCore` for OpenAPI/Swagger integration and REST endpoints for schema management.
+
+### Q: What about performance?
+**A:** DDL operations are fast. DML type handlers add minimal overhead. PostgreSQL native arrays are 10-50x faster than JSON. For high-performance scenarios, DapperMatic works great with Dapper's existing performance.
+
+### Q: Can I contribute?
+**A:** Yes! The project is open source at https://github.com/mjczone/dappermatic
+
+---
+
+## End of Complete LLM Context
+
+For the latest information, visit:
+- Documentation: https://dappermatic.mjczone.com/
+- GitHub: https://github.com/mjczone/dappermatic
+- Issues: https://github.com/mjczone/dappermatic/issues

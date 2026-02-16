@@ -338,11 +338,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Optional parameter to include additional data. Use 'customTypes' to discover user-defined types from the database (PostgreSQL domains, enums, composite types).",
             "schema": {
               "type": "string"
-            },
-            "example": "customTypes"
+            }
           }
         ],
         "responses": {
@@ -596,6 +594,7 @@ export default {
           "DapperMatic Tables"
         ],
         "summary": "Gets all tables for the default schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
         "operationId": "ListDefaultSchemaTables",
         "parameters": [
           {
@@ -609,11 +608,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.",
             "schema": {
               "type": "string"
-            },
-            "example": "columns,indexes"
+            }
           },
           {
             "name": "filter",
@@ -697,6 +694,7 @@ export default {
           "DapperMatic Tables"
         ],
         "summary": "Gets a table by name from the default schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
         "operationId": "GetDefaultSchemaTable",
         "parameters": [
           {
@@ -718,11 +716,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields.",
             "schema": {
               "type": "string"
-            },
-            "example": "columns,indexes,constraints"
+            }
           }
         ],
         "responses": {
@@ -990,6 +986,7 @@ export default {
           "DapperMatic Tables"
         ],
         "summary": "Gets all tables for a specific schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
         "operationId": "ListSchemaTables",
         "parameters": [
           {
@@ -1003,6 +1000,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1010,11 +1008,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields. By default, only basic table information is returned.",
             "schema": {
               "type": "string"
-            },
-            "example": "columns,indexes"
+            }
           },
           {
             "name": "filter",
@@ -1061,6 +1057,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1105,6 +1102,7 @@ export default {
           "DapperMatic Tables"
         ],
         "summary": "Gets a table by name from a specific schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
         "operationId": "GetSchemaTable",
         "parameters": [
           {
@@ -1118,6 +1116,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1133,11 +1132,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'columns' to include column definitions, 'indexes' for indexes, 'constraints' for constraints, or '*' to include all fields.",
             "schema": {
               "type": "string"
-            },
-            "example": "columns,indexes,constraints"
+            }
           }
         ],
         "responses": {
@@ -1177,6 +1174,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1237,6 +1235,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1289,6 +1288,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1341,6 +1341,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1391,6 +1392,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1712,6 +1714,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1762,6 +1765,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1827,6 +1831,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1885,6 +1890,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -1953,6 +1959,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2211,6 +2218,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2261,6 +2269,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2326,6 +2335,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2384,6 +2394,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2753,6 +2764,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2803,6 +2815,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2868,6 +2881,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2926,6 +2940,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -2986,6 +3001,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3044,6 +3060,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3309,6 +3326,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3359,6 +3377,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3424,6 +3443,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3482,6 +3502,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3686,6 +3707,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3736,6 +3758,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -3799,6 +3822,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4056,6 +4080,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4106,6 +4131,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4171,6 +4197,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4229,6 +4256,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4494,6 +4522,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4544,6 +4573,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4609,6 +4639,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4667,6 +4698,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -4714,6 +4746,7 @@ export default {
           "DapperMatic Views"
         ],
         "summary": "Gets all views for the default schema",
+        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
         "operationId": "ListDefaultSchemaViews",
         "parameters": [
           {
@@ -4727,11 +4760,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
             "schema": {
               "type": "string"
-            },
-            "example": "definition"
+            }
           },
           {
             "name": "filter",
@@ -4815,6 +4846,7 @@ export default {
           "DapperMatic Views"
         ],
         "summary": "Gets a view by name from the default schema",
+        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
         "operationId": "GetDefaultSchemaView",
         "parameters": [
           {
@@ -4836,11 +4868,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
             "schema": {
               "type": "string"
-            },
-            "example": "definition"
+            }
           }
         ],
         "responses": {
@@ -5101,6 +5131,7 @@ export default {
           "DapperMatic Views"
         ],
         "summary": "Gets all views for a specific schema",
+        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
         "operationId": "ListSchemaViews",
         "parameters": [
           {
@@ -5114,6 +5145,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5121,11 +5153,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
             "schema": {
               "type": "string"
-            },
-            "example": "definition"
+            }
           },
           {
             "name": "filter",
@@ -5172,6 +5202,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5216,6 +5247,7 @@ export default {
           "DapperMatic Views"
         ],
         "summary": "Gets a view by name from a specific schema",
+        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
         "operationId": "GetSchemaView",
         "parameters": [
           {
@@ -5229,6 +5261,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5244,11 +5277,9 @@ export default {
           {
             "name": "include",
             "in": "query",
-            "description": "Comma-separated list of fields to include in the response. Use 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
             "schema": {
               "type": "string"
-            },
-            "example": "definition"
+            }
           }
         ],
         "responses": {
@@ -5288,6 +5319,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5348,6 +5380,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5393,6 +5426,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5445,6 +5479,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }
@@ -5495,6 +5530,7 @@ export default {
           {
             "name": "schemaName",
             "in": "path",
+            "required": true,
             "schema": {
               "type": "string"
             }

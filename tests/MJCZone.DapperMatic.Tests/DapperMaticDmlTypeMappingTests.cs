@@ -739,9 +739,9 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         await db.CreateTableIfNotExistsAsync(table);
 
         // Create test list with mixed types (primitives, null)
-        var testList = new List<object> { 1, "hello", true, 3.14, null };
+        var testList = new List<object?> { 1, "hello", true, 3.14, null };
 
-        // Insert data using List<object> - handler should serialize to JSON array string
+        // Insert data using List<object?> - handler should serialize to JSON array string
         await db.ExecuteAsync(
             "INSERT INTO test_list_of_objects (title, mixed_data) VALUES (@title, @mixedData)",
             new { title = "Mixed Data Document", mixedData = testList }

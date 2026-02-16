@@ -5,7 +5,7 @@
   "description": "Documentation for MJCZone.DapperMatic",
   "scripts": {
     "generate-api": "node scripts/generate-api-docs.js",
-    "generate-openapi": "./scripts/generate-openapi.sh && node scripts/convert-openapi-to-js.js",
+    "generate-openapi": "node scripts/generate-openapi.js && node scripts/convert-openapi-to-js.js",
     "docs:dev": "npm install && npm run generate-api && npm run generate-openapi && vitepress dev",
     "docs:build": "npm install && npm run generate-api && npm run generate-openapi && vitepress build",
     "docs:preview": "vitepress preview"

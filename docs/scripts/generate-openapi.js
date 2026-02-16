@@ -47,11 +47,26 @@ async function generateOpenApiSpec() {
     // Start the app in the background
     const appProcess = spawn('dotnet', ['run'], {
       cwd: sampleAppPath,
-      env: { ...process.env, ASPNETCORE_ENVIRONMENT: 'Development' }
+      env: { ...process.env, ASPNETCORE_ENVIRONMENT: 'Development' },
+      stdio: 'pipe'
     });
 
-    // Wait for the app to start
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    // Monitor app output to detect when it's ready
+    let appReady = false;
+    appProcess.stdout.on('data', (data) => {
+      const output = data.toString();
+      console.log(output);
+      if (output.includes('Now listening on:') || output.includes('Application started')) {
+        appReady = true;
+      }
+    });
+
+    appProcess.stderr.on('data', (data) => {
+      console.error(data.toString());
+    });
+
+    // Wait for the app to start (increased timeout)
+    await new Promise(resolve => setTimeout(resolve, 8000));
 
     // Fetch the OpenAPI spec
     console.log('Fetching OpenAPI specification...');
@@ -63,8 +78,17 @@ async function generateOpenApiSpec() {
 
     const openApiSpec = await response.json();
 
-    // Kill the app process
-    appProcess.kill('SIGTERM');
+    // Kill the app process (Windows-compatible)
+    if (process.platform === 'win32') {
+      const killProcess = spawn('taskkill', ['/pid', appProcess.pid, '/f', '/t'], { stdio: 'inherit' });
+      await new Promise(resolve => killProcess.on('close', resolve));
+    } else {
+      appProcess.kill('SIGTERM');
+      await new Promise(resolve => appProcess.on('close', resolve));
+    }
+
+    // Small delay to ensure cleanup
+    await new Promise(resolve => setTimeout(resolve, 500));
 
     // Write the OpenAPI spec to file
     const specPath = path.join(apiBrowserPath, 'openapi.json');
