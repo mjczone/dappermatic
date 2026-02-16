@@ -37,7 +37,7 @@ DapperMatic is a .NET library that provides TWO distinct features:
 
 ### Feature 2: DML (Data Manipulation Language) - Query Compatibility
 - Attribute-based column mapping for Dapper's QueryAsync/ExecuteAsync
-- Custom type handlers for advanced types (arrays, JSON, XML, spatial)
+- Custom type handlers for advanced types (arrays, JSON, XML, spatial, scalar temporal types)
 - **Requires `DapperMaticTypeMapping.Initialize()` once at application startup**
 - Enables [DmColumn] attributes to work with Dapper queries
 
@@ -527,6 +527,41 @@ public class Document
 await connection.ExecuteAsync(
     "INSERT INTO documents (content) VALUES (@content)",
     new { content = XDocument.Parse("<root><item>value</item></root>") }
+);
+```
+
+### Scalar DateTime Handling
+
+```csharp
+public class Event
+{
+    [DmColumn("event_id")]
+    public int Id { get; set; }
+
+    // Smart scalar handler - adapts to each provider automatically
+    // PostgreSQL: native date/time types with Npgsql 9.x compatibility
+    // SQL Server: converts DateOnly→DateTime, TimeOnly→TimeSpan for SqlClient
+    // MySQL: sets DbType and passes directly
+    // SQLite: converts to/from string format
+    [DmColumn("event_date")]
+    public DateOnly? EventDate { get; set; }
+
+    [DmColumn("start_time")]
+    public TimeOnly? StartTime { get; set; }
+
+    [DmColumn("created_at")]
+    public DateTimeOffset? CreatedAt { get; set; }
+}
+
+// Insert with scalar temporal values
+await connection.ExecuteAsync(
+    "INSERT INTO events (event_date, start_time, created_at) VALUES (@date, @time, @created)",
+    new { date = new DateOnly(2025, 6, 15), time = new TimeOnly(9, 0, 0), created = DateTimeOffset.UtcNow }
+);
+
+// Query with scalar temporal values
+var events = await connection.QueryAsync<Event>(
+    "SELECT event_id, event_date, start_time, created_at FROM events"
 );
 ```
 

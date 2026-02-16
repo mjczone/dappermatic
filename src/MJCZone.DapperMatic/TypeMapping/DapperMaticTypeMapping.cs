@@ -120,6 +120,22 @@ public static class DapperMaticTypeMapping
         TryAddTypeHandler(new SmartArrayTypeHandler<DateOnly>());
         TryAddTypeHandler(new SmartArrayTypeHandler<TimeOnly>());
         TryAddTypeHandler(new SmartArrayTypeHandler<TimeSpan>());
+
+        // Scalar temporal type handlers with Npgsql 9.x compatibility
+        // Register for both nullable and non-nullable versions
+        var dateOnlyHandler = new SmartScalarDateTimeTypeHandler<DateOnly>();
+#pragma warning disable CA2263 // Use generic overload - non-generic required for Dapper registration
+        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly));
+        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly?));
+
+        var timeOnlyHandler = new SmartScalarDateTimeTypeHandler<TimeOnly>();
+        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly));
+        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly?));
+
+        var dateTimeOffsetHandler = new SmartScalarDateTimeTypeHandler<DateTimeOffset>();
+        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset));
+        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset?));
+#pragma warning restore CA2263
     }
 
     /// <summary>

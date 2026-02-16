@@ -480,6 +480,9 @@ Additional type combinations can be registered by adding more handler instances 
 | `Dictionary<TKey, TValue>` | JSON serialization | ~1-5ms | ✅ All providers |
 | `List<T>` | JSON array serialization | ~1-5ms | ✅ All providers |
 | Arrays (`T[]`) | PostgreSQL: Native arrays<br/>Others: JSON | PostgreSQL: **~0.1ms**<br/>Others: ~1-5ms | ✅ All providers |
+| `DateOnly` | PostgreSQL: Native date<br/>SQL Server: DateTime<br/>SQLite: String | ~0.1-1ms | ✅ All providers |
+| `TimeOnly` | PostgreSQL: Native time<br/>SQL Server: TimeSpan<br/>SQLite: String | ~0.1-1ms | ✅ All providers |
+| `DateTimeOffset` | PostgreSQL: Native timestamptz<br/>SQL Server: Native<br/>SQLite: String | ~0.1-1ms | ✅ All providers |
 | `IPAddress` | PostgreSQL: Native inet<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
 | `PhysicalAddress` | PostgreSQL: Native macaddr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
 | `NpgsqlCidr` | PostgreSQL: Native cidr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
@@ -491,6 +494,62 @@ PostgreSQL automatically benefits from native types for optimal performance:
 - **JSON serialization** (other providers): Reliable cross-database compatibility
 - **String serialization** (network types on non-PostgreSQL): Simple and portable
 :::
+
+### Scalar DateTime Types
+
+DapperMatic provides smart type handlers for `DateOnly`, `TimeOnly`, and `DateTimeOffset` scalar values with automatic provider-specific handling and Npgsql 9.x compatibility:
+
+```csharp
+public class Event
+{
+    [DmColumn("event_id")]
+    public int EventId { get; set; }
+
+    [DmColumn("event_name")]
+    public string EventName { get; set; } = string.Empty;
+
+    [DmColumn("event_date")]
+    public DateOnly? EventDate { get; set; } // Smart handler for all providers
+
+    [DmColumn("start_time")]
+    public TimeOnly? StartTime { get; set; } // Smart handler for all providers
+
+    [DmColumn("created_at")]
+    public DateTimeOffset? CreatedAt { get; set; } // Smart handler for all providers
+}
+
+// Insert with scalar temporal values
+var evt = new Event
+{
+    EventName = "Conference",
+    EventDate = new DateOnly(2025, 6, 15),
+    StartTime = new TimeOnly(9, 0, 0),
+    CreatedAt = DateTimeOffset.UtcNow
+};
+
+await connection.ExecuteAsync(
+    "INSERT INTO events (event_name, event_date, start_time, created_at) VALUES (@name, @date, @time, @created)",
+    new { name = evt.EventName, date = evt.EventDate, time = evt.StartTime, created = evt.CreatedAt }
+);
+
+// Query with scalar temporal values
+var events = await connection.QueryAsync<Event>(
+    "SELECT event_id, event_name, event_date, start_time, created_at FROM events"
+);
+```
+
+::: tip Provider-Specific Behavior
+The smart scalar DateTime type handler automatically adapts to each provider:
+- **PostgreSQL**: Sets `DbType` explicitly for Npgsql 9.x compatibility; handles `DateTime` → `DateOnly` and `TimeSpan` → `TimeOnly` conversions
+- **SQL Server**: Converts `DateOnly` to `DateTime` and `TimeOnly` to `TimeSpan` for SqlClient compatibility
+- **MySQL**: Sets `DbType` and passes values directly
+- **SQLite**: Converts to/from string format (`yyyy-MM-dd`, `HH:mm:ss.fffffff`, etc.)
+:::
+
+**Supported Scalar Temporal Types** (3 total):
+- `DateOnly` / `DateOnly?` - Calendar dates
+- `TimeOnly` / `TimeOnly?` - Time of day
+- `DateTimeOffset` / `DateTimeOffset?` - Date/time with timezone offset
 
 ### Array Support
 
