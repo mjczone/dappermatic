@@ -1626,6 +1626,84 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
     }
 
     [Fact]
+    protected virtual async Task Should_support_scalar_dateonly_and_timeonly_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        // Initialize DapperMatic type mapping
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // Create table with scalar DateOnly, TimeOnly, and DateTimeOffset columns
+        var table = new DmTable
+        {
+            TableName = "test_scalar_temporal",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("date_value", typeof(DateOnly), isNullable: true),
+                new DmColumn("time_value", typeof(TimeOnly), isNullable: true),
+                new DmColumn("datetimeoffset_value", typeof(DateTimeOffset), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        // Insert test data with non-null values
+        var testDate = new DateOnly(2025, 2, 16);
+        var testTime = new TimeOnly(14, 30, 0);
+        var testDateTimeOffset = new DateTimeOffset(2025, 2, 16, 14, 30, 0, TimeSpan.Zero);
+
+        var testData = new
+        {
+            dateValue = testDate,
+            timeValue = testTime,
+            datetimeoffsetValue = testDateTimeOffset,
+        };
+
+        await db.ExecuteAsync(
+            "INSERT INTO test_scalar_temporal (date_value, time_value, datetimeoffset_value) "
+                + "VALUES (@dateValue, @timeValue, @datetimeoffsetValue)",
+            testData
+        );
+
+        // Query and verify non-null values
+        var results = (
+            await db.QueryAsync<TestScalarTemporal>(
+                "SELECT id, date_value, time_value, datetimeoffset_value FROM test_scalar_temporal"
+            )
+        ).ToList();
+
+        Assert.Single(results);
+        Assert.Equal(testDate, results[0].DateValue);
+        Assert.Equal(testTime, results[0].TimeValue);
+        Assert.NotNull(results[0].DateTimeOffsetValue);
+        // Compare dates ignoring minor time zone or precision differences
+        Assert.Equal(testDateTimeOffset.Date, results[0].DateTimeOffsetValue!.Value.Date);
+
+        // Test null handling
+        await db.ExecuteAsync(
+            "INSERT INTO test_scalar_temporal (date_value, time_value, datetimeoffset_value) VALUES (NULL, NULL, NULL)"
+        );
+
+        var nullResults = (
+            await db.QueryAsync<TestScalarTemporal>(
+                "SELECT id, date_value, time_value, datetimeoffset_value FROM test_scalar_temporal WHERE date_value IS NULL"
+            )
+        ).ToList();
+
+        Assert.Single(nullResults);
+        Assert.Null(nullResults[0].DateValue);
+        Assert.Null(nullResults[0].TimeValue);
+        Assert.Null(nullResults[0].DateTimeOffsetValue);
+
+        // Cleanup
+        await db.DropTableIfExistsAsync(null, "test_scalar_temporal");
+    }
+
+    [Fact]
     protected virtual async Task Should_support_npgsql_range_types_with_smart_handler_Async()
     {
         using var db = await OpenConnectionAsync();
@@ -2453,6 +2531,24 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
 
         [DmColumn("timespan_values")]
         public TimeSpan[]? TimeSpanValues { get; set; }
+    }
+
+    /// <summary>
+    /// Test class for scalar DateOnly, TimeOnly, and DateTimeOffset type handlers.
+    /// </summary>
+    public class TestScalarTemporal
+    {
+        [DmColumn("id")]
+        public int Id { get; set; }
+
+        [DmColumn("date_value")]
+        public DateOnly? DateValue { get; set; }
+
+        [DmColumn("time_value")]
+        public TimeOnly? TimeValue { get; set; }
+
+        [DmColumn("datetimeoffset_value")]
+        public DateTimeOffset? DateTimeOffsetValue { get; set; }
     }
 
     /// <summary>

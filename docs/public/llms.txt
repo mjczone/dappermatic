@@ -70,7 +70,7 @@ var products = await connection.QueryAsync<Product>(
 
 2. **DML (Query Compatibility)** - Attribute-based column mapping for Dapper
    - Requires `DapperMaticTypeMapping.Initialize()` once at startup
-   - Custom type handlers for arrays, JSON, XML, spatial types
+   - Custom type handlers for arrays, JSON, XML, spatial types, scalar temporal types (DateOnly, TimeOnly, DateTimeOffset)
    - Works with DmColumn, DmIgnore, EF Core, and ServiceStack.OrmLite attributes
 
 ### Supported Database Providers
@@ -276,6 +276,7 @@ DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions
 - `string[]`, `int[]`, etc. → PostgreSQL: native arrays (text[], int4[]), Others: JSON
 - `Dictionary<string, object>` → JSON on all providers
 - `List<T>`, `IEnumerable<T>` → JSON on all providers
+- `DateOnly`, `TimeOnly`, `DateTimeOffset` → Smart scalar handlers with provider-specific behavior (Npgsql 9.x compatible)
 
 ## Important Notes for LLMs
 
