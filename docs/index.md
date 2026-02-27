@@ -56,7 +56,7 @@ DapperMatic offers two powerful ways to manage your database schema. Choose the 
       <li><strong>Usage:</strong> Direct IDbConnection extensions</li>
     </ul>
     <div class="vp-feature-actions">
-      <a href="/dappermatic/guide/getting-started" class="vp-button vp-button-brand">Library Quick Start</a>
+      <a href="/guide/getting-started" class="vp-button vp-button-brand">Library Quick Start</a>
     </div>
   </div>
 
@@ -70,7 +70,7 @@ DapperMatic offers two powerful ways to manage your database schema. Choose the 
       <li><strong>Usage:</strong> HTTP REST API endpoints</li>
     </ul>
     <div class="vp-feature-actions">
-      <a href="/dappermatic/guide/web-api/getting-started" class="vp-button vp-button-alt">Web API Quick Start</a>
+      <a href="/guide/web-api/getting-started" class="vp-button vp-button-alt">Web API Quick Start</a>
     </div>
   </div>
 </div>
