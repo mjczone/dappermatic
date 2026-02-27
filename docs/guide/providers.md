@@ -1106,6 +1106,5 @@ Note that **MySQL defaults to precision=10** while other providers default to pr
 
 If you encounter provider-specific issues:
 
-1. Check the [troubleshooting guide](/guide/troubleshooting)
-2. Review the provider's documentation
-3. File an issue on [GitHub](https://github.com/mjczone/dappermatic/issues)
+1. Review the provider's documentation
+2. File an issue on [GitHub](https://github.com/mjczone/dappermatic/issues)
