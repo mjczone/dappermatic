@@ -691,6 +691,46 @@ public class User
 }
 ```
 
+#### Column Sort Direction (ASC/DESC)
+
+You can specify sort direction for index columns by appending `ASC` or `DESC` to the column name. The default is ascending.
+
+```csharp
+// Index with mixed sort directions
+[DmIndex(columnNames: new[] { "last_name", "created_at DESC" }, indexName: "IX_Users_Name_Date")]
+public class User
+{
+    [DmColumn("last_name", length: 100)]
+    public string LastName { get; set; }
+
+    [DmColumn("created_at")]
+    public DateTime CreatedAt { get; set; }
+}
+```
+
+This also works with `[DmPrimaryKeyConstraint]` and `[DmUniqueConstraint]`:
+
+```csharp
+// Primary key with descending sort
+[DmPrimaryKeyConstraint(new[] { "id DESC" }, "PK_Events")]
+public class Event
+{
+    [DmColumn("id")]
+    public int Id { get; set; }
+}
+
+// Unique constraint with mixed sort directions
+[DmUniqueConstraint(columnNames: new[] { "tenant_id", "email DESC" }, constraintName: "UQ_Users_Tenant_Email")]
+public class TenantUser
+{
+    [DmColumn("tenant_id")]
+    public Guid TenantId { get; set; }
+
+    [DmColumn("email", length: 320)]
+    public string Email { get; set; }
+}
+```
+
 ## Complete Example
 
 Here's a comprehensive example showing multiple annotations on a single class:
@@ -746,6 +786,40 @@ DmTable orderTable = DmTableFactory.GetTable(typeof(Order));
 await connection.CreateTableIfNotExistsAsync(orderTable);
 ```
 
+## Important: Column Names in Attributes Must Match Database Column Names
+
+::: warning
+When specifying column names in class-level attributes like `[DmIndex]`, `[DmPrimaryKeyConstraint]`, and `[DmUniqueConstraint]`, you **must use the actual database column name**, not the C# property name. This means **`nameof()` will not work** if your column name differs from the property name.
+:::
+
+```csharp
+// ❌ WRONG - nameof(IsActive) returns "IsActive", but the database column is "is_active"
+[DmIndex(columnNames: new[] { nameof(IsActive) })]
+public class User
+{
+    [DmColumn("is_active")]
+    public bool IsActive { get; set; }
+}
+
+// ✅ CORRECT - use the database column name as specified in [DmColumn]
+[DmIndex(columnNames: new[] { "is_active" })]
+public class User
+{
+    [DmColumn("is_active")]
+    public bool IsActive { get; set; }
+}
+
+// ✅ ALSO CORRECT - nameof() works when the property name matches the column name
+[DmPrimaryKeyConstraint(new[] { nameof(Id) })]
+public class Product
+{
+    [DmColumn("Id")]  // column name matches property name
+    public int Id { get; set; }
+}
+```
+
+This applies to all class-level attributes that accept `columnNames`: `[DmIndex]`, `[DmPrimaryKeyConstraint]`, `[DmUniqueConstraint]`, `[DmCheckConstraint]`, `[DmDefaultConstraint]`, and `[DmForeignKeyConstraint]`.
+
 ## Best Practices
 
 1. **Use meaningful constraint names** - Include table name and purpose
@@ -756,6 +830,7 @@ await connection.CreateTableIfNotExistsAsync(orderTable);
 6. **Consider provider differences** - Use provider-specific types when needed
 7. **Validate at compile time** - Attributes provide compile-time validation
 8. **Use consistent naming** - Follow consistent patterns for constraint names
+9. **Use database column names in class-level attributes** - Don't use `nameof()` if your `[DmColumn]` renames the column
 
 ## Migration from Models
 

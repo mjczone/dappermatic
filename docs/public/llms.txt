@@ -286,14 +286,40 @@ DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions
 3. **DML**: MUST call `DapperMaticTypeMapping.Initialize()` once at startup
 4. **Connection type**: Auto-detects provider (SqlConnection, NpgsqlConnection, MySqlConnection, SqliteConnection)
 
+### Column Sort Direction in Attributes
+
+Column names in `[DmIndex]`, `[DmPrimaryKeyConstraint]`, and `[DmUniqueConstraint]` support `ASC`/`DESC` suffixes:
+
+```csharp
+[DmIndex(columnNames: new[] { "last_name", "created_at DESC" }, indexName: "IX_Users_Name_Date")]
+[DmPrimaryKeyConstraint(new[] { "id DESC" }, "PK_Events")]
+[DmUniqueConstraint(columnNames: new[] { "tenant_id", "email DESC" }, constraintName: "UQ_Tenant_Email")]
+```
+
+### Column Names Must Be Database Column Names (Not Property Names)
+
+In class-level attributes (`[DmIndex]`, `[DmPrimaryKeyConstraint]`, `[DmUniqueConstraint]`, etc.), `columnNames` must use the **database column name**, not the C# property name. **Do NOT use `nameof()`** if `[DmColumn]` renames the column:
+
+```csharp
+// ❌ WRONG - nameof(IsActive) = "IsActive", but DB column is "is_active"
+[DmIndex(columnNames: new[] { nameof(IsActive) })]
+
+// ✅ CORRECT - use the database column name
+[DmIndex(columnNames: new[] { "is_active" })]
+```
+
+`nameof()` only works when the property name matches the database column name exactly.
+
 ### Common Mistakes to Avoid
 - ❌ Forgetting `DapperMaticTypeMapping.Initialize()` for DML queries
 - ❌ Using `CreateTableAsync()` instead of `CreateTableIfNotExistsAsync()`
 - ❌ Mixing DDL and DML concepts (they're separate features)
 - ❌ Calling Initialize() multiple times (only needed once)
+- ❌ Using `nameof(Property)` in columnNames when `[DmColumn]` renames the column
 - ✅ Use `CreateTableIfNotExistsAsync<T>()` not `CreateTableFromModelAsync<T>()` (doesn't exist)
 - ✅ Check existence with `DoesTableExistAsync<T>()` before operations
 - ✅ Use proper connection type for your database provider
+- ✅ Use database column names (not property names) in class-level attribute columnNames
 
 ### Version Note
 - Pre-release (v0.x.x) - Breaking changes expected
