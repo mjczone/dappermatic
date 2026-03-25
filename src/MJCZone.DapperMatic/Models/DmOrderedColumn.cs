@@ -84,6 +84,10 @@ public class DmOrderedColumn
             columnName = string.Join(' ', parts, 0, parts.Length - 1);
             order = lastPart == "DESC" ? DmColumnOrder.Descending : DmColumnOrder.Ascending;
         }
+        else
+        {
+            columnName = string.Join(' ', parts); // Reconstruct column name without order part
+        }
         return new DmOrderedColumn(columnName, order);
     }
 }
