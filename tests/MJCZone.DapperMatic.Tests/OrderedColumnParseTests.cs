@@ -22,7 +22,7 @@ public class OrderedColumnParseTests : TestBase
     [InlineData("date Asc", "date", DmColumnOrder.Ascending)]
     [InlineData("my_column", "my_column", DmColumnOrder.Ascending)]
     [InlineData("my_column DESC", "my_column", DmColumnOrder.Descending)]
-    public void Parse_returns_correct_column_name_and_order(
+    public void Should_parse_correct_column_name_and_order(
         string input,
         string expectedColumnName,
         DmColumnOrder expectedOrder
@@ -37,7 +37,7 @@ public class OrderedColumnParseTests : TestBase
     [Theory]
     [InlineData("  date   DESC  ", "date", DmColumnOrder.Descending)]
     [InlineData("  col_a  ", "col_a", DmColumnOrder.Ascending)]
-    public void Parse_handles_extra_whitespace(string input, string expectedColumnName, DmColumnOrder expectedOrder)
+    public void Should_parse_and_handle_extra_whitespace(string input, string expectedColumnName, DmColumnOrder expectedOrder)
     {
         var result = DmOrderedColumn.Parse(input);
 
@@ -49,7 +49,7 @@ public class OrderedColumnParseTests : TestBase
     [InlineData("")]
     [InlineData("   ")]
     [InlineData(null)]
-    public void Parse_throws_on_null_or_empty(string? input)
+    public void Should_throw_on_null_or_empty_input(string? input)
     {
         Assert.Throws<ArgumentException>(() => DmOrderedColumn.Parse(input!));
     }

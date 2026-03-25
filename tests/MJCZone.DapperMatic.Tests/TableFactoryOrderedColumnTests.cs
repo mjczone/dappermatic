@@ -54,7 +54,7 @@ public class TableFactoryOrderedColumnTests : TestBase
         : base(output) { }
 
     [Fact]
-    public void DmIndex_attribute_parses_column_sort_direction()
+    public void Should_parse_DmIndex_attribute_column_sort_direction()
     {
         var table = DmTableFactory.GetTable(typeof(TestOrderedIndex));
 
@@ -75,7 +75,7 @@ public class TableFactoryOrderedColumnTests : TestBase
     }
 
     [Fact]
-    public void DmPrimaryKeyConstraint_attribute_parses_column_sort_direction()
+    public void Should_parse_DmPrimaryKeyConstraint_attribute_column_sort_direction()
     {
         var table = DmTableFactory.GetTable(typeof(TestOrderedPrimaryKey));
 
@@ -87,7 +87,7 @@ public class TableFactoryOrderedColumnTests : TestBase
     }
 
     [Fact]
-    public void DmUniqueConstraint_attribute_parses_column_sort_direction()
+    public void Should_parse_DmUniqueConstraint_attribute_column_sort_direction()
     {
         var table = DmTableFactory.GetTable(typeof(TestOrderedUniqueConstraint));
 

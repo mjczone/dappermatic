@@ -67,12 +67,13 @@ public class DmOrderedColumn
             throw new ArgumentException("Input cannot be null or whitespace.", nameof(input));
         }
 
-        // Split on last space to separate column name and order
-        var columnName = input;
         var order = DmColumnOrder.Ascending;
 
         var parts = input.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var lastPart = parts[^1].ToUpperInvariant();
+
+        // Split on last space to separate column name and order
+        string? columnName;
         if (
             parts.Length > 1
             && (
@@ -83,6 +84,10 @@ public class DmOrderedColumn
         {
             columnName = string.Join(' ', parts, 0, parts.Length - 1);
             order = lastPart == "DESC" ? DmColumnOrder.Descending : DmColumnOrder.Ascending;
+        }
+        else
+        {
+            columnName = string.Join(' ', parts); // Reconstruct column name without order part
         }
         return new DmOrderedColumn(columnName, order);
     }
