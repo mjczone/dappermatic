@@ -799,6 +799,17 @@ public class User
     public string? TenantId { get; set; }
     public string? Email { get; set; }
 }
+
+// Column sort direction (ASC/DESC) - append to column name, default is ascending
+[DmIndex(columnNames: new[] { "last_name", "created_at DESC" }, indexName: "IX_Users_Name_Date")]
+public class User
+{
+    [DmColumn("last_name", length: 100)]
+    public string LastName { get; set; }
+
+    [DmColumn("created_at")]
+    public DateTime CreatedAt { get; set; }
+}
 ```
 
 ### [DmPrimaryKeyConstraint] Attribute
@@ -817,18 +828,26 @@ public sealed class DmPrimaryKeyConstraintAttribute : Attribute
 **Usage:**
 ```csharp
 // Single column primary key
-[DmPrimaryKeyConstraint(new[] { nameof(Id) })]
+[DmPrimaryKeyConstraint(new[] { "Id" })]
 public class Product
 {
     public int Id { get; set; }
 }
 
 // Composite primary key
-[DmPrimaryKeyConstraint(new[] { nameof(TenantId), nameof(UserId) }, "PK_TenantUser")]
+[DmPrimaryKeyConstraint(new[] { "TenantId", "UserId" }, "PK_TenantUser")]
 public class TenantUser
 {
     public string TenantId { get; set; }
     public int UserId { get; set; }
+}
+
+// Primary key with descending sort direction
+[DmPrimaryKeyConstraint(new[] { "id DESC" }, "PK_Events")]
+public class Event
+{
+    [DmColumn("id")]
+    public int Id { get; set; }
 }
 ```
 
@@ -894,6 +913,20 @@ public sealed class DmUniqueConstraintAttribute : Attribute
         string[]? columnNames = null,
         string? constraintName = null
     );
+}
+```
+
+**Usage:**
+```csharp
+// Unique constraint with sort direction
+[DmUniqueConstraint(columnNames: new[] { "tenant_id", "email DESC" }, constraintName: "UQ_Users_Tenant_Email")]
+public class TenantUser
+{
+    [DmColumn("tenant_id")]
+    public Guid TenantId { get; set; }
+
+    [DmColumn("email", length: 320)]
+    public string Email { get; set; }
 }
 ```
 
@@ -1672,7 +1705,7 @@ var activeProducts = await connection.QueryAsync<Product>(
 
 ```csharp
 [DmTable("user_roles")]
-[DmPrimaryKeyConstraint(new[] { nameof(UserId), nameof(RoleId) }, "PK_UserRoles")]
+[DmPrimaryKeyConstraint(new[] { "user_id", "role_id" }, "PK_UserRoles")]
 public class UserRole
 {
     [DmColumn("user_id", isNullable: false)]
@@ -1818,7 +1851,37 @@ if (!await connection.DoesTableExistAsync<Product>())
 }
 ```
 
-#### Mistake 4: Mixing DDL and DML Concepts
+#### Mistake 4: Using nameof() for Column Names in Class-Level Attributes
+```csharp
+// ❌ WRONG - nameof(IsActive) returns "IsActive", but database column is "is_active"
+[DmIndex(columnNames: new[] { nameof(IsActive) })]
+public class User
+{
+    [DmColumn("is_active")]
+    public bool IsActive { get; set; }
+}
+
+// ✅ CORRECT - use the database column name as specified in [DmColumn]
+[DmIndex(columnNames: new[] { "is_active" })]
+public class User
+{
+    [DmColumn("is_active")]
+    public bool IsActive { get; set; }
+}
+
+// ✅ nameof() only works when property name matches the database column name exactly
+[DmPrimaryKeyConstraint(new[] { "Id" })]
+public class Product
+{
+    [DmColumn("Id")]  // column name matches property name
+    public int Id { get; set; }
+}
+```
+
+This applies to all class-level attributes that accept `columnNames`: `[DmIndex]`, `[DmPrimaryKeyConstraint]`,
+`[DmUniqueConstraint]`, `[DmCheckConstraint]`, `[DmDefaultConstraint]`, and `[DmForeignKeyConstraint]`.
+
+#### Mistake 5: Mixing DDL and DML Concepts
 ```csharp
 // ❌ WRONG - These are separate features
 // DDL creates schema, DML maps queries
