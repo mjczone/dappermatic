@@ -665,7 +665,7 @@ public static class DmTableFactory
                 schemaName,
                 tableName,
                 constraintName,
-                [.. cpa.Columns.Select(c => new DmOrderedColumn(c))]
+                [.. cpa.Columns.Select(DmOrderedColumn.Parse)]
             );
 
             // flag the column as part of the primary key
@@ -722,7 +722,7 @@ public static class DmTableFactory
                     schemaName,
                     tableName,
                     constraintName,
-                    [.. uca.Columns.Select(c => new DmOrderedColumn(c))]
+                    [.. uca.Columns.Select(DmOrderedColumn.Parse)]
                 )
             );
 
@@ -757,7 +757,7 @@ public static class DmTableFactory
                     schemaName,
                     tableName,
                     indexName,
-                    [.. cia.Columns.Select(c => new DmOrderedColumn(c))],
+                    [.. cia.Columns.Select(DmOrderedColumn.Parse)],
                     isUnique: cia.IsUnique
                 )
             );
