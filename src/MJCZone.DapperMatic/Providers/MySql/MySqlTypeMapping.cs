@@ -17,17 +17,19 @@ public class MySqlTypeMapping : ProviderTypeMappingBase
     public override Dictionary<Type, string> NumericTypeMap { get; } =
         new()
         {
-            { typeof(byte), MySqlTypes.sql_tinyint },
+            { typeof(byte), MySqlTypes.sql_tinyint_unsigned },
             { typeof(sbyte), MySqlTypes.sql_tinyint },
             { typeof(short), MySqlTypes.sql_smallint },
-            { typeof(ushort), MySqlTypes.sql_smallint },
+            { typeof(ushort), MySqlTypes.sql_smallint_unsigned },
             { typeof(int), MySqlTypes.sql_int },
-            { typeof(uint), MySqlTypes.sql_int },
-            { typeof(System.Numerics.BigInteger), MySqlTypes.sql_bigint },
+            { typeof(uint), MySqlTypes.sql_int_unsigned },
             { typeof(long), MySqlTypes.sql_bigint },
-            { typeof(ulong), MySqlTypes.sql_bigint },
-            { typeof(float), MySqlTypes.sql_real },
-            { typeof(double), MySqlTypes.sql_float },
+            { typeof(ulong), MySqlTypes.sql_bigint_unsigned },
+
+            // MySQL's FLOAT is single precision and its REAL means DOUBLE.
+            { typeof(Half), MySqlTypes.sql_float },
+            { typeof(float), MySqlTypes.sql_float },
+            { typeof(double), MySqlTypes.sql_double },
             { typeof(decimal), MySqlTypes.sql_decimal },
         };
 

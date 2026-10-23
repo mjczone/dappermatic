@@ -30,9 +30,9 @@ public class PostgreSqlTypeMapping : ProviderTypeMappingBase
             { typeof(ushort), PostgreSqlTypes.sql_int },
             { typeof(int), PostgreSqlTypes.sql_int },
             { typeof(uint), PostgreSqlTypes.sql_bigint },
-            { typeof(System.Numerics.BigInteger), PostgreSqlTypes.sql_bigint },
             { typeof(long), PostgreSqlTypes.sql_bigint },
-            { typeof(ulong), PostgreSqlTypes.sql_bigint },
+            { typeof(ulong), "numeric(20,0)" },
+            { typeof(Half), PostgreSqlTypes.sql_real },
             { typeof(float), PostgreSqlTypes.sql_real },
             { typeof(double), PostgreSqlTypes.sql_double_precision },
             { typeof(decimal), PostgreSqlTypes.sql_decimal },
@@ -85,6 +85,7 @@ public class PostgreSqlTypeMapping : ProviderTypeMappingBase
         return descriptor.DotnetType switch
         {
             Type t when t == typeof(IPAddress) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_inet),
+            Type t when t == typeof(IPNetwork) => TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_cidr),
             Type t when t == typeof(PhysicalAddress) => TypeMappingHelpers.CreateSimpleType(
                 PostgreSqlTypes.sql_macaddr
             ),

@@ -5,6 +5,9 @@
 
 using System.Net;
 using System.Net.NetworkInformation;
+using System.Numerics;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Xml.Linq;
 using Dapper;
 using MJCZone.DapperMatic.TypeMapping.Handlers;
@@ -16,10 +19,25 @@ namespace MJCZone.DapperMatic.TypeMapping;
 /// Call Initialize() once at application startup to enable DmColumn attribute mapping
 /// and custom type handlers for all IDbConnection instances.
 /// </summary>
-public static class DapperMaticTypeMapping
+public static partial class DapperMaticTypeMapping
 {
     private static int _initialized;
     private static DapperMaticMappingOptions _options = new();
+
+    /// <summary>
+    /// Gets the options used for values stored as JSON.
+    /// </summary>
+    internal static JsonSerializerOptions JsonOptions { get; private set; } = new();
+
+    /// <summary>
+    /// Gets a value indicating whether <see cref="Initialize"/> has run.
+    /// </summary>
+    internal static bool IsInitialized => Volatile.Read(ref _initialized) == 1;
+
+    /// <summary>
+    /// Gets the options <see cref="Initialize"/> ran with.
+    /// </summary>
+    internal static DapperMaticMappingOptions Options => _options;
 
     /// <summary>
     /// Initialize DapperMatic query compatibility for all IDbConnection instances.
@@ -43,6 +61,7 @@ public static class DapperMaticTypeMapping
         }
 
         _options = options ?? new DapperMaticMappingOptions();
+        JsonOptions = _options.JsonSerializerOptions ?? new JsonSerializerOptions();
 
         // Register provider-agnostic handlers (90% of types)
         RegisterCoreHandlers();
@@ -58,6 +77,14 @@ public static class DapperMaticTypeMapping
 
         // Set fallback type mapper for DmColumn attribute detection
         SqlMapper.TypeMapProvider = type => new DmColumnFallbackMapper(type, _options);
+
+        // Handlers for the property types of the application's models: those already built for DDL, and those in
+        // the application's assemblies. Dapper never asks before writing a parameter, so they are registered now.
+        RegisterKnownModels();
+        if (_options.ScanEntryAssembly)
+        {
+            RegisterEntryAssemblies();
+        }
     }
 
     /// <summary>
@@ -71,23 +98,56 @@ public static class DapperMaticTypeMapping
 
         // JSON types - work on ALL providers
         TryAddTypeHandler(new JsonDocumentTypeHandler());
-        // TryAddTypeHandler(new JsonElementTypeHandler());
-        // TryAddTypeHandler(new JsonNodeTypeHandler());
+        RegisterJsonHandler(typeof(JsonElement));
+        RegisterJsonHandler(typeof(JsonNode));
+        RegisterJsonHandler(typeof(JsonObject));
+        RegisterJsonHandler(typeof(JsonArray));
+        RegisterJsonHandler(typeof(JsonValue));
 
-        // Dictionaries - JSON on ALL providers
-        TryAddTypeHandler(new DictionaryTypeHandler<string, string>());
-        TryAddTypeHandler(new DictionaryTypeHandler<string, object>());
+        // Collections and dictionaries of common element types - JSON on ALL providers. Those of the
+        // application's own types are registered from its models.
+        RegisterCommonCollectionHandlers();
 
-        // Lists - JSON on ALL providers
-        TryAddTypeHandler(new ListTypeHandler<string>());
-        TryAddTypeHandler(new ListTypeHandler<object>());
-        TryAddTypeHandler(new ListTypeHandler<Dictionary<string, object>>());
+        // Values no driver accepts, stored as their text
+        TryAddTypeHandler(
+            new StringValueTypeHandler<Uri>(u => u.OriginalString, s => new Uri(s, UriKind.RelativeOrAbsolute))
+        );
+        TryAddTypeHandler(new StringValueTypeHandler<Version>(v => v.ToString(), Version.Parse));
+        TryAddTypeHandler(new StringValueTypeHandler<IPEndPoint>(e => e.ToString(), IPEndPoint.Parse));
+        TryAddTypeHandler(new StringValueTypeHandler<char[]>(c => new string(c), s => s.ToCharArray()));
 
-        // Read-only collections
-        // TryAddTypeHandler(new ReadOnlyListTypeHandler<string>());
+        // Numbers some drivers do not accept. Dapper writes the unsigned types itself unless its own mapping for
+        // them is removed, so it is.
+        RegisterNumericHandler<sbyte>();
+        RegisterNumericHandler<ushort>();
+        RegisterNumericHandler<uint>();
+        RegisterNumericHandler<ulong>();
+        RegisterNumericHandler<Half>();
+        RegisterNumericHandler<Int128>();
+        RegisterNumericHandler<UInt128>();
+        RegisterNumericHandler<BigInteger>();
 
-        // Object/custom classes - JSON on ALL providers
-        // TryAddTypeHandler(new ObjectTypeHandler());
+        // Values SQLite drivers return as another type. Dapper still writes these itself.
+        var guidHandler = new SmartGuidTypeHandler();
+        TryAddTypeHandler(guidHandler, typeof(Guid));
+        TryAddTypeHandler(guidHandler, typeof(Guid?));
+        var timeSpanHandler = new SmartTimeSpanTypeHandler();
+        TryAddTypeHandler(timeSpanHandler, typeof(TimeSpan));
+        TryAddTypeHandler(timeSpanHandler, typeof(TimeSpan?));
+        var decimalHandler = new SmartDecimalTypeHandler();
+        TryAddTypeHandler(decimalHandler, typeof(decimal));
+        TryAddTypeHandler(decimalHandler, typeof(decimal?));
+    }
+
+    /// <summary>
+    /// Registers a handler for a number that some drivers do not accept, for it and its nullable form.
+    /// </summary>
+    private static void RegisterNumericHandler<T>()
+        where T : struct
+    {
+        var handler = new NumericConversionTypeHandler<T>();
+        TryAddTypeHandler(handler, typeof(T), replaceDapperMapping: true);
+        TryAddTypeHandler(handler, typeof(T?), replaceDapperMapping: true);
     }
 
     /// <summary>
@@ -100,41 +160,37 @@ public static class DapperMaticTypeMapping
         // PostgreSQL: Native arrays (text[], int4[], etc.) - 10-50x faster
         // Other providers: JSON arrays - portable, works everywhere
 
-        // Primitive arrays
-        TryAddTypeHandler(new SmartArrayTypeHandler<string>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<int>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<long>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<short>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<bool>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<byte>());
-
-        // Decimal arrays
-        TryAddTypeHandler(new SmartArrayTypeHandler<double>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<float>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<decimal>());
-
-        // Temporal arrays
-        TryAddTypeHandler(new SmartArrayTypeHandler<Guid>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<DateTime>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<DateTimeOffset>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<DateOnly>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<TimeOnly>());
-        TryAddTypeHandler(new SmartArrayTypeHandler<TimeSpan>());
+        // Arrays of simple values keep Dapper's own behaviour unless asked to be JSON: a handler would stop them
+        // expanding for IN lists. PostgreSQL stores them natively either way. No handler for byte[] in any case:
+        // every provider stores it natively as binary.
+        if (_options.StoreSimpleCollectionsAsJson)
+        {
+            foreach (var element in SmartArrayElementTypes)
+            {
+                RegisterSmartArrayHandler(element);
+            }
+        }
+        else
+        {
+            // The exception: Npgsql reads timestamptz[] as DateTime[], which Dapper cannot put in a
+            // DateTimeOffset[] without a handler. An IN list of instants is rare enough to give up.
+            RegisterSmartArrayHandler(typeof(DateTimeOffset));
+        }
 
         // Scalar temporal type handlers with Npgsql 9.x compatibility
         // Register for both nullable and non-nullable versions
         var dateOnlyHandler = new SmartScalarDateTimeTypeHandler<DateOnly>();
 #pragma warning disable CA2263 // Use generic overload - non-generic required for Dapper registration
-        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly));
-        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly?));
+        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly), replaceDapperMapping: true);
+        TryAddTypeHandler(dateOnlyHandler, typeof(DateOnly?), replaceDapperMapping: true);
 
         var timeOnlyHandler = new SmartScalarDateTimeTypeHandler<TimeOnly>();
-        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly));
-        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly?));
+        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly), replaceDapperMapping: true);
+        TryAddTypeHandler(timeOnlyHandler, typeof(TimeOnly?), replaceDapperMapping: true);
 
         var dateTimeOffsetHandler = new SmartScalarDateTimeTypeHandler<DateTimeOffset>();
-        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset));
-        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset?));
+        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset), replaceDapperMapping: true);
+        TryAddTypeHandler(dateTimeOffsetHandler, typeof(DateTimeOffset?), replaceDapperMapping: true);
 #pragma warning restore CA2263
     }
 
@@ -146,7 +202,11 @@ public static class DapperMaticTypeMapping
         // Network types - smart handlers (PostgreSQL native, others as string)
         TryAddTypeHandler(new SmartIPAddressTypeHandler());
         TryAddTypeHandler(new SmartPhysicalAddressTypeHandler());
-        TryAddTypeHandler(new SmartNpgsqlCidrTypeHandler());
+        TryAddTypeHandler(new SmartIPNetworkTypeHandler());
+
+        // A handler for object, so it is registered for NpgsqlCidr only: registered generically, it would
+        // receive every object-typed member.
+        RegisterNpgsqlTypeHandler<SmartNpgsqlCidrTypeHandler>("NpgsqlTypes.NpgsqlCidr");
 
         // Range types - smart handlers (PostgreSQL native, others as JSON)
         RegisterNpgsqlRangeHandler<int>();
@@ -157,13 +217,13 @@ public static class DapperMaticTypeMapping
         RegisterNpgsqlRangeHandler<DateTimeOffset>();
 
         // Npgsql geometric types - smart handlers (PostgreSQL native, others as WKT)
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlPointTypeHandler>("NpgsqlTypes.NpgsqlPoint");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlBoxTypeHandler>("NpgsqlTypes.NpgsqlBox");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlCircleTypeHandler>("NpgsqlTypes.NpgsqlCircle");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlLineTypeHandler>("NpgsqlTypes.NpgsqlLine");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlLSegTypeHandler>("NpgsqlTypes.NpgsqlLSeg");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlPathTypeHandler>("NpgsqlTypes.NpgsqlPath");
-        RegisterNpgsqlGeometricHandler<SmartNpgsqlPolygonTypeHandler>("NpgsqlTypes.NpgsqlPolygon");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlPointTypeHandler>("NpgsqlTypes.NpgsqlPoint");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlBoxTypeHandler>("NpgsqlTypes.NpgsqlBox");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlCircleTypeHandler>("NpgsqlTypes.NpgsqlCircle");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlLineTypeHandler>("NpgsqlTypes.NpgsqlLine");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlLSegTypeHandler>("NpgsqlTypes.NpgsqlLSeg");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlPathTypeHandler>("NpgsqlTypes.NpgsqlPath");
+        RegisterNpgsqlTypeHandler<SmartNpgsqlPolygonTypeHandler>("NpgsqlTypes.NpgsqlPolygon");
     }
 
     /// <summary>
@@ -189,9 +249,9 @@ public static class DapperMaticTypeMapping
     }
 
     /// <summary>
-    /// Registers a Npgsql geometric type handler using reflection to avoid direct Npgsql dependency.
+    /// Registers a handler for an Npgsql type, found by reflection to avoid a direct Npgsql dependency.
     /// </summary>
-    private static void RegisterNpgsqlGeometricHandler<THandler>(string npgsqlTypeName)
+    private static void RegisterNpgsqlTypeHandler<THandler>(string npgsqlTypeName)
         where THandler : SqlMapper.ITypeHandler, new()
     {
         var geometricType = Type.GetType($"{npgsqlTypeName}, Npgsql");
@@ -270,76 +330,41 @@ public static class DapperMaticTypeMapping
     }
 
     /// <summary>
-    /// Tries to add a type handler, respecting the configured precedence strategy.
+    /// Adds a type handler, respecting the configured precedence strategy.
     /// </summary>
-    private static void TryAddTypeHandler<T>(SqlMapper.TypeHandler<T> handler)
-    {
-        try
-        {
-            switch (_options.HandlerPrecedence)
-            {
-                case TypeHandlerPrecedence.SkipIfExists:
-                    // Check if handler exists, skip if it does
-                    // Note: Dapper doesn't expose a way to check, so we try-catch
-                    SqlMapper.AddTypeHandler(handler);
-                    break;
-
-                case TypeHandlerPrecedence.OverrideExisting:
-                    SqlMapper.RemoveTypeMap(typeof(T)); // Remove if exists
-                    SqlMapper.AddTypeHandler(handler);
-                    break;
-
-                case TypeHandlerPrecedence.ThrowIfExists:
-                    // This will throw if handler already exists
-                    SqlMapper.AddTypeHandler(handler);
-                    break;
-            }
-        }
-        catch (ArgumentException)
-        {
-            // Handler already exists
-            if (_options.HandlerPrecedence == TypeHandlerPrecedence.ThrowIfExists)
-            {
-                throw;
-            }
-            // Otherwise skip silently
-        }
-    }
+    private static void TryAddTypeHandler<T>(SqlMapper.TypeHandler<T> handler, bool replaceDapperMapping = false) =>
+        TryAddTypeHandler(handler, typeof(T), replaceDapperMapping);
 
     /// <summary>
-    /// Tries to add a type handler for a specific type, respecting the configured precedence strategy.
+    /// Adds a type handler for a specific type, respecting the configured precedence strategy.
     /// </summary>
-    private static void TryAddTypeHandler(SqlMapper.ITypeHandler handler, Type type)
+    /// <param name="handler">The handler.</param>
+    /// <param name="type">The type it handles.</param>
+    /// <param name="replaceDapperMapping">
+    /// Whether to remove Dapper's own mapping for the type. Dapper writes the types it maps itself, such as
+    /// <see cref="ushort"/>, without consulting a handler, and reads them through one; a handler that must also
+    /// write needs the mapping gone.
+    /// </param>
+    private static void TryAddTypeHandler(SqlMapper.ITypeHandler handler, Type type, bool replaceDapperMapping = false)
     {
-        try
+        if (SqlMapper.HasTypeHandler(type))
         {
             switch (_options.HandlerPrecedence)
             {
                 case TypeHandlerPrecedence.SkipIfExists:
-                    // Check if handler exists, skip if it does
-                    // Note: Dapper doesn't expose a way to check, so we try-catch
-                    SqlMapper.AddTypeHandler(type, handler);
-                    break;
-
-                case TypeHandlerPrecedence.OverrideExisting:
-                    SqlMapper.RemoveTypeMap(type); // Remove if exists
-                    SqlMapper.AddTypeHandler(type, handler);
-                    break;
-
+                    return;
                 case TypeHandlerPrecedence.ThrowIfExists:
-                    // This will throw if handler already exists
-                    SqlMapper.AddTypeHandler(type, handler);
-                    break;
+                    throw new InvalidOperationException(
+                        $"A Dapper type handler for {type} is already registered, and HandlerPrecedence is ThrowIfExists."
+                    );
             }
         }
-        catch (ArgumentException)
+
+        if (replaceDapperMapping)
         {
-            // Handler already exists
-            if (_options.HandlerPrecedence == TypeHandlerPrecedence.ThrowIfExists)
-            {
-                throw;
-            }
-            // Otherwise skip silently
+            SqlMapper.RemoveTypeMap(type);
         }
+
+        SqlMapper.AddTypeHandler(type, handler);
     }
 }

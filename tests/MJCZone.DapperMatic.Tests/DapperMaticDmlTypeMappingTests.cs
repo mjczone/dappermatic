@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.Data;
+using System.Globalization;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Text.Json;
@@ -22,7 +23,7 @@ namespace MJCZone.DapperMatic.Tests;
 /// Tests run sequentially (non-parallel) due to global Dapper type mapping state.
 /// </summary>
 [Collection("DapperMaticDmlTests")]
-public abstract class DapperMaticDmlTypeMappingTests : TestBase
+public abstract partial class DapperMaticDmlTypeMappingTests : TestBase
 {
     protected DapperMaticDmlTypeMappingTests(ITestOutputHelper output)
         : base(output) { }
@@ -651,6 +652,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
 
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: false))
+        {
+            return;
+        }
+
         // Create table with TEXT/VARCHAR column for list data
         var table = new DmTable
         {
@@ -911,6 +917,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
 
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: true))
+        {
+            return;
+        }
+
         // Create table with array column
         // PostgreSQL: Uses native text[] array type
         // Other providers: Uses JSON array serialization in TEXT/VARCHAR column
@@ -1005,6 +1016,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
 
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: true))
+        {
+            return;
+        }
+
         // Create table with int array column
         // PostgreSQL: Uses native int4[] array type
         // Other providers: Uses JSON array serialization
@@ -1081,6 +1097,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         DapperMaticTypeMapping.Initialize(
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
+
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: true))
+        {
+            return;
+        }
 
         // Create table with DateTime array column
         // PostgreSQL: Uses native timestamp[] array type
@@ -1342,22 +1363,13 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         using var db = await OpenConnectionAsync();
         await InitFreshSchemaAsync(db, null);
 
-        // Initialize DapperMatic type mapping with SmartNpgsqlCidrTypeHandler
         DapperMaticTypeMapping.Initialize(
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
 
-        // Get NpgsqlCidr type via reflection
-        var npgsqlCidrType = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
-        if (npgsqlCidrType == null)
-        {
-            Output.WriteLine("NpgsqlCidr type not available, skipping test");
-            return;
-        }
+#pragma warning disable CS0618 // NpgsqlCidr is obsolete from Npgsql 10, which reads cidr as IPNetwork, but still supported.
 
-        // Create table with NpgsqlCidr column
-        // PostgreSQL: Uses native cidr type
-        // Other providers: Uses string serialization (CIDR notation)
+        // PostgreSQL: native cidr. Other providers: CIDR notation in a string column.
         var table = new DmTable
         {
             TableName = "test_cidr_networks",
@@ -1365,110 +1377,106 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             [
                 new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
                 new DmColumn("title", typeof(string), length: 100),
-                new DmColumn("network", npgsqlCidrType, isNullable: true),
+                new DmColumn("network", typeof(NpgsqlTypes.NpgsqlCidr), isNullable: true),
             ],
         };
 
         await db.CreateTableIfNotExistsAsync(table);
 
-        // Create test CIDR values using reflection
-        var parseMethod = npgsqlCidrType.GetMethod("Parse", new[] { typeof(string) });
-        if (parseMethod == null)
+        var ipv4 = new NpgsqlTypes.NpgsqlCidr("192.168.0.0/24");
+        var ipv6 = new NpgsqlTypes.NpgsqlCidr("2001:db8::/32");
+
+        foreach (var (title, network) in new (string, NpgsqlTypes.NpgsqlCidr?)[] { ("IPv4", ipv4), ("IPv6", ipv6), ("None", null) })
         {
-            Output.WriteLine("NpgsqlCidr.Parse method not available, skipping test");
-            return;
+            await db.ExecuteAsync(
+                "INSERT INTO test_cidr_networks (title, network) VALUES (@title, @network)",
+                new { title, network }
+            );
+        }
+#pragma warning restore CS0618
+
+        async Task<TestDocumentWithNpgsqlCidr> ReadAsync(string title) =>
+            (
+                await db.QueryAsync<TestDocumentWithNpgsqlCidr>(
+                    "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
+                    new { title }
+                )
+            ).Single();
+
+        Assert.Equal(ipv4, (await ReadAsync("IPv4")).Network);
+        Assert.Equal(ipv6, (await ReadAsync("IPv6")).Network);
+        Assert.Null((await ReadAsync("None")).Network);
+
+        await db.DropTableIfExistsAsync(null, "test_cidr_networks");
+    }
+
+    [Fact]
+    protected virtual async Task Should_support_ipnetwork_with_smart_handler_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        await InitFreshSchemaAsync(db, null);
+
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
+        );
+
+        // PostgreSQL: native cidr. Other providers: CIDR notation in a string column.
+        var table = new DmTable
+        {
+            TableName = "test_ip_networks",
+            Columns =
+            [
+                new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true),
+                new DmColumn("title", typeof(string), length: 100),
+                new DmColumn("network", typeof(IPNetwork), isNullable: true),
+            ],
+        };
+
+        await db.CreateTableIfNotExistsAsync(table);
+
+        var ipv4 = IPNetwork.Parse("10.1.0.0/16");
+        var ipv6 = IPNetwork.Parse("2001:db8:1234::/48");
+
+        foreach (var (title, network) in new (string, IPNetwork?)[] { ("IPv4", ipv4), ("IPv6", ipv6), ("None", null) })
+        {
+            await db.ExecuteAsync(
+                "INSERT INTO test_ip_networks (title, network) VALUES (@title, @network)",
+                new { title, network }
+            );
         }
 
-        var testIPv4Cidr = parseMethod.Invoke(null, new object[] { "192.168.0.0/24" });
-        var testIPv6Cidr = parseMethod.Invoke(null, new object[] { "2001:db8::/32" });
+        async Task<TestDocumentWithIPNetwork> ReadAsync(string title) =>
+            (
+                await db.QueryAsync<TestDocumentWithIPNetwork>(
+                    "SELECT id, title, network FROM test_ip_networks WHERE title = @title",
+                    new { title }
+                )
+            ).Single();
 
-        // Insert IPv4 CIDR document
-        await db.ExecuteAsync(
-            "INSERT INTO test_cidr_networks (title, network) VALUES (@title, @network)",
-            new { title = "IPv4 Network", network = testIPv4Cidr }
+        Assert.Equal(ipv4, (await ReadAsync("IPv4")).Network);
+        Assert.Equal(ipv6, (await ReadAsync("IPv6")).Network);
+        Assert.Null((await ReadAsync("None")).Network);
+
+        await db.DropTableIfExistsAsync(null, "test_ip_networks");
+    }
+
+    /// <summary>
+    /// Registering DapperMatic's handlers leaves members typed as object alone: they receive the value the
+    /// provider returns. A handler registered for object used to turn every such value into a string.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Object_members_receive_the_provider_value_Async()
+    {
+        using var db = await OpenConnectionAsync();
+
+        DapperMaticTypeMapping.Initialize(
+            new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
 
-        // Insert IPv6 CIDR document
-        await db.ExecuteAsync(
-            "INSERT INTO test_cidr_networks (title, network) VALUES (@title, @network)",
-            new { title = "IPv6 Network", network = testIPv6Cidr }
-        );
+        var holder = await db.QueryFirstAsync<TestObjectHolder>("SELECT 5 AS value");
 
-        // Insert null CIDR
-        await db.ExecuteAsync(
-            "INSERT INTO test_cidr_networks (title, network) VALUES (@title, @network)",
-            new { title = "No Network", network = (object?)null }
-        );
-
-        // Query IPv4 CIDR back
-        var ipv4Documents = (
-            await db.QueryAsync<TestDocumentWithNpgsqlCidr>(
-                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
-                new { title = "IPv4 Network" }
-            )
-        ).ToList();
-
-        Assert.Single(ipv4Documents);
-        Assert.NotNull(ipv4Documents[0].Network);
-        Assert.Equal(testIPv4Cidr!.ToString(), ipv4Documents[0].Network!.ToString());
-
-        // Query IPv6 CIDR back
-        var ipv6Documents = (
-            await db.QueryAsync<TestDocumentWithNpgsqlCidr>(
-                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
-                new { title = "IPv6 Network" }
-            )
-        ).ToList();
-
-        Assert.Single(ipv6Documents);
-        Assert.NotNull(ipv6Documents[0].Network);
-        Assert.IsType<string>(ipv6Documents[0].Network);
-        Assert.Equal(testIPv6Cidr!.ToString(), ipv6Documents[0].Network!.ToString());
-
-        // Query IPv6 CIDR back
-        var ipv6DocumentsTyped = (
-            await db.QueryAsync<TestDocumentWithNpgsqlCidrTyped>(
-                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
-                new { title = "IPv6 Network" }
-            )
-        ).ToList();
-
-        Assert.Single(ipv6DocumentsTyped);
-        Assert.NotNull(ipv6DocumentsTyped[0].Network);
-        Assert.NotNull(testIPv6Cidr as NpgsqlTypes.NpgsqlCidr?);
-        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Address, ipv6DocumentsTyped[0].Network!.Value.Address);
-        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Netmask, ipv6DocumentsTyped[0].Network!.Value.Netmask);
-
-        // Query IPv6 CIDR back
-        var ipv6DocumentsProviderTyped = (
-            await db.QueryAsync<TestDocumentWithNpgsqlCidrProviderTyped>(
-                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
-                new { title = "IPv6 Network" }
-            )
-        ).ToList();
-
-        Assert.Single(ipv6DocumentsProviderTyped);
-        Assert.NotNull(ipv6DocumentsProviderTyped[0].Network);
-        Assert.IsType<NpgsqlTypes.NpgsqlCidr>(ipv6DocumentsProviderTyped[0].Network);
-        Assert.NotNull(testIPv6Cidr as NpgsqlTypes.NpgsqlCidr?);
-        Assert.NotNull(ipv6DocumentsProviderTyped[0].Network! as NpgsqlTypes.NpgsqlCidr?);
-        var npgsqlCidrObj = (NpgsqlTypes.NpgsqlCidr)ipv6DocumentsProviderTyped[0].Network!;
-        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Address, npgsqlCidrObj.Address);
-        Assert.Equal(((NpgsqlTypes.NpgsqlCidr)testIPv6Cidr).Netmask, npgsqlCidrObj.Netmask);
-
-        // Query null CIDR back
-        var documentsWithNull = (
-            await db.QueryAsync<TestDocumentWithNpgsqlCidr>(
-                "SELECT id, title, network FROM test_cidr_networks WHERE title = @title",
-                new { title = "No Network" }
-            )
-        ).ToList();
-
-        Assert.Single(documentsWithNull);
-        Assert.Null(documentsWithNull[0].Network);
-
-        // Cleanup
-        await db.DropTableIfExistsAsync(null, "test_cidr_networks");
+        Assert.IsNotType<string>(holder.Value);
+        Assert.Equal(5, Convert.ToInt32(holder.Value, CultureInfo.InvariantCulture));
     }
 
     [Fact]
@@ -1481,6 +1489,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         DapperMaticTypeMapping.Initialize(
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
+
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: true))
+        {
+            return;
+        }
 
         // Create table with multiple numeric array columns
         var table = new DmTable
@@ -1563,6 +1576,11 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         DapperMaticTypeMapping.Initialize(
             new DapperMaticMappingOptions { HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting }
         );
+
+        if (!StoresSimpleCollectionsHere(db, nativeOnPostgreSql: true))
+        {
+            return;
+        }
 
         // Create table with temporal and GUID array columns
         var table = new DmTable
@@ -1777,18 +1795,19 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             DateTimeOffset.UtcNow.AddDays(7)
         );
 
-        // Insert test data
+        // Insert test data. Each value goes in as its own type: Dapper picks a parameter's handler from its
+        // declared type, and for one declared as object it uses none.
         await db.ExecuteAsync(
             "INSERT INTO test_range_types (int_range, long_range, decimal_range, datetime_range, dateonly_range, datetimeoffset_range) "
                 + "VALUES (@intRange, @longRange, @decimalRange, @datetimeRange, @dateonlyRange, @datetimeoffsetRange)",
             new
             {
-                intRange,
-                longRange,
-                decimalRange,
-                datetimeRange,
-                dateonlyRange,
-                datetimeoffsetRange,
+                intRange = (NpgsqlTypes.NpgsqlRange<int>)intRange!,
+                longRange = (NpgsqlTypes.NpgsqlRange<long>)longRange!,
+                decimalRange = (NpgsqlTypes.NpgsqlRange<decimal>)decimalRange!,
+                datetimeRange = (NpgsqlTypes.NpgsqlRange<DateTime>)datetimeRange!,
+                dateonlyRange = (NpgsqlTypes.NpgsqlRange<DateOnly>)dateonlyRange!,
+                datetimeoffsetRange = (NpgsqlTypes.NpgsqlRange<DateTimeOffset>)datetimeoffsetRange!,
             }
         );
 
@@ -1861,23 +1880,23 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         // Create geometric instances using reflection
         var pointValue = npgsqlPointType!
             .GetConstructor(new[] { typeof(double), typeof(double) })!
-            .Invoke(new object[] { 1.0, 2.0 });
+            .Invoke(new object[] { 1.5, 2.25 });
         var boxValue = npgsqlBoxType!
             .GetConstructor(new[] { typeof(double), typeof(double), typeof(double), typeof(double) })!
-            .Invoke(new object[] { 0.0, 0.0, 10.0, 10.0 });
+            .Invoke(new object[] { 0.5, 0.5, 10.5, 10.5 });
         var circleValue = npgsqlCircleType!
             .GetConstructor(new[] { typeof(double), typeof(double), typeof(double) })!
-            .Invoke(new object[] { 5.0, 5.0, 3.0 });
+            .Invoke(new object[] { 5.5, 5.5, 3.25 });
         var lineValue = npgsqlLineType!
             .GetConstructor(new[] { typeof(double), typeof(double), typeof(double) })!
-            .Invoke(new object[] { 1.0, 2.0, 3.0 });
+            .Invoke(new object[] { 1.5, 2.5, 3.5 });
 
         var point1 = npgsqlPointType!
             .GetConstructor(new[] { typeof(double), typeof(double) })!
-            .Invoke(new object[] { 0.0, 0.0 });
+            .Invoke(new object[] { 0.5, 0.5 });
         var point2 = npgsqlPointType!
             .GetConstructor(new[] { typeof(double), typeof(double) })!
-            .Invoke(new object[] { 10.0, 10.0 });
+            .Invoke(new object[] { 10.5, 10.5 });
         var lsegValue = npgsqlLSegType!
             .GetConstructor(new[] { npgsqlPointType, npgsqlPointType })!
             .Invoke(new[] { point1, point2 });
@@ -1886,19 +1905,19 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         points.SetValue(
             npgsqlPointType!
                 .GetConstructor(new[] { typeof(double), typeof(double) })!
-                .Invoke(new object[] { 0.0, 0.0 }),
+                .Invoke(new object[] { 0.5, 0.0 }),
             0
         );
         points.SetValue(
             npgsqlPointType!
                 .GetConstructor(new[] { typeof(double), typeof(double) })!
-                .Invoke(new object[] { 10.0, 0.0 }),
+                .Invoke(new object[] { 10.0, 0.25 }),
             1
         );
         points.SetValue(
             npgsqlPointType!
                 .GetConstructor(new[] { typeof(double), typeof(double) })!
-                .Invoke(new object[] { 5.0, 10.0 }),
+                .Invoke(new object[] { 5.5, 10.0 }),
             2
         );
 
@@ -1909,19 +1928,24 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             .GetConstructor(new[] { points.GetType() })!
             .Invoke(new object[] { points });
 
-        // Insert test data
+        // Written and read in a culture with a decimal comma: the text other providers store must not depend on it.
+        var culture = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("de-DE");
+
+        // Insert test data. Each value goes in as its own type: Dapper picks a parameter's handler from its
+        // declared type, and for one declared as object it uses none.
         await db.ExecuteAsync(
             "INSERT INTO test_npgsql_geometric_types (point_value, box_value, circle_value, line_value, lseg_value, path_value, polygon_value) "
                 + "VALUES (@pointValue, @boxValue, @circleValue, @lineValue, @lsegValue, @pathValue, @polygonValue)",
             new
             {
-                pointValue,
-                boxValue,
-                circleValue,
-                lineValue,
-                lsegValue,
-                pathValue,
-                polygonValue,
+                pointValue = (NpgsqlTypes.NpgsqlPoint)pointValue,
+                boxValue = (NpgsqlTypes.NpgsqlBox)boxValue,
+                circleValue = (NpgsqlTypes.NpgsqlCircle)circleValue,
+                lineValue = (NpgsqlTypes.NpgsqlLine)lineValue,
+                lsegValue = (NpgsqlTypes.NpgsqlLSeg)lsegValue,
+                pathValue = (NpgsqlTypes.NpgsqlPath)pathValue,
+                polygonValue = (NpgsqlTypes.NpgsqlPolygon)polygonValue,
             }
         );
 
@@ -1932,15 +1956,17 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             )
         ).ToList();
 
-        // Verify results
+        CultureInfo.CurrentCulture = culture;
+
+        // Verify results: every value comes back as it went in
         Assert.Single(results);
-        Assert.NotNull(results[0].PointValue);
-        Assert.NotNull(results[0].BoxValue);
-        Assert.NotNull(results[0].CircleValue);
-        Assert.NotNull(results[0].LineValue);
-        Assert.NotNull(results[0].LSegValue);
-        Assert.NotNull(results[0].PathValue);
-        Assert.NotNull(results[0].PolygonValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlPoint)pointValue, results[0].PointValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlBox)boxValue, results[0].BoxValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlCircle)circleValue, results[0].CircleValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlLine)lineValue, results[0].LineValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlLSeg)lsegValue, results[0].LSegValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlPath)pathValue, results[0].PathValue);
+        Assert.Equal((NpgsqlTypes.NpgsqlPolygon)polygonValue, results[0].PolygonValue);
 
         // Cleanup
         await db.DropTableIfExistsAsync(null, "test_npgsql_geometric_types");
@@ -2026,9 +2052,9 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
             new
             {
                 title = "NTS Basic Geometries",
-                pointGeom,
-                lineGeom,
-                polygonGeom,
+                pointGeom = (NetTopologySuite.Geometries.Point)pointGeom!,
+                lineGeom = (NetTopologySuite.Geometries.LineString)lineGeom!,
+                polygonGeom = (NetTopologySuite.Geometries.Polygon)polygonGeom!,
             }
         );
 
@@ -2042,9 +2068,9 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         // Verify results
         Assert.Single(results);
         Assert.Equal("NTS Basic Geometries", results[0].Title);
-        Assert.NotNull(results[0].PointGeom);
-        Assert.NotNull(results[0].LineGeom);
-        Assert.NotNull(results[0].PolygonGeom);
+        Assert.Equal(pointGeom!.ToString(), results[0].PointGeom!.ToString());
+        Assert.Equal(lineGeom!.ToString(), results[0].LineGeom!.ToString());
+        Assert.Equal(polygonGeom!.ToString(), results[0].PolygonGeom!.ToString());
 
         // Cleanup
         await db.DropTableIfExistsAsync(null, "test_nts_basic_geometries");
@@ -2448,14 +2474,16 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         [DmColumn("title")]
         public string Title { get; set; } = string.Empty;
 
+#pragma warning disable CS0618 // NpgsqlCidr is obsolete from Npgsql 10, but still supported.
         [DmColumn("network")]
         public NpgsqlTypes.NpgsqlCidr? Network { get; set; }
+#pragma warning restore CS0618
     }
 
     /// <summary>
-    /// Test class for NpgsqlCidr type handler (Phase 6).
+    /// Test class for the IPNetwork type handler.
     /// </summary>
-    public class TestDocumentWithNpgsqlCidrTyped
+    public class TestDocumentWithIPNetwork
     {
         [DmColumn("id")]
         public int Id { get; set; }
@@ -2464,22 +2492,15 @@ public abstract class DapperMaticDmlTypeMappingTests : TestBase
         public string Title { get; set; } = string.Empty;
 
         [DmColumn("network")]
-        public NpgsqlTypes.NpgsqlCidr? Network { get; set; }
+        public IPNetwork? Network { get; set; }
     }
 
     /// <summary>
-    /// Test class for NpgsqlCidr type handler (Phase 6).
+    /// Test class with a member typed as object.
     /// </summary>
-    public class TestDocumentWithNpgsqlCidrProviderTyped
+    public class TestObjectHolder
     {
-        [DmColumn("id")]
-        public int Id { get; set; }
-
-        [DmColumn("title")]
-        public string Title { get; set; } = string.Empty;
-
-        [DmColumn("network", providerDataType: "{postgresql:cidr}")]
-        public object? Network { get; set; }
+        public object? Value { get; set; }
     }
 
     /// <summary>

@@ -29,12 +29,12 @@ public static class TypeMappingHelpers
             typeof(byte),
             typeof(short),
             typeof(int),
-            typeof(System.Numerics.BigInteger),
             typeof(long),
             typeof(sbyte),
             typeof(ushort),
             typeof(uint),
             typeof(ulong),
+            typeof(Half),
             typeof(decimal),
             typeof(float),
             typeof(double),
@@ -407,6 +407,7 @@ public static class TypeMappingHelpers
         [
             typeof(System.Net.IPAddress),
             typeof(System.Net.IPEndPoint),
+            typeof(System.Net.IPNetwork),
             typeof(System.Net.NetworkInformation.PhysicalAddress),
         ];
     }

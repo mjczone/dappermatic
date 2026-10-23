@@ -287,19 +287,9 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     /// <inheritdoc />
     protected override DotnetTypeToSqlTypeConverter GetEnumerableToSqlTypeConverter()
     {
-        return new(d =>
-        {
-            if (
-                d.DotnetType == typeof(Dictionary<string, string>)
-                || d.DotnetType == typeof(IDictionary<string, string>)
-                || d.DotnetType == typeof(ImmutableDictionary<string, string>)
-            )
-            {
-                return TypeMappingHelpers.CreateSimpleType(PostgreSqlTypes.sql_hstore);
-            }
-
-            return TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false);
-        });
+        // jsonb for string dictionaries too, rather than hstore: values are written as JSON, the same way on every
+        // provider and for every dictionary type, and hstore needs an extension installed.
+        return new(d => TypeMappingHelpers.CreateJsonType(PostgreSqlTypes.sql_jsonb, isText: false));
     }
 
     /// <inheritdoc />
@@ -842,7 +832,6 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
     private static SqlTypeToDotnetTypeConverter GetMiscellaneousToDotnetTypeConverter()
     {
         var sqlNpgsqlInet = Type.GetType("NpgsqlTypes.NpgsqlInet, Npgsql");
-        var sqlNpgsqlCidr = Type.GetType("NpgsqlTypes.NpgsqlCidr, Npgsql");
         var sqlPhysicalAddress = Type.GetType(
             "System.Net.NetworkInformation.PhysicalAddress, System.Net.NetworkInformation",
             false,
@@ -858,13 +847,8 @@ public sealed class PostgreSqlProviderTypeMap : DbProviderTypeMapBase<PostgreSql
             switch (d.BaseTypeName)
             {
                 case PostgreSqlTypes.sql_cidr:
-                    if (sqlNpgsqlCidr != null)
-                    {
-                        return new DotnetTypeDescriptor(sqlNpgsqlCidr);
-                    }
-
-                    // Fallback: CIDR notation as string (e.g., "192.168.0.0/24")
-                    return new DotnetTypeDescriptor(typeof(string));
+                    // The .NET type, which Npgsql 10 reads cidr as; NpgsqlCidr is obsolete there.
+                    return new DotnetTypeDescriptor(typeof(IPNetwork));
                 case PostgreSqlTypes.sql_citext:
                     return new DotnetTypeDescriptor(typeof(string));
                 case PostgreSqlTypes.sql_hstore:

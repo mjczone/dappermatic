@@ -147,9 +147,13 @@ SQLite's `ALTER TABLE` statement has significant restrictions - it cannot modify
 3. **Schema Recreation**: Drops and recreates the table with the new schema structure
 4. **Intelligent Data Migration**: Copies compatible data from the temporary table to the new table
 5. **Transaction Safety**: The entire process runs within a transaction for atomicity
-6. **Foreign Key Handling**: Temporarily disables foreign key constraints during recreation
+6. **Foreign Key Handling**: Temporarily disables foreign key enforcement during recreation, then restores the connection's original setting
 
 This means operations like `DropColumnIfExistsAsync()`, `CreateColumnIfNotExistsAsync()`, and constraint modifications work seamlessly in SQLite, just like other providers - you don't need to worry about SQLite's native limitations.
+
+::: warning Recreating a referenced table inside a transaction
+SQLite cannot switch foreign key enforcement off once a transaction has begun. If you pass a transaction and foreign keys are on, dropping the old table would fire the foreign keys of every other table that references it: `ON DELETE CASCADE` rows would be deleted and `NO ACTION` rows would block the drop. DapperMatic therefore refuses with an `InvalidOperationException` instead of recreating a table that other tables reference. Either make the change without a transaction, or run `PRAGMA foreign_keys = 0` before beginning the transaction. Tables that nothing else references are unaffected.
+:::
 
 ## Custom Providers
 
@@ -522,28 +526,36 @@ These mappings are verified by automated tests. For the most up-to-date and deta
 
 | .NET Type | SQL Server    | MySQL        | PostgreSQL | SQLite     | Notes |
 | --------- | ------------- | ------------ | ---------- | ---------- | ----- |
-| `byte`    | `TINYINT(3)`  | `TINYINT(3)` | `INT2`     | `TINYINT`  | PostgreSQL: SMALLINT alias |
-| `sbyte`   | `TINYINT(3)`  | `TINYINT(3)` | `INT2`     | `TINYINT`  | PostgreSQL: SMALLINT alias |
+| `byte`    | `TINYINT(3)`  | `TINYINT UNSIGNED` | `INT2`     | `TINYINT`  | PostgreSQL: SMALLINT alias |
+| `sbyte`   | `SMALLINT`    | `TINYINT(3)` | `INT2`     | `SMALLINT` | SQL Server's TINYINT is unsigned |
 | `short`   | `SMALLINT(5)` | `SMALLINT(5)` | `INT2`    | `SMALLINT` | PostgreSQL: SMALLINT alias |
+| `ushort`  | `INT`         | `SMALLINT UNSIGNED` | `INT4` | `INTEGER` | |
 | `int`     | `INT(10)`     | `INT(10)`    | `INT4`     | `INT`      | PostgreSQL: INTEGER alias |
+| `uint`    | `BIGINT`      | `INT UNSIGNED` | `INT8`   | `INTEGER`  | |
 | `long`    | `BIGINT(19)`  | `BIGINT(19)` | `INT8`     | `BIGINT`   | PostgreSQL: BIGINT alias |
+| `ulong`   | `DECIMAL(20,0)` | `BIGINT UNSIGNED` | `NUMERIC(20,0)` | `BIGINT` | SQLite holds values up to `long.MaxValue` as integers |
+| `Int128`, `UInt128` | `VARCHAR(40)` | `VARCHAR(40)` | `VARCHAR(40)` | `VARCHAR(40)` | Stored as their digits |
+| `BigInteger` | `VARCHAR(MAX)` | `TEXT` | `TEXT` | `TEXT` | Stored as its digits |
 
 ::: info Integer Type Notes
 - **PostgreSQL Internal Names**: `INT2`, `INT4`, `INT8` are internal PostgreSQL type names (aliases for `SMALLINT`, `INTEGER`, `BIGINT`)
 - **Display Width**: MySQL 8.0.19+ deprecated display widths except for `TINYINT(1)` (boolean). Older versions may show different widths.
-- **SQLite Type Affinity**: SQLite maps all integer types to INTEGER storage class but preserves type names for compatibility
+- **SQLite Type Affinity**: SQLite maps all integer types to INTEGER storage class but preserves type names for compatibility. System.Data.SQLite reads a column as the type its declared name suggests, so each .NET type is declared wide enough for its whole range.
+- **Unsigned types**: Only MySQL and MariaDB have them. Elsewhere each unsigned type gets the next larger signed type, so every value fits.
+- **Integers beyond 64 bits** are stored as text: every driver reads `DECIMAL` and `NUMERIC` columns into `System.Decimal`, which overflows past 28 digits.
 :::
 
 ### Floating Point Types
 
 | .NET Type | SQL Server  | MySQL        | PostgreSQL | SQLite  | Notes |
 | --------- | ----------- | ------------ | ---------- | ------- | ----- |
-| `float`   | `REAL(24)`  | `DOUBLE(22)` | `FLOAT4`   | `REAL`  | MySQL uses DOUBLE; PostgreSQL: REAL alias |
-| `double`  | `FLOAT(53)` | `FLOAT(12)`  | `FLOAT8`   | `DOUBLE` | PostgreSQL: DOUBLE PRECISION alias |
+| `Half`    | `REAL(24)`  | `FLOAT`      | `FLOAT4`   | `REAL`  | |
+| `float`   | `REAL(24)`  | `FLOAT`      | `FLOAT4`   | `REAL`  | PostgreSQL: REAL alias |
+| `double`  | `FLOAT(53)` | `DOUBLE`     | `FLOAT8`   | `DOUBLE` | PostgreSQL: DOUBLE PRECISION alias |
 
 ::: info Floating Point Notes
 - **PostgreSQL Internal Names**: `FLOAT4`, `FLOAT8` are internal names for `REAL` and `DOUBLE PRECISION`
-- **MySQL Behavior**: Maps `float` to DOUBLE instead of FLOAT for better precision
+- **MySQL**: `FLOAT` is single precision, and `REAL` means `DOUBLE`. Before 0.2, `double` was mapped to `FLOAT`, which kept only about 7 significant digits; tables created then still have it.
 :::
 
 ### Decimal Types
@@ -733,12 +745,12 @@ All collection types are serialized as JSON:
 | `IList<string>`                   | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
 | `ICollection<string>`             | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
 | `IEnumerable<string>`             | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON array |
-| `Dictionary<string, string>`      | `VARCHAR(MAX)` | `JSON` | `HSTORE`   | `TEXT` | PostgreSQL: HSTORE for string-string maps |
-| `IDictionary<string, string>`     | `VARCHAR(MAX)` | `JSON` | `HSTORE`   | `TEXT` | PostgreSQL: HSTORE for string-string maps |
+| `Dictionary<string, string>`      | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON object |
+| `IDictionary<string, string>`     | `VARCHAR(MAX)` | `JSON` | `JSONB`    | `TEXT` | JSON object |
 
 ::: info Collection Type Notes
-- All collections are serialized as JSON for storage
-- **PostgreSQL HSTORE**: Special type for `Dictionary<string, string>` - efficient key-value storage
+- All collections are serialized as JSON for storage. A collection of simple values, such as `List<string>`, is written as JSON only with `StoreSimpleCollectionsAsJson` or `RegisterJsonTypes`; see [DML Query Support](./dml-query-support#collections-and-in-lists).
+- **PostgreSQL**: Before 0.2, `Dictionary<string, string>` was mapped to `HSTORE`. Existing `hstore` columns can still be read; Npgsql returns them as dictionaries.
 - **PostgreSQL JSONB**: Binary JSON format for other collections (faster indexing than JSON)
 - **MariaDB 10.x**: `JSON` is actually `LONGTEXT` with JSON validation
 - Generic types work the same: `List<T>`, `Dictionary<K,V>`, etc.
@@ -975,7 +987,7 @@ PostgreSQL has the richest type system with native arrays, ranges, network types
 | `bytea` | `byte[]` | | | | | Binary data |
 | `character` | `string` | 1 | | | Yes | Fixed-length char |
 | `character varying` | `string` | 255 | | | Yes | Variable-length string (VARCHAR) |
-| `cidr` | `NpgsqlCidr` | | | | | CIDR network address |
+| `cidr` | `IPNetwork` | | | | | CIDR network address |
 | `circle` | `NpgsqlCircle` | | | | | Circle |
 | `date` | `DateOnly` | | | | | Date only |
 | `daterange` | `NpgsqlRange<DateOnly>` | | | | | Range of dates |

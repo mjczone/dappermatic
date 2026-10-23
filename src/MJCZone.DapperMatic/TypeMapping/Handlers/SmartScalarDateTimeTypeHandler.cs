@@ -122,7 +122,8 @@ public class SmartScalarDateTimeTypeHandler<T> : SqlMapper.TypeHandler<T?>
         // Npgsql 9.x compatibility: DateTime → DateTimeOffset
         if (value is DateTime dt2 && typeof(T) == typeof(DateTimeOffset))
         {
-            return (T)(object)new DateTimeOffset(SpecifyKindAsUtc(dt2));
+            // System.Data.SQLite returns local time for a datetime column; it is converted, not relabelled.
+            return (T)(object)(dt2.Kind == DateTimeKind.Local ? new DateTimeOffset(dt2) : new DateTimeOffset(SpecifyKindAsUtc(dt2)));
         }
 
         // Parse from string (SQLite and other string-based storage)
@@ -171,7 +172,9 @@ public class SmartScalarDateTimeTypeHandler<T> : SqlMapper.TypeHandler<T?>
 
         if (value is DateTimeOffset dto)
         {
-            return dto.ToString("yyyy-MM-dd HH:mm:ss.fffffffzzz", CultureInfo.InvariantCulture);
+            // In UTC, without an offset: System.Data.SQLite reads an offset as a shift to local time it does not
+            // mark, which loses the instant.
+            return dto.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss.fffffff", CultureInfo.InvariantCulture);
         }
 
         return value.ToString() ?? string.Empty;
@@ -205,7 +208,7 @@ public class SmartScalarDateTimeTypeHandler<T> : SqlMapper.TypeHandler<T?>
 
         if (typeof(T) == typeof(DateTimeOffset))
         {
-            if (DateTimeOffset.TryParse(str, CultureInfo.InvariantCulture, out var dto))
+            if (DateTimeOffset.TryParse(str, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out var dto))
             {
                 return (T)(object)dto;
             }

@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System;
+using System.Collections;
 using System.Data;
 using System.Globalization;
 using System.Linq;
@@ -47,7 +48,8 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
         {
             // Other providers: WKT serialization
             var valueType = value.GetType();
-            var pointsArray = valueType.GetProperty("Points")?.GetValue(value) as Array;
+            // NpgsqlPath and NpgsqlPolygon are lists of NpgsqlPoint; neither has a Points property.
+            var pointsArray = (value as IEnumerable)?.Cast<object>().ToArray();
             var isOpen = (bool)(valueType.GetProperty("Open")?.GetValue(value) ?? true);
 
             if (pointsArray == null || pointsArray.Length == 0)
@@ -74,7 +76,7 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
                             sb.Append(", ");
                         }
 
-                        sb.Append($"{x} {y}");
+                        sb.Append(CultureInfo.InvariantCulture, $"{x} {y}");
                     }
                 }
                 sb.Append(')');
@@ -96,7 +98,7 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
                             sb.Append(',');
                         }
 
-                        sb.Append($"{x} {y}");
+                        sb.Append(CultureInfo.InvariantCulture, $"{x} {y}");
                     }
                 }
                 // Close the polygon by repeating first point
@@ -106,7 +108,7 @@ public class SmartNpgsqlPathTypeHandler : SqlMapper.ITypeHandler
                     var pointType = firstPoint.GetType();
                     var x = pointType.GetProperty("X")?.GetValue(firstPoint);
                     var y = pointType.GetProperty("Y")?.GetValue(firstPoint);
-                    sb.Append($",{x} {y}");
+                    sb.Append(CultureInfo.InvariantCulture, $",{x} {y}");
                 }
                 sb.Append("))");
             }

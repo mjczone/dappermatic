@@ -19,8 +19,14 @@ public static class DmTableFactory
 {
     private static readonly ConcurrentDictionary<Type, DmTable> _cache = new();
     private static readonly ConcurrentDictionary<Type, Dictionary<string, DmColumn>> _propertyCache = new();
+    private static readonly Lock BuildLock = new();
 
     private static Action<Type, DmTable>? _customMappingAction;
+
+    /// <summary>
+    /// Gets the types whose models have been built.
+    /// </summary>
+    internal static IEnumerable<Type> CachedTypes => _cache.Keys;
 
     /// <summary>
     /// Configure ahead of time any custom configuration for mapping types to DmTable instances. Call this
@@ -70,13 +76,28 @@ public static class DmTableFactory
             return table;
         }
 
-        var propertyNameToColumnMap = new Dictionary<string, DmColumn>();
-        table = GetTableInternal(type, propertyNameToColumnMap);
+        // Built once, under a lock: callers that raced each got a table of their own before, while the cache kept one,
+        // and its columns were not those of the property map cached with it. The lock is re-entrant, for a model whose
+        // foreign keys build another's table.
+        lock (BuildLock)
+        {
+            if (_cache.TryGetValue(type, out table))
+            {
+                return table;
+            }
 
-        _customMappingAction?.Invoke(type, table);
+            var propertyNameToColumnMap = new Dictionary<string, DmColumn>();
+            table = GetTableInternal(type, propertyNameToColumnMap);
 
-        _cache.TryAdd(type, table);
-        _propertyCache.TryAdd(type, propertyNameToColumnMap);
+            _customMappingAction?.Invoke(type, table);
+
+            // The property map first: whoever finds the table finds its map.
+            _propertyCache[type] = propertyNameToColumnMap;
+            _cache[type] = table;
+        }
+
+        // A model built for DDL is about to be written through Dapper: register handlers for its property types.
+        TypeMapping.DapperMaticTypeMapping.RegisterModel(type);
         return table;
     }
 
@@ -283,6 +304,17 @@ public static class DmTableFactory
     }
 
     /// <summary>
+    /// Gets a model's columns by the name of the property each is mapped from.
+    /// </summary>
+    /// <param name="type">The model type.</param>
+    /// <returns>Property name to column, for every mapped property.</returns>
+    internal static IReadOnlyDictionary<string, DmColumn> GetPropertyColumns(Type type)
+    {
+        GetTable(type);
+        return _propertyCache[type];
+    }
+
+    /// <summary>
     /// Internal method to clear the cache for testing purposes only.
     /// This is not part of the public API and should not be used in production code.
     /// </summary>
@@ -323,6 +355,8 @@ public static class DmTableFactory
             {
                 var paType = pa.GetType();
                 return pa is DmIgnoreAttribute
+                    // A relation to other rows, filled on request, never a column
+                    || pa is DmRelationAttribute
                     // EF Core
                     || pa is System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute
                     // ServiceStack.OrmLite
@@ -402,6 +436,7 @@ public static class DmTableFactory
                     ? null
                     : columnAttribute.DefaultExpression
             );
+            column.PreviousNames = [.. columnAttribute?.PreviousNames ?? []];
             columns.Add(column);
             propertyMappings.Add(property.Name, column);
 
@@ -475,6 +510,7 @@ public static class DmTableFactory
                         : DbProviderUtils.GenerateCheckConstraintName(tableName, columnName),
                     columnCheckConstraintAttribute.Expression
                 );
+                checkConstraint.PreviousNames = [.. columnCheckConstraintAttribute.PreviousNames ?? []];
                 checkConstraints.Add(checkConstraint);
 
                 column.CheckExpression = columnCheckConstraintAttribute.Expression;
@@ -510,6 +546,7 @@ public static class DmTableFactory
                         : DbProviderUtils.GenerateUniqueConstraintName(tableName, columnName),
                     [new(columnName)]
                 );
+                uniqueConstraint.PreviousNames = [.. columnUniqueConstraintAttribute.PreviousNames ?? []];
                 uniqueConstraints.Add(uniqueConstraint);
 
                 column.IsUnique = true;
@@ -528,6 +565,7 @@ public static class DmTableFactory
                     [new(columnName)],
                     isUnique: columnIndexAttribute.IsUnique
                 );
+                index.PreviousNames = [.. columnIndexAttribute.PreviousNames ?? []];
                 indexes.Add(index);
 
                 column.IsIndexed = true;
@@ -604,6 +642,7 @@ public static class DmTableFactory
                         onDelete,
                         onUpdate
                     );
+                    foreignKeyConstraint.PreviousNames = [.. columnForeignKeyConstraintAttribute.PreviousNames ?? []];
                     foreignKeyConstraints.Add(foreignKeyConstraint);
 
                     column.IsForeignKey = true;
@@ -708,7 +747,12 @@ public static class DmTableFactory
                 ? cca.ConstraintName
                 : DbProviderUtils.GenerateCheckConstraintName(tableName, $"{ccaId++}");
 
-            checkConstraints.Add(new DmCheckConstraint(schemaName, tableName, null, constraintName, cca.Expression));
+            checkConstraints.Add(
+                new DmCheckConstraint(schemaName, tableName, null, constraintName, cca.Expression)
+                {
+                    PreviousNames = [.. cca.PreviousNames ?? []],
+                }
+            );
         }
 
         var ucas = type.GetCustomAttributes<DmUniqueConstraintAttribute>();
@@ -730,6 +774,9 @@ public static class DmTableFactory
                     constraintName,
                     [.. uca.Columns.Select(DmOrderedColumn.Parse)]
                 )
+                {
+                    PreviousNames = [.. uca.PreviousNames ?? []],
+                }
             );
 
             if (uca.Columns.Length == 1)
@@ -766,6 +813,9 @@ public static class DmTableFactory
                     [.. cia.Columns.Select(DmOrderedColumn.Parse)],
                     isUnique: cia.IsUnique
                 )
+                {
+                    PreviousNames = [.. cia.PreviousNames ?? []],
+                }
             );
 
             if (cia.Columns.Length == 1)
@@ -826,6 +876,7 @@ public static class DmTableFactory
                 cfk.OnDelete,
                 cfk.OnUpdate
             );
+            foreignKeyConstraint.PreviousNames = [.. cfk.PreviousNames ?? []];
 
             foreignKeyConstraints.Add(foreignKeyConstraint);
 
@@ -855,6 +906,7 @@ public static class DmTableFactory
             [.. foreignKeyConstraints],
             [.. indexes]
         );
+        table.PreviousNames = [.. type.GetCustomAttribute<DmTableAttribute>()?.PreviousNames ?? []];
         return table;
     }
 }

@@ -47,7 +47,7 @@ public class SmartNpgsqlLineTypeHandler : SqlMapper.ITypeHandler
             var b = valueType.GetProperty("B")?.GetValue(value);
             var c = valueType.GetProperty("C")?.GetValue(value);
 
-            parameter.Value = $"LINE({a} {b} {c})";
+            parameter.Value = string.Create(CultureInfo.InvariantCulture, $"LINE({a} {b} {c})");
             parameter.DbType = DbType.String;
         }
     }

@@ -21,14 +21,16 @@ public class SqliteTypeMapping : ProviderTypeMappingBase
         new()
         {
             { typeof(byte), SqliteTypes.sql_tinyint },
-            { typeof(sbyte), SqliteTypes.sql_tinyint },
+            // System.Data.SQLite reads a column as the type its declared name suggests (tinyint as byte, smallint
+            // as short), so each type is declared wide enough for its whole range.
+            { typeof(sbyte), SqliteTypes.sql_smallint },
             { typeof(short), SqliteTypes.sql_smallint },
-            { typeof(ushort), SqliteTypes.sql_smallint },
+            { typeof(ushort), SqliteTypes.sql_integer },
             { typeof(int), SqliteTypes.sql_int },
-            { typeof(uint), SqliteTypes.sql_int },
-            { typeof(System.Numerics.BigInteger), SqliteTypes.sql_bigint },
+            { typeof(uint), SqliteTypes.sql_integer },
             { typeof(long), SqliteTypes.sql_bigint },
             { typeof(ulong), SqliteTypes.sql_bigint },
+            { typeof(Half), SqliteTypes.sql_real },
             { typeof(float), SqliteTypes.sql_real },
             { typeof(double), SqliteTypes.sql_double },
             { typeof(decimal), SqliteTypes.sql_numeric },

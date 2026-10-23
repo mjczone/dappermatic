@@ -18,14 +18,14 @@ public class SqlServerTypeMapping : ProviderTypeMappingBase
         new()
         {
             { typeof(byte), SqlServerTypes.sql_tinyint },
-            { typeof(sbyte), SqlServerTypes.sql_tinyint },
+            { typeof(sbyte), SqlServerTypes.sql_smallint }, // tinyint is unsigned on SQL Server
             { typeof(short), SqlServerTypes.sql_smallint },
-            { typeof(ushort), SqlServerTypes.sql_smallint },
+            { typeof(ushort), SqlServerTypes.sql_int },
             { typeof(int), SqlServerTypes.sql_int },
-            { typeof(uint), SqlServerTypes.sql_int },
-            { typeof(System.Numerics.BigInteger), SqlServerTypes.sql_bigint },
+            { typeof(uint), SqlServerTypes.sql_bigint },
             { typeof(long), SqlServerTypes.sql_bigint },
-            { typeof(ulong), SqlServerTypes.sql_bigint },
+            { typeof(ulong), "decimal(20,0)" },
+            { typeof(Half), SqlServerTypes.sql_real },
             { typeof(float), SqlServerTypes.sql_real },
             { typeof(double), SqlServerTypes.sql_float },
             { typeof(decimal), SqlServerTypes.sql_decimal },

@@ -78,6 +78,11 @@ public abstract class ProviderTypeMappingBase : IProviderTypeMapping
                 isUnicode: descriptor.IsUnicode.GetValueOrDefault(false),
                 isFixedLength: descriptor.IsFixedLength.GetValueOrDefault(false)
             ),
+            Type t when t == typeof(IPNetwork) => CreateStringTypeInternal(
+                length: descriptor.Length.GetValueOrDefault(43),
+                isUnicode: descriptor.IsUnicode.GetValueOrDefault(false),
+                isFixedLength: descriptor.IsFixedLength.GetValueOrDefault(false)
+            ),
             Type t when t == typeof(PhysicalAddress) => CreateStringTypeInternal(
                 length: descriptor.Length.GetValueOrDefault(17),
                 isUnicode: descriptor.IsUnicode.GetValueOrDefault(false),
