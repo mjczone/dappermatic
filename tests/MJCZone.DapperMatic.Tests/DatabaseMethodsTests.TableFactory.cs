@@ -486,6 +486,48 @@ public abstract partial class DatabaseMethodsTests
 
         await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
     }
+
+    /// <summary>
+    /// <c>configureColumn</c> adjusts the column being created, not the model it was taken from:
+    /// <see cref="DmTableFactory"/> shares that model process-wide, so a change made to it would carry into
+    /// every later use of the type, on every connection and thread.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Configuring_a_column_taken_from_a_model_leaves_the_model_unchanged_Async()
+    {
+        var model = DmTableFactory.GetTable(typeof(TestTableForColumnConfiguration));
+        var before = DmTableFingerprint.GetCanonicalForm(model);
+
+        using var db = await OpenConnectionAsync();
+        await db.DropTableIfExistsAsync(null, model.TableName);
+        await db.CreateTableIfNotExistsAsync(
+            null,
+            model.TableName,
+            [new DmColumn(null, model.TableName, "id", typeof(int), isPrimaryKey: true)]
+        );
+
+        // Another provider's type, so that setting it leaves what this provider creates alone.
+        var otherProvider =
+            db.GetDbProviderType() == DbProviderType.Sqlite ? DbProviderType.PostgreSql : DbProviderType.Sqlite;
+
+        var created = await db.CreateColumnIfNotExistsAsync<TestTableForColumnConfiguration>(
+            t => t.Code,
+            c =>
+            {
+                c.IsNullable = true;
+                c.PreviousNames.Add("old_code");
+                c.SetProviderDataType(otherProvider, "text");
+            }
+        );
+
+        Assert.True(created);
+        var column = await db.GetColumnAsync(null, model.TableName, "code");
+        Assert.NotNull(column);
+        Assert.True(column.IsNullable);
+        Assert.Equal(before, DmTableFingerprint.GetCanonicalForm(model));
+
+        await db.DropTableIfExistsAsync(null, model.TableName);
+    }
 }
 
 [Table("TestTable1")]
@@ -1106,4 +1148,17 @@ public class TestTableForCacheMutation
 
     [DmColumn("notes", isNullable: true)]
     public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Test table whose column is created with a <c>configureColumn</c> callback.
+/// </summary>
+[DmTable(tableName: "test_column_configuration")]
+public class TestTableForColumnConfiguration
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    [DmColumn("code", length: 20)]
+    public string Code { get; set; } = string.Empty;
 }
