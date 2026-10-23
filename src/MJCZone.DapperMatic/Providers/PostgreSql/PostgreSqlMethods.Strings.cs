@@ -95,7 +95,7 @@ public partial class PostgreSqlMethods
                FROM pg_class pgc
                    JOIN pg_catalog.pg_namespace n ON n.oid = pgc.relnamespace
                WHERE
-                   pgc.relkind = 'r'
+                   pgc.relkind IN ('r', 'p')
                    {(
                         string.IsNullOrWhiteSpace(schemaName) ? string.Empty : " AND lower(n.nspname) = @schemaName"
                     )}

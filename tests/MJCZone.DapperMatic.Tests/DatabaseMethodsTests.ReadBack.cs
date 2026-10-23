@@ -18,6 +18,69 @@ public abstract partial class DatabaseMethodsTests
     /// <returns>The connection, or null where the provider has no such databases.</returns>
     public virtual Task<IDbConnection?> OpenServerAdminConnectionAsync() => Task.FromResult<IDbConnection?>(null);
 
+    // A PostgreSQL partitioned table (relkind 'p', not 'r') was invisible: it did not exist, was not listed or read,
+    // and creating it again failed with "already exists" (#26).
+    [Fact]
+    protected virtual async Task Partitioned_tables_are_seen_as_tables_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        if (db.GetDbProviderType() != DbProviderType.PostgreSql)
+        {
+            return;
+        }
+
+        await InitFreshSchemaAsync(db, null);
+        await db.ExecuteAsync("DROP TABLE IF EXISTS dm_part CASCADE");
+        await db.ExecuteAsync("CREATE TABLE dm_part (id int NOT NULL, created date NOT NULL, note varchar(20), PRIMARY KEY (id, created)) PARTITION BY RANGE (created)");
+        await db.ExecuteAsync("CREATE TABLE dm_part_2026 PARTITION OF dm_part FOR VALUES FROM ('2026-01-01') TO ('2027-01-01')");
+        await db.ExecuteAsync("CREATE INDEX ix_dm_part_note ON dm_part (note)");
+
+        Assert.True(await db.DoesTableExistAsync(null, "dm_part"));
+        Assert.Contains("dm_part", await db.GetTableNamesAsync(null), StringComparer.OrdinalIgnoreCase);
+        var table = (await db.GetTableAsync(null, "dm_part"))!;
+        Assert.Equal(["id", "created", "note"], table.Columns.Select(c => c.ColumnName.ToLowerInvariant()));
+        Assert.Equal(["id", "created"], table.PrimaryKeyConstraint!.Columns.Select(c => c.ColumnName.ToLowerInvariant()));
+        Assert.Contains(table.Indexes, i => i.IndexName.Equals("ix_dm_part_note", StringComparison.OrdinalIgnoreCase));
+        Assert.False(await db.CreateTableIfNotExistsAsync(table));
+
+        await db.ExecuteAsync("DROP TABLE IF EXISTS dm_part CASCADE");
+    }
+
+    // Two tables' checks of one name, where names are per table (MariaDB, PostgreSQL, SQLite; SQL Server and MySQL
+    // keep them per schema and refuse the second). MariaDB's checks were joined by name alone: each table read back
+    // both.
+    [Fact]
+    protected virtual async Task Checks_of_one_name_on_two_tables_read_back_apart_Async()
+    {
+        using var db = await OpenConnectionAsync();
+        var provider = db.GetDbProviderType();
+        var perTable = provider is DbProviderType.PostgreSql or DbProviderType.Sqlite
+            || (provider == DbProviderType.MySql && (await db.ExecuteScalarAsync<string>("SELECT VERSION()"))!.Contains("MariaDB", StringComparison.OrdinalIgnoreCase));
+        if (!perTable)
+        {
+            return;
+        }
+
+        await InitFreshSchemaAsync(db, null);
+        foreach (var name in new[] { "dm_ck_a", "dm_ck_b" })
+        {
+            await db.DropTableIfExistsAsync(null, name);
+        }
+
+        await db.ExecuteAsync("CREATE TABLE dm_ck_a (id int PRIMARY KEY, amount int, CONSTRAINT ck_same CHECK (amount >= 0))");
+        await db.ExecuteAsync("CREATE TABLE dm_ck_b (id int PRIMARY KEY, qty int, CONSTRAINT ck_same CHECK (qty < 100))");
+
+        var a = (await db.GetTableAsync(null, "dm_ck_a"))!;
+        var b = (await db.GetTableAsync(null, "dm_ck_b"))!;
+        Assert.Contains("amount", Assert.Single(a.CheckConstraints).Expression, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("qty", Assert.Single(b.CheckConstraints).Expression, StringComparison.OrdinalIgnoreCase);
+
+        foreach (var name in new[] { "dm_ck_a", "dm_ck_b" })
+        {
+            await db.DropTableIfExistsAsync(null, name);
+        }
+    }
+
     // Composite keys, in two schemas that repeat every name, as a schema per tenant does. SQL Server joined its
     // catalog by constraint name alone: each primary key column came back once per schema, and a two-column foreign
     // key as 16 pairs.

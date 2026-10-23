@@ -50,7 +50,7 @@ public partial class PostgreSqlMethods
                         	format_type(columns.atttypid, columns.atttypmod) as data_type_ext
                         FROM pg_catalog.pg_attribute AS columns
                             join pg_catalog.pg_type as types on columns.atttypid = types.oid
-                            JOIN pg_catalog.pg_class AS tables ON columns.attrelid = tables.oid and tables.relkind = 'r' and tables.relpersistence = 'p'
+                            JOIN pg_catalog.pg_class AS tables ON columns.attrelid = tables.oid and tables.relkind IN ('r', 'p') and tables.relpersistence = 'p'
                             JOIN pg_catalog.pg_namespace AS schemas ON tables.relnamespace = schemas.oid
                             left outer join pg_catalog.pg_attrdef as column_defs on columns.attrelid = column_defs.adrelid and columns.attnum = column_defs.adnum
                             left outer join pg_catalog.pg_constraint as primarykeys on columns.attnum=ANY(primarykeys.conkey) AND primarykeys.conrelid = tables.oid and primarykeys.contype = 'p'
@@ -162,7 +162,7 @@ public partial class PostgreSqlMethods
                             columns.attname as column_name,
                             columns.attnum as column_ordinal
                         FROM pg_catalog.pg_attribute AS columns
-                            JOIN pg_catalog.pg_class AS tables ON columns.attrelid = tables.oid and tables.relkind = 'r' and tables.relpersistence = 'p'
+                            JOIN pg_catalog.pg_class AS tables ON columns.attrelid = tables.oid and tables.relkind IN ('r', 'p') and tables.relpersistence = 'p'
                             JOIN pg_catalog.pg_namespace AS schemas ON tables.relnamespace = schemas.oid
                         where
                             schemas.nspname not like 'pg_%' and schemas.nspname != 'information_schema' and columns.attnum > 0 and not columns.attisdropped
