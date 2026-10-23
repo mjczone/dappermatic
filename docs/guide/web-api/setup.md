@@ -251,10 +251,14 @@ builder.Services.Configure<DapperMaticOptions>(o => o.ResultCacheStore = myCache
 **What a cached result is kept under.** Each statement has its own entry. The key is built from:
 
 - the statement's SQL and its parameter values (these include the values the policies read);
-- the session values the database's own row-level security reads;
-- the datasource.
+- the session values the database's own row-level security reads, as the database reads them (a caller's several
+  values of one claim as those values);
+- the datasource;
+- the application: `ResultCacheKeyPrefix`, by default its name and environment.
 
-Callers with different policies, tenants or hidden columns therefore never share results. If `OnConnectionOpened` steps are configured, nothing is cached: DapperMatic cannot know what they set on the session.
+Callers with different policies, tenants or hidden columns therefore never share results. Nor do two applications, or
+staging and production, that use one Redis: each keeps its own results and versions. Give applications the same
+`ResultCacheKeyPrefix` only when they serve the same databases and should share them. If `OnConnectionOpened` steps are configured, nothing is cached: DapperMatic cannot know what they set on the session.
 
 A query is cached only when **every** table it reads is listed: its own table, plus the tables of the relations it follows in `$filter`, `$orderby` or `$expand`. Its time is the shortest of theirs. Statements inside a batch or a write are never cached.
 
@@ -263,7 +267,7 @@ A query is cached only when **every** table it reads is listed: its own table, p
 | Write | Results made stale |
 |-------|--------------------|
 | Row endpoints (`rows`, `rows/save`, `rows/update`, `rows/delete`) and batches | those reading the tables written, after the commit |
-| Application code through `DapperMaticCallerDb` | those reading the tables written, when the request's response starts |
+| Application code through `DapperMaticCallerDb` | those reading the tables written, when the request's response starts, and again when it ends (for a transaction committed after the handler returned) |
 | Schema and datasource endpoints (tables, columns, views, ...) | every result of the datasource |
 
 The versions live in the same store as the results, so a write on one instance is seen by every instance sharing a distributed store. A write made **outside** DapperMatic (another application, a SQL script, a database trigger) is seen when the table's time runs out, or at once after:

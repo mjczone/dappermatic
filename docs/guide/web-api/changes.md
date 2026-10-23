@@ -14,7 +14,7 @@ Each change to a table that a webhook or subscription hears is noted in the data
 
 A change names the table, the action (`insert`, `update`, `delete`, or `write` for functions), the **keys** of the rows, and their tenant. It never includes other columns. Keys are read as the write runs: PostgreSQL returns them from the statement (`RETURNING`), and SQL Server, MySQL and SQLite read them first, under locks, in the same transaction. A write of many rows is noted once per tenant, in chunks of 500 keys.
 
-DapperMatic creates `dm_changes` and `dm_webhook_state` in each datasource that needs them, the first time. Put them in a schema of their own with `options.ChangeTablesSchema = "dm"`. If the application's database user may not create tables, create them ahead of time with a user who may. Changes are kept for `WebhookDelivery.Retention` (7 days).
+DapperMatic creates `dm_changes` and `dm_webhook_state` in each datasource that needs them, the first time. Put them in a schema of their own with `options.ChangeTablesSchema = "dm"`. If the application's database user may not create tables, create them ahead of time with a user who may. Changes are kept for `WebhookDelivery.Retention` (7 days), then pruned by the webhook worker of each server whose `WebhookDelivery.Enabled` is on (the default), whether webhooks or only subscriptions hear them. The tables are DapperMatic's own: no endpoint serves them (see [Tables no policy reaches](./security#tables-no-policy-reaches)).
 
 ## Webhooks
 
@@ -74,13 +74,15 @@ Every path takes `?tenant=` for a tenant's webhooks. Secrets are never returned 
 
 **A tenant's webhooks.** A tenant's administrator (`Allow(ManageAccess, …).WithinOwnTenant()`) keeps webhooks for their tenant only:
 
-- The webhook must name its datasource and its tables, each one a table the administrator may read.
+- The webhook must name its datasource and its tables, each one a table the administrator reads **whole**: every row of
+  the tenant's and every column. A webhook tells of each of the tenant's rows that changes, with its key, so a table the
+  administrator reads only some rows of (a filter beyond the tenant's) or some columns of is refused (403).
 - It is held to the tenant's datasource and schema.
 - It **hears only the tenant's rows**. That means rows whose tenant column (`Tenancy.RowsMarkedBy(...)`) holds the tenant, or any table in the tenant's own schema or datasource.
 
 Rows of no tenant, and other tenants' rows, are heard only by the application's webhooks.
 
-**Internal addresses are refused.** A webhook kept through the API may not post to loopback, private, link-local (cloud metadata among them) or other internal addresses. The address is checked when the connection is made, so DNS tricks don't get around it. Redirects are not followed. Webhooks given in code or configuration may post anywhere. Allow internal addresses for API webhooks with `WebhookDelivery.AllowPrivateAddresses = true`.
+**Internal addresses are refused.** A webhook kept through the API may not post to loopback, private, link-local (cloud metadata among them) or other internal addresses. The address is checked when the connection is made, so DNS tricks don't get around it. IPv6 addresses carrying an IPv4 one (NAT64 `64:ff9b::/96`, 6to4, IPv4-compatible) are judged by that address; Teredo and local NAT64 addresses are refused. Redirects are not followed, and no proxy is used, so the address checked is the one connected to. Webhooks given in code or configuration may post anywhere. Allow internal addresses for API webhooks with `WebhookDelivery.AllowPrivateAddresses = true`.
 
 ## Realtime subscriptions
 
@@ -103,7 +105,7 @@ events.addEventListener("error", e => console.warn(e.data)); // the query no lon
 - The first `results` event is the query's results. After that, the query is run again, as the same caller, whenever a table it reads changes. That includes the tables of the relations it expands, filters or orders by. A new `results` event is sent only when the results differ.
 - Policies apply to every run. Each subscriber gets only what it may read, so a change to rows it cannot see sends it nothing.
 - The query must read only listed tables, or the subscription is refused (400). A view must name the tables it reads (`Reads`).
-- Changes close together are run once (`Realtime.Debounce`, 250 ms). An idle subscription gets a `: ping` comment every `Realtime.Heartbeat` (15 s), so proxies keep it open.
+- Changes close together are run once (`Realtime.Debounce`, 250 ms). Every subscription gets a `: ping` comment every `Realtime.Heartbeat` (15 s), so proxies keep it open. Pings keep their own time, whatever changes: a ping put off by a change would tell the subscriber that a row it cannot see changed.
 - **Several servers.** A change made on this server is heard at once. A change made on another server is read from `dm_changes` every `Realtime.PollInterval` (1 s).
 - **A subscription lasts as long as its caller's session.** Before each run, the policies and tenants kept through the API are read again when due (`AccessRefreshInterval`), so access taken away ends the subscription with an `error` event. So does the caller's token expiring (its `exp` claim), or `MaxSessionAge` (one hour by default) passing: the client opens it again, signed in afresh. `EventSource` reconnects on its own.
 

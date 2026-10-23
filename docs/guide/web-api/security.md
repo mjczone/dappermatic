@@ -76,6 +76,24 @@ A policy that names nothing covers everything. A policy that grants must say who
 
 Listing datasources, schemas, tables or views returns only those the caller may read the definition of.
 
+### Tables no policy reaches
+
+DapperMatic's own tables are served by no endpoint, whatever a policy or custom permissions say: they are not listed,
+read, written, altered, dropped or created (under their names), through the REST API, GraphQL or MCP, nor followed as a
+relation or referenced by a foreign key. They can share a datasource the API serves: the built-in accounts' tables
+(`dm_users`, `dm_user_tokens`, ...) are in the datasource `UseDatasource` names, and the change log (`dm_changes`,
+`dm_webhook_state`) is in every datasource webhooks or subscriptions hear. A grant on "every table of `main`" does not
+reach them.
+
+The list is `DapperMaticOptions.PrivateTables`. Add tables of your own the API must never serve:
+
+```csharp
+builder.Services.Configure<DapperMaticOptions>(o => o.PrivateTables.Add("payment_secrets"));
+```
+
+Names are matched in any datasource and schema, ignoring case. A view's SQL is not held to the list: defining views
+reaches every table of a datasource, which is why only a grant on a whole datasource covers it.
+
 ## Rows and columns
 
 ```csharp
@@ -290,7 +308,10 @@ public sealed class MyPermissions(IMyAccessService access) : IDapperMaticPermiss
 builder.Services.AddDapperMatic(dm => dm.UseCustomPermissions<MyPermissions>());
 ```
 
-Rows are still held to the policies of every table a policy is about. With custom permissions, a table no policy is about is the application's to decide, and its permissions have decided. A table whose rows any policy is about, for reading, inserting, updating or deleting, is held for all four, as PostgreSQL holds a table with row security on: an action no policy grants there is refused. With the default permissions, a table no policy is about is refused.
+Rows are still held to the policies of every table a policy is about. A write that also writes related rows (`rows`,
+`rows/save`) asks your permissions about each related table as the write it makes there, `tables/insert-rows` or
+`tables/update-rows`: a request allowed to insert orders does not change customers through them unless it may change
+customers. With custom permissions, a table no policy is about is the application's to decide, and its permissions have decided. A table whose rows any policy is about, for reading, inserting, updating or deleting, is held for all four, as PostgreSQL holds a table with row security on: an action no policy grants there is refused. With the default permissions, a table no policy is about is refused.
 
 `DapperMaticOperation` carries the operation's name (`tables/query`, `datasources/post`), its datasource, schema, table, view, columns, index and constraint, the HTTP method and path, the request body, `Properties` (`NewTableName` for a rename, `CurrentMethod`), and `Access`: the caller, the tenant, and the request's values. It never changes once made: checking a request as another operation, such as a table it reads besides its own, makes a copy (`operation with { TableName = "customers" }`), so operations running side by side for one caller never see each other's.
 

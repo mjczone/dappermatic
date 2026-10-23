@@ -198,7 +198,7 @@ builder.Services.AddDapperMatic(dm => dm
     .Policy(DmPolicy.Allow(DmAction.ReadWrite, "member")));
 ```
 
-The tables are made at startup (`dm_users`, `dm_user_roles`, `dm_memberships`, `dm_invitations`, `dm_user_sessions`, `dm_account_settings`, `dm_data_protection_keys`) in the datasource named, or the database given with `UseDatabase(provider, connectionString)`, or else where DapperMatic keeps policies (its database repository). An application that registers ASP.NET Core Identity itself is refused at startup: use one or the other.
+The tables are made at startup (`dm_users`, `dm_user_roles`, `dm_memberships`, `dm_invitations`, `dm_user_sessions`, `dm_account_settings`, `dm_data_protection_keys`) in the datasource named, or the database given with `UseDatabase(provider, connectionString)`, or else where DapperMatic keeps policies (its database repository). Kept in a datasource the API serves, they are still served by no endpoint, whatever the policies grant: see [Tables no policy reaches](./security#tables-no-policy-reaches). An application that registers ASP.NET Core Identity itself is refused at startup: use one or the other.
 
 ### The first administrator
 

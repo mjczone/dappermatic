@@ -299,7 +299,7 @@ A `POST` body takes the same text as `apply`, or a JSON tree as `applyTree`: `{"
 options.Searchable.Add(new DapperMaticSearchable { TableName = "articles", Columns = ["title", "body"] });
 ```
 
-Where the database has a full-text index of the columns, it is used: words match words, with each database's stemming and ranking rules.
+Where the database has a full-text index of exactly those columns, it is used: words match words, with each database's stemming and ranking rules. An index over more columns than are declared is not used, since it would search columns a caller may not be able to read; the contains match runs instead.
 
 | Database | Index used |
 |----------|------------|
@@ -352,7 +352,7 @@ POST /api/dm/d/Shop/t/orders/rows/delete    { "filter": "status eq 'void'" }
 
 Inserts are all or none. An update or a delete needs a condition (`filter`, `where`, or both, ANDed); `"filter": "true"` says every row.
 
-**Related rows** are written with a row, nested under a declared relation's name: a row the row refers to (`customer`) as an object, rows that refer to it (`lines`) as an array. The related row it refers to is written first and its key put in the row; then the row; then the rows that refer to it, with its key. A related row whose key is given is updated if it exists and inserted if not; one without a key is inserted; rows left out are left as they are. `.../rows/save` does the same with the rows themselves: updated by their key where it exists, inserted where not. Inserts and saves return the rows as written, with the keys the database generated:
+**Related rows** are written with a row, nested under a declared relation's name: a row the row refers to (`customer`) as an object, rows that refer to it (`lines`) as an array. The related row it refers to is written first and its key put in the row; then the row; then the rows that refer to it, with its key. A related row whose key is given is updated if it exists and inserted if not; one without a key is inserted; rows left out are left as they are. Each related table is written only as the caller may write it on its own: inserted into with its insert rights, updated with its update rights. `.../rows/save` does the same with the rows themselves: updated by their key where it exists, inserted where not. Inserts and saves return the rows as written, with the keys the database generated, holding the columns the request gave, the keys, and the columns the caller may read (a value a policy wrote into a column the caller may not read is not returned):
 
 ```bash
 POST /api/dm/d/Shop/t/orders/rows
@@ -378,7 +378,7 @@ POST /api/dm/d/Shop/batch
 # { "results": [ { "affected": 1, "rows": [ { "name": "Acme", "id": 42 } ] }, { "affected": 1, "rows": [...] }, { "affected": 3 } ] }
 ```
 
-Inserts return their rows as written, with the keys the database generated. `"dryRun": true` rolls every write back. A batch holds at most `QueryLimits.MaxBatchOperations` operations (100). Their operations for [permissions](./security) are `tables/insert-rows`, `tables/update-rows` and `tables/delete-rows`.
+Inserts return their rows as written, with the keys the database generated and the columns the caller may see, as `rows` does; a later operation can refer only to those. `"dryRun": true` rolls every write back. A batch holds at most `QueryLimits.MaxBatchOperations` operations (100). Their operations for [permissions](./security) are `tables/insert-rows`, `tables/update-rows` and `tables/delete-rows`.
 
 ## Functions
 
@@ -419,7 +419,7 @@ curl -X POST .../api/dm/d/ProductionDB/f/top_customers -H "Content-Type: applica
 ```
 
 - **Arguments** are a JSON object, read as each parameter's `Type`. An unknown, mistyped or missing one is a 400. A parameter with a `Default` may be left out; one marked `Nullable` may be `null`.
-- **Values from the request's context** (`Value = "@tenant.id"`, `"@user.id"`, any value [tenancy](./tenancy) defines) are always set by DapperMatic, and a request that gives them is refused. This keeps a caller inside its own tenant.
+- **Values from the request's context** (`Value = "@tenant.id"`, `"@user.id"`, any value [tenancy](./tenancy) defines) are always set by DapperMatic, and a request that gives them is refused. This keeps a caller inside its own tenant. A value the request has several of (several claims of one type, a tenant's reach) is not one value: the request is refused (400).
 - **Who may run it**: `DmAction.Execute`, from a grant that names the function (`OnFunctions`, patterns allowed) or names none and is not confined to schemas or tables. A function's SQL can read and write any table the connection can, so a grant on a few tables does not reach it. A caller not allowed to run a function gets 403, whether or not the function exists.
 - **Rows**: the function returns at most `MaxRows`, by default `QueryLimits.MaxTop`. More is a 400, never a silent cut.
 - **Session values** for the database's own row-level security are set on its connection, as for every request.
