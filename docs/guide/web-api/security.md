@@ -81,7 +81,7 @@ Listing datasources, schemas, tables or views returns only those the caller may 
 DapperMatic's own tables are served by no endpoint, whatever a policy or custom permissions say: they are not listed,
 read, written, altered, dropped or created (under their names), through the REST API, GraphQL or MCP, nor followed as a
 relation or referenced by a foreign key. They can share a datasource the API serves: the built-in accounts' tables
-(`dm_users`, `dm_user_tokens`, ...) are in the datasource `UseDatasource` names, and the change log (`dm_changes`,
+(`dm_users`, `dm_memberships`, ...) are in the datasource `UseDatasource` names, and the change log (`dm_changes`,
 `dm_webhook_state`) is in every datasource webhooks or subscriptions hear. A grant on "every table of `main`" does not
 reach them.
 
@@ -287,7 +287,7 @@ The administrator's own limits on rows beyond the tenant are not passed on: if t
 
 ## Application code
 
-Code of the application's own, reading and writing for the current user, can be held to the same policies through the typed DML methods: `DapperMaticCallerDb.OpenAsync("main")` gives a scope run as the request's caller. See [Running as a caller](/guide/dml-methods#running-as-a-caller).
+Code of the application's own, reading and writing for the current user, can be held to the same policies through the typed DML methods: `OpenAsync("main")` on the `DapperMaticCallerDb` you inject gives a scope run as the request's caller. See [Running as a caller](/guide/dml-methods#running-as-a-caller).
 
 ## Custom permissions
 
@@ -324,8 +324,8 @@ public sealed class DatabaseAuditLogger(IDbConnection auditDb) : IDapperMaticAud
 {
     public Task LogOperationAsync(DapperMaticAuditEvent e) =>
         auditDb.ExecuteAsync(
-            "INSERT INTO audit_log (user_id, operation, datasource_id, schema_name, table_name, success, message, at, ip) "
-                + "VALUES (@UserIdentifier, @Operation, @DatasourceId, @SchemaName, @TableName, @Success, @Message, @Timestamp, @IpAddress)",
+            "INSERT INTO audit_log (user_id, operation, datasource_id, schema_name, table_name, success, message, at, request_id) "
+                + "VALUES (@UserIdentifier, @Operation, @DatasourceId, @SchemaName, @TableName, @Success, @Message, @Timestamp, @RequestId)",
             e);
 }
 

@@ -142,36 +142,28 @@ Get available data types for specific datasource providers.
 
 ## Response Format
 
-All endpoints return a consistent response format based on the `ResponseBase<T>` class:
+A successful response carries its data in `result`, plus `pagination` for queries and `affected` / `rows` for row writes:
 
-```json
-{
-  "result": T,          // The data payload (object, array, or null)
-  "message": string,    // Optional message providing additional information
-  "success": boolean    // Whether the operation was successful
-}
-```
-
-### Success Response Example
 ```json
 {
   "result": {
     "id": "ProductionDB",
     "provider": "SqlServer",
-    "displayName": "Production Database",
-    "isConnected": true
-  },
-  "message": null,
-  "success": true
+    "displayName": "Production Database"
+  }
 }
 ```
 
-### Error Response Example
+An error is a problem details body (RFC 9457), with a `code` and the request's `traceId`; see [Errors](./setup#errors):
+
 ```json
 {
-  "result": null,
-  "message": "Datasource 'NonExistentDB' not found",
-  "success": false
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.5",
+  "title": "Not found",
+  "status": 404,
+  "detail": "Datasource 'NonExistentDB' not found",
+  "code": "not_found",
+  "traceId": "0HN..."
 }
 ```
 
@@ -229,7 +221,7 @@ GET /api/dm/d/
 # Create a table
 POST /api/dm/d/MyDB/t/
 {
-  "name": "Users",
+  "tableName": "Users",
   "columns": [...]
 }
 
@@ -239,9 +231,9 @@ GET /api/dm/d/MyDB/t/Users/query?$filter=IsActive eq true&$orderby=CreatedAt des
 # Add a column to a table
 POST /api/dm/d/MyDB/t/Users/columns
 {
-  "name": "LastLoginDate",
-  "dataType": "datetime2",
-  "allowNull": true
+  "columnName": "LastLoginDate",
+  "providerDataType": "datetime2",
+  "isNullable": true
 }
 ```
 

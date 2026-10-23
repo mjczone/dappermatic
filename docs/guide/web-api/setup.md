@@ -137,6 +137,7 @@ Always refused unless allowed: MySQL's `AllowLoadLocalInfile`, which lets the da
 | `Access` | The [policies, tenants and webhooks DapperMatic keeps](/guide/web-api/security#policies-and-tenants-kept-by-dappermatic), and effective permissions |
 | `Functions` | Running [declared functions](./endpoints.md#functions) |
 | `Realtime` | [Subscriptions](./changes.md#realtime-subscriptions) to queries |
+| `Auth` | [Sign-in](./authentication): tickets, API keys and the built-in accounts' endpoints |
 | `Mcp` | The [MCP endpoint](./mcp) for AI assistants |
 
 ```csharp

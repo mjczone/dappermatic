@@ -147,7 +147,7 @@ POST /api/dm/access/service-accounts/nightly-import/keys
 ```
 
 ```json
-{ "result": { "key": "dm_k3…", "info": { "id": "k3…", "name": "prod", "tables": ["prices"], … } } }
+{ "result": { "key": "dm_k3…", "info": { "id": "k3…", "name": "prod", "limits": [ … ], … } } }
 ```
 
 `GET /access/keys` lists keys (never their secrets), with when each was last used. `DELETE /access/keys/{id}` revokes one: at once on the server that revokes it, and on the others within `AccessRefreshInterval` (30 seconds). A [tenant administrator](./security.md#tenant-administrators) manages only their tenant's service accounts and keys, and gives only roles they hold themselves, or roles only their tenant's policies name (a role no policy names may mean something to your own code).

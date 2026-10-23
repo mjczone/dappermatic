@@ -76,9 +76,9 @@ async function migrateDatabases() {
     const datasources = await response.json();
 
     // Apply schema changes to each datasource
-    for (const datasource of datasources.data) {
-        await createMigrationTable(datasource.name);
-        await applyPendingMigrations(datasource.name);
+    for (const datasource of datasources.result) {
+        await createMigrationTable(datasource.id);
+        await applyPendingMigrations(datasource.id);
     }
 }
 
@@ -87,15 +87,13 @@ async function createMigrationTable(datasourceName) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            table: {
-                schemaName: null, // default schema
-                tableName: 'migrations',
-                columns: [
-                    { columnName: 'id', dataType: 'bigint', isAutoIncrement: true },
-                    { columnName: 'version', dataType: 'varchar', maxLength: 255 },
-                    { columnName: 'applied_at', dataType: 'datetime' }
-                ]
-            }
+            schemaName: null, // default schema
+            tableName: 'migrations',
+            columns: [
+                { columnName: 'id', providerDataType: 'bigint', isPrimaryKey: true, isAutoIncrement: true },
+                { columnName: 'version', providerDataType: 'varchar', length: 255 },
+                { columnName: 'applied_at', providerDataType: 'datetime' }
+            ]
         })
     });
 }
@@ -103,33 +101,33 @@ async function createMigrationTable(datasourceName) {
 
 ## Example 4: Database Backup Service
 
-Automate database schema backups:
+Automate database schema backups through the API, as a caller the policies let read definitions (here, an API key's
+service account):
 
 ```csharp
-public class SchemaBackupService : BackgroundService
+public class SchemaBackupService(IHttpClientFactory clients) : BackgroundService
 {
-    private readonly IDapperMaticService _dapperMaticService;
-
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            await BackupAllSchemas();
+            await BackupAllSchemas(stoppingToken);
             await Task.Delay(TimeSpan.FromHours(24), stoppingToken);
         }
     }
 
-    private async Task BackupAllSchemas()
+    private async Task BackupAllSchemas(CancellationToken cancellationToken)
     {
-        var datasources = await _dapperMaticService.ListDatasourcesAsync();
+        var api = clients.CreateClient("dappermatic"); // BaseAddress and X-Api-Key set where it is registered
+        var datasources = await api.GetFromJsonAsync<DatasourceListResponse>("/api/dm/d/", cancellationToken);
 
-        foreach (var datasource in datasources)
+        foreach (var datasource in datasources!.Result)
         {
-            var tables = await _dapperMaticService.ListTablesAsync(datasource.Name);
+            var tables = await api.GetFromJsonAsync<TableListResponse>($"/api/dm/d/{datasource.Id}/t/?include=columns,indexes", cancellationToken);
             var backup = new SchemaBackup
             {
-                DatasourceName = datasource.Name,
-                Tables = tables,
+                DatasourceId = datasource.Id,
+                Tables = tables!.Result,
                 BackupDate = DateTime.UtcNow
             };
 
@@ -164,7 +162,7 @@ public class DapperMaticClient
     public async Task<bool> CreateTableAsync(string datasource, TableDto table)
     {
         var content = new StringContent(
-            JsonSerializer.Serialize(new { table }),
+            JsonSerializer.Serialize(table),
             Encoding.UTF8,
             "application/json");
 

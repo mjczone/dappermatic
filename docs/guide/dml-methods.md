@@ -72,7 +72,7 @@ var same = await db.SingleByIdAsync<OrderLine>((1, 2));
 | `InsertManyAsync` | The number of rows inserted. Generated keys are not set on the rows. |
 | `UpdateAsync(row)`, `DeleteAsync(row)`, `DeleteByIdAsync` | The number of rows affected: 1, or 0 if no row has the key |
 
-`InsertManyAsync` writes multi-row `VALUES` statements kept under each provider's limits: 2,100 parameters and 1,000 rows on SQL Server, 999 parameters on SQLite. Without a transaction of yours, rows that take more than one statement are inserted in a transaction of the method's own, so either every row is inserted or none is.
+`InsertManyAsync` writes multi-row `VALUES` statements kept under each provider's limits: 2,000 parameters on SQL Server (its limit is 2,100), 32,000 on SQLite, 60,000 on PostgreSQL and MySQL, and 1,000 rows per statement everywhere. Without a transaction of yours, rows that take more than one statement are inserted in a transaction of the method's own, so either every row is inserted or none is.
 
 A key given as another type is converted to the key's own: `SingleByIdAsync<Order>(42L)` works for an `int` key. A model without a primary key cannot be used with the by-key methods, and says so.
 
@@ -94,7 +94,7 @@ A condition is translated to SQL, never evaluated in memory: anything that canno
 | `o.Note == null`, `o.Total.HasValue` | `IS NULL`, `IS NOT NULL`, also for a variable that is null |
 | `o.Shipped`, `!o.Shipped` | `shipped = @p` with true or false |
 | Variables, fields, properties, method calls that do not use the row | evaluated once, then a parameter |
-| `ids.Contains(o.Id)` (lists, arrays, sets) | `IN (@p0, @p1, ...)`; an empty list is false. On SQL Server, a list too long for its 2,100 parameters is one JSON parameter, `IN (SELECT value FROM OPENJSON(@p))` (SQL Server 2016 and later) |
+| `ids.Contains(o.Id)` (lists, arrays, sets) | `IN (@p0, @p1, ...)`; an empty list is false. On SQL Server, a list that would take a statement past 2,000 parameters (SQL Server allows 2,100) is one JSON parameter, `IN (SELECT value FROM OPENJSON(@p))` (SQL Server 2016 and later) |
 | `o.Name.Contains(s)`, `StartsWith`, `EndsWith` | `LIKE @p ESCAPE '…'`, with `%` and `_` in the value matched as themselves |
 | The same with `StringComparison.OrdinalIgnoreCase` (or another `IgnoreCase`), `string.Equals(a, b, …IgnoreCase)` | `LOWER(...)` on both sides |
 | `string.IsNullOrEmpty(o.Note)` | `IS NULL` or exactly empty |
