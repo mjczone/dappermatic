@@ -12,7 +12,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.14.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.0.0" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
-    <PackageReference Include="Npgsql.NetTopologySuite" Version="9.0.4" />
+    <PackageReference Include="Npgsql.NetTopologySuite" Version="10.0.3" />
     <PackageReference Include="ReverseMarkdown" Version="4.7.0" />
     <PackageReference Include="Testcontainers.MariaDb" Version="4.14.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -25,7 +25,7 @@
     <PackageReference Include="Microsoft.Data.SQLite" Version="10.0.11" />
     <PackageReference Include="MySQL.Data" Version="9.4.0" />
     <PackageReference Include="MySqlConnector" Version="2.4.0" />
-    <PackageReference Include="Npgsql" Version="9.0.4" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
   </ItemGroup>

@@ -34,9 +34,11 @@
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
     <PackageReference Include="NetTopologySuite" Version="2.6.0" />
-    <PackageReference Include="Npgsql" Version="9.0.4" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
     <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
+    <!-- Microsoft.Data.SqlClient 6.1.2 pulls a vulnerable System.Security.Cryptography.Pkcs 9.0.4. -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../MJCZone.DapperMatic/MJCZone.DapperMatic.csproj" />
