@@ -27,6 +27,11 @@ public partial class SqlServerMethods : DatabaseMethodsBase<SqlServerProviderTyp
     public override char[] QuoteChars => ['[', ']'];
 
     /// <summary>
+    /// Gets the schema a name with none is in, as <see cref="SetDefaultSchema(string)"/> last set it.
+    /// </summary>
+    internal static string DefaultSchemaName => _defaultSchema;
+
+    /// <summary>
     /// Gets the default schema.
     /// </summary>
     protected override string DefaultSchema => _defaultSchema;
