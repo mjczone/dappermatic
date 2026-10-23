@@ -240,7 +240,7 @@ public partial class MySqlMethods
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ALTER COLUMN {NormalizeName(columnName)} SET DEFAULT {(
+                            ALTER COLUMN {QuoteName(columnName)} SET DEFAULT {(
                                 addParentheses ? $"({defaultExpression})" : defaultExpression
                             )}
             """;
@@ -261,7 +261,7 @@ public partial class MySqlMethods
         string constraintName
     )
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {NormalizeName(columnName)} DROP DEFAULT";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {QuoteName(columnName)} DROP DEFAULT";
     }
     #endregion // Default Constraint Strings
 
@@ -291,7 +291,7 @@ public partial class MySqlMethods
     /// <returns>The SQL string to drop a unique constraint from a table.</returns>
     protected override string SqlDropUniqueConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP INDEX {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP INDEX {QuoteName(constraintName)}";
     }
     #endregion // Unique Constraint Strings
 
@@ -306,7 +306,7 @@ public partial class MySqlMethods
     /// <returns>The SQL string to drop a foreign key constraint from a table.</returns>
     protected override string SqlDropForeignKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP FOREIGN KEY {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP FOREIGN KEY {QuoteName(constraintName)}";
     }
     #endregion // Foreign Key Constraint Strings
 

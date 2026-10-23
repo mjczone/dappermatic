@@ -46,8 +46,8 @@ public partial class SqlServerMethods
                     SELECT tc.TABLE_SCHEMA, tc.TABLE_NAME, ccu.COLUMN_NAME, ccu.CONSTRAINT_NAME
                     FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
                         INNER JOIN INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE AS ccu
-                            ON tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
-                    WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY'
+                            ON tc.CONSTRAINT_SCHEMA = ccu.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME = ccu.CONSTRAINT_NAME
+                    WHERE tc.CONSTRAINT_TYPE = 'PRIMARY KEY' AND tc.TABLE_SCHEMA = @schemaName
                 ) pk ON t.TABLE_SCHEMA = pk.TABLE_SCHEMA and t.TABLE_NAME = pk.TABLE_NAME and c.COLUMN_NAME = pk.COLUMN_NAME
 
             WHERE t.TABLE_TYPE = 'BASE TABLE'
@@ -114,28 +114,31 @@ public partial class SqlServerMethods
         )>(db, constraintsSql, new { schemaName, where }, tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
 
+        // By object ids, not names: constraint names repeat across schemas (a schema per tenant), and the columns of
+        // a composite key pair up only by their position in it.
         var foreignKeysSql = $"""
-
-                        SELECT
-                            kfk.TABLE_SCHEMA schema_name,
-                            kfk.TABLE_NAME table_name,
-                            kfk.COLUMN_NAME AS column_name,
-                            rc.CONSTRAINT_NAME AS constraint_name,
-                            kpk.TABLE_SCHEMA AS referenced_schema_name,
-                            kpk.TABLE_NAME AS referenced_table_name,
-                            kpk.COLUMN_NAME AS referenced_column_name,
-                            rc.UPDATE_RULE update_rule,
-                            rc.DELETE_RULE delete_rule
-                        FROM INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
-                            JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kfk ON rc.CONSTRAINT_NAME = kfk.CONSTRAINT_NAME
-                            JOIN INFORMATION_SCHEMA.KEY_COLUMN_USAGE kpk ON rc.UNIQUE_CONSTRAINT_NAME = kpk.CONSTRAINT_NAME
-                        WHERE
-                            kfk.TABLE_SCHEMA = @schemaName
-                            {(
-                string.IsNullOrWhiteSpace(where) ? null : " AND kfk.TABLE_NAME LIKE @where"
-            )}
-                        ORDER BY kfk.TABLE_SCHEMA, kfk.TABLE_NAME, rc.CONSTRAINT_NAME
-
+            SELECT
+                sh.name AS schema_name,
+                t.name AS table_name,
+                c.name AS column_name,
+                fk.name AS constraint_name,
+                rsh.name AS referenced_schema_name,
+                rt.name AS referenced_table_name,
+                rc.name AS referenced_column_name,
+                REPLACE(fk.update_referential_action_desc, '_', ' ') AS update_rule,
+                REPLACE(fk.delete_referential_action_desc, '_', ' ') AS delete_rule
+            FROM sys.foreign_keys fk
+                INNER JOIN sys.tables t ON t.object_id = fk.parent_object_id
+                INNER JOIN sys.schemas sh ON sh.schema_id = t.schema_id
+                INNER JOIN sys.foreign_key_columns fkc ON fkc.constraint_object_id = fk.object_id
+                INNER JOIN sys.columns c ON c.object_id = fkc.parent_object_id AND c.column_id = fkc.parent_column_id
+                INNER JOIN sys.tables rt ON rt.object_id = fk.referenced_object_id
+                INNER JOIN sys.schemas rsh ON rsh.schema_id = rt.schema_id
+                INNER JOIN sys.columns rc ON rc.object_id = fkc.referenced_object_id AND rc.column_id = fkc.referenced_column_id
+            WHERE
+                sh.name = @schemaName
+                {(string.IsNullOrWhiteSpace(where) ? null : " AND t.name LIKE @where")}
+            ORDER BY sh.name, t.name, fk.name, fkc.constraint_column_id
             """;
         var foreignKeyResults = await QueryAsync<(
             string schema_name,

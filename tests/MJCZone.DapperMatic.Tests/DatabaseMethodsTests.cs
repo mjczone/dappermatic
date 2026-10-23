@@ -17,6 +17,12 @@ public abstract partial class DatabaseMethodsTests : TestBase
 
     public abstract Task<IDbConnection> OpenConnectionAsync();
 
+    /// <summary>
+    /// Opens a second connection to the database the last <see cref="OpenConnectionAsync"/> call opened, for
+    /// tests of what two connections do at once.
+    /// </summary>
+    public virtual Task<IDbConnection> OpenAnotherConnectionAsync() => OpenConnectionAsync();
+
     [Fact]
     protected virtual async Task Should_expect_database_can_run_arbitrary_queries_async_Async()
     {

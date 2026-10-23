@@ -129,7 +129,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>The SQL query string for renaming the table.</returns>
     protected virtual string SqlRenameTable(string? schemaName, string tableName, string newTableName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} RENAME TO {NormalizeName(newTableName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} RENAME TO {QuoteName(newTableName)}";
     }
 
     /// <summary>
@@ -496,7 +496,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A string representing the column name and its data type, suitable for use in SQL inline statements.</returns>
     protected virtual string SqlInlineColumnNameAndType(DmColumn column, Version dbVersion)
     {
-        return $"{NormalizeName(column.ColumnName)} {SqlColumnType(column, dbVersion)}";
+        return $"{QuoteName(column.ColumnName)} {SqlColumnType(column, dbVersion)}";
     }
 
     /// <summary>
@@ -532,7 +532,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} PRIMARY KEY {(column.IsAutoIncrement ? SqlInlinePrimaryKeyAutoIncrementColumnConstraint(column, columnType) : string.Empty)}".Trim();
+        return $"CONSTRAINT {QuoteName(constraintName)} PRIMARY KEY {(column.IsAutoIncrement ? SqlInlinePrimaryKeyAutoIncrementColumnConstraint(column, columnType) : string.Empty)}".Trim();
     }
 
     /// <summary>
@@ -564,7 +564,7 @@ public abstract partial class DatabaseMethodsBase
             && !(defaultExpression.StartsWith('\'') && defaultExpression.EndsWith('\''))
             && !IsFunctionCall(defaultExpression);
 
-        return $"CONSTRAINT {NormalizeName(constraintName)} DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
+        return $"CONSTRAINT {QuoteName(constraintName)} DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
     }
 
     /// <summary>
@@ -585,7 +585,7 @@ public abstract partial class DatabaseMethodsBase
     {
         SqlExpressionValidator.ValidateCheckExpression(checkExpression, nameof(checkExpression));
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} CHECK ({checkExpression})";
+        return $"CONSTRAINT {QuoteName(constraintName)} CHECK ({checkExpression})";
     }
 
     /// <summary>
@@ -600,7 +600,7 @@ public abstract partial class DatabaseMethodsBase
     protected virtual string SqlInlineUniqueColumnConstraint(string constraintName, out bool useTableConstraint)
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} UNIQUE";
+        return $"CONSTRAINT {QuoteName(constraintName)} UNIQUE";
     }
 
     /// <summary>
@@ -628,7 +628,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} REFERENCES {GetSchemaQualifiedIdentifierName(schemaName, referencedTableName)} ({NormalizeName(referencedColumn.ColumnName)})"
+        return $"CONSTRAINT {QuoteName(constraintName)} REFERENCES {GetSchemaQualifiedIdentifierName(schemaName, referencedTableName)} ({QuoteName(referencedColumn.ColumnName)})"
             + (onDelete.HasValue ? $" ON DELETE {onDelete.Value.ToSql()}" : string.Empty)
             + (onUpdate.HasValue ? $" ON UPDATE {onUpdate.Value.ToSql()}" : string.Empty);
     }
@@ -648,8 +648,8 @@ public abstract partial class DatabaseMethodsBase
         var pkConstrainName = !string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName)
             ? primaryKeyConstraint.ConstraintName
             : DbProviderUtils.GeneratePrimaryKeyConstraintName(table.TableName, pkColumnNames.ToArray());
-        var pkColumnsCsv = string.Join(", ", pkColumnNames);
-        return $"CONSTRAINT {NormalizeName(pkConstrainName)} PRIMARY KEY ({pkColumnsCsv})";
+        var pkColumnsCsv = string.Join(", ", pkColumnNames.Select(QuoteName));
+        return $"CONSTRAINT {QuoteName(pkConstrainName)} PRIMARY KEY ({pkColumnsCsv})";
     }
 
     /// <summary>
@@ -671,7 +671,7 @@ public abstract partial class DatabaseMethodsBase
                 ? DbProviderUtils.GenerateCheckConstraintName(table.TableName, DateTime.Now.Ticks.ToString())
             : DbProviderUtils.GenerateCheckConstraintName(table.TableName, check.ColumnName);
 
-        return $"CONSTRAINT {NormalizeName(ckConstraintName)} CHECK ({check.Expression})";
+        return $"CONSTRAINT {QuoteName(ckConstraintName)} CHECK ({check.Expression})";
     }
 
     /// <summary>
@@ -702,10 +702,10 @@ public abstract partial class DatabaseMethodsBase
 
         var uniqueColumns = uc.Columns.Select(c =>
             supportsOrderedKeysInConstraints
-                ? new DmOrderedColumn(NormalizeName(c.ColumnName), c.Order).ToString()
-                : new DmOrderedColumn(NormalizeName(c.ColumnName)).ToString()
+                ? new DmOrderedColumn(QuoteName(c.ColumnName), c.Order).ToString()
+                : new DmOrderedColumn(QuoteName(c.ColumnName)).ToString()
         );
-        return $"CONSTRAINT {NormalizeName(ucConstraintName)} UNIQUE ({string.Join(", ", uniqueColumns)})";
+        return $"CONSTRAINT {QuoteName(ucConstraintName)} UNIQUE ({string.Join(", ", uniqueColumns)})";
     }
 
     /// <summary>
@@ -721,15 +721,15 @@ public abstract partial class DatabaseMethodsBase
     {
         return $"""
 
-                        CONSTRAINT {NormalizeName(fk.ConstraintName)}
+                        CONSTRAINT {QuoteName(fk.ConstraintName)}
                             FOREIGN KEY ({string.Join(
                 ", ",
-                fk.SourceColumns.Select(c => NormalizeName(c.ColumnName))
+                fk.SourceColumns.Select(c => QuoteName(c.ColumnName))
             )})
                                 REFERENCES {GetSchemaQualifiedIdentifierName(
                 table.SchemaName,
                 fk.ReferencedTableName
-            )} ({string.Join(", ", fk.ReferencedColumns.Select(c => NormalizeName(c.ColumnName)))})
+            )} ({string.Join(", ", fk.ReferencedColumns.Select(c => QuoteName(c.ColumnName)))})
                                     ON DELETE {fk.OnDelete.ToSql()}
                                     ON UPDATE {fk.OnUpdate.ToSql()}
             """.Trim();
@@ -748,7 +748,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops the specified column, or an empty string if no column name is provided.</returns>
     protected virtual string SqlDropColumn(string? schemaName, string tableName, string columnName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP COLUMN {NormalizeName(columnName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP COLUMN {QuoteName(columnName)}";
     }
     #endregion // Column Strings
 
@@ -776,7 +776,7 @@ public abstract partial class DatabaseMethodsBase
             expression = expression.Trim().Substring(1, expression.Length - 2);
         }
 
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ADD CONSTRAINT {NormalizeName(constraintName)} CHECK ({expression})";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ADD CONSTRAINT {QuoteName(constraintName)} CHECK ({expression})";
     }
 
     /// <summary>
@@ -788,7 +788,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified CHECK constraint from the given table in its schema.</returns>
     protected virtual string SqlDropCheckConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Check Constraint Strings
 
@@ -816,9 +816,9 @@ public abstract partial class DatabaseMethodsBase
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ADD CONSTRAINT {NormalizeName(
+                            ADD CONSTRAINT {QuoteName(
                 constraintName
-            )} DEFAULT {expression} FOR {NormalizeName(columnName)}
+            )} DEFAULT {expression} FOR {QuoteName(columnName)}
 
             """;
     }
@@ -838,7 +838,7 @@ public abstract partial class DatabaseMethodsBase
         string constraintName
     )
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Default Constraint Strings
 
@@ -867,13 +867,13 @@ public abstract partial class DatabaseMethodsBase
             ", ",
             columns.Select(c =>
             {
-                var columnName = NormalizeName(c.ColumnName);
+                var columnName = QuoteName(c.ColumnName);
                 return c.Order == DmColumnOrder.Ascending ? columnName : $"{columnName} DESC";
             })
         );
         return $"""
             ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)}
-                                ADD CONSTRAINT {NormalizeName(constraintName)}
+                                ADD CONSTRAINT {QuoteName(constraintName)}
                                     PRIMARY KEY ({primaryKeyColumns})
             """;
     }
@@ -887,7 +887,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified PRIMARY KEY constraint from the given table in its schema.</returns>
     protected virtual string SqlDropPrimaryKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Primary Key Strings
 
@@ -914,12 +914,12 @@ public abstract partial class DatabaseMethodsBase
     {
         var uniqueColumns = columns.Select(c =>
             supportsOrderedKeysInConstraints
-                ? new DmOrderedColumn(NormalizeName(c.ColumnName), c.Order).ToString()
-                : new DmOrderedColumn(NormalizeName(c.ColumnName)).ToString()
+                ? new DmOrderedColumn(QuoteName(c.ColumnName), c.Order).ToString()
+                : new DmOrderedColumn(QuoteName(c.ColumnName)).ToString()
         );
         return $"""
             ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)}
-                                ADD CONSTRAINT {NormalizeName(constraintName)} UNIQUE ({string.Join(
+                                ADD CONSTRAINT {QuoteName(constraintName)} UNIQUE ({string.Join(
                 ", ",
                 uniqueColumns
             )})
@@ -935,7 +935,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified UNIQUE constraint from the given table in its schema.</returns>
     protected virtual string SqlDropUniqueConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Unique Constraint Strings
 
@@ -968,13 +968,13 @@ public abstract partial class DatabaseMethodsBase
     {
         var schemaQualifiedTableName = GetSchemaQualifiedIdentifierName(schemaName, tableName);
         var schemaQualifiedReferencedTableName = GetSchemaQualifiedIdentifierName(schemaName, referencedTableName);
-        var columnNames = columns.Select(c => NormalizeName(c.ColumnName));
-        var referencedColumnNames = referencedColumns.Select(c => NormalizeName(c.ColumnName));
+        var columnNames = columns.Select(c => QuoteName(c.ColumnName));
+        var referencedColumnNames = referencedColumns.Select(c => QuoteName(c.ColumnName));
 
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ADD CONSTRAINT {NormalizeName(constraintName)}
+                            ADD CONSTRAINT {QuoteName(constraintName)}
                                 FOREIGN KEY ({string.Join(", ", columnNames)})
                                     REFERENCES {schemaQualifiedReferencedTableName} ({string.Join(
                 ", ",
@@ -995,7 +995,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified foreign key constraint from the given table in its schema.</returns>
     protected virtual string SqlDropForeignKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Foreign Key Constraint Strings
 
@@ -1020,7 +1020,7 @@ public abstract partial class DatabaseMethodsBase
         bool isUnique = false
     )
     {
-        return $"CREATE {(isUnique ? "UNIQUE " : string.Empty)}INDEX {NormalizeName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ({string.Join(", ", columns.Select(c => c.ToString()))})";
+        return $"CREATE {(isUnique ? "UNIQUE " : string.Empty)}INDEX {QuoteName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ({string.Join(", ", columns.Select(QuoteOrderedColumn))})";
     }
 
     /// <summary>
@@ -1032,7 +1032,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified index from the given table in its schema.</returns>
     protected virtual string SqlDropIndex(string? schemaName, string tableName, string indexName)
     {
-        return $"DROP INDEX {NormalizeName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)}";
+        return $"DROP INDEX {QuoteName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)}";
     }
     #endregion // Index Strings
 

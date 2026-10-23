@@ -179,7 +179,7 @@ public partial class PostgreSqlMethods
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ALTER COLUMN {NormalizeName(columnName)} SET DEFAULT {expression}
+                            ALTER COLUMN {QuoteName(columnName)} SET DEFAULT {expression}
 
             """;
     }
@@ -199,7 +199,7 @@ public partial class PostgreSqlMethods
         string constraintName
     )
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {NormalizeName(columnName)} DROP DEFAULT";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {QuoteName(columnName)} DROP DEFAULT";
     }
     #endregion // Default Constraint Strings
 
