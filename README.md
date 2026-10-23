@@ -53,6 +53,11 @@ dotnet add package MJCZone.DapperMatic
 dotnet add package MJCZone.DapperMatic.AspNetCore
 ```
 
+### GraphQL (optional)
+```bash
+dotnet add package MJCZone.DapperMatic.GraphQL
+```
+
 ### Prerequisites
 
 - **.NET 10.0** or later
@@ -79,7 +84,7 @@ dotnet add package MJCZone.DapperMatic.AspNetCore
 using MJCZone.DapperMatic.DataAnnotations;
 using System.Text.Json;
 
-[DmTable("products")]
+[DmTable(tableName: "products")]
 [DmIndex(false, new[] { "product_name" }, "IX_Product_Name")] // Non-unique index on product name
 public class Product
 {
@@ -93,10 +98,10 @@ public class Product
     public decimal Price { get; set; }
 
     [DmColumn("category", isNullable: false)]
-    public DayOfWeek Category { get; set; } // Enum stored as string
+    public DayOfWeek Category { get; set; } // Enum stored as its integer value
 
     [DmColumn("tags", isNullable: true)]
-    public string[]? Tags { get; set; } // Smart array handling (native on PostgreSQL, JSON elsewhere)
+    public string[]? Tags { get; set; } // Native array on PostgreSQL; JSON elsewhere with StoreSimpleCollectionsAsJson
 
     [DmColumn("metadata", isNullable: true)]
     public JsonDocument? Metadata { get; set; } // JSON storage
@@ -115,7 +120,7 @@ public class Product
     public List<ProductDetails>? Details { get; set; }
 }
 
-[DmTable("ProductDetails")]
+[DmTable(tableName: "ProductDetails")]
 public class ProductDetails
 {
     [DmColumn("detail_id", isPrimaryKey: true, isAutoIncrement: true)]
@@ -158,7 +163,7 @@ await connection.CreateSchemaIfNotExistsAsync("public");
 await connection.CreateTablesIfNotExistsAsync([typeof(Product), typeof(ProductDetails)]);
 // Or individually
 await connection.CreateTableIfNotExistsAsync<Product>();
-await connection.CreateTableIfNotExistsAsync(typeof(ProductDetails));
+await connection.CreateTableIfNotExistsAsync(DmTableFactory.GetTable(typeof(ProductDetails)));
 
 // Untyped version
 await connection.CreateTableIfNotExistsAsync(
@@ -186,7 +191,7 @@ bool detailsTableExists = await connection.DoesTableExistAsync<ProductDetails>()
 
 // Add a missing column
 await connection.CreateColumnIfNotExistsAsync<Product>(
-    new DmColumn("last_updated", typeof(DateTime), isNullable: true, /* additional optional arguments */)
+    "last_updated", typeof(DateTime), isNullable: true /* additional optional arguments */
 );
 // Or using expressions
 await connection.CreateColumnIfNotExistsAsync<Product>(
@@ -221,7 +226,7 @@ await connection.CreateColumnIfNotExistsAsync(
 );
 
 // Drop a column
-await connection.DropColumnAsync<Product>("discount");
+await connection.DropColumnIfExistsAsync<Product>("discount");
 ```
 
 ### 3. Use with Dapper Queries (DML)
@@ -231,8 +236,9 @@ using MJCZone.DapperMatic.TypeMapping;
 using Dapper;
 using System.Text.Json;
 
-// Initialize type mappings once at application startup
-DapperMaticTypeMapping.Initialize();
+// Initialize type mappings once at application startup. Arrays of simple values such as Tags are left to
+// Dapper by default, which expands them for IN lists; this stores them as JSON on providers without arrays.
+DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions { StoreSimpleCollectionsAsJson = true });
 
 // Insert with Dapper (column names are automatically mapped via DmColumn attributes)
 var product = new Product
@@ -271,6 +277,27 @@ foreach (var p in products)
     Console.WriteLine($"  Tags: {string.Join(", ", p.Tags ?? Array.Empty<string>())}");
 }
 ```
+
+Or let DapperMatic write the SQL from the same model, with conditions as C# expressions:
+
+```csharp
+using MJCZone.DapperMatic.Dml;
+
+var id = await connection.InsertAsync(product);                  // the generated key, also set on the row
+var expensive = await connection.SelectAsync<Product>(p => p.Price > 500m);
+
+var page = await connection.From<Product>()
+    .Where(p => p.Price > 100m && p.CreatedAt >= since)
+    .OrderByDescending(p => p.CreatedAt)
+    .Skip(20)
+    .Take(10)
+    .ToListAsync();
+
+// The same calls against a tenant's schema
+var tenantProducts = await connection.InSchema(tenantSchema).SelectAsync<Product>(p => p.Price > 500m);
+```
+
+See [Reading and Writing Rows](https://dappermatic.mjczone.com/guide/dml-methods.html).
 
 ### 4. Cross-Provider Support (Same Code, Any Database)
 
@@ -316,8 +343,8 @@ var indexes = await connection.GetIndexesAsync("dbo", "products");
 var foreignKeys = await connection.GetForeignKeyConstraintsAsync("dbo", "products");
 
 // Modify schemas
-await connection.AddColumnAsync("dbo", "products", new DmColumn("discount", typeof(decimal)));
-await connection.DropColumnAsync("dbo", "products", "discount");
+await connection.CreateColumnIfNotExistsAsync(new DmColumn("dbo", "products", "discount", typeof(decimal)));
+await connection.DropColumnIfExistsAsync("dbo", "products", "discount");
 
 // Drop tables
 await connection.DropTableIfExistsAsync("dbo", "products");
@@ -340,7 +367,7 @@ DapperMatic provides smart type handlers for seamless Dapper query compatibility
 
 **Example with complex types**:
 ```csharp
-[DmTable("articles")]
+[DmTable(tableName: "articles")]
 public class Article
 {
     [DmColumn("article_id", isPrimaryKey: true, isAutoIncrement: true)]
@@ -367,11 +394,17 @@ var articles = await connection.QueryAsync<Article>("SELECT * FROM articles");
 
 ```csharp
 using MJCZone.DapperMatic.AspNetCore;
+using MJCZone.DapperMatic.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register DapperMatic services with default in-memory datasource repositories
-builder.Services.AddDapperMatic();
+// Register DapperMatic services with the drivers your datasources use, and who may do what:
+// nothing is allowed until a policy grants it.
+builder.Services.AddDapperMatic(dm => dm
+    .AddProvider(Npgsql.NpgsqlFactory.Instance)
+    .Policy(DmPolicy.Allow(DmAction.All, "admin"))
+    .Policy(DmPolicy.Allow(DmAction.Read, "authenticated").OnTablesWithColumns("tenant_id").Where("tenant_id eq @tenant.id"))
+    .Tenancy(t => t.FromClaim("tenant_id")));
 
 var app = builder.Build();
 
@@ -381,17 +414,16 @@ app.UseDapperMatic();
 app.Run();
 ```
 
-This creates REST endpoints for managing database connections (datasources):
-- `POST /api/dappermatic/datasources/list` - List all datasources
-- `POST /api/dappermatic/datasources/get` - Get datasource by name
-- `POST /api/dappermatic/datasources/add` - Add new datasource
-- `POST /api/dappermatic/datasources/update` - Update existing datasource
-- `POST /api/dappermatic/datasources/remove` - Remove datasource
+This creates REST endpoints under `/api/dm` for datasources (`/d`), schemas, tables, views, columns, indexes and
+constraints, and for querying and writing rows (`/d/{datasourceId}/t/{table}/query`, `/rows`). See the
+[Web API guide](https://dappermatic.mjczone.com/guide/web-api/getting-started.html).
 
 ### Custom Permission Handling
 
 ```csharp
-using MJCZone.DapperMatic.AspNetCore.Interfaces;
+using MJCZone.DapperMatic.AspNetCore;
+using MJCZone.DapperMatic.AspNetCore.Repositories;
+using MJCZone.DapperMatic.AspNetCore.Security;
 
 // Implement custom permissions (e.g., check user roles from database)
 public class CustomPermissions : IDapperMaticPermissions
@@ -401,17 +433,17 @@ public class CustomPermissions : IDapperMaticPermissions
         // ...
     }
 
-    public async Task<bool> IsAuthorizedAsync(IOperationContext context)
+    public async Task<bool> IsAuthorizedAsync(DapperMaticOperation operation)
     {
         // Example: Check if user is authenticated
-        if(context.User?.Identity?.IsAuthenticated != true)
+        if(operation.User?.Identity?.IsAuthenticated != true)
             return false;
 
         //
         // Add additional checks as needed
         // 
-        // The context has information about the current datasource,
-        // operation, user, and access to critical request information.
+        // The operation has its name, the datasource, schema and table it acts on,
+        // the caller, their tenant, and critical request information.
         //
 
         return true;
@@ -452,6 +484,20 @@ builder.Services.AddDapperMatic(options =>
     options.UseDatabaseDatasourceRepository("postgresql" /*mysql,sqlite,sqlserver*/, "Host=...;Database=...;Username=...;Password=...;");
 })
 ```
+
+### GraphQL
+
+`MJCZone.DapperMatic.GraphQL` adds a GraphQL endpoint beside the REST one, at `/api/dm/d/{datasourceId}/graphql`. Each
+caller gets their own schema: the tables, columns, relations, writes and functions their policies allow. It supports
+Relay connections and global ids, mutations that run as one transaction, and live-query subscriptions over
+`graphql-transport-ws`, and works with Apollo Client, Relay and Strawberry Shake.
+
+```csharp
+builder.Services.AddDapperMaticGraphQL();
+app.UseDapperMatic(); // serves REST and GraphQL
+```
+
+See the [GraphQL guide](https://dappermatic.mjczone.com/guide/web-api/graphql.html).
 
 ---
 

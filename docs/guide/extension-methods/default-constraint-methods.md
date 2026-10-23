@@ -158,11 +158,10 @@ bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
 bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
     "app",
     "users",
-    "DF_Users_UserId",
     "user_id",
+    "DF_Users_UserId",
     "NEWID()",
     tx: transaction,
-    : 60,
     cancellationToken: cancellationToken
 );
 
@@ -170,8 +169,8 @@ bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
 bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
     "hr",
     "employees",
-    "DF_Employees_IsActive",
     "is_active",
+    "DF_Employees_IsActive",
     "1"
 );
 
@@ -179,8 +178,8 @@ bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
 bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
     "inventory",
     "products",
-    "DF_Products_MinQuantity",
     "min_quantity",
+    "DF_Products_MinQuantity",
     "0"
 );
 
@@ -188,8 +187,8 @@ bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
 bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
     "orders",
     "order_items",
-    "DF_OrderItems_Status",
     "status",
+    "DF_OrderItems_Status",
     "'pending'"
 );
 ```
@@ -474,7 +473,7 @@ else
 await connection.DropDefaultConstraintOnColumnIfExistsAsync("hr", "employees", "salary");
 // Now safe to modify the salary column defaults
 await connection.CreateDefaultConstraintIfNotExistsAsync(
-    "hr", "employees", "DF_Employees_DefaultSalary", "salary", "0.00");
+    "hr", "employees", "salary", "DF_Employees_DefaultSalary", "0.00");
 ```
 
 **Parameters:**
@@ -500,33 +499,33 @@ public async Task SetupStandardDefaultsAsync(IDbConnection connection)
     {
         // User table defaults
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "app", "users", "DF_Users_CreatedAt", "created_at", "GETDATE()", tx: transaction);
+            "app", "users", "created_at", "DF_Users_CreatedAt", "GETDATE()", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "app", "users", "DF_Users_IsActive", "is_active", "1", tx: transaction);
+            "app", "users", "is_active", "DF_Users_IsActive", "1", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "app", "users", "DF_Users_UserId", "user_id", "NEWID()", tx: transaction);
+            "app", "users", "user_id", "DF_Users_UserId", "NEWID()", tx: transaction);
 
         // Order table defaults
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "sales", "orders", "DF_Orders_OrderDate", "order_date", "GETDATE()", tx: transaction);
+            "sales", "orders", "order_date", "DF_Orders_OrderDate", "GETDATE()", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "sales", "orders", "DF_Orders_Status", "status", "'pending'", tx: transaction);
+            "sales", "orders", "status", "DF_Orders_Status", "'pending'", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "sales", "orders", "DF_Orders_Total", "total_amount", "0.00", tx: transaction);
+            "sales", "orders", "total_amount", "DF_Orders_Total", "0.00", tx: transaction);
 
         // Product table defaults
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "inventory", "products", "DF_Products_CreatedAt", "created_at", "GETDATE()", tx: transaction);
+            "inventory", "products", "created_at", "DF_Products_CreatedAt", "GETDATE()", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "inventory", "products", "DF_Products_IsActive", "is_active", "1", tx: transaction);
+            "inventory", "products", "is_active", "DF_Products_IsActive", "1", tx: transaction);
 
         await connection.CreateDefaultConstraintIfNotExistsAsync(
-            "inventory", "products", "DF_Products_StockLevel", "stock_level", "0", tx: transaction);
+            "inventory", "products", "stock_level", "DF_Products_StockLevel", "0", tx: transaction);
 
         transaction.Commit();
         Console.WriteLine("Standard default constraints created successfully");
@@ -757,7 +756,7 @@ public async Task MigrateDefaultConstraintsAsync(IDbConnection connection, strin
 
                 // Create new constraint with updated expression
                 await connection.CreateDefaultConstraintIfNotExistsAsync(
-                    schema, tableName, constraint.ConstraintName, constraint.ColumnName,
+                    schema, tableName, constraint.ColumnName, constraint.ConstraintName,
                     newExpression, tx: transaction);
 
                 migrationActions.Add($"Updated {constraint.ConstraintName}: GETDATE() → SYSDATETIME()");
@@ -772,7 +771,7 @@ public async Task MigrateDefaultConstraintsAsync(IDbConnection connection, strin
                     schema, tableName, constraint.ConstraintName, tx: transaction);
 
                 await connection.CreateDefaultConstraintIfNotExistsAsync(
-                    schema, tableName, constraint.ConstraintName, constraint.ColumnName,
+                    schema, tableName, constraint.ColumnName, constraint.ConstraintName,
                     newExpression, tx: transaction);
 
                 migrationActions.Add($"Updated {constraint.ConstraintName}: empty string → 'N/A'");
@@ -848,7 +847,7 @@ public async Task CreateProviderOptimizedDefaultsAsync(IDbConnection connection,
     }
 
     bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
-        schema, tableName, constraintName, columnName, expression);
+        schema, tableName, columnName, constraintName, expression);
 
     if (created)
     {

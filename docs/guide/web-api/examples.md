@@ -9,6 +9,7 @@ Create an admin panel for database management:
 ```csharp
 // Program.cs
 using MJCZone.DapperMatic.AspNetCore;
+using MJCZone.DapperMatic.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,11 +18,14 @@ builder.Services.AddRazorPages();
 builder.Services.AddAuthentication("Identity.Application");
 
 // Add DapperMatic
-builder.Services.AddDapperMatic()
-    .UseFileRepository(options => {
-        options.FilePath = "datasources.json";
-        options.EncryptionKey = builder.Configuration["DapperMatic:EncryptionKey"];
-    });
+builder.Services.Configure<DapperMaticOptions>(options => {
+    options.ConnectionStringEncryptionKey = builder.Configuration["DapperMatic:EncryptionKey"];
+});
+builder.Services.AddDapperMatic(config => config
+    .AddProvider(SqlClientFactory.Instance)
+    .UseFileDatasourceRepository("datasources.json")
+    .Policy(DmPolicy.Allow(DmAction.All, "DatabaseAdmin"))
+    .Policy(DmPolicy.Allow(DmAction.Read | DmAction.ReadSchema, "authenticated")));
 
 var app = builder.Build();
 
@@ -39,28 +43,22 @@ app.Run();
 
 ## Example 2: Multi-Tenant SaaS
 
-Manage separate databases for different tenants:
+Hold each tenant to its own rows in shared tables, with a database of their own for the tenants that have one:
 
 ```csharp
-public class TenantPermissionsService : IDapperMaticPermissions
-{
-    public async Task<bool> CanAccessDatasourceAsync(
-        string datasourceName,
-        ClaimsPrincipal user,
-        string operation)
-    {
-        var tenantId = user.FindFirst("tenant_id")?.Value;
-
-        // Only allow access to datasources that belong to the user's tenant
-        return datasourceName.StartsWith($"tenant_{tenantId}_");
-    }
-}
-
-// In Program.cs
-builder.Services.AddDapperMatic()
-    .UseDatabaseRepository(connectionString, "SqlServer")
-    .AddCustomPermissions<TenantPermissionsService>();
+builder.Services.AddDapperMatic(config => config
+    .AddProvider(SqlClientFactory.Instance)
+    .UseDatabaseDatasourceRepository("SqlServer", connectionString)
+    .Tenancy(t => t
+        .FromClaim("tenant_id")
+        .Map("globex", datasource: "globex-db"))
+    .Policy(DmPolicy.Allow(DmAction.ReadWrite, "authenticated")
+        .OnTablesWithColumns("tenant_id")
+        .Where("tenant_id eq @tenant.id")
+        .Preset("tenant_id", "@tenant.id")));
 ```
+
+See [Tenants](/guide/web-api/tenancy) for every way of finding a tenant and keeping its data.
 
 ## Example 3: Database Migration Tool
 
@@ -159,8 +157,8 @@ public class DapperMaticClient
     {
         var response = await _httpClient.GetAsync("/api/dm/d/");
 
-        var result = await response.Content.ReadFromJsonAsync<ApiResponse<IEnumerable<DatasourceDto>>>();
-        return result.Data;
+        var result = await response.Content.ReadFromJsonAsync<DatasourceListResponse>();
+        return result.Result;
     }
 
     public async Task<bool> CreateTableAsync(string datasource, TableDto table)

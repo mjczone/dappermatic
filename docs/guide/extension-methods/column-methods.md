@@ -15,6 +15,7 @@ Column methods provide comprehensive functionality for managing table columns ac
   - [GetColumnAsync](#getcolumnasync) - Get single column model by name
 - [Column Modification](#column-modification)
   - [RenameColumnIfExistsAsync](#renamecolumnifexistsasync) - Rename existing column
+  - [AlterColumnIfExistsAsync](#altercolumnifexistsasync) - Change a column's type and nullability
 - [Column Deletion](#column-deletion)
   - [DropColumnIfExistsAsync](#dropcolumnifexistsasync) - Drop column permanently
 
@@ -221,9 +222,9 @@ List<DmColumn> columns = await connection.GetColumnsAsync("app", "app_employees"
 foreach (var column in columns)
 {
     Console.WriteLine($"Column: {column.ColumnName}");
-    Console.WriteLine($"  Type: {column.DataType.Name}");
+    Console.WriteLine($"  Type: {column.DotnetType?.Name}");
     Console.WriteLine($"  Nullable: {column.IsNullable}");
-    Console.WriteLine($"  Max Length: {column.MaxLength?.ToString() ?? "N/A"}");
+    Console.WriteLine($"  Max Length: {column.Length?.ToString() ?? "N/A"}");
     Console.WriteLine($"  Auto Increment: {column.IsAutoIncrement}");
     Console.WriteLine($"  Default: {column.DefaultExpression ?? "None"}");
 }
@@ -256,8 +257,8 @@ DmColumn? column = await connection.GetColumnAsync("app", "app_employees", "emai
 if (column != null)
 {
     Console.WriteLine($"Column '{column.ColumnName}' details:");
-    Console.WriteLine($"  Type: {column.DataType.Name}");
-    Console.WriteLine($"  Max Length: {column.MaxLength}");
+    Console.WriteLine($"  Type: {column.DotnetType?.Name}");
+    Console.WriteLine($"  Max Length: {column.Length}");
     Console.WriteLine($"  Nullable: {column.IsNullable}");
     Console.WriteLine($"  Unique: {column.IsUnique}");
     
@@ -327,6 +328,47 @@ bool renamed = await connection.RenameColumnIfExistsAsync(
 **Returns:** `bool` - `true` if column was renamed, `false` if it didn't exist
 
 
+### AlterColumnIfExistsAsync
+
+Change an existing column's data type and nullability. Everything else about the column is kept: its collation, default and comment, and on MySQL and MariaDB its generated expression.
+
+```csharp
+// Lengthen a column and allow nulls
+bool altered = await connection.AlterColumnIfExistsAsync(
+    "app", "app_employees", "title", "varchar(200)", isNullable: true);
+
+// Or describe the column and let DapperMatic render the type, as CREATE TABLE would
+bool altered = await connection.AlterColumnIfExistsAsync(
+    new DmColumn("app", "app_employees", "salary", typeof(decimal), precision: 12, scale: 2));
+
+// Or bring a column back in line with the model class it is mapped from
+bool altered = await connection.AlterColumnIfExistsAsync<Employee>(e => e.Salary);
+```
+
+**Parameters:**
+- `schemaName` - Schema containing the table
+- `tableName` - Name of the table containing the column
+- `columnName` - Name of the column
+- `sqlType` - The new data type, including any length, precision and scale, for example `varchar(200)`
+- `isNullable` - Whether the column allows nulls afterwards
+- `tx` (optional) - Database transaction
+- `cancellationToken` (optional) - Cancellation token
+
+**Returns:** `bool` - `true` if the column exists and now has the given type and nullability, `false` if the table or column doesn't exist
+
+::: warning Existing values are not checked
+Shortening a column or making it `NOT NULL` fails on data that doesn't fit. Some providers also refuse to alter a column that something depends on: PostgreSQL won't change the type of a column a view uses, and SQL Server won't change the precision of an indexed decimal column. For changes that can't lose data, use [reconciliation with safe alterations](./reconciliation-methods#safe-column-alterations), which applies only those and reports the rest.
+:::
+
+How each provider keeps the rest of the column:
+
+| Provider | Statement | What is kept, and how |
+|----------|-----------|-----------------------|
+| SQL Server | `ALTER COLUMN` | The collation is restated, because `ALTER COLUMN` would otherwise reset it to the database default. Defaults survive on their own. |
+| PostgreSQL | `ALTER COLUMN ... TYPE`, `SET` / `DROP NOT NULL` | Only the clauses that change are issued, so changing nullability alone works even when a view uses the column. A non-default collation is restated. |
+| MySQL / MariaDB | `MODIFY COLUMN` | The full definition is taken from `SHOW CREATE TABLE` with only the type and nullability replaced, so the character set, collation, default, `ON UPDATE`, comment and generated expression are kept. |
+| SQLite | Table recreation | See [SQLite](../providers#sqlite). |
+
 ## Column Deletion
 
 ### DropColumnIfExistsAsync
@@ -382,31 +424,27 @@ public async Task MigrateColumnDataTypeAsync(IDbConnection connection,
             throw new InvalidOperationException($"Column {columnName} does not exist");
         }
         
-        // Create temporary column with new type
+        // Create a temporary column with the new type, allowing nulls while the data is copied
         var tempColumnName = $"{columnName}_temp_{DateTime.UtcNow:yyyyMMddHHmmss}";
-        var tempColumn = new DmColumn(tempColumnName, newType)
-        {
-            SchemaName = schema,
-            TableName = tableName,
-            IsNullable = true // Allow nulls during migration
-        };
-        
+        var tempColumn = new DmColumn(schema, tableName, tempColumnName, newType, isNullable: true);
+
         await connection.CreateColumnIfNotExistsAsync(tempColumn, tx: transaction);
-        
+
         // Copy and convert data (implementation depends on data types)
-        await CopyAndConvertColumnDataAsync(connection, schema, tableName, 
-            columnName, tempColumnName, currentColumn.DataType, newType, transaction);
-        
+        await CopyAndConvertColumnDataAsync(connection, schema, tableName,
+            columnName, tempColumnName, currentColumn.DotnetType, newType, transaction);
+
         // Drop old column
         await connection.DropColumnIfExistsAsync(schema, tableName, columnName, tx: transaction);
-        
+
         // Rename temp column to original name
         await connection.RenameColumnIfExistsAsync(schema, tableName, tempColumnName, columnName, tx: transaction);
-        
-        // Update column nullability if needed
-        // Note: AlterColumnAsync does not exist in DapperMatic
-        // You would need to drop and recreate the column or table to change nullability
-        
+
+        // Restore the original nullability now that every row has a value
+        await connection.AlterColumnIfExistsAsync(
+            new DmColumn(schema, tableName, columnName, newType, isNullable: currentColumn.IsNullable),
+            tx: transaction);
+
         transaction.Commit();
     }
     catch
@@ -435,7 +473,7 @@ public async Task AddAuditColumnsAsync(IDbConnection connection, string schema, 
         {
             SchemaName = schema,
             TableName = tableName,
-            MaxLength = 100,
+            Length = 100,
             IsNullable = false,
             DefaultExpression = "SYSTEM_USER"
         },
@@ -449,7 +487,7 @@ public async Task AddAuditColumnsAsync(IDbConnection connection, string schema, 
         {
             SchemaName = schema,
             TableName = tableName,
-            MaxLength = 100,
+            Length = 100,
             IsNullable = true
         }
     };
@@ -517,7 +555,7 @@ public async Task AnalyzeColumnUsageAsync(IDbConnection connection, string schem
     Console.WriteLine($"Columns with defaults: {columnsWithDefaults.Count}");
     
     // Group by data type
-    var typeGroups = columns.GroupBy(c => c.DataType.Name).OrderBy(g => g.Key);
+    var typeGroups = columns.GroupBy(c => c.DotnetType?.Name).OrderBy(g => g.Key);
     Console.WriteLine("\nColumns by data type:");
     foreach (var group in typeGroups)
     {
@@ -543,12 +581,12 @@ public async Task ValidateColumnConstraintsAsync(IDbConnection connection,
     foreach (var column in columns)
     {
         // Check for potential issues
-        if (column.DataType == typeof(string) && column.MaxLength == null)
+        if (column.DotnetType == typeof(string) && column.Length == null)
         {
             issues.Add($"Column '{column.ColumnName}' has no length limit");
         }
         
-        if (column.DataType == typeof(decimal) && (column.Precision == null || column.Scale == null))
+        if (column.DotnetType == typeof(decimal) && (column.Precision == null || column.Scale == null))
         {
             issues.Add($"Column '{column.ColumnName}' has no precision/scale specified");
         }
@@ -628,13 +666,13 @@ private DmColumn CreateOptimalColumn(string columnName, Type dataType, string sc
     
     if (columnName.ToLower().Contains("email"))
     {
-        column.MaxLength = 255;
+        column.Length = 255;
         column.IsNullable = false;
     }
     
     if (columnName.ToLower().Contains("name"))
     {
-        column.MaxLength = dataType == typeof(string) ? 100 : null;
+        column.Length = dataType == typeof(string) ? 100 : null;
         column.IsNullable = false;
     }
     

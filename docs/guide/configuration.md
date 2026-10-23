@@ -45,7 +45,7 @@ DmTableFactory.Configure((type, table) => {
     // This adds REAL database columns
     table.Columns = table.Columns.Concat(new[] {
         new DmColumn("created_at", typeof(DateTime)) { DefaultExpression = "GETDATE()" }
-    }).ToArray();
+    }).ToList();
 });
 
 // When you call this, the created_at column will be physically created in the database
@@ -92,7 +92,7 @@ DmTableFactory.Configure((type, table) =>
             {
                 IsNullable = true
             }
-        }).ToArray();
+        }).ToList();
     }
 });
 ```
@@ -115,14 +115,14 @@ DmTableFactory.Configure<Customer>(table =>
         IsNullable = false,
         DefaultExpression = "'Active'"
     };
-    table.Columns = table.Columns.Concat(new[] { statusColumn }).ToArray();
+    table.Columns = table.Columns.Concat(new[] { statusColumn }).ToList();
 
     // Add additional constraints
     table.CheckConstraints = table.CheckConstraints.Concat(new[]
     {
-        new DmCheckConstraint("CK_Customer_Email_Valid", "email LIKE '%@%'"),
-        new DmCheckConstraint("CK_Customer_Status_Valid", "status IN ('Active', 'Inactive', 'Suspended')")
-    }).ToArray();
+        new DmCheckConstraint(null, "CK_Customer_Email_Valid", "email LIKE '%@%'"),
+        new DmCheckConstraint(null, "CK_Customer_Status_Valid", "status IN ('Active', 'Inactive', 'Suspended')")
+    }).ToList();
 });
 
 // Alternative syntax with Type parameter
@@ -183,7 +183,7 @@ public class DatabaseConfig
         // Only add if they don't already exist
         var existingColumns = table.Columns.Select(c => c.ColumnName).ToHashSet();
         var newColumns = auditFields.Where(c => !existingColumns.Contains(c.ColumnName));
-        table.Columns = table.Columns.Concat(newColumns).ToArray();
+        table.Columns = table.Columns.Concat(newColumns).ToList();
     }
 }
 
@@ -345,7 +345,7 @@ public static class DatabaseSetup
                 Length = 1000,
                 IsNullable = true
             };
-            table.Columns = table.Columns.Concat(new[] { debugColumn }).ToArray();
+            table.Columns = table.Columns.Concat(new[] { debugColumn }).ToList();
         }
     }
 
@@ -354,9 +354,9 @@ public static class DatabaseSetup
         // Add performance-focused indexes
         var performanceIndexes = table.Columns
             .Where(c => c.ColumnName.EndsWith("_id") && !c.IsPrimaryKey)
-            .Select(c => new DmIndex($"IX_{table.TableName}_{c.ColumnName}", new[] { c.ColumnName }));
+            .Select(c => new DmIndex($"IX_{table.TableName}_{c.ColumnName}", new[] { new DmOrderedColumn(c.ColumnName) }));
 
-        table.Indexes = table.Indexes.Concat(performanceIndexes).ToArray();
+        table.Indexes = table.Indexes.Concat(performanceIndexes).ToList();
     }
 }
 ```
@@ -394,7 +394,7 @@ public static class ConfigurationValidator
     private static void ValidateIndexCoverage(DmTable table)
     {
         var foreignKeyColumns = table.ForeignKeyConstraints
-            .SelectMany(fk => fk.Columns.Select(c => c.ColumnName))
+            .SelectMany(fk => fk.SourceColumns.Select(c => c.ColumnName))
             .ToHashSet();
 
         var indexedColumns = table.Indexes

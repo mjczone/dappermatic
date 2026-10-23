@@ -25,6 +25,10 @@
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic.typemapping.handlers/"
             },
             {
+              "text": "📦 / Security",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.security/"
+            },
+            {
               "text": "📦 / Providers",
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic.providers/"
             },
@@ -53,8 +57,16 @@
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic.models/"
             },
             {
+              "text": "📦 / Migrations",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.migrations/"
+            },
+            {
               "text": "📦 / Interfaces",
               "link": "/api/mjczone.dappermatic/mjczone.dappermatic.interfaces/"
+            },
+            {
+              "text": "📦 / Dml",
+              "link": "/api/mjczone.dappermatic/mjczone.dappermatic.dml/"
             },
             {
               "text": "📦 / DataAnnotations",
@@ -96,6 +108,10 @@
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.security/"
             },
             {
+              "text": "📦 / Models",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models/"
+            },
+            {
               "text": "📦 / Models.Responses",
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.responses/"
             },
@@ -104,16 +120,32 @@
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.models.dtos/"
             },
             {
+              "text": "📦 / Mcp",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.mcp/"
+            },
+            {
               "text": "📦 / Factories",
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.factories/"
             },
             {
-              "text": "📦 / Endpoints",
-              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.endpoints/"
+              "text": "📦 / Changes",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.changes/"
+            },
+            {
+              "text": "📦 / Caching",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.caching/"
+            },
+            {
+              "text": "📦 / Authentication",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.authentication/"
             },
             {
               "text": "📦 / Auditing",
               "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.auditing/"
+            },
+            {
+              "text": "📦 / Accounts",
+              "link": "/api/mjczone.dappermatic.aspnetcore/mjczone.dappermatic.aspnetcore.accounts/"
             }
           ]
         }

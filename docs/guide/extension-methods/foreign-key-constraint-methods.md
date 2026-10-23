@@ -16,6 +16,8 @@ Foreign key constraint methods provide comprehensive functionality for managing 
   - [GetForeignKeyConstraintsAsync](#getforeignkeyconstraintsasync) - Get complete foreign key models
   - [GetForeignKeyConstraintAsync](#getforeignkeyconstraintasync) - Get single foreign key by name
   - [GetForeignKeyConstraintOnColumnAsync](#getforeignkeyconstraintoncolumnasync) - Get foreign key model on specific column
+- [Foreign Key Renaming](#foreign-key-renaming)
+  - [RenameForeignKeyConstraintIfExistsAsync](#renameforeignkeyconstraintifexistsasync) - Rename an existing foreign key
 - [Foreign Key Deletion](#foreign-key-deletion)
   - [DropForeignKeyConstraintIfExistsAsync](#dropforeignkeyconstraintifexistsasync) - Drop foreign key by name
   - [DropForeignKeyConstraintOnColumnIfExistsAsync](#dropforeignkeyconstraintoncolumnifexistsasync) - Drop foreign key on specific column
@@ -39,7 +41,7 @@ if (exists)
     var fk = await connection.GetForeignKeyConstraintAsync("sales", "orders", fkName);
     if (fk != null)
     {
-        Console.WriteLine($"References: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
+        Console.WriteLine($"References: {fk.SchemaName}.{fk.ReferencedTableName}");
     }
 }
 else
@@ -83,7 +85,7 @@ if (hasFK)
     var fk = await connection.GetForeignKeyConstraintOnColumnAsync("sales", "orders", "customer_id");
     if (fk != null)
     {
-        Console.WriteLine($"FK '{fk.KeyName}' references {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
+        Console.WriteLine($"FK '{fk.ConstraintName}' references {fk.SchemaName}.{fk.ReferencedTableName}");
     }
 }
 else
@@ -118,11 +120,11 @@ bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(forei
 
 if (created)
 {
-    Console.WriteLine($"Foreign key constraint '{foreignKey.KeyName}' was created");
+    Console.WriteLine($"Foreign key constraint '{foreignKey.ConstraintName}' was created");
 }
 else
 {
-    Console.WriteLine($"Foreign key constraint '{foreignKey.KeyName}' already existed");
+    Console.WriteLine($"Foreign key constraint '{foreignKey.ConstraintName}' already existed");
 }
 ```
 
@@ -247,7 +249,7 @@ if (fkName != null)
     var fk = await connection.GetForeignKeyConstraintAsync("sales", "orders", fkName);
     if (fk != null)
     {
-        Console.WriteLine($"References: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
+        Console.WriteLine($"References: {fk.SchemaName}.{fk.ReferencedTableName}");
     }
 }
 else
@@ -276,10 +278,10 @@ List<DmForeignKeyConstraint> foreignKeys = await connection.GetForeignKeyConstra
 
 foreach (var fk in foreignKeys)
 {
-    Console.WriteLine($"Foreign Key: {fk.KeyName}");
-    Console.WriteLine($"  Source columns: {string.Join(", ", fk.KeyColumnNames)}");
-    Console.WriteLine($"  References: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
-    Console.WriteLine($"  Referenced columns: {string.Join(", ", fk.ReferencedKeyColumnNames)}");
+    Console.WriteLine($"Foreign Key: {fk.ConstraintName}");
+    Console.WriteLine($"  Source columns: {string.Join(", ", fk.SourceColumns.Select(c => c.ColumnName))}");
+    Console.WriteLine($"  References: {fk.SchemaName}.{fk.ReferencedTableName}");
+    Console.WriteLine($"  Referenced columns: {string.Join(", ", fk.ReferencedColumns.Select(c => c.ColumnName))}");
     Console.WriteLine($"  On Delete: {fk.OnDelete}");
     Console.WriteLine($"  On Update: {fk.OnUpdate}");
 }
@@ -312,24 +314,24 @@ DmForeignKeyConstraint? fk = await connection.GetForeignKeyConstraintAsync("sale
 
 if (fk != null)
 {
-    Console.WriteLine($"Foreign Key '{fk.KeyName}' details:");
+    Console.WriteLine($"Foreign Key '{fk.ConstraintName}' details:");
     Console.WriteLine($"  Source Table: {fk.SchemaName}.{fk.TableName}");
-    Console.WriteLine($"  Source Columns: {string.Join(", ", fk.KeyColumnNames)}");
-    Console.WriteLine($"  Referenced Table: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
-    Console.WriteLine($"  Referenced Columns: {string.Join(", ", fk.ReferencedKeyColumnNames)}");
+    Console.WriteLine($"  Source Columns: {string.Join(", ", fk.SourceColumns.Select(c => c.ColumnName))}");
+    Console.WriteLine($"  Referenced Table: {fk.SchemaName}.{fk.ReferencedTableName}");
+    Console.WriteLine($"  Referenced Columns: {string.Join(", ", fk.ReferencedColumns.Select(c => c.ColumnName))}");
     Console.WriteLine($"  Delete Action: {fk.OnDelete}");
     Console.WriteLine($"  Update Action: {fk.OnUpdate}");
     
     // Check if it's a self-referencing foreign key
-    if (fk.SchemaName == fk.ReferencedSchemaName && fk.TableName == fk.ReferencedTableName)
+    if (fk.TableName == fk.ReferencedTableName)
     {
         Console.WriteLine("  This is a self-referencing foreign key");
     }
     
     // Check if it's a multi-column foreign key
-    if (fk.KeyColumnNames.Count > 1)
+    if (fk.SourceColumns.Count > 1)
     {
-        Console.WriteLine($"  This is a composite foreign key with {fk.KeyColumnNames.Count} columns");
+        Console.WriteLine($"  This is a composite foreign key with {fk.SourceColumns.Count} columns");
     }
 }
 else
@@ -358,8 +360,8 @@ DmForeignKeyConstraint? fk = await connection.GetForeignKeyConstraintOnColumnAsy
 
 if (fk != null)
 {
-    Console.WriteLine($"Foreign key on 'customer_id': {fk.KeyName}");
-    Console.WriteLine($"References: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}.{string.Join(", ", fk.ReferencedKeyColumnNames)}");
+    Console.WriteLine($"Foreign key on 'customer_id': {fk.ConstraintName}");
+    Console.WriteLine($"References: {fk.SchemaName}.{fk.ReferencedTableName}.{string.Join(", ", fk.ReferencedColumns.Select(c => c.ColumnName))}");
     
     // Check cascade behavior
     if (fk.OnDelete == DmForeignKeyAction.Cascade)
@@ -386,6 +388,38 @@ else
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmForeignKeyConstraint?` - Foreign key constraint model, or `null` if none exists on the column
+
+## Foreign Key Renaming
+
+### RenameForeignKeyConstraintIfExistsAsync
+
+Rename an existing foreign key. The rows in the table and what the foreign key does are unchanged.
+
+```csharp
+bool renamed = await connection.RenameForeignKeyConstraintIfExistsAsync(
+    "app", "app_orders", "fk_app_orders_customer_id", "fk_app_orders_customer");
+
+// Or take the schema and table from a model class
+bool renamed = await connection.RenameForeignKeyConstraintIfExistsAsync<Order>(
+    "fk_app_orders_customer_id", "fk_app_orders_customer");
+```
+
+**Parameters:**
+- `schemaName` - Schema containing the table
+- `tableName` - Name of the table
+- `constraintName` - Current name
+- `newConstraintName` - New name
+- `tx` (optional) - Database transaction
+- `cancellationToken` (optional) - Cancellation token
+
+**Returns:** `bool` - `true` if it was renamed, `false` if it doesn't exist or the new name is already taken
+
+| Provider | How it is renamed |
+|----------|-------------------|
+| SQL Server | `sp_rename` |
+| PostgreSQL | `ALTER TABLE ... RENAME CONSTRAINT` |
+| MySQL / MariaDB | Neither can rename a foreign key, so it is dropped and added back with the same definition, in one `ALTER TABLE` statement. Adding it back checks every existing row, which takes time on a large table |
+| SQLite | Constraints are part of the table definition, so the table is [recreated](../providers#sqlite) with the new name |
 
 ## Foreign Key Deletion
 
@@ -459,10 +493,10 @@ else
 
 // Useful before column modifications
 await connection.DropForeignKeyConstraintOnColumnIfExistsAsync("hr", "employees", "department_id");
-// Note: AlterColumnAsync does not exist in DapperMatic
-// You would need to drop and recreate the column or table to change column properties
+// Modify the column, here to match the model class it is mapped from
+await connection.AlterColumnIfExistsAsync<Employee>(e => e.DepartmentId);
 // Then recreate foreign key with new structure
-await connection.CreateForeignKeyConstraintIfNotExistsAsync("hr", "employees", newDepartmentFK);
+await connection.CreateForeignKeyConstraintIfNotExistsAsync(newDepartmentFK);
 ```
 
 **Parameters:**
@@ -487,11 +521,12 @@ public async Task SetupOrderSystemForeignKeysAsync(IDbConnection connection)
     {
         // Customer -> Orders relationship
         var customerFK = new DmForeignKeyConstraint(
-            "FK_Orders_Customer",
-            new[] { "CustomerId" },
             "sales",
+            "orders",
+            "FK_Orders_Customer",
+            new[] { new DmOrderedColumn("CustomerId") },
             "customers",
-            new[] { "CustomerId" }
+            new[] { new DmOrderedColumn("CustomerId") }
         )
         {
             OnDelete = DmForeignKeyAction.Restrict, // Prevent deleting customers with orders
@@ -499,16 +534,17 @@ public async Task SetupOrderSystemForeignKeysAsync(IDbConnection connection)
         };
         
         bool created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
-            "sales", "orders", customerFK, tx: transaction);
+            customerFK, tx: transaction);
         Console.WriteLine($"Customer FK: {(created ? "Created" : "Already exists")}");
         
         // Orders -> OrderItems relationship
         var orderItemsFK = new DmForeignKeyConstraint(
-            "FK_OrderItems_Order",
-            new[] { "OrderId" },
             "sales",
+            "order_items",
+            "FK_OrderItems_Order",
+            new[] { new DmOrderedColumn("OrderId") },
             "orders",
-            new[] { "OrderId" }
+            new[] { new DmOrderedColumn("OrderId") }
         )
         {
             OnDelete = DmForeignKeyAction.Cascade, // Delete order items when order is deleted
@@ -516,16 +552,17 @@ public async Task SetupOrderSystemForeignKeysAsync(IDbConnection connection)
         };
         
         created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
-            "sales", "order_items", orderItemsFK, tx: transaction);
+            orderItemsFK, tx: transaction);
         Console.WriteLine($"Order Items FK: {(created ? "Created" : "Already exists")}");
         
         // Products -> OrderItems relationship
         var productFK = new DmForeignKeyConstraint(
+            "sales",
+            "order_items",
             "FK_OrderItems_Product",
-            new[] { "ProductId" },
-            "inventory",
+            new[] { new DmOrderedColumn("ProductId") },
             "products",
-            new[] { "ProductId" }
+            new[] { new DmOrderedColumn("ProductId") }
         )
         {
             OnDelete = DmForeignKeyAction.Restrict, // Prevent deleting products in orders
@@ -533,7 +570,7 @@ public async Task SetupOrderSystemForeignKeysAsync(IDbConnection connection)
         };
         
         created = await connection.CreateForeignKeyConstraintIfNotExistsAsync(
-            "sales", "order_items", productFK, tx: transaction);
+            productFK, tx: transaction);
         Console.WriteLine($"Product FK: {(created ? "Created" : "Already exists")}");
         
         transaction.Commit();
@@ -577,7 +614,7 @@ public async Task AnalyzeForeignKeyIntegrityAsync(IDbConnection connection, stri
                 foreignKeyActions[deleteAction] = foreignKeyActions.GetValueOrDefault(deleteAction, 0) + 1;
                 
                 // Check for self-referencing foreign keys
-                if (fk.SchemaName == fk.ReferencedSchemaName && fk.TableName == fk.ReferencedTableName)
+                if (fk.TableName == fk.ReferencedTableName)
                 {
                     if (!selfReferencingTables.Contains(tableName))
                     {
@@ -585,9 +622,9 @@ public async Task AnalyzeForeignKeyIntegrityAsync(IDbConnection connection, stri
                     }
                 }
                 
-                Console.WriteLine($"  {tableName}.{fk.KeyName}:");
-                Console.WriteLine($"    Columns: {string.Join(", ", fk.KeyColumnNames)}");
-                Console.WriteLine($"    References: {fk.ReferencedSchemaName}.{fk.ReferencedTableName}({string.Join(", ", fk.ReferencedKeyColumnNames)})");
+                Console.WriteLine($"  {tableName}.{fk.ConstraintName}:");
+                Console.WriteLine($"    Columns: {string.Join(", ", fk.SourceColumns.Select(c => c.ColumnName))}");
+                Console.WriteLine($"    References: {fk.SchemaName}.{fk.ReferencedTableName}({string.Join(", ", fk.ReferencedColumns.Select(c => c.ColumnName))})");
                 Console.WriteLine($"    Delete Action: {fk.OnDelete}");
                 Console.WriteLine($"    Update Action: {fk.OnUpdate}");
             }
@@ -732,42 +769,42 @@ public async Task ValidateForeignKeyConstraintsAsync(IDbConnection connection, s
             {
                 // Check if referenced table exists
                 bool referencedTableExists = await connection.DoesTableExistAsync(
-                    fk.ReferencedSchemaName, fk.ReferencedTableName);
+                    fk.SchemaName, fk.ReferencedTableName);
                     
                 if (!referencedTableExists)
                 {
-                    validationErrors.Add($"FK '{fk.KeyName}' on {tableName} references non-existent table {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
+                    validationErrors.Add($"FK '{fk.ConstraintName}' on {tableName} references non-existent table {fk.SchemaName}.{fk.ReferencedTableName}");
                     continue;
                 }
                 
                 // Check if referenced columns exist
-                foreach (var referencedColumn in fk.ReferencedKeyColumnNames)
+                foreach (var referencedColumn in fk.ReferencedColumns.Select(c => c.ColumnName))
                 {
                     bool columnExists = await connection.DoesColumnExistAsync(
-                        fk.ReferencedSchemaName, fk.ReferencedTableName, referencedColumn);
+                        fk.SchemaName, fk.ReferencedTableName, referencedColumn);
                         
                     if (!columnExists)
                     {
-                        validationErrors.Add($"FK '{fk.KeyName}' on {tableName} references non-existent column {referencedColumn} in {fk.ReferencedSchemaName}.{fk.ReferencedTableName}");
+                        validationErrors.Add($"FK '{fk.ConstraintName}' on {tableName} references non-existent column {referencedColumn} in {fk.SchemaName}.{fk.ReferencedTableName}");
                     }
                 }
                 
                 // Check if source columns exist
-                foreach (var sourceColumn in fk.KeyColumnNames)
+                foreach (var sourceColumn in fk.SourceColumns.Select(c => c.ColumnName))
                 {
                     bool columnExists = await connection.DoesColumnExistAsync(schema, tableName, sourceColumn);
                     
                     if (!columnExists)
                     {
-                        validationErrors.Add($"FK '{fk.KeyName}' on {tableName} uses non-existent source column {sourceColumn}");
+                        validationErrors.Add($"FK '{fk.ConstraintName}' on {tableName} uses non-existent source column {sourceColumn}");
                     }
                 }
                 
-                Console.WriteLine($"✅ FK '{fk.KeyName}' on {tableName} is valid");
+                Console.WriteLine($"✅ FK '{fk.ConstraintName}' on {tableName} is valid");
             }
             catch (Exception ex)
             {
-                validationErrors.Add($"Error validating FK '{fk.KeyName}' on {tableName}: {ex.Message}");
+                validationErrors.Add($"Error validating FK '{fk.ConstraintName}' on {tableName}: {ex.Message}");
             }
         }
     }
@@ -801,12 +838,12 @@ public async Task RepairOrphanedForeignKeysAsync(IDbConnection connection, strin
         {
             // Check if referenced table still exists
             bool referencedTableExists = await connection.DoesTableExistAsync(
-                fk.ReferencedSchemaName, fk.ReferencedTableName);
+                fk.SchemaName, fk.ReferencedTableName);
                 
             if (!referencedTableExists)
             {
-                orphanedForeignKeys.Add((tableName, fk.KeyName, 
-                    $"Referenced table {fk.ReferencedSchemaName}.{fk.ReferencedTableName} does not exist"));
+                orphanedForeignKeys.Add((tableName, fk.ConstraintName,
+                    $"Referenced table {fk.SchemaName}.{fk.ReferencedTableName} does not exist"));
             }
         }
     }

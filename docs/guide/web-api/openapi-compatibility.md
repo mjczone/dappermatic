@@ -22,8 +22,7 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDapperMatic()
-    .WithInMemoryDatasourceRepository();
+builder.Services.AddDapperMatic(); // Uses in-memory repository by default
 
 builder.Services.AddOpenApi();
 
@@ -32,8 +31,6 @@ var app = builder.Build();
 app.MapOpenApi();
 app.MapScalarApiReference();
 
-// UseRouting() must come before UseDapperMatic()
-app.UseRouting();
 app.UseDapperMatic();
 
 app.Run();
@@ -138,15 +135,6 @@ Scalar, Redoc, and current Swagger UI all render 3.1. If a downstream tool requi
 Swashbuckle 9.x, which still emits 3.0.
 
 ## Troubleshooting
-
-### `InvalidOperationException` mentioning `EndpointRoutingMiddleware`
-
-`UseDapperMatic()` registers endpoints, so `UseRouting()` must be called before it:
-
-```csharp
-app.UseRouting();     // required first
-app.UseDapperMatic();
-```
 
 ### Endpoints missing from the document
 

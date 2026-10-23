@@ -88,14 +88,14 @@ Convert provider-specific SQL types to .NET type information.
 
 ```csharp
 // Get .NET type information from SQL type
-DbProviderDotnetTypeDescriptor descriptor = connection.GetDotnetTypeFromSqlType("nvarchar(255)");
+DotnetTypeDescriptor descriptor = connection.GetDotnetTypeFromSqlType("nvarchar(255)");
 
 Console.WriteLine($"Type: {descriptor.DotnetType}");           // typeof(string)
 Console.WriteLine($"Length: {descriptor.Length}");             // 255
 Console.WriteLine($"Precision: {descriptor.Precision}");       // null
 Console.WriteLine($"Scale: {descriptor.Scale}");               // null
-Console.WriteLine($"Unicode: {descriptor.Unicode}");           // True
-Console.WriteLine($"AutoIncrement: {descriptor.AutoIncrement}"); // False
+Console.WriteLine($"Unicode: {descriptor.IsUnicode}");         // True
+Console.WriteLine($"AutoIncrement: {descriptor.IsAutoIncrementing}"); // False
 
 // Examples with different types
 var intDescriptor = connection.GetDotnetTypeFromSqlType("int");
@@ -109,13 +109,13 @@ var decimalDescriptor = connection.GetDotnetTypeFromSqlType("decimal(10,2)");
 var varcharDescriptor = connection.GetDotnetTypeFromSqlType("varchar(100)");
 // varcharDescriptor.DotnetType => typeof(string)
 // varcharDescriptor.Length => 100
-// varcharDescriptor.Unicode => False
+// varcharDescriptor.IsUnicode => False
 ```
 
 **Parameters:**
 - `sqlType` - Provider-specific SQL type string (e.g., "nvarchar(255)", "decimal(10,2)")
 
-**Returns:** `DbProviderDotnetTypeDescriptor` - Detailed type information
+**Returns:** `DotnetTypeDescriptor` - Detailed type information
 
 ### GetSqlTypeFromDotnetType
 
@@ -123,10 +123,10 @@ Convert .NET type information to provider-specific SQL types.
 
 ```csharp
 // Create type descriptor
-var stringDescriptor = new DbProviderDotnetTypeDescriptor(
+var stringDescriptor = new DotnetTypeDescriptor(
     dotnetType: typeof(string),
     length: 100,
-    unicode: true
+    isUnicode: true
 );
 
 // Get SQL type for current provider
@@ -137,7 +137,7 @@ string sqlType = connection.GetSqlTypeFromDotnetType(stringDescriptor);
 // SQLite: "TEXT"
 
 // Decimal example
-var decimalDescriptor = new DbProviderDotnetTypeDescriptor(
+var decimalDescriptor = new DotnetTypeDescriptor(
     dotnetType: typeof(decimal),
     precision: 15,
     scale: 4
@@ -146,7 +146,7 @@ string decimalSqlType = connection.GetSqlTypeFromDotnetType(decimalDescriptor);
 // Result: "decimal(15,4)" (most providers)
 
 // Boolean example  
-var boolDescriptor = new DbProviderDotnetTypeDescriptor(typeof(bool));
+var boolDescriptor = new DotnetTypeDescriptor(typeof(bool));
 string boolSqlType = connection.GetSqlTypeFromDotnetType(boolDescriptor);
 // SQL Server: "bit"
 // MySQL: "tinyint(1)" 
@@ -155,7 +155,7 @@ string boolSqlType = connection.GetSqlTypeFromDotnetType(boolDescriptor);
 ```
 
 **Parameters:**
-- `typeDescriptor` - .NET type descriptor with optional length, precision, and scale
+- `descriptor` - .NET type descriptor with optional length, precision, and scale
 
 **Returns:** `string` - Provider-specific SQL type
 
@@ -264,19 +264,19 @@ public async Task CreateColumnWithOptimalType(IDbConnection connection, string t
     string columnName, Type dotnetType, int? length = null)
 {
     // Create type descriptor
-    var descriptor = new DbProviderDotnetTypeDescriptor(dotnetType, length: length);
+    var descriptor = new DotnetTypeDescriptor(dotnetType, length: length);
     
     // Get provider-specific SQL type
     string sqlType = connection.GetSqlTypeFromDotnetType(descriptor);
     
     // Create column with optimal type
-    var column = new DmColumn(columnName, dotnetType)
+    var column = new DmColumn("dbo", tableName, columnName, dotnetType)
     {
-        MaxLength = length,
+        Length = length,
         IsNullable = dotnetType.IsNullable()
     };
     
-    await connection.AddColumnAsync("dbo", tableName, column);
+    await connection.CreateColumnIfNotExistsAsync(column);
     
     Console.WriteLine($"Added column {columnName} as {sqlType}");
 }
@@ -301,7 +301,7 @@ public Dictionary<string, string> GetProviderTypeMappings(IDbConnection connecti
     
     foreach (var type in commonTypes)
     {
-        var descriptor = new DbProviderDotnetTypeDescriptor(type);
+        var descriptor = new DotnetTypeDescriptor(type);
         var sqlType = connection.GetSqlTypeFromDotnetType(descriptor);
         mappings[type.Name] = sqlType;
     }

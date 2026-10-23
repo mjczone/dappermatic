@@ -588,1688 +588,6 @@ export default {
         }
       }
     },
-    "/api/dm/d/{datasourceId}/v": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Gets all views for the default schema",
-        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
-        "operationId": "ListDefaultSchemaViews",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Creates a new view in the default schema",
-        "operationId": "CreateDefaultSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ViewDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/v/{viewName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Gets a view by name from the default schema",
-        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
-        "operationId": "GetDefaultSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Updates an existing view in the default schema",
-        "operationId": "UpdateDefaultSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ViewDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Drops a view from the default schema",
-        "operationId": "DropDefaultSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/v/{viewName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Checks if a view exists in the default schema",
-        "operationId": "DefaultSchemaViewExists",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/v/{viewName}/query": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Queries a view in the default schema using URL parameters",
-        "operationId": "QueryDefaultSchemaViewViaGet",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Queries a view in the default schema with filtering, sorting, and pagination",
-        "operationId": "QueryDefaultSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/v": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Gets all views for a specific schema",
-        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
-        "operationId": "ListSchemaViews",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Creates a new view in a specific schema",
-        "operationId": "CreateSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ViewDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Gets a view by name from a specific schema",
-        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
-        "operationId": "GetSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Updates an existing view in a specific schema",
-        "operationId": "UpdateSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ViewDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Drops a view from a specific schema",
-        "operationId": "DropSchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "No Content"
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Checks if a view exists in a specific schema",
-        "operationId": "SchemaViewExists",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ViewExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/query": {
-      "get": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Queries a view in a specific schema using URL parameters",
-        "operationId": "QuerySchemaViewViaGet",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Views"
-        ],
-        "summary": "Queries a view in a specific schema with filtering, sorting, and pagination",
-        "operationId": "QuerySchemaView",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "viewName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all tables for the default schema",
-        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
-        "operationId": "ListDefaultSchemaTables",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a new table in the default schema",
-        "operationId": "CreateDefaultSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TableDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a table by name from the default schema",
-        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
-        "operationId": "GetDefaultSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Updates a table in the default schema",
-        "operationId": "UpdateDefaultSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TableDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a table from the default schema",
-        "operationId": "DropDefaultSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Checks if a table exists in the default schema",
-        "operationId": "DefaultSchemaTableExists",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/t/{tableName}/query": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in the default schema using URL parameters",
-        "operationId": "QueryDefaultSchemaTableViaGet",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in the default schema with filtering, sorting, and pagination",
-        "operationId": "QueryDefaultSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets all tables for a specific schema",
-        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
-        "operationId": "ListSchemaTables",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "filter",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableListResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Creates a new table in a specific schema",
-        "operationId": "CreateSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TableDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "201": {
-            "description": "Created",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "409": {
-            "description": "Conflict"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Gets a table by name from a specific schema",
-        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
-        "operationId": "GetSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "include",
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Updates a table in a specific schema",
-        "operationId": "UpdateSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TableDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Drops a table from a specific schema",
-        "operationId": "DropSchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/exists": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Checks if a table exists in a specific schema",
-        "operationId": "SchemaTableExists",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TableExistsResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/query": {
-      "get": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in a specific schema using URL parameters",
-        "operationId": "QuerySchemaTableViaGet",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "DapperMatic Tables"
-        ],
-        "summary": "Queries a table in a specific schema with filtering, sorting, and pagination",
-        "operationId": "QuerySchemaTable",
-        "parameters": [
-          {
-            "name": "datasourceId",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "schemaName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "tableName",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/QueryDto"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/QueryResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden"
-          },
-          "404": {
-            "description": "Not Found"
-          }
-        }
-      }
-    },
     "/api/dm/d/{datasourceId}/t/{tableName}/columns": {
       "get": {
         "tags": [
@@ -5573,10 +3891,4903 @@ export default {
           }
         }
       }
+    },
+    "/api/dm/access/policies": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists the policies in force that the caller manages",
+        "operationId": "ListPolicies",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDmPolicy"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/policies/{policyName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Gets a policy in force",
+        "operationId": "GetPolicy",
+        "parameters": [
+          {
+            "name": "policyName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDmPolicy"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Adds or replaces a policy kept by DapperMatic; it applies to the next request",
+        "operationId": "SavePolicy",
+        "parameters": [
+          {
+            "name": "policyName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DmPolicy"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDmPolicy"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Removes a policy kept by DapperMatic",
+        "operationId": "DeletePolicy",
+        "parameters": [
+          {
+            "name": "policyName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/access/tenants": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists the tenants the caller manages",
+        "operationId": "ListTenants",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyDictionaryOfstringAndDapperMaticTenantSettings"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/tenants/{tenantId}": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Gets a tenant",
+        "operationId": "GetTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticTenantSettings"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Adds or replaces a tenant kept by DapperMatic: its datasource, schema and values",
+        "operationId": "SaveTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticTenantSettings"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticTenantSettings"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Removes a tenant kept by DapperMatic",
+        "operationId": "DeleteTenant",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/access/webhooks": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists the webhooks the caller manages, their secrets masked",
+        "operationId": "ListWebhooks",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDapperMaticWebhook"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/webhooks/{webhookName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Gets a webhook, its secret masked",
+        "operationId": "GetWebhook",
+        "parameters": [
+          {
+            "name": "webhookName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticWebhook"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Adds or replaces a webhook kept by DapperMatic; a secret left out keeps the one kept",
+        "operationId": "SaveWebhook",
+        "parameters": [
+          {
+            "name": "webhookName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticWebhook"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticWebhook"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Removes a webhook kept by DapperMatic",
+        "operationId": "DeleteWebhook",
+        "parameters": [
+          {
+            "name": "webhookName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/access/webhooks/{webhookName}/status": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Where a webhook's messages have got to in each datasource",
+        "operationId": "GetWebhookStatus",
+        "parameters": [
+          {
+            "name": "webhookName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyDictionaryOfstringAndDapperMaticWebhookStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/access/export": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Exports the policies and tenants kept by DapperMatic that the caller manages",
+        "operationId": "ExportAccess",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DapperMaticAccessDocument"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/import": {
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Imports policies and tenants, all or none; replace=true replaces everything kept",
+        "operationId": "ImportAccess",
+        "parameters": [
+          {
+            "name": "replace",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticAccessDocument"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/effective": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "What the policies let the caller do to a datasource, schema, table or view",
+        "operationId": "GetEffectiveAccess",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticEffectiveAccess"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Gets all views for the default schema",
+        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
+        "operationId": "ListDefaultSchemaViews",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Creates a new view in the default schema",
+        "operationId": "CreateDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v/{viewName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Gets a view by name from the default schema",
+        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
+        "operationId": "GetDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Updates an existing view in the default schema",
+        "operationId": "UpdateDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Drops a view from the default schema",
+        "operationId": "DropDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v/{viewName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Checks if a view exists in the default schema",
+        "operationId": "DefaultSchemaViewExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewExistsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v/{viewName}/query": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Queries a view in the default schema using URL parameters",
+        "operationId": "QueryDefaultSchemaViewViaGet",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Queries a view in the default schema with filtering, sorting, and pagination",
+        "operationId": "QueryDefaultSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Gets all views for a specific schema",
+        "description": "Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.",
+        "operationId": "ListSchemaViews",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Creates a new view in a specific schema",
+        "operationId": "CreateSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Gets a view by name from a specific schema",
+        "description": "Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.",
+        "operationId": "GetSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Updates an existing view in a specific schema",
+        "operationId": "UpdateSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ViewDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Drops a view from a specific schema",
+        "operationId": "DropSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Checks if a view exists in a specific schema",
+        "operationId": "SchemaViewExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ViewExistsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/query": {
+      "get": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Queries a view in a specific schema using URL parameters",
+        "operationId": "QuerySchemaViewViaGet",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Views"
+        ],
+        "summary": "Queries a view in a specific schema with filtering, sorting, and pagination",
+        "operationId": "QuerySchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all tables for the default schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
+        "operationId": "ListDefaultSchemaTables",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a new table in the default schema",
+        "operationId": "CreateDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a table by name from the default schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
+        "operationId": "GetDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Updates a table in the default schema",
+        "operationId": "UpdateDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a table from the default schema",
+        "operationId": "DropDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Checks if a table exists in the default schema",
+        "operationId": "DefaultSchemaTableExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableExistsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/query": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in the default schema using URL parameters",
+        "operationId": "QueryDefaultSchemaTableViaGet",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in the default schema with filtering, sorting, and pagination",
+        "operationId": "QueryDefaultSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/rows": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Inserts rows into a table in the default schema, all or none",
+        "operationId": "InsertDefaultSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsInsertDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/rows/save": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Saves rows of a table in the default schema with their related rows: updated by key where they exist, inserted where not",
+        "operationId": "SaveDefaultSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsInsertDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/rows/update": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Sets columns of the rows of a table in the default schema that match a condition",
+        "operationId": "UpdateDefaultSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/rows/delete": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Deletes the rows of a table in the default schema that match a condition",
+        "operationId": "DeleteDefaultSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsDeleteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets all tables for a specific schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.",
+        "operationId": "ListSchemaTables",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableListResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Creates a new table in a specific schema",
+        "operationId": "CreateSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "409": {
+            "description": "Conflict"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Gets a table by name from a specific schema",
+        "description": "Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.",
+        "operationId": "GetSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Updates a table in a specific schema",
+        "operationId": "UpdateSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TableDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Drops a table from a specific schema",
+        "operationId": "DropSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/exists": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Checks if a table exists in a specific schema",
+        "operationId": "SchemaTableExists",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TableExistsResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/query": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in a specific schema using URL parameters",
+        "operationId": "QuerySchemaTableViaGet",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Queries a table in a specific schema with filtering, sorting, and pagination",
+        "operationId": "QuerySchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QueryDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QueryResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/rows": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Inserts rows into a table in a specific schema, all or none",
+        "operationId": "InsertSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsInsertDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/rows/save": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Saves rows of a table in a specific schema with their related rows: updated by key where they exist, inserted where not",
+        "operationId": "SaveSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsInsertDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/rows/update": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Sets columns of the rows of a table in a specific schema that match a condition",
+        "operationId": "UpdateSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsUpdateDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/rows/delete": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Deletes the rows of a table in a specific schema that match a condition",
+        "operationId": "DeleteSchemaTableRows",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RowsDeleteDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RowsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/batch": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Runs writes of rows of the datasource's tables in order, in one transaction, all or none",
+        "operationId": "RunBatch",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/openapi": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Describes the datasource's rows as the caller may use them: an OpenAPI 3.1 document of its tables, actions and columns",
+        "operationId": "GetDatasourceOpenApi",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/openapi": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Describes the datasource's rows as the caller may use them: an OpenAPI 3.1 document of its tables, actions and columns",
+        "operationId": "GetSchemaOpenApi",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/f/{functionName}": {
+      "post": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Runs a function the application declares, with arguments by name, and returns its rows",
+        "operationId": "ExecuteFunction",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "functionName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FunctionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/t/{tableName}/subscribe": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Subscribes to a query (the options of /query): its results, then its new results whenever a table it reads changes, as Server-Sent Events",
+        "operationId": "SubscribeTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/t/{tableName}/subscribe": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Subscribes to a query (the options of /query): its results, then its new results whenever a table it reads changes, as Server-Sent Events",
+        "operationId": "SubscribeSchemaTable",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tableName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/v/{viewName}/subscribe": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Subscribes to a query (the options of /query): its results, then its new results whenever a table it reads changes, as Server-Sent Events",
+        "operationId": "SubscribeView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/d/{datasourceId}/s/{schemaName}/v/{viewName}/subscribe": {
+      "get": {
+        "tags": [
+          "DapperMatic Tables"
+        ],
+        "summary": "Subscribes to a query (the options of /query): its results, then its new results whenever a table it reads changes, as Server-Sent Events",
+        "operationId": "SubscribeSchemaView",
+        "parameters": [
+          {
+            "name": "datasourceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "schemaName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "viewName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/ticket": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "A ticket that opens one stream (a subscription, a GraphQL socket) as the caller, once, within seconds",
+        "operationId": "IssueStreamTicket",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TicketRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TicketResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/keys": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Lists the caller's own personal keys",
+        "operationId": "ListOwnApiKeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfApiKeyInfo"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Makes a personal key for the caller, shown once: it acts as them, never more",
+        "operationId": "CreateOwnApiKey",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfApiKeyCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Revokes every one of the caller's personal keys",
+        "operationId": "RevokeOwnApiKeys",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfint"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dm/auth/keys/{keyId}": {
+      "delete": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Revokes one of the caller's personal keys",
+        "operationId": "RevokeOwnApiKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/login": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Signs in to a built-in account, in a tenant or none: bearer tokens, or a cookie",
+        "operationId": "AccountLogin",
+        "parameters": [
+          {
+            "name": "useCookies",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "useSessionCookies",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/refresh": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "New bearer tokens for a sign-in, in its tenant",
+        "operationId": "AccountRefresh",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/switch": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Moves the signed-in account to another of its tenants, or the platform",
+        "operationId": "AccountSwitch",
+        "parameters": [
+          {
+            "name": "useCookies",
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticSwitchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/logout": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Signs out: the sign-in and its refresh tokens end",
+        "operationId": "AccountLogout",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/me": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "The signed-in account: its tenant, roles and memberships",
+        "operationId": "AccountMe",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/register": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Signs an email up, where sign-up is open: an email to it makes the account",
+        "operationId": "AccountRegister",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticRegisterRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/invitations/accept": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Accepts an invitation: signed in, or as a new account",
+        "operationId": "AccountAcceptInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticAcceptRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/setup": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Makes the first administrator, with the setup code from the log",
+        "operationId": "AccountSetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/confirm-email": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Confirms an email, from its link",
+        "operationId": "AccountConfirmEmail",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "changedEmail",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/resend-confirmation": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Sends an email's confirmation again",
+        "operationId": "AccountResendConfirmation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResendConfirmationEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/forgot-password": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Sends a password reset code",
+        "operationId": "AccountForgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/reset-password": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Resets a password with its code",
+        "operationId": "AccountResetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/manage/info": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "The signed-in account's email",
+        "operationId": "AccountInfo",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Changes the signed-in account's password or email",
+        "operationId": "AccountUpdateInfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InfoRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/manage/2fa": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Sets up, turns on or off, or resets two-factor sign-in",
+        "operationId": "AccountTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/manage/sign-out-everywhere": {
+      "post": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Ends every sign-in of the account",
+        "operationId": "AccountSignOutEverywhere",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/jwks.json": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "The public keys of the accounts' JWTs, as a JSON Web Key Set",
+        "operationId": "AccountJwks",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/auth/.well-known/openid-configuration": {
+      "get": {
+        "tags": [
+          "DapperMatic Auth"
+        ],
+        "summary": "Where the accounts' JWTs are checked: their issuer and keys",
+        "operationId": "AccountOpenIdConfiguration",
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/dm/access/service-accounts": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists the service accounts: accounts for programs, whose keys sign in as them",
+        "operationId": "ListServiceAccounts",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDapperMaticServiceAccount"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/service-accounts/{accountName}": {
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Adds or replaces a service account: its roles, claims and tenant",
+        "operationId": "SaveServiceAccount",
+        "parameters": [
+          {
+            "name": "accountName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticServiceAccount"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticServiceAccount"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Removes a service account and revokes its keys",
+        "operationId": "DeleteServiceAccount",
+        "parameters": [
+          {
+            "name": "accountName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/access/service-accounts/{accountName}/keys": {
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Makes a key for a service account, shown once: its expiry and the most it may do",
+        "operationId": "CreateServiceAccountKey",
+        "parameters": [
+          {
+            "name": "accountName",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ApiKeyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfApiKeyCreated"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/keys": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists API keys, without their secrets: service accounts' and people's",
+        "operationId": "ListApiKeys",
+        "parameters": [
+          {
+            "name": "owner",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "kind",
+            "in": "query",
+            "schema": {
+              "$ref": "#/components/schemas/DapperMaticKeyKind"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfApiKeyInfo"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/api/dm/access/keys/{keyId}": {
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Revokes an API key: it no longer signs in",
+        "operationId": "RevokeApiKey",
+        "parameters": [
+          {
+            "name": "keyId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/dm/access/accounts": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists built-in accounts: every one, or a tenant's members",
+        "operationId": "ListAccounts",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "take",
+            "in": "query",
+            "schema": {
+              "pattern": "^-?(?:0|[1-9]\\d*)$",
+              "type": [
+                "integer",
+                "string"
+              ],
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDapperMaticAccountSummary"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dm/access/accounts/{userId}/roles": {
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Sets an account's platform roles",
+        "operationId": "SetAccountPlatformRoles",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticMembershipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/dm/access/accounts/{userId}/disable": {
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Turns an account off: its sign-ins, sessions and keys end",
+        "operationId": "DisableAccount",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/dm/access/accounts/{userId}/enable": {
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Turns an account back on",
+        "operationId": "EnableAccount",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/dm/access/memberships/{tenantId}/{userId}": {
+      "put": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Gives an account a membership of a tenant, or changes its roles there",
+        "operationId": "SaveMembership",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticMembershipRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticMembershipInfo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Removes an account's membership of a tenant",
+        "operationId": "DeleteMembership",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/dm/access/grants": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists grants: platform users' memberships of tenants, for a while",
+        "operationId": "ListGrants",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDapperMaticMembershipInfo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Grants a platform user a tenant's roles until a time, for a reason",
+        "operationId": "CreateGrant",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticGrantRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticMembershipInfo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dm/access/grants/{grantId}": {
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Revokes a grant",
+        "operationId": "RevokeGrant",
+        "parameters": [
+          {
+            "name": "grantId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/dm/access/invitations": {
+      "get": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Lists invitations not yet accepted",
+        "operationId": "ListInvitations",
+        "parameters": [
+          {
+            "name": "tenant",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfIReadOnlyListOfDapperMaticInvitationInfo"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Invites an email to a tenant, or to the platform; the token is shown once and sent",
+        "operationId": "CreateInvitation",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DapperMaticInvitationRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessResponseOfDapperMaticInvitationCreated"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/dm/access/invitations/{invitationId}": {
+      "delete": {
+        "tags": [
+          "DapperMatic Access"
+        ],
+        "summary": "Withdraws an invitation",
+        "operationId": "DeleteInvitation",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AccessResponseOfApiKeyCreated": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/ApiKeyCreated"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticEffectiveAccess": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticEffectiveAccess"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticInvitationCreated": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticInvitationCreated"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticMembershipInfo": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticMembershipInfo"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticServiceAccount": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticServiceAccount"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticTenantSettings": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticTenantSettings"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDapperMaticWebhook": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DapperMaticWebhook"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfDmPolicy": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "description": "Gets the result.",
+            "$ref": "#/components/schemas/DmPolicy"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfint": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the result.",
+            "format": "int32"
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyDictionaryOfstringAndDapperMaticTenantSettings": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DapperMaticTenantSettings"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyDictionaryOfstringAndDapperMaticWebhookStatus": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DapperMaticWebhookStatus"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfApiKeyInfo": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/ApiKeyInfo"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDapperMaticAccountSummary": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticAccountSummary"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDapperMaticInvitationInfo": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticInvitationInfo"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDapperMaticMembershipInfo": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticMembershipInfo"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDapperMaticServiceAccount": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticServiceAccount"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDapperMaticWebhook": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticWebhook"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "AccessResponseOfIReadOnlyListOfDmPolicy": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DmPolicy"
+            },
+            "description": "Gets the result."
+          }
+        },
+        "description": "A response of the access endpoints."
+      },
+      "ApiKeyCreated": {
+        "required": [
+          "key",
+          "info"
+        ],
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "The key: keep it now, it is never shown again."
+          },
+          "info": {
+            "description": "The key as it is listed.",
+            "$ref": "#/components/schemas/ApiKeyInfo"
+          }
+        },
+        "description": "A key just made: the key itself, shown this once, and what is kept of it."
+      },
+      "ApiKeyInfo": {
+        "required": [
+          "id",
+          "name",
+          "kind",
+          "owner",
+          "tenant",
+          "limits",
+          "expiresAt",
+          "createdAt",
+          "createdBy",
+          "lastUsedAt",
+          "revokedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The key's id."
+          },
+          "name": {
+            "type": "string",
+            "description": "Its name."
+          },
+          "kind": {
+            "description": "Whom it signs in as.",
+            "$ref": "#/components/schemas/DapperMaticKeyKind"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Its service account's name, or its owner's user id."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its tenant, or null."
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DmPolicy"
+            },
+            "description": "The most it may do."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it stops working, or null.",
+            "format": "date-time"
+          },
+          "createdAt": {
+            "type": "string",
+            "description": "When it was made.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who made it."
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was last used (to within a minute), or null.",
+            "format": "date-time"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it was revoked, or null.",
+            "format": "date-time"
+          }
+        },
+        "description": "An API key as it is shown: everything but its secret."
+      },
+      "ApiKeyRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the key's name: what it is for."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets when it stops working, or null for never (unless a maximum lifetime is set).",
+            "format": "date-time"
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether the key only reads: rows and definitions."
+          },
+          "datasources": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the only datasources the key reaches, or none for any."
+          },
+          "schemas": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the only schemas the key reaches, or none for any."
+          },
+          "tables": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the only tables and views the key reaches, or none for any."
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DmPolicy"
+            },
+            "description": "Gets more limits, as policies of no roles: what the key may do at most, with filters, checks and columns. The\nshortcuts above are one more such policy."
+          }
+        },
+        "description": "Asks for a new API key: its name, when it expires, and the most it may do (never more than its owner)."
+      },
+      "BatchDto": {
+        "type": "object",
+        "properties": {
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchOperationDto"
+            },
+            "description": "Gets or sets the operations, run in order in one transaction."
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether to roll every write back after they run: a dry run."
+          }
+        },
+        "description": "Writes of rows of a datasource's tables, in order, all or none: a later write may use a value an earlier one wrote,\nas `\"$1.id\"`, the `id` of the first row the first operation inserted."
+      },
+      "BatchOperationDto": {
+        "type": "object",
+        "properties": {
+          "op": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets what the operation does: `insert`, `update` or `delete`."
+          },
+          "table": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the table."
+          },
+          "schema": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the table's schema, or null for the default one (or the tenant's)."
+          },
+          "rows": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "Gets or sets an insert's rows, as column name to value."
+          },
+          "set": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "description": "Gets or sets an update's columns and their values."
+          },
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets an update's or a delete's condition, as `$filter` writes it."
+          },
+          "where": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets or sets an update's or a delete's condition as a JSON tree, ANDed with string? BatchOperationDto.Filter.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          }
+        },
+        "description": "One write of a batch: an insert, an update or a delete of a table's rows, as the row endpoints take it."
+      },
+      "BatchOperationResult": {
+        "type": "object",
+        "properties": {
+          "affected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets or sets the number of rows the operation wrote.",
+            "format": "int32"
+          },
+          "rows": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "Gets or sets an insert's rows as written, keys the database generated among them; null for others."
+          }
+        },
+        "description": "What one operation of a batch did."
+      },
+      "BatchResponse": {
+        "required": [
+          "results",
+          "dryRun"
+        ],
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BatchOperationResult"
+            },
+            "description": "Gets each operation's result, in order."
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Gets a value indicating whether the writes were rolled back."
+          }
+        },
+        "description": "What a batch did: each operation's result, in order."
+      },
       "CheckConstraintDto": {
         "required": [
           "checkExpression"
@@ -5787,6 +8998,756 @@ export default {
           }
         },
         "description": "Response model for column operations."
+      },
+      "DapperMaticAcceptRequest": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "Gets or sets the invitation's token."
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the new account's password, when not signed in."
+          }
+        },
+        "description": "Accepts an invitation: signed in (the invitation's email, confirmed), or with the new account's password."
+      },
+      "DapperMaticAccessDocument": {
+        "type": "object",
+        "properties": {
+          "policies": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DmPolicy"
+            },
+            "description": "Gets the policies."
+          },
+          "tenants": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DapperMaticTenantSettings"
+            },
+            "description": "Gets the tenants, by id."
+          },
+          "webhooks": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticWebhook"
+            },
+            "description": "Gets the webhooks."
+          },
+          "serviceAccounts": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticServiceAccount"
+            },
+            "description": "Gets the service accounts (their keys are kept apart, and never exported)."
+          }
+        },
+        "description": "Policies and tenants, as they are kept, exported and imported."
+      },
+      "DapperMaticAccountSummary": {
+        "required": [
+          "id",
+          "email",
+          "emailConfirmed",
+          "disabled",
+          "lockedOutUntil",
+          "platformRoles",
+          "memberships"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The account's id."
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Its email."
+          },
+          "emailConfirmed": {
+            "type": "boolean",
+            "description": "Whether its email is confirmed."
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Whether it is turned off."
+          },
+          "lockedOutUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When a lockout ends, or null.",
+            "format": "date-time"
+          },
+          "platformRoles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Its platform roles (shown to those who manage access to everything)."
+          },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DapperMaticMembershipInfo"
+            },
+            "description": "Its memberships and grants, in the caller's scope."
+          }
+        },
+        "description": "A built-in account as administrators see it."
+      },
+      "DapperMaticEffectiveAccess": {
+        "type": "object",
+        "properties": {
+          "datasourceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the datasource, or null for every one."
+          },
+          "schemaName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the schema, or null for the default one."
+          },
+          "tableName": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the table or view, or null for the datasource or schema as a whole."
+          },
+          "actions": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "$ref": "#/components/schemas/DapperMaticEffectiveAction"
+            },
+            "description": "Gets the rules for each action, by its name."
+          }
+        },
+        "description": "What the policies let the caller do to a datasource, schema, table or view."
+      },
+      "DapperMaticEffectiveAction": {
+        "type": "object",
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether the action is allowed."
+          },
+          "columns": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets or sets the columns the caller may use, or null for all."
+          },
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the condition on the rows, or null."
+          },
+          "check": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the condition rows written must satisfy, or null."
+          },
+          "presets": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets or sets the values the policies write, by column, or null."
+          },
+          "policies": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets or sets the names of the policies that apply, or null."
+          }
+        },
+        "description": "What the policies let the caller do for one action. The conditions and the policies' names are shown to a caller\nwho may manage access to the resource."
+      },
+      "DapperMaticGrantRequest": {
+        "required": [
+          "userId",
+          "tenant",
+          "roles",
+          "expiresAt",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "description": "The account's id."
+          },
+          "tenant": {
+            "type": "string",
+            "description": "The tenant."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles there."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it ends: within the longest grant the options allow.",
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why: the audit names it."
+          }
+        },
+        "description": "Grants a platform user a tenant's roles, for a while: they sign in to the tenant to use them."
+      },
+      "DapperMaticInvitationCreated": {
+        "required": [
+          "id",
+          "token",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The invitation's id."
+          },
+          "token": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The token, shown to those who manage access to everything only (a tenant's administrator's invitations reach their email only)."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it stops working.",
+            "format": "date-time"
+          }
+        },
+        "description": "An invitation made: its token, shown this once (also sent to the email)."
+      },
+      "DapperMaticInvitationInfo": {
+        "required": [
+          "id",
+          "email",
+          "tenant",
+          "roles",
+          "invitedBy",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Its id."
+          },
+          "email": {
+            "type": "string",
+            "description": "The email invited."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The tenant, or null for the platform."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles."
+          },
+          "invitedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who invited."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When it stops working.",
+            "format": "date-time"
+          }
+        },
+        "description": "An invitation as it is listed."
+      },
+      "DapperMaticInvitationRequest": {
+        "required": [
+          "email",
+          "tenant",
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "The email."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "The tenant, or null for the platform."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles."
+          }
+        },
+        "description": "Invites an email: to a tenant with roles there, or (with no tenant) to the platform with platform roles."
+      },
+      "DapperMaticKeyKind": {
+        "enum": [
+          "Service",
+          "Personal"
+        ],
+        "type": "string",
+        "description": "Whom a key signs in as."
+      },
+      "DapperMaticLoginRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Gets or sets the email."
+          },
+          "password": {
+            "type": "string",
+            "description": "Gets or sets the password."
+          },
+          "twoFactorCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the code of an authenticator app, when the account has two-factor sign-in."
+          },
+          "twoFactorRecoveryCode": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets a recovery code, instead of an authenticator's."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the tenant to sign in to, or null: the account's only tenant (with no platform roles), or the platform."
+          }
+        },
+        "description": "Signs in to a built-in account: an email and password (and a second factor when it has one), in a tenant or none."
+      },
+      "DapperMaticMembershipInfo": {
+        "required": [
+          "id",
+          "userId",
+          "tenant",
+          "roles",
+          "isGrant",
+          "grantedBy",
+          "reason",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The membership's id."
+          },
+          "userId": {
+            "type": "string",
+            "description": "The account's id."
+          },
+          "tenant": {
+            "type": "string",
+            "description": "The tenant."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles there."
+          },
+          "isGrant": {
+            "type": "boolean",
+            "description": "Whether it is a platform user's grant."
+          },
+          "grantedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Who made it."
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Why (a grant's)."
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "When it ends, or null.",
+            "format": "date-time"
+          }
+        },
+        "description": "A membership as it is shown."
+      },
+      "DapperMaticMembershipRequest": {
+        "required": [
+          "roles"
+        ],
+        "type": "object",
+        "properties": {
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "The roles there."
+          }
+        },
+        "description": "Gives an account a membership of a tenant."
+      },
+      "DapperMaticRegisterRequest": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "description": "Gets or sets the email."
+          }
+        },
+        "description": "Signs an email up: an email to it carries the token that makes the account, with its password."
+      },
+      "DapperMaticServiceAccount": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the account's name, unique within its tenant."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the tenant the account acts in, or null for the whole application."
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the account's roles."
+          },
+          "claims": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "description": "Gets the account's claims, by type, which policies read as `@claims.type`."
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets what the account is for."
+          },
+          "disabled": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether the account is turned off: its keys do not sign in."
+          },
+          "createdAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets when the account was made.",
+            "format": "date-time"
+          },
+          "createdBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets who made it."
+          }
+        },
+        "description": "An account for a program, not a person: an integration, a scheduled job, an AI assistant. It has its own name,\nroles, claims and tenant, and its keys sign in as it; policies treat it as any caller with those roles. It keeps\nworking whoever comes and goes. Kept with the policies and tenants, or given in code or configuration."
+      },
+      "DapperMaticSetupRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Gets or sets the setup code."
+          },
+          "email": {
+            "type": "string",
+            "description": "Gets or sets the administrator's email."
+          },
+          "password": {
+            "type": "string",
+            "description": "Gets or sets their password."
+          }
+        },
+        "description": "Makes the first administrator, with the setup code from the log."
+      },
+      "DapperMaticSwitchRequest": {
+        "type": "object",
+        "properties": {
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the tenant, or null for the platform."
+          }
+        },
+        "description": "Moves a signed-in account to another of its tenants, or to the platform (null)."
+      },
+      "DapperMaticTenantSettings": {
+        "type": "object",
+        "properties": {
+          "datasource": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the datasource its data is in, or null for none in particular."
+          },
+          "schema": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the schema its tables are in, or null for none in particular."
+          },
+          "values": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets its values, read as `@tenant.name`."
+          }
+        },
+        "description": "What is known of one tenant."
+      },
+      "DapperMaticWebhook": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Gets or sets the name, unique within its tenant."
+          },
+          "url": {
+            "type": "string",
+            "description": "Gets or sets the address messages are posted to: `https://`, or `http://`."
+          },
+          "secret": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the secret messages are signed with, or null to send them unsigned."
+          },
+          "datasourceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the datasource it hears, or null for every one."
+          },
+          "schemas": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the schemas it hears, by name or pattern; empty for all."
+          },
+          "tables": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the tables it hears, by name or pattern; empty for all."
+          },
+          "actions": {
+            "description": "Gets or sets what it hears.",
+            "$ref": "#/components/schemas/DapperMaticWebhookActions"
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the tenant whose changes it hears, as one a tenant's administrator keeps: rows marked with the\ntenant, or the tables of the tenant's schema or datasource. Null for one of the whole application, which hears\nevery tenant's."
+          },
+          "headers": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets headers sent with each message, such as an authorization the receiver expects."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether it is sent messages; a disabled one keeps its place."
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets where it came from: code, configuration, or the webhooks kept by DapperMatic, whose addresses may\nnot reach private networks."
+          }
+        },
+        "description": "A web address told of the changes made through DapperMatic to the tables it names: each change is noted in the\ndatasource, in the write's transaction, and sent from there in order, retried until the address takes it. A message\nnames the table, the action and the keys of the rows, never other columns; it is signed with the secret\n(`X-DapperMatic-Signature: sha256=…`, an HMAC of `{timestamp}.{body}`).",
+        "example": "```options.Webhooks.Add(new DapperMaticWebhook { Name = \"orders\", Url = \"https://hooks.example.com/orders\", Secret = \"…\", Tables = [\"orders\"] });```"
+      },
+      "DapperMaticWebhookActions": {
+        "type": "string",
+        "description": "What a webhook hears."
+      },
+      "DapperMaticWebhookStatus": {
+        "type": "object",
+        "properties": {
+          "lastChange": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets or sets the last change taken or dropped.",
+            "format": "int64"
+          },
+          "delivered": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets or sets how many messages the address took.",
+            "format": "int64"
+          },
+          "dropped": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets or sets how many messages were dropped after every attempt failed.",
+            "format": "int64"
+          },
+          "attempts": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets or sets how many times the waiting message was tried.",
+            "format": "int32"
+          },
+          "nextAttemptAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets when it is tried next, UTC; null when none is waiting.",
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets why the last attempt failed."
+          }
+        },
+        "description": "Where a webhook's messages have got to in a datasource."
       },
       "DatasourceConnectivityTestDto": {
         "type": "object",
@@ -6180,6 +10141,191 @@ export default {
         },
         "description": "Response model for default constraint operations."
       },
+      "DmAction": {
+        "type": "string",
+        "description": "What a policy lets callers do. Written in JSON by name: `\"Read, Create\"`."
+      },
+      "DmPolicy": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the policy's name, shown in effective permissions."
+          },
+          "kind": {
+            "description": "Gets or sets whether the policy grants or fences.",
+            "$ref": "#/components/schemas/DmPolicyKind"
+          },
+          "actions": {
+            "description": "Gets or sets what the policy lets callers do (or, restrictive, what it fences).",
+            "$ref": "#/components/schemas/DmAction"
+          },
+          "roles": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the roles the policy is for: `anonymous`, `authenticated`, `*`, or role names."
+          },
+          "claims": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets claims the caller must have, by type: a value, or `*` for any."
+          },
+          "datasources": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the datasources the policy covers, by id or pattern; empty for all."
+          },
+          "schemas": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the schemas the policy covers, by name or pattern; `_` for the default one; empty for all."
+          },
+          "exceptSchemas": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the schemas the policy leaves out, by name or pattern."
+          },
+          "tables": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the tables and views the policy covers, by name or pattern; empty for all."
+          },
+          "exceptTables": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the tables and views the policy leaves out, by name or pattern."
+          },
+          "functions": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the functions the policy lets callers run (DmAction.Execute), by name or pattern; empty for\nevery one, when the policy is confined to no schema or table."
+          },
+          "withColumns": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets columns a table must have for the policy's row actions to cover it."
+          },
+          "columns": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the columns the policy lets callers read and write; empty for all."
+          },
+          "excludeColumns": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "description": "Gets the columns the policy keeps from callers."
+          },
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the rows the policy covers for reads, updates and deletes; null for all."
+          },
+          "check": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the condition every row inserted or updated must satisfy. Null or blank, as in PostgreSQL, is the\nstring? DmPolicy.Filter: a row written must be one the policy covers, so a write cannot move a row out of a\ntenant's reach. A policy that lets callers write rows its filter does not cover says so with a check of its\nown, such as `true`."
+          },
+          "presets": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "Gets values the policy writes on insert and update, by column: a path such as `@tenant.id`, or a fixed text."
+          },
+          "source": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets where the policy came from: code, configuration, or the policies kept by DapperMatic."
+          },
+          "tenant": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the tenant a policy belongs to, as one a tenant's administrator keeps: it applies only to requests\nin that tenant, and only to that tenant's rows (or datasource or schema). Null for a policy of the whole\napplication."
+          },
+          "withinOwnTenant": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether a grant of DmAction.ManageAccess is for the caller's own tenant only: its\nholders keep policies that belong to their tenant, giving no more than they may do themselves, and nothing else."
+          }
+        },
+        "description": "Who may do what, to which tables, rows and columns. Nothing is allowed unless a permissive policy grants it."
+      },
+      "DmPolicyKind": {
+        "enum": [
+          "Permissive",
+          "Restrictive"
+        ],
+        "type": "string",
+        "description": "How a policy combines with others, as in PostgreSQL: permissive policies grant, and any one of them is enough;\nrestrictive policies fence, and every one of them must hold."
+      },
       "FieldDto": {
         "type": "object",
         "properties": {
@@ -6291,6 +10437,33 @@ export default {
         },
         "description": "Response model for foreign key constraint operations."
       },
+      "ForgotPasswordRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "FunctionResponse": {
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Gets the rows, as column name to value; empty when the function returns none."
+          }
+        },
+        "description": "The rows a function returned."
+      },
       "IndexDto": {
         "required": [
           "indexName",
@@ -6356,6 +10529,30 @@ export default {
         },
         "description": "Response model for index operations."
       },
+      "InfoRequest": {
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "newPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "oldPassword": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "JsonElement": {},
       "PaginationDto": {
         "type": "object",
         "properties": {
@@ -6390,6 +10587,13 @@ export default {
           "hasMore": {
             "type": "boolean",
             "description": "Gets or sets a value indicating whether there are more records available."
+          },
+          "nextCursor": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the cursor of the next page, for `$after`: null on the last page, or for a query that is not\nordered by the table's own columns, or of a table without a key."
           },
           "page": {
             "pattern": "^-?(?:0|[1-9]\\d*)$",
@@ -6523,6 +10727,70 @@ export default {
             ],
             "description": "Gets or sets the columns to select. If null or empty, selects all columns (*).\nFormat: \"column1,column2,column3\""
           },
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets a condition as OData's `$filter` writes it, ANDed with Dictionary&lt;string, string&gt; QueryDto.Filters:\n`status eq 'open' and customer/country in ('FR', 'DE') or lines/any(l: l/qty gt 5)`. Relations must be\ndeclared in `DapperMaticOptions.Relations`."
+          },
+          "where": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets or sets a condition as a JSON tree, the one string? QueryDto.Filter parses to, ANDed with the others:\n`{\"and\": [{\"eq\": [{\"path\": \"status\"}, {\"value\": \"open\"}]}, ...]}`.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "order": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the order as OData's `$orderby` writes it, in place of string? QueryDto.OrderBy:\n`placed_at desc, customer/name`."
+          },
+          "expand": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the relations to read with each row, as OData's `$expand` writes them:\n`lines($filter=qty gt 0;$orderby=id;$top=5;$expand=product),customer`."
+          },
+          "after": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the cursor of the page this one follows, as a page's `pagination.nextCursor` gives it\n(`$after`): the rows after it, in the same order. Not with int QueryDto.Skip."
+          },
+          "apply": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the rows' grouping and aggregates, as OData's `$apply` writes them:\n`filter(status eq 'open')/groupby((customer_id),aggregate(amount with sum as total,$count as orders))`. With it,\nthe results are the groups, and the filter, order and page apply to them."
+          },
+          "search": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the words the rows' searchable columns must hold (`$search`): every word, in any of the\ncolumns the table is declared searchable by; a phrase in double quotes is one."
+          },
+          "applyTree": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets or sets the grouping as a JSON tree, as JsonElement? QueryDto.Where is to string? QueryDto.Filter:\n`{\"filter\": node, \"groupBy\": [\"customer_id\"], \"aggregate\": [{\"path\": \"amount\", \"with\": \"sum\", \"as\": \"total\"}]}`.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
           "schemaName": {
             "type": [
               "null",
@@ -6553,6 +10821,153 @@ export default {
           }
         },
         "description": "Response model for query operations."
+      },
+      "RefreshRequest": {
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object",
+        "properties": {
+          "refreshToken": {
+            "type": "string"
+          }
+        }
+      },
+      "ResendConfirmationEmailRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "email",
+          "resetCode",
+          "newPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "resetCode": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "RowsDeleteDto": {
+        "type": "object",
+        "properties": {
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the condition, as `$filter` writes it: `status eq 'void'`, or `true` for every row."
+          },
+          "where": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets or sets the condition as a JSON tree, ANDed with string? RowsDeleteDto.Filter.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether to roll the write back after it runs, reporting how many rows it would\nhave changed: a dry run."
+          }
+        },
+        "description": "The rows of a table to delete: those that match a condition."
+      },
+      "RowsInsertDto": {
+        "type": "object",
+        "properties": {
+          "rows": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Gets or sets the rows, as column name to value."
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether to roll the write back after it runs, reporting how many rows it would\nhave changed: a dry run."
+          }
+        },
+        "description": "Rows to insert into a table, all or none."
+      },
+      "RowsResponse": {
+        "required": [
+          "affected",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "affected": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "Gets the number of rows written.",
+            "format": "int32"
+          },
+          "rows": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "object"
+            },
+            "description": "Gets an insert's or a save's rows as written, keys the database generated among them; null for others."
+          }
+        },
+        "description": "The rows a write inserted, updated or deleted."
+      },
+      "RowsUpdateDto": {
+        "type": "object",
+        "properties": {
+          "set": {
+            "type": "object",
+            "description": "Gets or sets the columns and their values."
+          },
+          "filter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the condition, as `$filter` writes it: `status eq 'open'`, or `true` for every row."
+          },
+          "where": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "description": "Gets or sets the condition as a JSON tree, ANDed with string? RowsUpdateDto.Filter.",
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "dryRun": {
+            "type": "boolean",
+            "description": "Gets or sets a value indicating whether to roll the write back after it runs, reporting how many rows it would\nhave changed: a dry run."
+          }
+        },
+        "description": "Columns to set in the rows of a table that match a condition."
       },
       "SchemaDto": {
         "required": [
@@ -6740,6 +11155,68 @@ export default {
         },
         "description": "Response model for table operations."
       },
+      "TicketRequest": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "description": "Gets or sets the path of the stream the ticket opens, as the browser requests it, without the query:\n`/api/dm/d/main/t/orders/subscribe`."
+          }
+        },
+        "description": "Asks for a ticket that opens a stream: a REST subscription (Server-Sent Events) or a GraphQL socket."
+      },
+      "TicketResponse": {
+        "required": [
+          "ticket",
+          "expiresIn"
+        ],
+        "type": "object",
+        "properties": {
+          "ticket": {
+            "type": "string",
+            "description": "The ticket."
+          },
+          "expiresIn": {
+            "pattern": "^-?(?:0|[1-9]\\d*)$",
+            "type": [
+              "integer",
+              "string"
+            ],
+            "description": "How many seconds it is good for.",
+            "format": "int32"
+          }
+        },
+        "description": "A ticket that opens one stream, once: sent as `?ticket=` on the stream's URL."
+      },
+      "TwoFactorRequest": {
+        "type": "object",
+        "properties": {
+          "enable": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "twoFactorCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "resetSharedKey": {
+            "type": "boolean"
+          },
+          "resetRecoveryCodes": {
+            "type": "boolean"
+          },
+          "forgetMachine": {
+            "type": "boolean"
+          }
+        }
+      },
       "UniqueConstraintDto": {
         "required": [
           "columnNames"
@@ -6876,10 +11353,16 @@ export default {
       "name": "DapperMatic Schemas"
     },
     {
+      "name": "DapperMatic Tables"
+    },
+    {
+      "name": "DapperMatic Access"
+    },
+    {
       "name": "DapperMatic Views"
     },
     {
-      "name": "DapperMatic Tables"
+      "name": "DapperMatic Auth"
     }
   ]
 };

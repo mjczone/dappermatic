@@ -38,14 +38,14 @@ using System.Data.SqlClient;
 // Define a table model
 var table = new DmTable("dbo", "Users")
 {
-    Columns = new[]
+    Columns = new List<DmColumn>
     {
         new DmColumn("Id", typeof(int)) { IsNullable = false, IsAutoIncrement = true },
-        new DmColumn("Username", typeof(string)) { MaxLength = 50, IsNullable = false },
-        new DmColumn("Email", typeof(string)) { MaxLength = 100, IsNullable = false },
+        new DmColumn("Username", typeof(string)) { Length = 50, IsNullable = false },
+        new DmColumn("Email", typeof(string)) { Length = 100, IsNullable = false },
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false }
     },
-    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id")
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", new[] { new DmOrderedColumn("Id") })
 };
 
 // Create the table
@@ -95,5 +95,6 @@ var users = await connection.QueryAsync<User>(
 - [Extension Methods](/guide/extension-methods/) - Explore available DDL operations
 
 ### For DML (Query Operations)
+- [Reading and Writing Rows](./dml-methods) - Inserts, updates, deletes and queries from your models, with conditions as C# expressions
 - [DML Query Support](./dml-query-support) - Complete guide to using Dapper queries with DapperMatic attributes
 - [Data Annotations](./data-annotations) - Learn about attribute mapping options
