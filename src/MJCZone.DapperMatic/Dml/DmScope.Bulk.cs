@@ -269,12 +269,13 @@ public sealed partial class DmScope
                     var loaded = await DmlBulk.InsertAsync(Connection, dialect, stage, columns, prepared, options, transaction!, cancellationToken)
                         .ConfigureAwait(false);
 
+                    // Every row must pass: a check that is false, or unknown (NULL), refuses it, as a single insert's does
+                    // and PostgreSQL's WITH CHECK does.
                     if (check is not null)
                     {
                         var parameters = new DmlParameters();
-                        var failing = new SqlNot(check);
-                        var sql = $"SELECT COUNT(*) FROM {stage} WHERE {new SqlRenderer(dialect, parameters).For(failing).Render(failing)}";
-                        if (await Connection.ExecuteScalarAsync<long>(Command(sql, parameters, transaction, cancellationToken)).ConfigureAwait(false) > 0)
+                        var sql = $"SELECT COUNT(*) FROM {stage} WHERE {new SqlRenderer(dialect, parameters).For(check).Render(check)}";
+                        if (await Connection.ExecuteScalarAsync<long>(Command(sql, parameters, transaction, cancellationToken)).ConfigureAwait(false) != loaded)
                         {
                             throw new UnauthorizedAccessException($"A row breaks the policies' check on {model.Name}; nothing was inserted.");
                         }

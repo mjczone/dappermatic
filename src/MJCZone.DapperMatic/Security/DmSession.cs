@@ -86,16 +86,13 @@ public static partial class DmSession
         }
     }
 
-    private static bool AllowsUserVariables(string connectionString)
-    {
-        var builder = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = connectionString };
-        return builder.Keys.Cast<string>()
-            .Where(k => k.Replace(" ", string.Empty, StringComparison.Ordinal).Equals("AllowUserVariables", StringComparison.OrdinalIgnoreCase))
-            .Any(k => string.Equals(Convert.ToString(builder[k], CultureInfo.InvariantCulture), "true", StringComparison.OrdinalIgnoreCase));
-    }
-
-    // A value as the session holds it: text, with a list joined by commas; null stays null.
-    private static string? Text(object? value) =>
+    /// <summary>
+    /// Writes a value as the session holds it: text, with a list joined by commas; null stays null. Results kept per
+    /// session values are keyed by this text, the one the database reads.
+    /// </summary>
+    /// <param name="value">The value.</param>
+    /// <returns>The text, or null.</returns>
+    internal static string? Text(object? value) =>
         value switch
         {
             null => null,
@@ -104,6 +101,14 @@ public static partial class DmSession
             IFormattable f => f.ToString(null, CultureInfo.InvariantCulture),
             _ => value.ToString(),
         };
+
+    private static bool AllowsUserVariables(string connectionString)
+    {
+        var builder = new System.Data.Common.DbConnectionStringBuilder { ConnectionString = connectionString };
+        return builder.Keys.Cast<string>()
+            .Where(k => k.Replace(" ", string.Empty, StringComparison.Ordinal).Equals("AllowUserVariables", StringComparison.OrdinalIgnoreCase))
+            .Any(k => string.Equals(Convert.ToString(builder[k], CultureInfo.InvariantCulture), "true", StringComparison.OrdinalIgnoreCase));
+    }
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)+$")]
     private static partial Regex PostgreSqlName();

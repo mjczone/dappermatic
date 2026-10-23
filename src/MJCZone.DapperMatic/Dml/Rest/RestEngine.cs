@@ -387,7 +387,79 @@ internal sealed partial class RestEngine
             await Changes!.WrittenAsync(_connection, tx, change, cancellationToken).ConfigureAwait(false);
         }
 
-        return written;
+        return await EchoAsync(table, written, rows, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Narrows rows as written to what the caller may see of them: the columns it gave, the table's key, and the
+    /// columns it may read. The policies' presets and the values the database filled in others are not told, as a
+    /// query would not tell them. Related rows likewise, by their own tables.
+    /// </summary>
+    /// <param name="table">The table.</param>
+    /// <param name="written">The rows as written.</param>
+    /// <param name="given">The rows as the request gave them, in the same order.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The rows to answer with.</returns>
+    public async Task<List<Dictionary<string, object?>>> EchoAsync(
+        RestTable table,
+        IReadOnlyList<Dictionary<string, object?>> written,
+        IReadOnlyList<IReadOnlyDictionary<string, object?>> given,
+        CancellationToken cancellationToken
+    )
+    {
+        if (_access is null)
+        {
+            return [.. written];
+        }
+
+        static object? Given(IReadOnlyDictionary<string, object?>? row, string name) =>
+            row?.FirstOrDefault(p => string.Equals(p.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
+
+        var read = Rules(table, DmAction.Read);
+        var echoed = new List<Dictionary<string, object?>>(written.Count);
+        for (var i = 0; i < written.Count; i++)
+        {
+            var mine = i < given.Count ? given[i] : null;
+            var row = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+            foreach (var (name, value) in written[i])
+            {
+                if (table.Columns.Any(c => string.Equals(c.Name, name, StringComparison.OrdinalIgnoreCase)))
+                {
+                    if ((read.Allowed && (read.Columns is null || read.Columns.Contains(name)))
+                        || table.Keys.Contains(name, StringComparer.OrdinalIgnoreCase)
+                        || (mine?.Keys.Contains(name, StringComparer.OrdinalIgnoreCase) ?? false))
+                    {
+                        row[name] = value;
+                    }
+
+                    continue;
+                }
+
+                if (await _relation(table, name, cancellationToken).ConfigureAwait(false) is not { } relation)
+                {
+                    continue;
+                }
+
+                row[name] = value switch
+                {
+                    Dictionary<string, object?> one => (
+                        await EchoAsync(relation.Other, [one], Given(mine, name) is IReadOnlyDictionary<string, object?> o ? [o] : [], cancellationToken).ConfigureAwait(false)
+                    )[0],
+                    List<Dictionary<string, object?>> many => await EchoAsync(
+                            relation.Other,
+                            many,
+                            Given(mine, name) is IEnumerable<IReadOnlyDictionary<string, object?>> m ? [.. m] : [],
+                            cancellationToken
+                        )
+                        .ConfigureAwait(false),
+                    _ => value,
+                };
+            }
+
+            echoed.Add(row);
+        }
+
+        return echoed;
     }
 
     /// <summary>
@@ -1123,8 +1195,11 @@ internal sealed partial class RestEngine
             saved[relation.Name] = written;
         }
 
+        // A related row (depth > 0) is written only as the request's permissions allow writing its table on its own: the
+        // request was authorized for its own table.
+        var isRelated = depth > 0;
         var result = upsert
-            ? await UpsertRowAsync(table, own, tx, cancellationToken).ConfigureAwait(false)
+            ? await UpsertRowAsync(table, own, isRelated, tx, cancellationToken).ConfigureAwait(false)
             : (await InsertReturningAsync(table, [own], tx, cancellationToken).ConfigureAwait(false))[0];
 
         // The rows that refer to it come after: its key is their columns.
@@ -1155,18 +1230,39 @@ internal sealed partial class RestEngine
     }
 
     // A row with its whole key given is updated if it exists, and the caller may change it; else it is inserted.
-    private async Task<Dictionary<string, object?>> UpsertRowAsync(RestTable table, Dictionary<string, object?> row, IDbTransaction tx, CancellationToken cancellationToken)
+    private async Task<Dictionary<string, object?>> UpsertRowAsync(
+        RestTable table,
+        Dictionary<string, object?> row,
+        bool related,
+        IDbTransaction tx,
+        CancellationToken cancellationToken
+    )
     {
+        async Task<Dictionary<string, object?>> InsertAsync()
+        {
+            if (related && !await MayWriteAsync(table, DmAction.Create, cancellationToken).ConfigureAwait(false))
+            {
+                throw new UnauthorizedAccessException($"This request may not insert into {table.Name}.");
+            }
+
+            return (await InsertReturningAsync(table, [row], tx, cancellationToken).ConfigureAwait(false))[0];
+        }
+
         if (table.Keys.Count == 0 || table.Keys.Any(k => Find(row, k) is null))
         {
-            return (await InsertReturningAsync(table, [row], tx, cancellationToken).ConfigureAwait(false))[0];
+            return await InsertAsync().ConfigureAwait(false);
         }
 
         var key = table.Keys
             .Select(k => (RestNode)new RestBinary("eq", new RestPath([table.Column(k, "the key").Name]), new RestLiteral(Find(row, k))))
             .Aggregate((a, b) => new RestBinary("and", a, b));
         var set = row.Where(p => !table.Keys.Contains(p.Key, StringComparer.OrdinalIgnoreCase)).ToDictionary(p => p.Key, p => p.Value, StringComparer.OrdinalIgnoreCase);
-        if (set.Count > 0 && Rules(table, DmAction.Update).Allowed && await UpdateAsync(table, set, key, tx, cancellationToken).ConfigureAwait(false) == 1)
+        if (
+            set.Count > 0
+            && Rules(table, DmAction.Update).Allowed
+            && (!related || await MayWriteAsync(table, DmAction.Update, cancellationToken).ConfigureAwait(false))
+            && await UpdateAsync(table, set, key, tx, cancellationToken).ConfigureAwait(false) == 1
+        )
         {
             return row;
         }
@@ -1184,7 +1280,7 @@ internal sealed partial class RestEngine
         {
             return table.Generated is { } generated && table.Keys.Contains(generated, StringComparer.OrdinalIgnoreCase)
                 ? throw new ArgumentException($"No row of {table.Name} has the key {Find(row, generated)}, and a key the database generates is not inserted as given: leave it out to insert the row.")
-                : (await InsertReturningAsync(table, [row], tx, cancellationToken).ConfigureAwait(false))[0];
+                : await InsertAsync().ConfigureAwait(false);
         }
 
         return set.Count == 0

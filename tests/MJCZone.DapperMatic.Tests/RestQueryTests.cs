@@ -143,6 +143,17 @@ public class RestQueryTests
     }
 
     [Fact]
+    public void A_search_counts_its_words_toward_the_request_size()
+    {
+        // Matched by contains, each word is a condition per column: 60 words over 2 columns pass a 100-part budget. (The
+        // engine makes $search this node, ANDed with the filter.)
+        var searchable = Orders.WithSearchable(new RestSearchable(["status", "note"]));
+        var words = string.Join(' ', Enumerable.Range(0, 60).Select(i => $"w{i}"));
+        Assert.Throws<ArgumentException>(() => new RestTranslator(DmlDialect.For(Sqlite), Relations, new RestLimits { MaxNodes = 100 }).Rows(new RestQuery { Filter = new RestSearch(words) }, searchable, []));
+        new RestTranslator(DmlDialect.For(Sqlite), Relations, new RestLimits { MaxNodes = 100 }).Rows(new RestQuery { Filter = new RestSearch("a few words") }, searchable, []);
+    }
+
+    [Fact]
     public void A_count_of_related_rows_counts_those_its_condition_matches()
     {
         var json = JsonDocument.Parse("""{"gt": [{"count": {"path": "lines", "as": "l", "where": {"eq": [{"path": "l/qty"}, {"value": 2}]}}}, {"value": 0}]}""");

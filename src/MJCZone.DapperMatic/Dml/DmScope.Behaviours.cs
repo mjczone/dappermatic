@@ -505,6 +505,9 @@ public sealed partial class DmScope
             }
         }
 
+        // Nor are those it may not read: a row read back holds NULL in them, which a whole row written back would store.
+        // A patch, or an update's assignments, write them.
+        var unread = rules is null || write != DmlRowWrite.Update ? null : HiddenFor(model);
         var set = new List<(DmlColumn Column, object? Value)>();
         if (write == DmlRowWrite.Update)
         {
@@ -512,6 +515,7 @@ public sealed partial class DmScope
                 Written(model, dialect)
                     .Where(c => !model.Keys.Contains(c) && !behaviours.Unchanging.Contains(c) && c != token && !stamps.ContainsKey(c))
                     .Where(c => hidden is null || !hidden.Contains(c.Column.ColumnName))
+                    .Where(c => unread is null || !unread.Contains(c.Column.ColumnName))
                     .Select(c => (c, c.Property.GetValue(row)))
             );
         }

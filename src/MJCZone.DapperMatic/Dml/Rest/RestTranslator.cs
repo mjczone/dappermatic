@@ -25,7 +25,7 @@ internal sealed class RestTranslator
     private readonly RestLimits _limits;
     private readonly Func<RestTable, RestNode?>? _readFilter;
     private int _nextAlias;
-    private int _nodes;
+    private long _nodes;
     private int _lambdaDepth;
     private int _trusted;
 
@@ -329,6 +329,9 @@ internal sealed class RestTranslator
             return SqlText.Always(true);
         }
 
+        // The request's words count toward its size as its conditions do: one per word and column matched by contains,
+        // one per word given to an index.
+        Count(searchable.Native is null ? (long)words.Count * searchable.Columns.Count : words.Count);
         if (searchable.Native is { } native)
         {
             var key = _dialect.ProviderType == DbProviderType.Sqlite ? "rowid" : table.Keys.Single();
@@ -455,14 +458,16 @@ internal sealed class RestTranslator
             }),
         ];
 
-    private void Count(RestNode node)
+    private void Count(RestNode node) => Count(1);
+
+    private void Count(long parts)
     {
         if (_trusted > 0)
         {
             return;
         }
 
-        if (++_nodes > _limits.MaxNodes)
+        if ((_nodes += parts) > _limits.MaxNodes)
         {
             throw new ArgumentException($"The request's conditions, orderings and values have more than {_limits.MaxNodes} parts.");
         }

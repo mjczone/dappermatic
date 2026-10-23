@@ -18,6 +18,13 @@ internal sealed class RestAccess
 
     /// <summary>Gets a value of the request's context by its path, such as <c>tenant.below</c>.</summary>
     public required Func<string, CancellationToken, ValueTask<object?>> Value { get; init; }
+
+    /// <summary>
+    /// Gets whether the request may insert into (<see cref="DmAction.Create"/>) or update a table it writes besides its
+    /// own rows (a related row of a nested write), as the request's permissions decide that write on its own; null for
+    /// no check beyond the policies. It refuses nothing itself: a related row's update not allowed is not made.
+    /// </summary>
+    public Func<RestTable, DmAction, CancellationToken, Task<bool>>? MayWrite { get; init; }
 }
 
 /// <summary>
@@ -29,6 +36,7 @@ internal sealed partial class RestEngine
     private static readonly ConcurrentDictionary<string, RestNode> PolicyConditions = new(StringComparer.Ordinal);
 
     private readonly Dictionary<(RestTable Table, DmAction Action), DmAccessRules> _rules = [];
+    private readonly Dictionary<(RestTable Table, DmAction Action), bool> _mayWrite = [];
     private readonly Dictionary<string, object?> _values = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<RestTable, RestNode?> _readFilters = new(ReferenceEqualityComparer.Instance);
 
@@ -47,6 +55,23 @@ internal sealed partial class RestEngine
         }
 
         return rules;
+    }
+
+    // Whether a related row's table may be written so, as the request's permissions decide (RestAccess.MayWrite).
+    private async Task<bool> MayWriteAsync(RestTable table, DmAction action, CancellationToken cancellationToken)
+    {
+        if (_access?.MayWrite is not { } mayWrite)
+        {
+            return true;
+        }
+
+        if (!_mayWrite.TryGetValue((table, action), out var allowed))
+        {
+            allowed = await mayWrite(table, action, cancellationToken).ConfigureAwait(false);
+            _mayWrite[(table, action)] = allowed;
+        }
+
+        return allowed;
     }
 
     private DmAccessRules Require(RestTable table, DmAction action)

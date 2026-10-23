@@ -268,12 +268,14 @@ public sealed partial class DmScope
             return await InsertAsync(type, row, tx, cancellationToken).ConfigureAwait(false);
         }
 
+        RequireConflict(model, target, update: true);
         return await InTransactionAsync(
                 tx,
                 needsOne: true,
                 async transaction =>
                 {
                     var token = model.Behaviours.Token;
+                    var given = token?.Property.GetValue(row);
                     var existing = await ExistingAsync(model, dialect, table, row, target, token, transaction, cancellationToken).ConfigureAwait(false);
                     if (existing is null)
                     {
@@ -302,6 +304,8 @@ public sealed partial class DmScope
 
                     if (written == 0)
                     {
+                        // The row keeps the token it was given, not the one of a row the caller may not change.
+                        token?.Property.SetValue(row, given);
                         throw new UnauthorizedAccessException(
                             $"A {model.Type.Name} row with the same {string.Join(", ", target.Select(c => c.Property.Name))} exists, and the policies do not let this caller change it."
                         );
@@ -471,6 +475,7 @@ public sealed partial class DmScope
         if (RunsAsCaller)
         {
             // Run as a caller: inserted as InsertAsync inserts, unless a row with the same values exists, whoever's.
+            RequireConflict(model, target, update: false);
             if (generated is not null && target.Count == 1 && target[0] == generated && !IsDefault(generated.Property.GetValue(row)))
             {
                 return await ExistingAsync(model, dialect, table, row, target, null, tx, cancellationToken).ConfigureAwait(false) is not null

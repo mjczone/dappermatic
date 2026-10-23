@@ -175,6 +175,32 @@ public sealed partial class DmScope
     }
 
     /// <summary>
+    /// Refuses an upsert or an insert-if-absent the caller may not run, before anything looks for an existing row: the
+    /// actions it may take, and conflict columns the caller may both write and read (matching rows by a value the caller
+    /// cannot see would tell it whether a row holds that value).
+    /// </summary>
+    /// <param name="model">The model.</param>
+    /// <param name="target">The conflict columns.</param>
+    /// <param name="update">Whether an existing row is updated (an upsert), not left alone.</param>
+    /// <exception cref="UnauthorizedAccessException">The caller may not insert (or update), or match by a column.</exception>
+    internal void RequireConflict(DmlModel model, IReadOnlyList<DmlColumn> target, bool update)
+    {
+        Require(model, DmAction.Create);
+        if (update)
+        {
+            Require(model, DmAction.Update);
+        }
+
+        foreach (var hidden in new[] { Hidden(model, DmAction.Create), HiddenFor(model) })
+        {
+            if (hidden is not null && target.FirstOrDefault(c => hidden.Contains(c.Column.ColumnName)) is { } column)
+            {
+                throw new UnauthorizedAccessException($"The column {column.Column.ColumnName} of {PolicyTarget(model).Table} is not one this caller may match rows by.");
+            }
+        }
+    }
+
+    /// <summary>
     /// Refuses a write that names a column the caller may not write: a write by object leaves such columns out on its
     /// own; one that names them, as a patch or an assignment does, is refused.
     /// </summary>
@@ -254,9 +280,19 @@ public sealed partial class DmScope
                 needsOne: true,
                 async transaction =>
                 {
+                    // Refused before anything is written: in a transaction of the application's, an update that changed
+                    // the rows that pass and then threw would leave them changed if the application went on to commit.
                     var matched = await Connection
                         .ExecuteScalarAsync<long>(Command($"SELECT COUNT(*) FROM {table} WHERE {condition}", parameters, transaction, cancellationToken))
                         .ConfigureAwait(false);
+                    var passing = await Connection
+                        .ExecuteScalarAsync<long>(Command($"SELECT COUNT(*) FROM {table} WHERE {condition} AND {checkSql}", parameters, transaction, cancellationToken))
+                        .ConfigureAwait(false);
+                    if (passing < matched)
+                    {
+                        throw new UnauthorizedAccessException($"The update would leave rows of {table} that break the policies' check; nothing was changed.");
+                    }
+
                     var checkedUpdate = $"{update} AND {checkSql}";
                     var updated = await ToldAsync(
                             model,
@@ -382,6 +418,17 @@ public sealed partial class DmScope
         }
 
         var (schema, table) = PolicyTarget(model);
+
+        // A tenant kept in a schema of its own is held to it, as a request naming another schema is: InSchema cannot take
+        // its caller into another tenant's. Shared models (DmSchemaLayout) stay in the shared schema.
+        if (caller.Access.Tenant?.SchemaName is { Length: > 0 } own
+            && schema is { Length: > 0 }
+            && !DmSchemaLayout.IsShared(model.Type)
+            && !string.Equals(schema, own, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new UnauthorizedAccessException($"The schema {schema} is not this tenant's.");
+        }
+
         if (action is not DmAction.Read)
         {
             caller.Writing?.Invoke(schema, table);
