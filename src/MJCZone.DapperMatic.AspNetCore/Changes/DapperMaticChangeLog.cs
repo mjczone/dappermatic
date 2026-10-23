@@ -58,6 +58,12 @@ public sealed class DapperMaticChangeLog
     internal IReadOnlyList<DapperMaticWebhook> Webhooks => [.. _options.Webhooks, .. _stored?.Webhooks ?? []];
 
     /// <summary>
+    /// Gets a value indicating whether anything may hear changes, of any datasource: a webhook, or a table
+    /// subscriptions may read.
+    /// </summary>
+    internal bool HearsAnything => _options.RealtimeTables.Count > 0 || Webhooks.Any(w => w.Enabled);
+
+    /// <summary>
     /// Tells whether anything hears a datasource's changes: a webhook, or a table subscriptions may read.
     /// </summary>
     /// <param name="datasourceId">The datasource.</param>

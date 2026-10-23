@@ -223,6 +223,129 @@ public class WebhookTests : IClassFixture<TestcontainersAssemblyFixture>
         DapperMaticWebhookWorker.IsInternal(IPAddress.Parse("100.64.0.1")).Should().BeTrue();
         DapperMaticWebhookWorker.IsInternal(IPAddress.Parse("93.184.216.34")).Should().BeFalse();
         DapperMaticWebhookWorker.IsInternal(IPAddress.Parse("2606:2800:220:1::1")).Should().BeFalse();
+
+        // IPv6 addresses carrying an IPv4 one a gateway connects to are judged as that address, or refused.
+        foreach (var internalOne in new[] { "64:ff9b::a9fe:a9fe", "64:ff9b::7f00:1", "2002:a9fe:a9fe::1", "::a9fe:a9fe", "64:ff9b:1::5db8:d822", "2001:0:4136:e378:8000:63bf:3fff:fdd2" })
+        {
+            DapperMaticWebhookWorker.IsInternal(IPAddress.Parse(internalOne)).Should().BeTrue(internalOne);
+        }
+
+        DapperMaticWebhookWorker.IsInternal(IPAddress.Parse("64:ff9b::5db8:d822")).Should().BeFalse();
+        DapperMaticWebhookWorker.IsInternal(IPAddress.Parse("2002:5db8:d822::1")).Should().BeFalse();
+
+        // Through a proxy, the address connected to would be the proxy's: the guarded client uses none.
+        using var guarded = DapperMaticWebhookWorker.GuardedHandler();
+        guarded.UseProxy.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task A_change_that_cannot_be_read_fails_as_a_delivery_does_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        var receiver = new Receiver();
+        using var factory = new WafWithInMemoryDatasourceRepository([datasource]).WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+            {
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.WebhookDelivery.Enabled = false;
+                    options.Webhooks.Add(new DapperMaticWebhook { Name = "first", Url = "https://first.test/hook", Tables = { "wh_other" } });
+                    options.Webhooks.Add(new DapperMaticWebhook { Name = "second", Url = "https://second.test/hook", Tables = { "wh_orders" } });
+                });
+                services.AddHttpClient(DapperMaticWebhookWorker.ClientName).ConfigurePrimaryHttpMessageHandler(() => receiver);
+            })
+        );
+        using var client = factory.CreateClient();
+        await ResetAsync(factory, datasource);
+        var worker = factory.Services.GetRequiredService<DapperMaticWebhookWorker>();
+        await worker.RunOnceAsync();
+        foreach (var total in new[] { 1, 2 })
+        {
+            (await client.PostAsync($"/api/dm/d/{datasource.Id}/t/wh_orders/rows", new StringContent($$"""{"rows":[{"tenant_id":1,"total":{{total}}}]}""", Encoding.UTF8, "application/json")))
+                .StatusCode.Should().Be(HttpStatusCode.OK);
+        }
+
+        // The first change's keys are not JSON, and the first webhook hears it: that webhook's attempt fails, and the
+        // second still hears the second change.
+        using (var db = Open(factory, datasource))
+        {
+            await db.ExecuteAsync("UPDATE dm_changes SET row_keys = '[1', table_name = 'wh_other' WHERE id = (SELECT MIN(id) FROM dm_changes)");
+        }
+
+        await worker.RunOnceAsync();
+        receiver.Messages().Select(m => m.Request.RequestUri!.Host).Should().Equal("second.test");
+        var status = JsonDocument.Parse(await (await client.GetAsync("/api/dm/access/webhooks/first/status")).Content.ReadAsStringAsync()).RootElement.GetProperty("result").GetProperty(datasource.Id!);
+        status.GetProperty("attempts").GetInt32().Should().Be(1);
+        status.GetProperty("lastError").GetString().Should().Contain("not JSON");
+    }
+
+    [Fact]
+    public async Task A_tenants_webhook_hears_only_tables_its_administrator_reads_whole_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        using var factory = new WafWithInMemoryDatasourceRepository([datasource]).WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+            {
+                services.AddSingleton<MJCZone.DapperMatic.AspNetCore.Repositories.IDapperMaticAccessRepository>(new MJCZone.DapperMatic.AspNetCore.Repositories.InMemoryDapperMaticAccessRepository());
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.Policies.Clear();
+                    options.WebhookDelivery.Enabled = false;
+                });
+                var tenantsOwn = DmPolicy.Allow(DmAction.Read, "tenant-admin").OnTables("wh_orders");
+                tenantsOwn.Tenant = "1";
+                services.AddDapperMatic(dm =>
+                    dm.Tenancy(t => t.FromClaim("tenant_id").RowsMarkedBy("tenant_id"))
+                        .Policies(
+                            DmPolicy.Allow(DmAction.ManageAccess, "tenant-admin").WithinOwnTenant(),
+                            tenantsOwn,
+                            DmPolicy.Allow(DmAction.Read, "tenant-admin").OnTables("wh_lines").Where("total gt 2"),
+                            DmPolicy.Allow(DmAction.Read, "tenant-admin").OnTables("wh_notes").OnlyColumns("id", "total")
+                        )
+                );
+            })
+        );
+        using var tenantAdmin = factory.CreateAuthenticatedClient(new Claim(ClaimTypes.Role, "tenant-admin"), new Claim("tenant_id", "1"));
+        Task<HttpResponseMessage> Put(string name, string table) =>
+            tenantAdmin.PutAsync(
+                $"/api/dm/access/webhooks/{name}",
+                new StringContent(JsonSerializer.Serialize(new { url = "https://tenant.test/hook", datasourceId = datasource.Id, tables = new[] { table } }), Encoding.UTF8, "application/json")
+            );
+
+        // The tenant's own rows, held to its tenant and no more: every one of them may be told of.
+        var saved = await Put("orders", "wh_orders");
+        saved.StatusCode.Should().Be(HttpStatusCode.OK, await saved.Content.ReadAsStringAsync());
+
+        // Rows the administrator reads only some of, or only some columns of: a webhook would tell of the others.
+        (await Put("lines", "wh_lines")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        (await Put("notes", "wh_notes")).StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Changes_noted_for_subscriptions_alone_are_pruned_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        using var factory = new WafWithInMemoryDatasourceRepository([datasource]).WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.WebhookDelivery.Enabled = false;
+                    options.WebhookDelivery.Retention = TimeSpan.Zero;
+                    options.RealtimeTables.Add(new DapperMaticRealtimeTable { TableName = "wh_orders" });
+                })
+            )
+        );
+        using var client = factory.CreateClient();
+        await ResetAsync(factory, datasource);
+        (await client.PostAsync($"/api/dm/d/{datasource.Id}/t/wh_orders/rows", new StringContent("""{"rows":[{"tenant_id":1,"total":1}]}""", Encoding.UTF8, "application/json")))
+            .StatusCode.Should().Be(HttpStatusCode.OK);
+        using var db = Open(factory, datasource);
+        (await db.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM dm_changes")).Should().Be(1);
+
+        // No webhook: the worker still prunes what subscriptions were told of.
+        await Task.Delay(TimeSpan.FromMilliseconds(20));
+        await factory.Services.GetRequiredService<DapperMaticWebhookWorker>().RunOnceAsync();
+        (await db.ExecuteScalarAsync<long>("SELECT COUNT(*) FROM dm_changes")).Should().Be(0);
     }
 
     private static System.Data.IDbConnection Open(WebApplicationFactory<Program> factory, Models.Dtos.DatasourceDto datasource)

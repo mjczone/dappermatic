@@ -3,6 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
+using System.Data;
 using System.Net;
 using System.Security.Claims;
 using System.Text;
@@ -51,6 +52,9 @@ public class RealtimeTests : IClassFixture<TestcontainersAssemblyFixture>
                     options.RealtimeTables.Add(new DapperMaticRealtimeTable { TableName = "rt_items" });
                     options.RealtimeTables.Add(new DapperMaticRealtimeTable { TableName = "rt_kinds" });
                     options.Realtime.PollInterval = TimeSpan.FromHours(1);
+
+                    // The test drops the change tables under the running host: no worker keeps them meanwhile.
+                    options.WebhookDelivery.Enabled = false;
                     options.Realtime.Debounce = TimeSpan.FromMilliseconds(50);
                 })
             )
@@ -225,6 +229,110 @@ public class RealtimeTests : IClassFixture<TestcontainersAssemblyFixture>
         await FluentActions.Awaiting(() => events.NextEventAsync(Wait)).Should().ThrowAsync<EndOfStreamException>();
     }
 
+    [Fact]
+    public async Task A_change_while_a_subscription_opens_is_not_missed_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        var audit = new FirstQueryHook();
+        using var factory = new WafWithInMemoryDatasourceRepository([datasource]).WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+            {
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.RealtimeTables.Add(new DapperMaticRealtimeTable { TableName = "rt_opening" });
+                    options.Realtime.PollInterval = TimeSpan.FromHours(1);
+                    options.Realtime.Debounce = TimeSpan.FromMilliseconds(10);
+                    options.Realtime.Heartbeat = TimeSpan.FromHours(1);
+                });
+                services.AddSingleton<MJCZone.DapperMatic.AspNetCore.Auditing.IDapperMaticAuditLogger>(audit);
+            })
+        );
+        IDbConnection Open()
+        {
+            var db = factory.Services.GetRequiredService<IDbConnectionFactory>().CreateConnection(datasource.Provider!, datasource.ConnectionString!);
+            db.Open();
+            return db;
+        }
+
+        using (var db = Open())
+        {
+            await db.DropTableIfExistsAsync(null, "rt_opening");
+            await db.CreateTableIfNotExistsAsync(new DmTable(null, "rt_opening", [new DmColumn("id", typeof(int), isPrimaryKey: true), new DmColumn("body", typeof(string), length: 20)]));
+        }
+
+        // A row is written, and this server told of it, after the subscription's query first ran and before it listens.
+        audit.OnFirstQuery = async () =>
+        {
+            using var db = Open();
+            await db.ExecuteAsync("INSERT INTO rt_opening (id, body) VALUES (1, 'one')");
+            factory.Services.GetRequiredService<MJCZone.DapperMatic.AspNetCore.Changes.DapperMaticRealtimeHub>().Notify(datasource.Id!, [(null, "rt_opening")]);
+        };
+        using var client = factory.CreateClient();
+        using var events = await Events.OpenAsync(client, $"/api/dm/d/{datasource.Id}/t/rt_opening/subscribe");
+        (await events.NextAsync(Wait)).GetProperty("result").GetArrayLength().Should().Be(0);
+        (await events.NextAsync(Wait)).GetProperty("result").GetArrayLength().Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Pings_keep_their_time_whatever_changes_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        using var factory = new WafWithInMemoryDatasourceRepository([datasource]).WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.RealtimeTables.Add(new DapperMaticRealtimeTable { TableName = "rt_pings" });
+                    options.Realtime.PollInterval = TimeSpan.FromHours(1);
+                    options.Realtime.Debounce = TimeSpan.FromMilliseconds(10);
+                    options.Realtime.Heartbeat = TimeSpan.FromMilliseconds(300);
+                })
+            )
+        );
+        using (var db = factory.Services.GetRequiredService<IDbConnectionFactory>().CreateConnection(datasource.Provider!, datasource.ConnectionString!))
+        {
+            db.Open();
+            await db.DropTableIfExistsAsync(null, "rt_pings");
+            await db.CreateTableIfNotExistsAsync(new DmTable(null, "rt_pings", [new DmColumn("id", typeof(int), isPrimaryKey: true)]));
+        }
+
+        using var client = factory.CreateClient();
+        using var events = await Events.OpenAsync(client, $"/api/dm/d/{datasource.Id}/t/rt_pings/subscribe");
+        (await events.NextAsync(Wait)).GetProperty("result").GetArrayLength().Should().Be(0);
+
+        // Changes the subscriber's results do not show (another tenant's, say) come every 100 ms: had each one put the
+        // next ping off, a subscriber timing them would learn of those changes.
+        var hub = factory.Services.GetRequiredService<MJCZone.DapperMatic.AspNetCore.Changes.DapperMaticRealtimeHub>();
+        using var stop = new CancellationTokenSource();
+        var signals = Task.Run(async () =>
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                hub.Notify(datasource.Id!, [(null, "rt_pings")]);
+                await Task.Delay(100);
+            }
+        });
+        var pings = await events.PingsWithinAsync(TimeSpan.FromSeconds(2));
+        await stop.CancelAsync();
+        await signals;
+        pings.Should().BeGreaterThanOrEqualTo(3);
+    }
+
+    // Runs a hook when the first query of a table succeeds, as the query is audited: after it ran.
+    private sealed class FirstQueryHook : MJCZone.DapperMatic.AspNetCore.Auditing.IDapperMaticAuditLogger
+    {
+        private int _fired;
+
+        public Func<Task>? OnFirstQuery { get; set; }
+
+        public async Task LogOperationAsync(MJCZone.DapperMatic.AspNetCore.Auditing.DapperMaticAuditEvent auditEvent)
+        {
+            if (auditEvent.Success && auditEvent.TableName == "rt_opening" && OnFirstQuery is { } hook && Interlocked.Exchange(ref _fired, 1) == 0)
+            {
+                await hook();
+            }
+        }
+    }
+
     // Reads Server-Sent Events from a response kept open.
     private sealed class Events : IDisposable
     {
@@ -281,6 +389,29 @@ public class RealtimeTests : IClassFixture<TestcontainersAssemblyFixture>
                     data.Append(line[6..]);
                 }
             }
+        }
+
+        // The pings (comment lines) read in a while, events skipped.
+        public async Task<int> PingsWithinAsync(TimeSpan duration)
+        {
+            var pings = 0;
+            using var cancel = new CancellationTokenSource(duration);
+            try
+            {
+                while (await _reader.ReadLineAsync(cancel.Token) is { } line)
+                {
+                    if (line.StartsWith(':'))
+                    {
+                        pings++;
+                    }
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // The while is over.
+            }
+
+            return pings;
         }
 
         public void Dispose()

@@ -352,6 +352,7 @@ public sealed partial class DapperMaticConfigurationBuilder
         _services.AddSingleton<IDapperMaticAccessRepository>(services =>
             new DatabaseDapperMaticAccessRepository(provider, connectionString, services.GetRequiredService<IDbConnectionFactory>(), schemaName, tableName)
         );
+        _services.Configure<DapperMaticOptions>(options => options.PrivateTables.Add(tableName));
         return this;
     }
 

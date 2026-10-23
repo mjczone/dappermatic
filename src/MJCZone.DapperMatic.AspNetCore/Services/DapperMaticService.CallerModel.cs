@@ -56,7 +56,7 @@ public partial class DapperMaticService
         {
             provider = connection.GetDbProviderType();
             resolvedSchema = SchemaOf(connection, schemaName);
-            foreach (var name in await connection.GetTableNamesAsync(schemaName, null, null, cancellationToken).ConfigureAwait(false))
+            foreach (var name in (await connection.GetTableNamesAsync(schemaName, null, null, cancellationToken).ConfigureAwait(false)).Where(n => !IsPrivate(n)))
             {
                 var table = await DescribeTableAsync(datasourceId, connection, schemaName, name, cancellationToken).ConfigureAwait(false);
                 var rules = await AllowedAsync(context, connection, datasourceId, schemaName, table, TableActions).ConfigureAwait(false);

@@ -96,8 +96,9 @@ public sealed class DapperMaticCallerDb
     }
 
     // The tables the scope writes to make the results that read them stale, and this server's subscriptions to them are
-    // told, once the writes are committed: when the request's response starts (its handler has returned), or when it
-    // ends, for writes made after that.
+    // told, once the writes are committed: when the request's response starts (its handler has returned), and again
+    // when it ends, for writes committed after that (a unit of work committing once the handler has returned): a read
+    // between the two may have kept what was not committed yet.
     private static void Committing(HttpContext http, DapperMaticResultCache? results, DapperMaticRealtimeHub? hub, DmScope scope, string datasourceId, DbProviderType provider)
     {
         var written = new HashSet<(string?, string)>();
@@ -108,7 +109,6 @@ public sealed class DapperMaticCallerDb
             lock (gate)
             {
                 tables = [.. written];
-                written.Clear();
             }
 
             if (tables.Count == 0)

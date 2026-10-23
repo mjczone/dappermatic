@@ -6,6 +6,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore.Models;
 using MJCZone.DapperMatic.Dml.Rest;
@@ -33,6 +34,9 @@ public sealed class DapperMaticResultCache
     private readonly IDistributedCache _store;
     private readonly IReadOnlyList<DapperMaticCachedTable> _tables;
 
+    // What every key starts with: the application's, so that others sharing the store never read its results.
+    private readonly string _prefix;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DapperMaticResultCache"/> class.
     /// </summary>
@@ -47,6 +51,9 @@ public sealed class DapperMaticResultCache
             options.Value.ResultCacheStore
             ?? services.GetService<IDistributedCache>()
             ?? new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+        var prefix = options.Value.ResultCacheKeyPrefix
+            ?? (services.GetService<IHostEnvironment>() is { } environment ? $"{environment.ApplicationName}/{environment.EnvironmentName}" : string.Empty);
+        _prefix = $"{prefix.Length}:{prefix}";
     }
 
     /// <summary>
@@ -150,7 +157,7 @@ public sealed class DapperMaticResultCache
             Get = (key, cancellationToken) => _store.GetAsync(key, cancellationToken),
             Set = (key, value, duration, cancellationToken) =>
                 _store.SetAsync(key, value, new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = duration }, cancellationToken),
-            Scope = datasourceId.ToLowerInvariant() + "\u001f" + session,
+            Scope = _prefix + "\u001f" + datasourceId.ToLowerInvariant() + "\u001f" + session,
         };
     }
 
@@ -159,11 +166,11 @@ public sealed class DapperMaticResultCache
     private static string? SchemaOf(string? schemaName, DbProviderType provider) =>
         schemaName is { Length: > 0 } and not "_" ? schemaName : DapperMaticProviders.DefaultSchemaName(provider);
 
-    private static string DatasourceKey(string datasourceId) => "dm:v:" + datasourceId.ToLowerInvariant();
+    private string DatasourceKey(string datasourceId) => $"dm:v:{_prefix}\u001f{datasourceId.ToLowerInvariant()}";
 
     // A table's version in one schema, or, with no schema, its version in every schema.
-    private static string TableKey(string datasourceId, string? schemaName, string tableName) =>
-        $"dm:v:{datasourceId.ToLowerInvariant()}\u001f{schemaName?.ToLowerInvariant()}\u001f{tableName.ToLowerInvariant()}";
+    private string TableKey(string datasourceId, string? schemaName, string tableName) =>
+        $"dm:v:{_prefix}\u001f{datasourceId.ToLowerInvariant()}\u001f{schemaName?.ToLowerInvariant()}\u001f{tableName.ToLowerInvariant()}";
 
     private DapperMaticCachedTable? Find(string datasourceId, string? schemaName, string tableName) =>
         _tables.FirstOrDefault(t =>

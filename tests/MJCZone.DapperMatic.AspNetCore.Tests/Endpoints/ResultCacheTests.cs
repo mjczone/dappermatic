@@ -130,6 +130,39 @@ public class ResultCacheTests : IClassFixture<TestcontainersAssemblyFixture>
 
         (await Read(client)).Should().Be("13,22|Acme Corp|2");
 
+        // And one the application commits after its response started (a unit of work committing once the handler has
+        // returned): a read in between kept what was not committed yet, which the request's end makes stale. (SQL Server
+        // would hold that read until the commit.)
+        if (datasourceId != TestcontainersAssemblyFixture.DatasourceId_SqlServer)
+        {
+            var late = new CallbackResponseFeature();
+            using var scope = factory.Services.CreateScope();
+            var http = new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity([new Claim("sub", "app")], "Test")), RequestServices = scope.ServiceProvider };
+            http.Features.Set<IHttpResponseFeature>(late);
+            scope.ServiceProvider.GetRequiredService<IHttpContextAccessor>().HttpContext = http;
+            var callerDb = await scope.ServiceProvider.GetRequiredService<DapperMaticCallerDb>().OpenAsync(datasourceId);
+            if (callerDb.Connection.State != System.Data.ConnectionState.Open)
+            {
+                callerDb.Connection.Open();
+            }
+
+            using (var tx = callerDb.Connection.BeginTransaction())
+            {
+                (await callerDb.UpdateAsync(new CachedOrder { Id = 2, CustomerId = 1, Total = 23 }, tx)).Should().Be(1);
+                await late.StartAsync();
+                (await Read(client)).Should().Be("13,22|Acme Corp|2");
+                tx.Commit();
+            }
+
+            await late.CompleteAsync();
+            (await Read(client)).Should().Be("13,23|Acme Corp|2");
+
+            // Back as the steps below expect it, and kept again.
+            await db.ExecuteAsync("UPDATE rc_orders SET total = 22 WHERE id = 2");
+            await factory.Services.GetRequiredService<DapperMaticResultCache>().InvalidateAsync(datasourceId, "rc_orders", null);
+            (await Read(client)).Should().Be("13,22|Acme Corp|2");
+        }
+
         // A change made elsewhere is seen at once after InvalidateAsync.
         await db.ExecuteAsync("UPDATE rc_orders SET total = 14 WHERE id = 1");
         (await Read(client)).Should().Be("13,22|Acme Corp|2");
@@ -272,13 +305,52 @@ public class ResultCacheTests : IClassFixture<TestcontainersAssemblyFixture>
         second.Should().NotBe(first);
 
         // The store dropping a version brings back nothing read before.
-        foreach (var key in new[] { "dm:v:ds", "dm:v:ds\u001f\u001ft" })
+        foreach (var key in new[] { "dm:v:0:\u001fds", "dm:v:0:\u001fds\u001f\u001ft" })
         {
             await store.RemoveAsync(key);
         }
 
         var third = await rest.Versions([view], default);
         third.Should().NotBe(second).And.NotBe(first);
+    }
+
+    [Fact]
+    public void Session_values_key_results_by_the_text_the_database_reads()
+    {
+        static string Key(params (string Name, object? Value)[] values) => DapperMaticService.SessionKey(values.Select(v => new KeyValuePair<string, object?>(v.Name, v.Value)));
+
+        // Callers with several values each (claims of one type) never share: the key holds the values, not a list's type.
+        Key(("app.orgs", new List<string> { "a", "b" })).Should().NotBe(Key(("app.orgs", new List<string> { "c", "d" })));
+        Key(("app.orgs", new List<string> { "a", "b" })).Should().Be(Key(("app.orgs", "a,b")));
+        Key(("x", null)).Should().NotBe(Key(("x", "null"))).And.NotBe(Key(("x", string.Empty)));
+        Key(("a", "1\u001f1:b=1:2")).Should().NotBe(Key(("a", "1"), ("b", "2")));
+    }
+
+    [Fact]
+    public async Task Applications_sharing_a_store_never_share_results_Async()
+    {
+        var store = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+        var table = new Dml.Rest.RestTable { SchemaName = null, Name = "t", QualifiedName = "t", Columns = [] };
+        DapperMaticResultCache Cache(string? prefix, string application)
+        {
+            var options = new DapperMaticOptions { ResultCacheStore = store, ResultCacheKeyPrefix = prefix };
+            options.CachedTables.Add(new DapperMaticCachedTable { TableName = "t", Duration = TimeSpan.FromMinutes(1) });
+            var services = new ServiceCollection().AddSingleton<Microsoft.Extensions.Hosting.IHostEnvironment>(new Environment(application));
+            return new DapperMaticResultCache(Options.Create(options), services.BuildServiceProvider());
+        }
+
+        // Two applications (or staging and production) using one Redis, each with a datasource "main".
+        var shop = Cache(null, "shop");
+        var admin = Cache(null, "admin");
+        shop.For("main", DbProviderType.Sqlite, string.Empty)!.Scope.Should().NotBe(admin.For("main", DbProviderType.Sqlite, string.Empty)!.Scope);
+        var before = await admin.For("main", DbProviderType.Sqlite, string.Empty)!.Versions([table], default);
+        await shop.WrittenAsync("main", DbProviderType.Sqlite, [(null, "t")], default);
+        (await admin.For("main", DbProviderType.Sqlite, string.Empty)!.Versions([table], default)).Should().Be(before);
+
+        // Instances of one application share them; so do applications given one prefix.
+        Cache(null, "shop").For("main", DbProviderType.Sqlite, string.Empty)!.Scope.Should().Be(shop.For("main", DbProviderType.Sqlite, string.Empty)!.Scope);
+        Cache("shared", "shop").For("main", DbProviderType.Sqlite, string.Empty)!.Scope
+            .Should().Be(Cache("shared", "admin").For("main", DbProviderType.Sqlite, string.Empty)!.Scope);
     }
 
     [MJCZone.DapperMatic.DataAnnotations.DmTable(tableName: "rc_orders")]
@@ -298,8 +370,11 @@ public class ResultCacheTests : IClassFixture<TestcontainersAssemblyFixture>
     private sealed class CallbackResponseFeature : HttpResponseFeature
     {
         private readonly List<(Func<object, Task> Callback, object State)> _starting = [];
+        private readonly List<(Func<object, Task> Callback, object State)> _completed = [];
 
         public override void OnStarting(Func<object, Task> callback, object state) => _starting.Add((callback, state));
+
+        public override void OnCompleted(Func<object, Task> callback, object state) => _completed.Add((callback, state));
 
         public async Task StartAsync()
         {
@@ -308,5 +383,25 @@ public class ResultCacheTests : IClassFixture<TestcontainersAssemblyFixture>
                 await callback(state);
             }
         }
+
+        public async Task CompleteAsync()
+        {
+            foreach (var (callback, state) in _completed)
+            {
+                await callback(state);
+            }
+        }
+    }
+
+    // The application a cache is in, by name.
+    private sealed class Environment(string application) : Microsoft.Extensions.Hosting.IHostEnvironment
+    {
+        public string ApplicationName { get; set; } = application;
+
+        public string EnvironmentName { get; set; } = "Production";
+
+        public string ContentRootPath { get; set; } = "/";
+
+        public Microsoft.Extensions.FileProviders.IFileProvider ContentRootFileProvider { get; set; } = new Microsoft.Extensions.FileProviders.NullFileProvider();
     }
 }

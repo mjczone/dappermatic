@@ -229,7 +229,9 @@ public partial class DapperMaticService
                             .Select(r => (IReadOnlyDictionary<string, object?>)r.ToDictionary(p => p.Key, p => Value(p.Value)))
                             .ToList();
                         var written = await engine.InsertReturningAsync(table, rows, transaction, cancellationToken).ConfigureAwait(false);
-                        results.Add(new BatchOperationResult { Affected = written.Count, Rows = written });
+
+                        // Answered, and referred to by later operations, as the caller may see them.
+                        results.Add(new BatchOperationResult { Affected = written.Count, Rows = await engine.EchoAsync(table, written, rows, cancellationToken).ConfigureAwait(false) });
                         break;
                     case "update-rows":
                         var set = (operation.Set ?? throw new ArgumentException($"Operation {i + 1} sets nothing.")).ToDictionary(p => p.Key, p => Value(p.Value));
@@ -486,8 +488,11 @@ public partial class DapperMaticService
                                 }
                             }
 
+                            // The index must search the declared columns and no others: a column it reads besides them,
+                            // which the caller may not be able to read, would be searched too.
                             var expression = definition.Substring(start, end - start + 1);
-                            if (end <= start || !columns.All(c => Regex.IsMatch(expression, $"\\b{Regex.Escape(c)}\\b", RegexOptions.IgnoreCase)))
+                            var named = table.Columns.Select(c => c.Name).Where(c => Regex.IsMatch(expression, $"\\b{Regex.Escape(c)}\\b", RegexOptions.IgnoreCase)).ToList();
+                            if (end <= start || !SameColumns(named, columns))
                             {
                                 continue;
                             }
@@ -518,7 +523,7 @@ public partial class DapperMaticService
                         foreach (var index in indexed.GroupBy(i => i.Index))
                         {
                             var names = index.Select(i => i.Column).ToList();
-                            if (names.Count == columns.Length && names.All(n => columns.Contains(n, StringComparer.OrdinalIgnoreCase)))
+                            if (SameColumns(names, columns))
                             {
                                 var native = $"{{0}} IN (SELECT {Quote(table.Keys[0])} FROM {table.QualifiedName} WHERE MATCH({string.Join(", ", names.Select(Quote))}) AGAINST ({{1}} IN BOOLEAN MODE))";
                                 return new RestSearchable(columns, native, RestSearchQuery.MySqlBoolean);
@@ -534,7 +539,16 @@ public partial class DapperMaticService
                         var sql = await connection
                             .ExecuteScalarAsync<string?>(new CommandDefinition("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = @fts", new { fts }, cancellationToken: cancellationToken))
                             .ConfigureAwait(false);
-                        return sql is not null && sql.Contains("fts5", StringComparison.OrdinalIgnoreCase)
+                        if (sql is null || !sql.Contains("fts5", StringComparison.OrdinalIgnoreCase))
+                        {
+                            return plain;
+                        }
+
+                        // Its columns must be the declared ones and no others, as an index's must.
+                        var indexed = await connection
+                            .QueryAsync<string>(new CommandDefinition("SELECT name FROM pragma_table_info(@fts)", new { fts }, cancellationToken: cancellationToken))
+                            .ConfigureAwait(false);
+                        return SameColumns([.. indexed], columns)
                             ? new RestSearchable(columns, $"{{0}} IN (SELECT rowid FROM {Quote(fts)} WHERE {Quote(fts)} MATCH {{1}})", RestSearchQuery.Fts5)
                             : plain;
                     }
@@ -549,6 +563,10 @@ public partial class DapperMaticService
             return plain;
         }
     }
+
+    // Whether an index's columns are the declared ones, no more and no fewer.
+    private static bool SameColumns(IReadOnlyCollection<string> indexed, string[] declared) =>
+        indexed.Count == declared.Length && declared.All(c => indexed.Contains(c, StringComparer.OrdinalIgnoreCase));
 
     private static async Task<RestTable> ReadViewAsync(IDbConnection connection, string qualifiedName, string? schemaName, string name)
     {
@@ -725,6 +743,10 @@ public partial class DapperMaticService
             Rules = (table, action) =>
                 RulesFor(context, new DmResource(datasourceId, SchemaOf(connection, table.SchemaName), table.Name, [.. table.Columns.Select(c => c.Name)]), action),
             Value = (path, cancellationToken) => caller.GetValueAsync(path, cancellationToken),
+
+            // A related row's table is written only where this request could write it on its own.
+            MayWrite = (table, action, _) =>
+                MayAsync(context, action == DmAction.Create ? "tables/insert-rows" : "tables/update-rows", table.SchemaName, table.Name, "WriteRelatedRows"),
         };
 
         return new RestEngine(

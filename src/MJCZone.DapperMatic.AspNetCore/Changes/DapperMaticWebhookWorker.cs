@@ -92,7 +92,7 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
         }
 
         var webhooks = _log.Webhooks.Where(w => w.Enabled && !string.IsNullOrWhiteSpace(w.Url)).ToList();
-        if (webhooks.Count == 0)
+        if (!_log.HearsAnything)
         {
             return;
         }
@@ -101,7 +101,10 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
         {
             var id = datasource.Id!;
             var hooks = webhooks.Where(w => w.DatasourceId is null || string.Equals(w.DatasourceId, id, StringComparison.OrdinalIgnoreCase)).ToList();
-            if (hooks.Count == 0 || datasource.Provider is null || await _datasources.GetConnectionStringAsync(id).ConfigureAwait(false) is not { } connectionString)
+
+            // Changes are noted for subscriptions too: they are pruned wherever they are noted, webhooks or none.
+            var prune = PruneDue(id) && (hooks.Count > 0 || _log.HearsAny(id));
+            if ((hooks.Count == 0 && !prune) || datasource.Provider is null || await _datasources.GetConnectionStringAsync(id).ConfigureAwait(false) is not { } connectionString)
             {
                 continue;
             }
@@ -111,7 +114,11 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
                 using var connection = _connections.CreateConnection(datasource.Provider, connectionString);
                 connection.Open();
                 await _log.EnsureAsync(id, connection, cancellationToken).ConfigureAwait(false);
-                await PruneAsync(id, connection, cancellationToken).ConfigureAwait(false);
+                if (prune)
+                {
+                    await PruneAsync(id, connection, cancellationToken).ConfigureAwait(false);
+                }
+
                 foreach (var hook in hooks)
                 {
                     await DeliverAsync(id, connection, hook, cancellationToken).ConfigureAwait(false);
@@ -132,6 +139,9 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
         new()
         {
             AllowAutoRedirect = false,
+
+            // Through a proxy, the address connected to would be the proxy's, and the webhook's never checked.
+            UseProxy = false,
             ConnectCallback = async (context, cancellationToken) =>
             {
                 var addresses = IPAddress.TryParse(context.DnsEndPoint.Host, out var literal)
@@ -178,6 +188,25 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
         if (address.AddressFamily == AddressFamily.InterNetworkV6)
         {
             var bytes = address.GetAddressBytes();
+
+            // Addresses that carry an IPv4 one a gateway connects to are judged as that address: NAT64 (64:ff9b::/96),
+            // 6to4 (2002::/16) and IPv4-compatible (::a.b.c.d). Local NAT64 (64:ff9b:1::/48) and Teredo (2001::/32) put
+            // it where the network chose, or hide it: refused.
+            if (bytes is [0x00, 0x64, 0xff, 0x9b, 0, 0, 0, 0, 0, 0, 0, 0, ..] || bytes is [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ..])
+            {
+                return IsInternal(new IPAddress(bytes.AsSpan(12, 4)));
+            }
+
+            if (bytes is [0x20, 0x02, ..])
+            {
+                return IsInternal(new IPAddress(bytes.AsSpan(2, 4)));
+            }
+
+            if (bytes is [0x00, 0x64, 0xff, 0x9b, 0x00, 0x01, ..] or [0x20, 0x01, 0x00, 0x00, ..])
+            {
+                return true;
+            }
+
             return address.IsIPv6LinkLocal || address.IsIPv6SiteLocal || address.IsIPv6Multicast || (bytes[0] & 0xFE) == 0xFC;
         }
 
@@ -218,14 +247,11 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
 
     private static DateTime Now() => DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
 
+    private bool PruneDue(string datasourceId) => !_pruned.TryGetValue(datasourceId, out var last) || Now() - last >= PruneEvery;
+
     private async Task PruneAsync(string datasourceId, IDbConnection connection, CancellationToken cancellationToken)
     {
         var now = Now();
-        if (_pruned.TryGetValue(datasourceId, out var last) && now - last < PruneEvery)
-        {
-            return;
-        }
-
         _pruned[datasourceId] = now;
         await _log.PruneAsync(connection, now - _options.Retention, cancellationToken).ConfigureAwait(false);
     }
@@ -323,6 +349,17 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
     // Posts one change; null if the address took it, else why not.
     private async Task<string?> SendAsync(DapperMaticWebhook hook, string datasourceId, DapperMaticChange change, CancellationToken cancellationToken)
     {
+        // A change whose keys cannot be read fails as a delivery does: retried, then dropped, never stopping the others.
+        JsonNode? keys;
+        try
+        {
+            keys = change.RowKeys is null ? null : JsonNode.Parse(change.RowKeys);
+        }
+        catch (JsonException)
+        {
+            return "The change's row keys are not JSON.";
+        }
+
         var message = new JsonObject
         {
             ["id"] = change.Id,
@@ -332,7 +369,7 @@ public sealed class DapperMaticWebhookWorker : BackgroundService
             ["table"] = change.TableName,
             ["action"] = change.Action,
             ["tenant"] = change.Tenant,
-            ["keys"] = change.RowKeys is null ? null : JsonNode.Parse(change.RowKeys),
+            ["keys"] = keys,
             ["count"] = change.RowCount,
             ["at"] = DateTime.SpecifyKind(change.CreatedAt, DateTimeKind.Utc),
         };

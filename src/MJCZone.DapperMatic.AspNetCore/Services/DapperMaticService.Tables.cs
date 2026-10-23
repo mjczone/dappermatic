@@ -101,7 +101,7 @@ public partial class DapperMaticService
             await LogAuditEventAsync(context, true, $"Retrieved tables for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
             return tables
-                .Where(t => MayReadSchema(context, new DmResource(datasourceId, SchemaOf(connection, schemaName), t.TableName)))
+                .Where(t => !IsPrivate(t.TableName) && MayReadSchema(context, new DmResource(datasourceId, SchemaOf(connection, schemaName), t.TableName)))
                 .ToTableDtos(includeColumns, includeIndexes, includeConstraints);
         }
     }
@@ -215,6 +215,12 @@ public partial class DapperMaticService
             .NotNull(table, nameof(table))
             .NotNullOrWhiteSpace(table.TableName, "TableName is required")
             .Assert();
+
+        // Nor is one made under such a name: DapperMatic would take it for its own.
+        if (IsPrivate(table.TableName))
+        {
+            throw new UnauthorizedAccessException($"DapperMatic does not serve the table '{table.TableName}'.");
+        }
 
         var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
         using (connection)

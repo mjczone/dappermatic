@@ -37,6 +37,28 @@ namespace MJCZone.DapperMatic.AspNetCore;
 /// </code>
 public sealed class DapperMaticOptions
 {
+    // DapperMatic's own tables, by their default names (a renamed access table is added by the builder that names it).
+    private static readonly string[] DefaultPrivateTables =
+    [
+        "dm_users",
+        "dm_memberships",
+        "dm_invitations",
+        "dm_user_sessions",
+        "dm_user_roles",
+        "dm_user_claims",
+        "dm_user_tokens",
+        "dm_account_settings",
+        "dm_data_protection_keys",
+        "dm_accounts_state",
+        "dm_tickets",
+        "dm_api_keys",
+        "dm_access",
+        "dm_datasources",
+        "dm_changes",
+        "dm_webhook_state",
+        "dm_table_state",
+    ];
+
     /// <summary>
     /// Gets or sets the base path for DapperMatic API endpoints.
     /// Default is "/api/dm".
@@ -139,6 +161,19 @@ public sealed class DapperMaticOptions
     public TimeSpan SchemaCacheDuration { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
+    /// Gets the tables no DapperMatic endpoint serves, by name, in any datasource and schema: they are not listed, read,
+    /// written, altered, dropped or created through the API, GraphQL or MCP, nor followed as a relation or referenced by
+    /// a foreign key, whatever the policies or the application's permissions say.
+    /// </summary>
+    /// <remarks>
+    /// It starts with DapperMatic's own tables (accounts, keys, tickets, kept access, datasources, the change log, the
+    /// migration ledgers), which may share a datasource the API serves. Add tables of your own the API must never
+    /// reach. A view's SQL is not held to it: defining views reaches every table of a datasource, which is why only a
+    /// grant on a whole datasource covers it.
+    /// </remarks>
+    public HashSet<string> PrivateTables { get; } = new(DefaultPrivateTables, StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Gets the relations query requests may follow from tables: none is reachable unless declared here.
     /// </summary>
     public List<DapperMaticRelation> Relations { get; } = [];
@@ -190,6 +225,14 @@ public sealed class DapperMaticOptions
     /// Valkey, ...) when it registers one, else memory in this process.
     /// </summary>
     public IDistributedCache? ResultCacheStore { get; set; }
+
+    /// <summary>
+    /// Gets or sets what the keys of kept results and table versions start with: null for the application's name and
+    /// environment, so that instances of one application share them, and other applications or environments using the
+    /// same store (one Redis for staging and production) never do. Give the same value to applications that serve the
+    /// same databases and should share results.
+    /// </summary>
+    public string? ResultCacheKeyPrefix { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether successful <c>GET</c> responses carry an <c>ETag</c>, which a client sends

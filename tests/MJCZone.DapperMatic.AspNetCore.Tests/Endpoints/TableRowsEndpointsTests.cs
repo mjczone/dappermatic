@@ -9,11 +9,15 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Factories;
 using MJCZone.DapperMatic.AspNetCore.Models;
 using MJCZone.DapperMatic.AspNetCore.Models.Responses;
+using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Tests.Factories;
+using MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
 using MJCZone.DapperMatic.Models;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Endpoints;
 
@@ -316,6 +320,7 @@ public class TableRowsEndpointsTests : IClassFixture<TestcontainersAssemblyFixtu
                 {
                     options.Searchable.Add(new DapperMaticSearchable { TableName = "srch_plain", Columns = ["title", "body"] });
                     options.Searchable.Add(new DapperMaticSearchable { TableName = "srch_native", Columns = ["title", "body"] });
+                    options.Searchable.Add(new DapperMaticSearchable { TableName = "srch_title", Columns = ["title"] });
                 })
             )
         );
@@ -324,12 +329,12 @@ public class TableRowsEndpointsTests : IClassFixture<TestcontainersAssemblyFixtu
         using (var db = factory.Services.GetRequiredService<IDbConnectionFactory>().CreateConnection(datasource.Provider!, datasource.ConnectionString!))
         {
             db.Open();
-            foreach (var name in new[] { "srch_native_fts", "srch_plain", "srch_native" })
+            foreach (var name in new[] { "srch_native_fts", "srch_title_fts", "srch_plain", "srch_native", "srch_title" })
             {
                 await db.DropTableIfExistsAsync(schemaName, name);
             }
 
-            foreach (var name in new[] { "srch_plain", "srch_native" })
+            foreach (var name in new[] { "srch_plain", "srch_native", "srch_title" })
             {
                 await db.CreateTableIfNotExistsAsync(
                     new DmTable(schemaName, name, [new DmColumn("id", typeof(int), isPrimaryKey: true), new DmColumn("title", typeof(string), length: 100), new DmColumn("body", typeof(string), length: 200)])
@@ -352,6 +357,21 @@ public class TableRowsEndpointsTests : IClassFixture<TestcontainersAssemblyFixtu
             if (indexed is not null)
             {
                 await Dapper.SqlMapper.ExecuteAsync(db, indexed);
+            }
+
+            // An index over more columns than the table is declared searchable by.
+            var title = db.GetSchemaQualifiedTableName(schemaName, "srch_title");
+            var wider = provider switch
+            {
+                "postgresql" => $"CREATE INDEX ix_srch_title ON {title} USING gin (to_tsvector('english', title || ' ' || body))",
+                "mysql" => $"ALTER TABLE {title} ADD FULLTEXT ft_srch_title (title, body)",
+                "sqlite" => "CREATE VIRTUAL TABLE srch_title_fts USING fts5(title, body, content='srch_title', content_rowid='id'); "
+                    + "INSERT INTO srch_title_fts(rowid, title, body) SELECT id, title, body FROM srch_title",
+                _ => null,
+            };
+            if (wider is not null)
+            {
+                await Dapper.SqlMapper.ExecuteAsync(db, wider);
             }
         }
 
@@ -381,6 +401,102 @@ public class TableRowsEndpointsTests : IClassFixture<TestcontainersAssemblyFixtu
         }
 
         (await client.GetAsync($"{baseUrl}/srch_other/query?$search=x")).StatusCode.Should().NotBe(HttpStatusCode.OK);
+
+        // A table searchable by its title is searched by its title, whatever its index covers besides: a column the
+        // caller may not read must not be searched through it.
+        (await Ids("srch_title", "$search=rockets")).Should().Equal(1);
+        (await Ids("srch_title", "$search=loud")).Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Related_rows_are_written_only_where_the_request_may_write_their_table_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        using var baseFactory = new WafWithInMemoryDatasourceRepository([datasource]);
+        using var factory = baseFactory.WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+            {
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.Policies.Clear();
+                    options.Relations.Add(new DapperMaticRelation { TableName = "held_orders", Name = "customer", OtherTableName = "held_customers", Columns = ["customer_id"], OtherColumns = ["id"] });
+                });
+
+                // The application decides, and lets no request write customers.
+                services.RemoveAll<IDapperMaticPermissions>();
+                services.AddSingleton<IDapperMaticPermissions>(new NoCustomerWrites());
+            })
+        );
+        using var client = factory.CreateAuthenticatedClient(new System.Security.Claims.Claim("sub", "someone"));
+        var connections = factory.Services.GetRequiredService<IDbConnectionFactory>();
+        using var db = connections.CreateConnection(datasource.Provider!, datasource.ConnectionString!);
+        db.Open();
+        foreach (var name in new[] { "held_orders", "held_customers" })
+        {
+            await db.DropTableIfExistsAsync(null, name);
+        }
+
+        DmColumn Key() => new("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true);
+        await db.CreateTableIfNotExistsAsync(new DmTable(null, "held_customers", [Key(), new DmColumn("name", typeof(string), length: 50)]));
+        await db.CreateTableIfNotExistsAsync(new DmTable(null, "held_orders", [Key(), new DmColumn("customer_id", typeof(int)), new DmColumn("amount", typeof(int))]));
+        await Dapper.SqlMapper.ExecuteAsync(db, "INSERT INTO held_customers (name) VALUES ('Acme')");
+        async Task<HttpStatusCode> Insert(object row) =>
+            (await client.PostAsync($"/api/dm/d/{datasource.Id}/t/held_orders/rows", new StringContent(JsonSerializer.Serialize(new { rows = new[] { row } }), Encoding.UTF8, "application/json"))).StatusCode;
+
+        // An order may be inserted, but not a customer changed or added through it.
+        (await Insert(new { amount = 1, customer = new { id = 1, name = "Renamed" } })).Should().Be(HttpStatusCode.Forbidden);
+        (await Insert(new { amount = 1, customer = new { name = "New" } })).Should().Be(HttpStatusCode.Forbidden);
+        (await Dapper.SqlMapper.QueryAsync<string>(db, "SELECT name FROM held_customers")).Should().Equal("Acme");
+        (await Dapper.SqlMapper.ExecuteScalarAsync<long>(db, "SELECT COUNT(*) FROM held_orders")).Should().Be(0);
+        (await Insert(new { amount = 1, customer_id = 1 })).Should().Be(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Written_rows_are_answered_with_what_the_caller_may_see_Async()
+    {
+        var datasource = _fixture.GetTestDatasources().Single(ds => ds.Id == TestcontainersAssemblyFixture.DatasourceId_Sqlite);
+        using var baseFactory = new WafWithInMemoryDatasourceRepository([datasource]);
+        using var factory = baseFactory.WithWebHostBuilder(web =>
+            web.ConfigureServices(services =>
+                services.Configure<DapperMaticOptions>(options =>
+                {
+                    options.Policies.Add(DmPolicy.Restrict(DmAction.Read).OnTables("echo_rows").ExceptColumns("owner"));
+                    options.Policies.Add(DmPolicy.Restrict(DmAction.Create).OnTables("echo_rows").Preset("owner", "kept"));
+                })
+            )
+        );
+        using var client = factory.CreateClient();
+        using (var db = factory.Services.GetRequiredService<IDbConnectionFactory>().CreateConnection(datasource.Provider!, datasource.ConnectionString!))
+        {
+            db.Open();
+            await db.DropTableIfExistsAsync(null, "echo_rows");
+            await db.CreateTableIfNotExistsAsync(
+                new DmTable(null, "echo_rows", [new DmColumn("id", typeof(int), isPrimaryKey: true, isAutoIncrement: true), new DmColumn("owner", typeof(string), length: 20), new DmColumn("amount", typeof(int))])
+            );
+        }
+
+        async Task<JsonElement> Post(string path, object body)
+        {
+            var response = await client.PostAsync($"/api/dm/d/{datasource.Id}/{path}", new StringContent(JsonSerializer.Serialize(body), Encoding.UTF8, "application/json"));
+            var text = await response.Content.ReadAsStringAsync();
+            response.StatusCode.Should().Be(HttpStatusCode.OK, text);
+            return JsonDocument.Parse(text).RootElement;
+        }
+
+        // The preset the policies wrote is not told: the caller may not read that column. Its own values and the key are.
+        var row = (await Post("t/echo_rows/rows", new { rows = new[] { new { amount = 5 } } })).GetProperty("rows")[0];
+        row.EnumerateObject().Select(p => p.Name).Order().Should().Equal("amount", "id");
+
+        // Nor in a batch's answer, which later operations could copy from.
+        var batch = await Post("batch", new { operations = new object[] { new { op = "insert", table = "echo_rows", rows = new[] { new { amount = 6 } } } } });
+        batch.GetProperty("results")[0].GetProperty("rows")[0].EnumerateObject().Select(p => p.Name).Order().Should().Equal("amount", "id");
+    }
+
+    // Lets a request do anything but write customers.
+    private sealed class NoCustomerWrites : IDapperMaticPermissions
+    {
+        public Task<bool> IsAuthorizedAsync(DapperMaticOperation context) =>
+            Task.FromResult(!(context.TableName == "held_customers" && context.Operation is "tables/insert-rows" or "tables/update-rows"));
     }
 
     /// <summary>

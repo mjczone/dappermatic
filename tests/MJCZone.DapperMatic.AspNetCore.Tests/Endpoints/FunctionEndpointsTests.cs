@@ -71,6 +71,18 @@ public class FunctionEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
                         }
                     );
                     options.Functions.Add(new DapperMaticFunction { Name = "fn_all", Sql = "SELECT id FROM fx_orders", MaxRows = 2 });
+                    options.Functions.Add(
+                        new DapperMaticFunction
+                        {
+                            Name = "fn_orgs",
+                            Sql = "SELECT id FROM fx_orders WHERE @org <> 'x'",
+                            Parameters = { new DapperMaticFunctionParameter { Name = "org", Type = typeof(string), Value = "@claims.org" } },
+                        }
+                    );
+                    if (sqlite)
+                    {
+                        options.Functions.Add(new DapperMaticFunction { Name = "fn_bump_all", Sql = "UPDATE fx_orders SET total = total + 1 RETURNING id", MaxRows = 1, Writes = ["fx_orders"] });
+                    }
                     if (!sqlite)
                     {
                         options.Functions.Add(new DapperMaticFunction { Name = "fn_double", Routine = "fx_double", Parameters = { new DapperMaticFunctionParameter { Name = "x", Type = typeof(int) } } });
@@ -160,6 +172,26 @@ public class FunctionEndpointsTests : IClassFixture<TestcontainersAssemblyFixtur
         (status, body) = await Run(admin, "fn_all");
         status.Should().Be(HttpStatusCode.BadRequest, body);
         body.Should().Contain("more than 2 rows");
+
+        // One that wrote outside a transaction before returning too many keeps its write: the results kept are stale.
+        if (sqlite)
+        {
+            (await Run(admin, "fn_bump_all")).Status.Should().Be(HttpStatusCode.BadRequest);
+            (await Totals()).Should().Be("16,21,6,101");
+        }
+
+        // A value the request has several of (claims of one type) is not one value: refused, never bound as some text.
+        using (var oneOrg = factory.CreateAuthenticatedClient(new Claim(ClaimTypes.Role, "admin"), new Claim("org", "a")))
+        {
+            (status, body) = await Run(oneOrg, "fn_orgs");
+            status.Should().Be(HttpStatusCode.OK, body);
+        }
+
+        using (var twoOrgs = factory.CreateAuthenticatedClient(new Claim(ClaimTypes.Role, "admin"), new Claim("org", "a"), new Claim("org", "b")))
+        {
+            (status, body) = await Run(twoOrgs, "fn_orgs");
+            status.Should().Be(HttpStatusCode.BadRequest, body);
+        }
 
         // A routine of the database runs as the database calls one.
         if (!sqlite)

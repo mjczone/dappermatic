@@ -280,8 +280,8 @@ public sealed partial class DapperMaticAccessManager
             : throw new KeyNotFoundException($"No webhook is named '{name}'.");
     }
 
-    // A tenant's administrator names the datasource and each table, and may read every one: a webhook tells of their
-    // rows' keys, which the administrator could read through the API.
+    // A tenant's administrator names the datasource and each table, and reads every one whole: a webhook tells of each
+    // of the tenant's rows that changes, with its key, so a filter or a column list of theirs would be passed over.
     private void AssertMayRead(DapperMaticOperation context, DapperMaticWebhook webhook)
     {
         if (webhook.DatasourceId is not { Length: > 0 } datasource || webhook.Tables.Count == 0 || webhook.Tables.Exists(IsPattern))
@@ -292,9 +292,19 @@ public sealed partial class DapperMaticAccessManager
         var schema = webhook.Schemas.Count == 1 ? webhook.Schemas[0] : DmResource.Any;
         foreach (var table in webhook.Tables)
         {
-            if (!_policies.Evaluate(Access(context), new DmResource(datasource, schema, table), DmAction.Read).Allowed)
+            var rules = _policies.Evaluate(Access(context), new DmResource(datasource, schema, table), DmAction.Read);
+            if (!rules.Allowed)
             {
                 throw new UnauthorizedAccessException($"The webhook '{webhook.Name}' hears the table {table}, which this caller may not read.");
+            }
+
+            if (rules.Columns is not null
+                || !rules.Permissive.Any(p => _policies.OnlyFences(table, p.Filter))
+                || !rules.Restrictive.All(r => _policies.OnlyFences(table, r.Filter)))
+            {
+                throw new UnauthorizedAccessException(
+                    $"The webhook '{webhook.Name}' hears the table {table}, which this caller reads only in part: a webhook tells of every row of the tenant's that changes."
+                );
             }
         }
     }

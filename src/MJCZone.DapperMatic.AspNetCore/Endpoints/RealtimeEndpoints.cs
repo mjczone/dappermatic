@@ -113,25 +113,52 @@ internal static class RealtimeEndpoints
         }
 
         // The query runs once before anything is sent: a request it refuses is answered as /query would answer it.
+        // A change told between the first run and the subscription runs the query again (Notified taken before).
         var aborted = http.RequestAborted;
         var session = DapperMaticCallerSession.Of(http);
+        var since = hub.Notified;
         var last = await RunAsync(aborted).ConfigureAwait(false);
-        using var subscription = hub.Subscribe(datasourceId, dapperMatic.SubscribedTables(context, datasourceId));
+        using var subscription = hub.Subscribe(datasourceId, dapperMatic.SubscribedTables(context, datasourceId), since);
 
         http.Response.StatusCode = StatusCodes.Status200OK;
         http.Response.ContentType = "text/event-stream";
         http.Response.Headers.CacheControl = "no-cache";
         http.Response.Headers["X-Accel-Buffering"] = "no";
         var sent = 0;
-        async Task SendAsync(string kind, string data)
+        using var writing = new SemaphoreSlim(1, 1);
+        async Task WriteAsync(string text)
         {
-            await http.Response.WriteAsync($"event: {kind}\nid: {++sent}\ndata: {data}\n\n", aborted).ConfigureAwait(false);
-            await http.Response.Body.FlushAsync(aborted).ConfigureAwait(false);
+            await writing.WaitAsync(aborted).ConfigureAwait(false);
+            try
+            {
+                await http.Response.WriteAsync(text, aborted).ConfigureAwait(false);
+                await http.Response.Body.FlushAsync(aborted).ConfigureAwait(false);
+            }
+            finally
+            {
+                writing.Release();
+            }
         }
 
+        Task SendAsync(string kind, string data) => WriteAsync($"event: {kind}\nid: {++sent}\ndata: {data}\n\n");
+
+        // Pings keep their own time: one following a change would tell that a row of the table changed, though the
+        // caller may not read it.
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(aborted);
+        async Task PingAsync()
+        {
+            using var timer = new PeriodicTimer(options.Heartbeat);
+            while (await timer.WaitForNextTickAsync(stop.Token).ConfigureAwait(false))
+            {
+                await WriteAsync(": ping\n\n").ConfigureAwait(false);
+            }
+        }
+
+        Task? pings = null;
         try
         {
             await SendAsync("results", last).ConfigureAwait(false);
+            pings = PingAsync();
             while (!aborted.IsCancellationRequested)
             {
                 var changed = await subscription.WaitAsync(options.Heartbeat, aborted).ConfigureAwait(false);
@@ -154,8 +181,6 @@ internal static class RealtimeEndpoints
 
                     if (!changed)
                     {
-                        await http.Response.WriteAsync(": ping\n\n", aborted).ConfigureAwait(false);
-                        await http.Response.Body.FlushAsync(aborted).ConfigureAwait(false);
                         continue;
                     }
 
@@ -183,6 +208,21 @@ internal static class RealtimeEndpoints
         catch (OperationCanceledException) when (aborted.IsCancellationRequested)
         {
             // The client went away.
+        }
+        finally
+        {
+            await stop.CancelAsync().ConfigureAwait(false);
+            if (pings is not null)
+            {
+                try
+                {
+                    await pings.ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is OperationCanceledException or IOException)
+                {
+                    // Stopped with the stream, or the client went away.
+                }
+            }
         }
 
         return Results.Empty;

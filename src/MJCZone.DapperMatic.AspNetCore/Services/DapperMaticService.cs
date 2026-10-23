@@ -99,6 +99,19 @@ public partial class DapperMaticService : IDapperMaticService
     }
 
     /// <summary>
+    /// Keys the results the database's row-level security filtered by the session values it read: their text as the
+    /// database reads it (a list as its items, never its type's name), each part's length first, so no two sets of
+    /// values share a key.
+    /// </summary>
+    /// <param name="values">The session values, by name.</param>
+    /// <returns>The key.</returns>
+    internal static string SessionKey(IEnumerable<KeyValuePair<string, object?>> values) =>
+        string.Join(
+            '\u001f',
+            values.Select(v => DmSession.Text(v.Value) is { } text ? $"{v.Key.Length}:{v.Key}={text.Length}:{text}" : $"{v.Key.Length}:{v.Key}=null")
+        );
+
+    /// <summary>
     /// Names the schema of an operation when neither its request nor its tenant names one: the datasource's default
     /// schema (dbo, public), where the operation acts. It is authorized as acting there, so that leaving the schema out
     /// never passes over a policy about schemas.
@@ -158,6 +171,14 @@ public partial class DapperMaticService : IDapperMaticService
         // Authorized as acting in its schema, and recorded as the service received it: a failure is audited so.
         var operation = (await ResolveSchemaAsync(context).ConfigureAwait(false)).WithProperty("CurrentMethod", methodName);
         context.State.Received ??= operation;
+
+        // DapperMatic's own tables, and those the application keeps from the API, are served to no one.
+        if (IsPrivate(operation.TableName))
+        {
+            context.State.Received = operation;
+            throw new UnauthorizedAccessException($"DapperMatic does not serve the table '{operation.TableName}'.");
+        }
+
         if (!await _permissions.IsAuthorizedAsync(operation).ConfigureAwait(false) || !WithinLimits(operation))
         {
             // A request refused partway (a later table of a batch or a mutation) is audited as what was refused.
@@ -260,10 +281,7 @@ public partial class DapperMaticService : IDapperMaticService
                 await DmSession.SetAsync(connection, values).ConfigureAwait(false);
 
                 // Results the database's row-level security filtered are kept per session values, never shared.
-                _session = string.Join(
-                    '\u001f',
-                    values.Select(v => $"{v.Key}={v.Value?.GetType().Name}:{Convert.ToString(v.Value, System.Globalization.CultureInfo.InvariantCulture)}")
-                );
+                _session = SessionKey(values);
             }
 
             // A session step sets what it likes, which results cannot be keyed by: they are not kept.
@@ -343,6 +361,32 @@ public partial class DapperMaticService : IDapperMaticService
             methodName
         );
 
+    // Whether the request may run as another operation on another table, refusing nothing: for what a request may leave
+    // undone, as a related row's update. Checked as AssertPermissionsAsync checks.
+    private async Task<bool> MayAsync(DapperMaticOperation context, string operation, string? schemaName, string tableName, string methodName)
+    {
+        if (IsPrivate(tableName))
+        {
+            return false;
+        }
+
+        var other = (
+            await ResolveSchemaAsync(
+                    context with
+                    {
+                        Operation = operation,
+                        SchemaName = schemaName,
+                        TableName = tableName,
+                        ViewName = null,
+                        ColumnNames = null,
+                        State = new(),
+                    }
+                )
+                .ConfigureAwait(false)
+        ).WithProperty("CurrentMethod", methodName);
+        return await _permissions.IsAuthorizedAsync(other).ConfigureAwait(false) && WithinLimits(other);
+    }
+
     // A foreign key reads the table it references (an insert tells whether a key exists there) and keeps that table's
     // rows from being deleted: creating one needs the referenced table's definition, and its key columns, readable.
     private async Task AssertMayReferenceAsync(
@@ -398,6 +442,9 @@ public partial class DapperMaticService : IDapperMaticService
 
     // Whether a listing shows a datasource, schema, table or view.
     private bool MayReadSchema(DapperMaticOperation context, DmResource resource) => RulesFor(context, resource, DmAction.ReadSchema).Allowed;
+
+    // A table no endpoint serves (DapperMaticOptions.PrivateTables).
+    private bool IsPrivate(string? tableName) => tableName is { Length: > 0 } && _options.PrivateTables.Contains(tableName);
 
     private string? NormalizeSchemaName(string? schemaName)
     {

@@ -205,6 +205,29 @@ public sealed partial class DapperMaticPolicySet
         return !NotInSchema.Contains(resource) && (resource != "access" || verb == "effective");
     }
 
+    /// <summary>
+    /// Tells whether a policy's filter on a table limits its rows to the tenant's only, as holding a tenant's policy
+    /// does, or not at all: what a tenant's webhook, which hears only its tenant's rows, may report every row of.
+    /// </summary>
+    /// <param name="table">The table.</param>
+    /// <param name="filter">The policy's filter, as held.</param>
+    /// <returns>True if it does no more than that.</returns>
+    internal bool OnlyFences(string table, string? filter)
+    {
+        if (string.IsNullOrWhiteSpace(filter))
+        {
+            return true;
+        }
+
+        if ((_tenancy.RowsColumns.GetValueOrDefault(table) ?? _tenancy.RowsColumn) is not { } column)
+        {
+            return false;
+        }
+
+        var fence = _tenancy.TenantRulesReach is { } reach ? $"{column} in {reach}" : $"{column} eq @tenant.id";
+        return string.Equals(filter, fence, StringComparison.Ordinal);
+    }
+
     // A tenant's policy, held to the tenant's rows: a copy per table, whose filter and check are ANDed with the column
     // that marks the table's rows compared with the tenant, or the tenants its administrators reach. One naming no
     // table cannot be held so: it keeps only access management (the access endpoints keep no other).

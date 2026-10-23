@@ -97,7 +97,8 @@ public partial class DapperMaticService
                 value = ContextValue(
                     await access.GetValueAsync(path, cancellationToken).ConfigureAwait(false)
                         ?? throw new UnauthorizedAccessException($"The function '{function.Name}' takes {parameter.Name} from {path}, which this request does not have."),
-                    parameter.Type
+                    parameter.Type,
+                    $"The function '{function.Name}' takes {parameter.Name} from {path}"
                 );
             }
             else if (supplied.TryGetValue(parameter.Name, out var json) && json.ValueKind != JsonValueKind.Null)
@@ -181,6 +182,12 @@ public partial class DapperMaticService
             {
                 if (rows.Count > max)
                 {
+                    // Run outside any transaction, what it wrote is kept: the results that read it are stale all the same.
+                    if (writes is null && transaction is null)
+                    {
+                        await StaleAsync(cancellationToken).ConfigureAwait(false);
+                    }
+
                     throw new ArgumentException($"The function '{function.Name}' returned more than {max} rows.");
                 }
 
@@ -228,13 +235,19 @@ public partial class DapperMaticService
     private static List<(string? Schema, string Table)> Written(DapperMaticFunction function) =>
         [.. function.Writes.Where(w => w != "*").Select(w => w.LastIndexOf('.') is var dot and > 0 ? ((string?)w[..dot], w[(dot + 1)..]) : (null, w))];
 
-    // A value of the request's context, as the parameter's type: a claim's text read as a number, for instance.
-    private static object ContextValue(object value, Type type)
+    // A value of the request's context, as the parameter's type: a claim's text read as a number, for instance. Several
+    // values (claims of one type, a tenant's reach) are not one: refused, never bound as their list's type name.
+    private static object ContextValue(object value, Type type, string what)
     {
         var target = Nullable.GetUnderlyingType(type) ?? type;
         if (target.IsInstanceOfType(value))
         {
             return value;
+        }
+
+        if (value is System.Collections.IEnumerable and not string)
+        {
+            throw new ArgumentException($"{what}, which has several values in this request; the parameter takes one.");
         }
 
         var text = Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
