@@ -1,0 +1,50 @@
+# GraphQL client compatibility: the schema DapperMatic's GraphQL endpoint builds (tests/graphql-clients/schema.graphql,
+# checked against the builder by GraphQLSchemaTests) is generated into clients by the three client stacks it supports,
+# with a fixed set of operations. A change to the schema that one of them cannot take fails here.
+name: GraphQL clients
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/MJCZone.DapperMatic.GraphQL/**"
+      - "src/MJCZone.DapperMatic.AspNetCore/**"
+      - "tests/graphql-clients/**"
+      - "tests/MJCZone.DapperMatic.AspNetCore.Tests/GraphQL/**"
+      - ".github/workflows/graphql-clients.yml"
+
+jobs:
+  clients:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup dotnet
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: The schema is the builder's
+        run: dotnet test tests/MJCZone.DapperMatic.AspNetCore.Tests --filter "FullyQualifiedName~GraphQLSchemaTests"
+
+      - name: Apollo Client (graphql-codegen, strict scalars, type-checked)
+        working-directory: tests/graphql-clients/codegen
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+
+      - name: Relay (relay-compiler, nodeInterfaceIdField nodeId)
+        working-directory: tests/graphql-clients/relay
+        run: |
+          npm ci --no-audit --no-fund
+          npm run check
+
+      - name: Strawberry Shake (client generated on build)
+        run: dotnet build tests/graphql-clients/strawberry

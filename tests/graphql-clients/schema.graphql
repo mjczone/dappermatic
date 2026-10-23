@@ -1,0 +1,751 @@
+"A row of customers."
+type customers implements Node {
+  "The row's global id."
+  nodeId: ID!
+  id: Int!
+  name: String!
+  country: String
+  created: DateTime!
+  ref: UUID
+  photo: ByteArray
+  prefs: Any
+  points: Long!
+  orders(
+    "Conditions the rows meet."
+    where: orders_where,
+    "A condition as OData text, as the REST API takes it: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, each item naming one column or relation."
+    orderBy: [orders_order_by!],
+    "The most rows to read."
+    first: Int,
+    "The rows to skip."
+    skip: Int): [orders!]!
+}
+
+"A date and time with its offset from UTC, as 2024-05-17T09:30:00.000+02:00 (RFC 3339)."
+scalar DateTime
+
+"A UUID, as xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx."
+scalar UUID
+
+"Bytes, as base64."
+scalar ByteArray
+
+"Any value, as JSON."
+scalar Any
+
+scalar Long
+
+"A row of orders."
+type orders implements Node {
+  "The row's global id."
+  nodeId: ID!
+  id: Int!
+  customer_id: Int
+  total: Decimal!
+  status: String!
+  placed: LocalDateTime
+  ship_date: Date
+  ship_time: LocalTime
+  duration: TimeSpan
+  rush: Boolean!
+  customer: customers
+}
+
+scalar Decimal
+
+"A date and time of no particular offset, as 2024-05-17T09:30:00."
+scalar LocalDateTime
+
+"A date, as 2024-05-17."
+scalar Date
+
+"A time of day, as 09:30:00."
+scalar LocalTime
+
+"A duration, as ISO 8601: PT1H30M."
+scalar TimeSpan
+
+"Conditions on rows of orders."
+input orders_where {
+  "Every condition holds."
+  _and: [orders_where!]
+  "Any condition holds."
+  _or: [orders_where!]
+  "The condition does not hold."
+  _not: orders_where
+  id: Int_comparison
+  customer_id: Int_comparison
+  total: Decimal_comparison
+  status: String_comparison
+  placed: LocalDateTime_comparison
+  ship_date: Date_comparison
+  ship_time: LocalTime_comparison
+  duration: TimeSpan_comparison
+  rush: Boolean_comparison
+  customer: customers_where
+}
+
+"Comparisons of Int values."
+input Int_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: Int
+  ne: Int
+  gt: Int
+  gte: Int
+  lt: Int
+  lte: Int
+  "The value is one of these."
+  in: [Int!]
+  "The value is none of these."
+  nin: [Int!]
+}
+
+"Comparisons of Decimal values."
+input Decimal_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: Decimal
+  ne: Decimal
+  gt: Decimal
+  gte: Decimal
+  lt: Decimal
+  lte: Decimal
+  "The value is one of these."
+  in: [Decimal!]
+  "The value is none of these."
+  nin: [Decimal!]
+}
+
+"Comparisons of String values."
+input String_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: String
+  ne: String
+  gt: String
+  gte: String
+  lt: String
+  lte: String
+  "The value is one of these."
+  in: [String!]
+  "The value is none of these."
+  nin: [String!]
+  "The text holds this, as the database compares text."
+  contains: String
+  "The text starts with this."
+  startsWith: String
+  "The text ends with this."
+  endsWith: String
+}
+
+"Comparisons of LocalDateTime values."
+input LocalDateTime_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: LocalDateTime
+  ne: LocalDateTime
+  gt: LocalDateTime
+  gte: LocalDateTime
+  lt: LocalDateTime
+  lte: LocalDateTime
+  "The value is one of these."
+  in: [LocalDateTime!]
+  "The value is none of these."
+  nin: [LocalDateTime!]
+}
+
+"Comparisons of Date values."
+input Date_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: Date
+  ne: Date
+  gt: Date
+  gte: Date
+  lt: Date
+  lte: Date
+  "The value is one of these."
+  in: [Date!]
+  "The value is none of these."
+  nin: [Date!]
+}
+
+"Comparisons of LocalTime values."
+input LocalTime_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: LocalTime
+  ne: LocalTime
+  gt: LocalTime
+  gte: LocalTime
+  lt: LocalTime
+  lte: LocalTime
+  "The value is one of these."
+  in: [LocalTime!]
+  "The value is none of these."
+  nin: [LocalTime!]
+}
+
+"Comparisons of TimeSpan values."
+input TimeSpan_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: TimeSpan
+  ne: TimeSpan
+  gt: TimeSpan
+  gte: TimeSpan
+  lt: TimeSpan
+  lte: TimeSpan
+  "The value is one of these."
+  in: [TimeSpan!]
+  "The value is none of these."
+  nin: [TimeSpan!]
+}
+
+"Comparisons of Boolean values."
+input Boolean_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: Boolean
+  ne: Boolean
+  gt: Boolean
+  gte: Boolean
+  lt: Boolean
+  lte: Boolean
+  "The value is one of these."
+  in: [Boolean!]
+  "The value is none of these."
+  nin: [Boolean!]
+}
+
+"Conditions on rows of customers."
+input customers_where {
+  "Every condition holds."
+  _and: [customers_where!]
+  "Any condition holds."
+  _or: [customers_where!]
+  "The condition does not hold."
+  _not: customers_where
+  id: Int_comparison
+  name: String_comparison
+  country: String_comparison
+  created: DateTime_comparison
+  ref: UUID_comparison
+  photo: ByteArray_comparison
+  prefs: Any_comparison
+  points: Long_comparison
+  orders: orders_many_where
+}
+
+"Comparisons of DateTime values."
+input DateTime_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: DateTime
+  ne: DateTime
+  gt: DateTime
+  gte: DateTime
+  lt: DateTime
+  lte: DateTime
+  "The value is one of these."
+  in: [DateTime!]
+  "The value is none of these."
+  nin: [DateTime!]
+}
+
+"Comparisons of UUID values."
+input UUID_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: UUID
+  ne: UUID
+  gt: UUID
+  gte: UUID
+  lt: UUID
+  lte: UUID
+  "The value is one of these."
+  in: [UUID!]
+  "The value is none of these."
+  nin: [UUID!]
+}
+
+"Comparisons of ByteArray values."
+input ByteArray_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: ByteArray
+  ne: ByteArray
+  gt: ByteArray
+  gte: ByteArray
+  lt: ByteArray
+  lte: ByteArray
+  "The value is one of these."
+  in: [ByteArray!]
+  "The value is none of these."
+  nin: [ByteArray!]
+}
+
+"Comparisons of Any values."
+input Any_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+}
+
+"Comparisons of Long values."
+input Long_comparison {
+  "Whether the value is null."
+  isNull: Boolean
+  eq: Long
+  ne: Long
+  gt: Long
+  gte: Long
+  lt: Long
+  lte: Long
+  "The value is one of these."
+  in: [Long!]
+  "The value is none of these."
+  nin: [Long!]
+}
+
+"Conditions on related rows of orders."
+input orders_many_where {
+  "Some related row meets the conditions."
+  any: orders_where
+  "Every related row meets the conditions."
+  all: orders_where
+  "No related row meets the conditions."
+  none: orders_where
+}
+
+"One way to order rows of orders."
+input orders_order_by {
+  id: order_by
+  customer_id: order_by
+  total: order_by
+  status: order_by
+  placed: order_by
+  ship_date: order_by
+  ship_time: order_by
+  duration: order_by
+  rush: order_by
+  customer: customers_order_by
+}
+
+"Ascending or descending."
+enum order_by {
+  "Ascending."
+  ASC
+  "Descending."
+  DESC
+}
+
+"One way to order rows of customers."
+input customers_order_by {
+  id: order_by
+  name: order_by
+  country: order_by
+  created: order_by
+  ref: order_by
+  photo: order_by
+  prefs: order_by
+  points: order_by
+}
+
+"A row of the view order_totals."
+type order_totals {
+  customer_id: Int
+  total: Decimal
+}
+
+type Query {
+  "A row by its global id."
+  node(id: ID!): Node
+  "Rows of customers."
+  customers(
+    "Conditions the rows meet."
+    where: customers_where,
+    "A condition as OData text, as the REST API takes it: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, each item naming one column or relation."
+    orderBy: [customers_order_by!],
+    "The most rows to read."
+    first: Int,
+    "The rows to skip."
+    skip: Int,
+    "Reads the rows after a cursor (an edge's, or a connection's endCursor)."
+    after: String,
+    "Words every row contains, in the table's searchable columns."
+    search: String): [customers!]!
+  "Rows of customers, a page at a time (a Relay connection)."
+  customers_connection(
+    "Conditions the rows meet."
+    where: customers_where,
+    "A condition as OData text: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, by the table's own columns; the key orders rows alike."
+    orderBy: [customers_connection_order_by!],
+    "The most rows in the page."
+    first: Int,
+    "Reads the rows after a cursor."
+    after: String,
+    "Words every row contains, in the table's searchable columns."
+    search: String): customers_connection!
+  "A row of customers by its key."
+  customers_by_key(id: Int!): customers
+  "Rows of order_totals."
+  order_totals(
+    "Conditions the rows meet."
+    where: order_totals_where,
+    "A condition as OData text, as the REST API takes it: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, each item naming one column or relation."
+    orderBy: [order_totals_order_by!],
+    "The most rows to read."
+    first: Int,
+    "The rows to skip."
+    skip: Int): [order_totals!]!
+  "Rows of orders."
+  orders(
+    "Conditions the rows meet."
+    where: orders_where,
+    "A condition as OData text, as the REST API takes it: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, each item naming one column or relation."
+    orderBy: [orders_order_by!],
+    "The most rows to read."
+    first: Int,
+    "The rows to skip."
+    skip: Int,
+    "Reads the rows after a cursor (an edge's, or a connection's endCursor)."
+    after: String): [orders!]!
+  "Rows of orders, a page at a time (a Relay connection)."
+  orders_connection(
+    "Conditions the rows meet."
+    where: orders_where,
+    "A condition as OData text: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, by the table's own columns; the key orders rows alike."
+    orderBy: [orders_connection_order_by!],
+    "The most rows in the page."
+    first: Int,
+    "Reads the rows after a cursor."
+    after: String): orders_connection!
+  "A row of orders by its key."
+  orders_by_key(id: Int!): orders
+  "The customers who spent the most."
+  top_customers(min: Decimal!): [Any!]!
+}
+
+"A row with a global id."
+interface Node {
+  "The row's global id."
+  nodeId: ID!
+}
+
+"A page of rows of customers (a Relay connection)."
+type customers_connection {
+  "How many rows match, on every page."
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [customers_edge!]!
+}
+
+"Where a page is among the rows (Relay)."
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+"A row of customers in a page, with its cursor."
+type customers_edge {
+  cursor: String!
+  node: customers!
+}
+
+"One column to order a page of customers by."
+input customers_connection_order_by {
+  id: order_by
+  name: order_by
+  country: order_by
+  created: order_by
+  ref: order_by
+  photo: order_by
+  prefs: order_by
+  points: order_by
+}
+
+"Conditions on rows of order_totals."
+input order_totals_where {
+  "Every condition holds."
+  _and: [order_totals_where!]
+  "Any condition holds."
+  _or: [order_totals_where!]
+  "The condition does not hold."
+  _not: order_totals_where
+  customer_id: Int_comparison
+  total: Decimal_comparison
+}
+
+"One way to order rows of order_totals."
+input order_totals_order_by {
+  customer_id: order_by
+  total: order_by
+}
+
+"A page of rows of orders (a Relay connection)."
+type orders_connection {
+  "How many rows match, on every page."
+  totalCount: Int!
+  pageInfo: PageInfo!
+  edges: [orders_edge!]!
+}
+
+"A row of orders in a page, with its cursor."
+type orders_edge {
+  cursor: String!
+  node: orders!
+}
+
+"One column to order a page of orders by."
+input orders_connection_order_by {
+  id: order_by
+  customer_id: order_by
+  total: order_by
+  status: order_by
+  placed: order_by
+  ship_date: order_by
+  ship_time: order_by
+  duration: order_by
+  rush: order_by
+}
+
+type Mutation {
+  "Inserts rows into customers, all or none."
+  insert_customers(rows: [customers_insert!]!): customers_insert_payload!
+  "Inserts rows into customers, or updates those whose key is there already."
+  save_customers(rows: [customers_insert!]!): customers_insert_payload_2!
+  "Updates the rows of customers that match a condition (where, filter, or both); filter: \"true\" for every row."
+  update_customers(
+    "A condition as OData text: status eq 'open'; true for every row."
+    filter: String,
+    "Conditions the rows meet."
+    where: customers_where,
+    set: customers_set!): customers_rows_payload!
+  "Updates a row of customers by its key or nodeId."
+  update_customers_by_key(
+    id: Int,
+    "The row's global id, in place of its key."
+    nodeId: ID,
+    set: customers_set!): customers_row_payload!
+  "Deletes the rows of customers that match a condition (where, filter, or both), returning them as they were; filter: \"true\" for every row."
+  delete_customers(
+    "A condition as OData text: status eq 'open'; true for every row."
+    filter: String,
+    "Conditions the rows meet."
+    where: customers_where): customers_rows_payload_2!
+  "Deletes a row of customers by its key or nodeId, returning it as it was."
+  delete_customers_by_key(
+    id: Int,
+    "The row's global id, in place of its key."
+    nodeId: ID): customers_row_payload_2!
+  "Inserts rows into orders, all or none."
+  insert_orders(rows: [orders_insert!]!): orders_insert_payload!
+  "Inserts rows into orders, or updates those whose key is there already."
+  save_orders(rows: [orders_insert!]!): orders_insert_payload_2!
+  "Updates the rows of orders that match a condition (where, filter, or both); filter: \"true\" for every row."
+  update_orders(
+    "A condition as OData text: status eq 'open'; true for every row."
+    filter: String,
+    "Conditions the rows meet."
+    where: orders_where,
+    set: orders_set!): orders_rows_payload!
+  "Updates a row of orders by its key or nodeId."
+  update_orders_by_key(
+    id: Int,
+    "The row's global id, in place of its key."
+    nodeId: ID,
+    set: orders_set!): orders_row_payload!
+  "Deletes the rows of orders that match a condition (where, filter, or both), returning them as they were; filter: \"true\" for every row."
+  delete_orders(
+    "A condition as OData text: status eq 'open'; true for every row."
+    filter: String,
+    "Conditions the rows meet."
+    where: orders_where): orders_rows_payload_2!
+  "Deletes a row of orders by its key or nodeId, returning it as it was."
+  delete_orders_by_key(
+    id: Int,
+    "The row's global id, in place of its key."
+    nodeId: ID): orders_row_payload_2!
+  recalc_totals: [Any!]!
+}
+
+"Rows of customers written."
+type customers_insert_payload {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [customers!]!
+  "The rows as edges, to add to a connection."
+  edges: [customers_edge!]!
+}
+
+"A row to insert into customers."
+input customers_insert {
+  id: Int
+  name: String!
+  country: String
+  created: DateTime!
+  ref: UUID
+  photo: ByteArray
+  prefs: Any
+  points: Long!
+  orders: [orders_insert!]
+}
+
+"A row to insert into orders."
+input orders_insert {
+  id: Int
+  customer_id: Int
+  total: Decimal!
+  status: String!
+  placed: LocalDateTime
+  ship_date: Date
+  ship_time: LocalTime
+  duration: TimeSpan
+  rush: Boolean!
+}
+
+"Rows of customers written."
+type customers_insert_payload_2 {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [customers!]!
+  "The rows as edges, to add to a connection."
+  edges: [customers_edge!]!
+}
+
+"Rows of customers written."
+type customers_rows_payload {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [customers!]!
+}
+
+"The columns of customers to set."
+input customers_set {
+  id: Int
+  name: String
+  country: String
+  created: DateTime
+  ref: UUID
+  photo: ByteArray
+  prefs: Any
+  points: Long
+}
+
+"A row of customers written."
+type customers_row_payload {
+  "How many rows were written: 0 or 1."
+  affected: Int!
+  "The row, if the caller may read it."
+  row: customers
+}
+
+"Rows of customers written."
+type customers_rows_payload_2 {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [customers!]!
+}
+
+"A row of customers written."
+type customers_row_payload_2 {
+  "How many rows were written: 0 or 1."
+  affected: Int!
+  "The row, if the caller may read it."
+  row: customers
+}
+
+"Rows of orders written."
+type orders_insert_payload {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [orders!]!
+  "The rows as edges, to add to a connection."
+  edges: [orders_edge!]!
+}
+
+"Rows of orders written."
+type orders_insert_payload_2 {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [orders!]!
+  "The rows as edges, to add to a connection."
+  edges: [orders_edge!]!
+}
+
+"Rows of orders written."
+type orders_rows_payload {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [orders!]!
+}
+
+"The columns of orders to set."
+input orders_set {
+  id: Int
+  customer_id: Int
+  total: Decimal
+  status: String
+  placed: LocalDateTime
+  ship_date: Date
+  ship_time: LocalTime
+  duration: TimeSpan
+  rush: Boolean
+}
+
+"A row of orders written."
+type orders_row_payload {
+  "How many rows were written: 0 or 1."
+  affected: Int!
+  "The row, if the caller may read it."
+  row: orders
+}
+
+"Rows of orders written."
+type orders_rows_payload_2 {
+  "How many rows were written."
+  affected: Int!
+  "The rows, those the caller may read."
+  rows: [orders!]!
+}
+
+"A row of orders written."
+type orders_row_payload_2 {
+  "How many rows were written: 0 or 1."
+  affected: Int!
+  "The row, if the caller may read it."
+  row: orders
+}
+
+type Subscription {
+  "Rows of orders."
+  orders(
+    "Conditions the rows meet."
+    where: orders_where,
+    "A condition as OData text, as the REST API takes it: status eq 'open'. ANDed with where."
+    filter: String,
+    "The order, each item naming one column or relation."
+    orderBy: [orders_order_by!]): [orders!]!
+}

@@ -29,6 +29,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic.AspNetCore\MJCZone.DapperMatic.AspNetCore.csproj" />
+    <ProjectReference Include="..\..\src\MJCZone.DapperMatic.GraphQL\MJCZone.DapperMatic.GraphQL.csproj" />
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic\MJCZone.DapperMatic.csproj" />
   </ItemGroup>
   <ItemGroup>

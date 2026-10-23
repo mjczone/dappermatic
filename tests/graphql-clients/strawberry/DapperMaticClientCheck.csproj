@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Strawberry Shake's client of DapperMatic's schema, generated when this builds: the client compatibility check. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="StrawberryShake.Server" Version="16.6.9" />
+  </ItemGroup>
+  <!-- The schema and operations every client is checked with, copied in: the generator reads only the project's files. -->
+  <Target Name="CopySharedGraphQL" BeforeTargets="BeforeBuild">
+    <Copy SourceFiles="../schema.graphql;../operations.graphql" DestinationFolder="$(MSBuildProjectDirectory)/Shared" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

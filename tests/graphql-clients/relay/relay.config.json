@@ -1,0 +1,8 @@
+{
+  "src": "./src",
+  "schema": "../schema.graphql",
+  "language": "typescript",
+  "schemaConfig": {
+    "nodeInterfaceIdField": "nodeId"
+  }
+}

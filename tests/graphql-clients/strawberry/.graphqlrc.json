@@ -1,0 +1,24 @@
+{
+  "schema": "Shared/schema.graphql",
+  "documents": [
+    "Shared/operations.graphql",
+    "schema.extensions.graphql"
+  ],
+  "extensions": {
+    "strawberryShake": {
+      "name": "DapperMaticClient",
+      "namespace": "DapperMatic.ClientCheck",
+      "url": "http://localhost/api/dm/d/main/graphql",
+      "records": {
+        "inputs": false,
+        "entities": false
+      },
+      "transportProfiles": [
+        {
+          "default": "Http",
+          "subscription": "WebSocket"
+        }
+      ]
+    }
+  }
+}
