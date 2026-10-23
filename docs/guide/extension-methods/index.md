@@ -71,14 +71,10 @@ Bring an existing table in line with its model in one call: add missing columns,
 ```csharp
 using var connection = new SqlConnection(connectionString);
 
-// Test connection
-if (await connection.TestConnectionAsync())
-{
-    // Perform DDL operations
-    await connection.CreateSchemaIfNotExistsAsync("app");
-    var myTable = new DmTable("app", "MyTable", columns);
-    await connection.CreateTableIfNotExistsAsync(myTable);
-}
+// Perform DDL operations
+await connection.CreateSchemaIfNotExistsAsync("app");
+var myTable = new DmTable("app", "MyTable", columns);
+await connection.CreateTableIfNotExistsAsync(myTable);
 ```
 
 ### Transaction-Based Operations

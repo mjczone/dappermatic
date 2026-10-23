@@ -5,47 +5,24 @@ General methods provide core utility functionality for database connections, inc
 ## Quick Navigation
 
 - [Connection Testing](#connection-testing)
-  - [TestConnectionAsync](#testconnectionasync) - Test database connection health
 - [Database Version Information](#database-version-information)
   - [GetDatabaseVersionAsync](#getdatabaseversionasync) - Get database version information
 - [Type Mapping Utilities](#type-mapping-utilities)
   - [GetDotnetTypeFromSqlType](#getdotnettypefromsqltype) - Convert SQL types to .NET types
   - [GetSqlTypeFromDotnetType](#getsqltypefromdotnettype) - Convert .NET types to SQL types
 - [Alternative Type Mapping](#alternative-type-mapping-method)
-  - [GetDotnetTypeFromSqlType (Tuple)](#getdotnettypefromsqltype-tuple-return) - Get type info as tuple
 - [Provider Detection](#provider-detection)
   - [GetDbProviderType](#getdbprovidertype) - Identify database provider type
 
 ## Connection Testing
 
-### TestConnectionAsync
-
-Test if a database connection is working properly.
+DapperMatic has no connection test of its own. Open the connection, or call `GetDatabaseVersionAsync`, which throws
+when the database cannot be reached:
 
 ```csharp
 using var connection = new SqlConnection(connectionString);
-
-// Test the connection
-bool isConnected = await connection.TestConnectionAsync();
-
-if (isConnected)
-{
-    Console.WriteLine("Connection successful!");
-    // Proceed with DDL operations
-}
-else
-{
-    Console.WriteLine("Connection failed!");
-}
-
-// With cancellation token
-bool isConnected = await connection.TestConnectionAsync(cancellationToken: cancellationToken);
+var version = await connection.GetDatabaseVersionAsync(); // throws if the database cannot be reached
 ```
-
-**Parameters:**
-- `cancellationToken` (optional) - Cancellation token for the operation
-
-**Returns:** `bool` - `true` if connection is successful, `false` otherwise
 
 ## Database Version Information
 
@@ -159,32 +136,6 @@ string boolSqlType = connection.GetSqlTypeFromDotnetType(boolDescriptor);
 
 **Returns:** `string` - Provider-specific SQL type
 
-## Alternative Type Mapping Method
-
-### GetDotnetTypeFromSqlType (Tuple Return)
-
-Alternative method that returns type information as a tuple.
-
-```csharp
-// Get type information as tuple
-var (dotnetType, length, precision, scale) = connection.GetDotnetTypeFromSqlType("decimal(15,4)");
-
-Console.WriteLine($"Type: {dotnetType}");       // typeof(decimal)
-Console.WriteLine($"Length: {length}");         // null
-Console.WriteLine($"Precision: {precision}");   // 15
-Console.WriteLine($"Scale: {scale}");           // 4
-
-// String type example
-var (stringType, stringLength, _, _) = connection.GetDotnetTypeFromSqlType("varchar(255)");
-// stringType => typeof(string)
-// stringLength => 255
-```
-
-**Parameters:**
-- `sqlType` - Provider-specific SQL type string
-
-**Returns:** `(Type dotnetType, int? length, int? precision, int? scale)` - Type information tuple
-
 ## Provider Detection
 
 ### GetDbProviderType
@@ -228,11 +179,8 @@ if (providerType == DbProviderType.SqlServer)
 ```csharp
 public async Task<bool> InitializeDatabaseAsync(IDbConnection connection)
 {
-    // Test connection first
-    if (!await connection.TestConnectionAsync())
-    {
-        throw new InvalidOperationException("Cannot connect to database");
-    }
+    // Throws if the database cannot be reached
+    await connection.GetDatabaseVersionAsync();
     
     // Get version for compatibility checking
     var version = await connection.GetDatabaseVersionAsync();

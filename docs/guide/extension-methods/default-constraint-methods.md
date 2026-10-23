@@ -135,7 +135,6 @@ else
 - `tableName` - Name of the table to add default constraint to
 - `defaultConstraint` - DmDefaultConstraint model defining the constraint
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if default constraint was created, `false` if it already existed
@@ -201,7 +200,6 @@ bool created = await connection.CreateDefaultConstraintIfNotExistsAsync(
 - `columnName` - Name of the column to apply default to
 - `expression` - SQL expression that provides the default value
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if default constraint was created, `false` if it already existed
@@ -235,7 +233,6 @@ List<string> idDefaults = await connection.GetDefaultConstraintNamesAsync("app",
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching default constraint names
@@ -271,7 +268,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find default constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the default constraint, or `null` if none exists on the column
@@ -307,7 +303,6 @@ List<DmDefaultConstraint> constraints = await connection.GetDefaultConstraintsAs
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmDefaultConstraint>` - List of complete DmDefaultConstraint models
@@ -353,7 +348,6 @@ else
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the default constraint to retrieve
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmDefaultConstraint?` - Complete default constraint model, or `null` if not found
@@ -393,7 +387,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find default constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmDefaultConstraint?` - Default constraint model, or `null` if none exists on the column
@@ -445,7 +438,6 @@ catch
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the default constraint to drop
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if default constraint was dropped, `false` if it didn't exist
@@ -482,7 +474,6 @@ await connection.CreateDefaultConstraintIfNotExistsAsync(
 - `tableName` - Name of the table containing the constraint
 - `columnName` - Name of the column to drop default constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if default constraint was dropped, `false` if none existed on the column

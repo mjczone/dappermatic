@@ -193,24 +193,12 @@ DatabaseConfig.ConfigureDapperMatic();
 
 ## Extension Method Parameters
 
-DapperMatic extension methods accept standard Dapper method parameters (e.g.: QueryAsync, ExecuteAsync, ...) for customization:
+DapperMatic extension methods take an optional transaction and cancellation token.
 
-### Command Timeout
+### Command timeouts
 
-Control how long database operations wait before timing out:
-
-```csharp
-// Set timeout for individual operations
-var table = new DmTable(schema, "TableName", columns);
-await connection.CreateTableIfNotExistsAsync(table, commandTimeout: 120); // 2 minutes
-
-// For complex operations like large table creation
-var complexTable = new DmTable("dbo", "ComplexTable", complexColumns);
-await connection.CreateTableIfNotExistsAsync(complexTable, commandTimeout: 300); // 5 minutes
-
-// Apply timeout to introspection operations
-var tables = await connection.GetTablesAsync("dbo", commandTimeout: 60);
-```
+Statements use the connection's own command timeout. Most drivers let the connection string set it, for example
+`Command Timeout=120` with Microsoft.Data.SqlClient and Npgsql.
 
 ### Transaction Support
 

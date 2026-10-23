@@ -629,7 +629,7 @@ public string ShortName { get; set; }
 public string LongText { get; set; }
 
 // Fixed length (for codes, etc)
-[DmColumn(length: 10, isFixedLength: true)]
+[DmColumn(providerDataType: "char(10)")]
 public string Code { get; set; }
 
 // Non-unicode (SQL Server only)
@@ -816,7 +816,7 @@ public string LongName { get; set; }
 public decimal HighPrecisionValue { get; set; }
 
 // Fixed-length strings
-[DmColumn(length: 10, isFixedLength: true)]
+[DmColumn(providerDataType: "char(10)")]
 public string CountryCode { get; set; }
 
 // Explicit provider-specific types (multi-database support)

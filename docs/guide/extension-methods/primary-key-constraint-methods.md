@@ -222,7 +222,6 @@ catch
 - `tableName` - Name of the table containing the primary key
 - `constraintName` (optional) - Name of the primary key constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:**

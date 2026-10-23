@@ -228,7 +228,6 @@ List<string> referenceFKs = await connection.GetForeignKeyConstraintNamesAsync("
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter foreign key names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching foreign key constraint names
@@ -263,7 +262,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find foreign key for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the foreign key constraint, or `null` if none exists on the column
@@ -299,7 +297,6 @@ List<DmForeignKeyConstraint> foreignKeys = await connection.GetForeignKeyConstra
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter foreign key names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmForeignKeyConstraint>` - List of complete DmForeignKeyConstraint models
@@ -345,7 +342,6 @@ else
 - `tableName` - Name of the table containing the foreign key
 - `constraintName` - Name of the foreign key constraint to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmForeignKeyConstraint?` - Complete foreign key constraint model, or `null` if not found
@@ -384,7 +380,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find foreign key for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmForeignKeyConstraint?` - Foreign key constraint model, or `null` if none exists on the column
@@ -467,7 +462,6 @@ catch
 - `tableName` - Name of the table containing the foreign key
 - `constraintName` - Name of the foreign key constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if foreign key was dropped, `false` if it didn't exist
@@ -504,7 +498,6 @@ await connection.CreateForeignKeyConstraintIfNotExistsAsync(newDepartmentFK);
 - `tableName` - Name of the table containing the foreign key
 - `columnName` - Name of the column to drop foreign key for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if foreign key constraint was dropped, `false` if none existed on the column

@@ -222,7 +222,6 @@ List<string> businessKeys = await connection.GetUniqueConstraintNamesAsync("sale
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching unique constraint names
@@ -258,7 +257,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the unique constraint, or `null` if none exists on the column
@@ -299,7 +297,6 @@ List<DmUniqueConstraint> constraints = await connection.GetUniqueConstraintsAsyn
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmUniqueConstraint>` - List of complete DmUniqueConstraint models
@@ -349,7 +346,6 @@ else
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the unique constraint to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmUniqueConstraint?` - Complete unique constraint model, or `null` if not found
@@ -390,7 +386,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmUniqueConstraint?` - Unique constraint model, or `null` if none exists on the column
@@ -474,7 +469,6 @@ catch
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the unique constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was dropped, `false` if it didn't exist
@@ -512,7 +506,6 @@ await connection.CreateUniqueConstraintIfNotExistsAsync(
 - `tableName` - Name of the table containing the constraint
 - `columnName` - Name of the column to drop unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was dropped, `false` if none existed on the column
