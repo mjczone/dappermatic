@@ -26,6 +26,11 @@ public class SQLite_3_DatabaseMethodsTests(ITestOutputHelper output) : DatabaseM
             File.Delete("sqlite_tests.sqlite");
         }
 
+        return await OpenAnotherConnectionAsync();
+    }
+
+    public override async Task<IDbConnection> OpenAnotherConnectionAsync()
+    {
         var db = new Logging.DbLoggingConnection(
             new SQLiteConnection("Data Source=sqlite_tests.sqlite;Version=3;BinaryGuid=False;"),
             new Logging.TestLogger(Output, nameof(SQLiteConnection))

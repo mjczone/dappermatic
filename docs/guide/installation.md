@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- .NET 8.0 or later
+- .NET 10.0 or later
 - A supported database:
   - SQL Server 2017+, 2019, 2022
   - MySQL 5.7+, 8.4, 9.0 / MariaDB 10.11+, 11.1

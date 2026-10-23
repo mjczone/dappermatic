@@ -46,6 +46,7 @@ public sealed class DatabaseDapperMaticDatasourceRepository : DapperMaticDatasou
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
         ArgumentNullException.ThrowIfNull(connectionFactory);
+        RequireEncryptionKey("a database repository");
 
         _provider = provider;
         _connectionString = connectionString;

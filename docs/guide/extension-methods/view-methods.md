@@ -114,7 +114,6 @@ bool created = await connection.CreateViewIfNotExistsAsync(
         WHERE order_status = 'completed'
         GROUP BY YEAR(order_date), MONTH(order_date)",
     tx: transaction,
-    : 60,
     cancellationToken: cancellationToken
 );
 
@@ -143,7 +142,6 @@ bool created = await connection.CreateViewIfNotExistsAsync(
 - `viewName` - Name of the view to create
 - `viewDefinition` - SQL query defining the view
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was created, `false` if it already existed
@@ -190,7 +188,6 @@ bool updated = await connection.UpdateViewIfExistsAsync(
     "vw_active_employees",
     newViewDefinition,
     tx: transaction,
-    : 60,
     cancellationToken: cancellationToken
 );
 ```
@@ -201,7 +198,6 @@ bool updated = await connection.UpdateViewIfExistsAsync(
 - `viewName` - Name of the view to update
 - `viewDefinition` - New SQL query defining the view
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was updated, `false` if it didn't exist
@@ -234,7 +230,6 @@ List<string> employeeViews = await connection.GetViewNamesAsync("hr", "*employee
 - `schemaName` - Schema to search for views
 - `nameFilter` (optional) - Wildcard pattern to filter view names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching view names
@@ -251,14 +246,14 @@ foreach (var view in views)
 {
     Console.WriteLine($"View: {view.ViewName}");
     Console.WriteLine($"  Schema: {view.SchemaName}");
-    Console.WriteLine($"  Definition Length: {view.ViewDefinition?.Length ?? 0} characters");
+    Console.WriteLine($"  Definition Length: {view.Definition?.Length ?? 0} characters");
 
     // Show first 200 characters of definition
-    if (!string.IsNullOrEmpty(view.ViewDefinition))
+    if (!string.IsNullOrEmpty(view.Definition))
     {
-        var preview = view.ViewDefinition.Length > 200
-            ? view.ViewDefinition.Substring(0, 200) + "..."
-            : view.ViewDefinition;
+        var preview = view.Definition.Length > 200
+            ? view.Definition.Substring(0, 200) + "..."
+            : view.Definition;
         Console.WriteLine($"  Definition: {preview}");
     }
 }
@@ -276,7 +271,6 @@ List<DmView> views = await connection.GetViewsAsync("app", tx: transaction);
 - `schemaName` - Schema to search for views
 - `nameFilter` (optional) - Wildcard pattern to filter view names
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmView>` - List of complete DmView models
@@ -294,10 +288,10 @@ if (view != null)
     Console.WriteLine($"View '{view.ViewName}' details:");
     Console.WriteLine($"  Schema: {view.SchemaName}");
     Console.WriteLine($"  Definition:");
-    Console.WriteLine(view.ViewDefinition);
+    Console.WriteLine(view.Definition);
 
     // Analyze view dependencies (basic parsing)
-    var tables = ExtractTableReferences(view.ViewDefinition);
+    var tables = ExtractTableReferences(view.Definition);
     Console.WriteLine($"  References tables: {string.Join(", ", tables)}");
 }
 else
@@ -334,7 +328,6 @@ private List<string> ExtractTableReferences(string? viewDefinition)
 - `schemaName` - Schema containing the view
 - `viewName` - Name of the view to retrieve
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmView?` - Complete view model, or `null` if view doesn't exist
@@ -372,7 +365,6 @@ foreach (var viewName in viewsToRemove)
 - `schemaName` - Schema containing the view
 - `viewName` - Name of the view to drop
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if view was dropped, `false` if it didn't exist
@@ -535,10 +527,10 @@ public async Task AnalyzeViewDependenciesAsync(IDbConnection connection, string 
 
     foreach (var view in views)
     {
-        if (string.IsNullOrEmpty(view.ViewDefinition)) continue;
+        if (string.IsNullOrEmpty(view.Definition)) continue;
 
         // Extract table and view references from the definition
-        var references = ExtractDatabaseReferences(view.ViewDefinition);
+        var references = ExtractDatabaseReferences(view.Definition);
         dependencies[view.ViewName] = references;
     }
 
@@ -671,31 +663,31 @@ public async Task OptimizeViewPerformanceAsync(IDbConnection connection, string 
 
     foreach (var view in views)
     {
-        if (string.IsNullOrEmpty(view.ViewDefinition)) continue;
+        if (string.IsNullOrEmpty(view.Definition)) continue;
 
         Console.WriteLine($"Analyzing view: {view.ViewName}");
 
         // Check for common performance issues
         var issues = new List<string>();
 
-        if (view.ViewDefinition.ToUpper().Contains("SELECT *"))
+        if (view.Definition.ToUpper().Contains("SELECT *"))
         {
             issues.Add("Uses SELECT * - consider specifying explicit columns");
         }
 
-        if (view.ViewDefinition.ToUpper().Contains("FUNCTION"))
+        if (view.Definition.ToUpper().Contains("FUNCTION"))
         {
             issues.Add("Contains functions - may impact performance");
         }
 
-        if (view.ViewDefinition.ToUpper().Contains("SUBQUERY") ||
-            view.ViewDefinition.Count(c => c == '(') > 2)
+        if (view.Definition.ToUpper().Contains("SUBQUERY") ||
+            view.Definition.Count(c => c == '(') > 2)
         {
             issues.Add("Contains subqueries - consider JOIN alternatives");
         }
 
-        if (view.ViewDefinition.ToUpper().Contains("ORDER BY") &&
-            !view.ViewDefinition.ToUpper().Contains("TOP"))
+        if (view.Definition.ToUpper().Contains("ORDER BY") &&
+            !view.Definition.ToUpper().Contains("TOP"))
         {
             issues.Add("Has ORDER BY without TOP - may cause unnecessary sorting");
         }
@@ -716,7 +708,7 @@ public async Task OptimizeViewPerformanceAsync(IDbConnection connection, string 
         // Suggest indexed views for SQL Server
         var provider = connection.GetDbProviderType();
         if (provider == DbProviderType.SqlServer &&
-            view.ViewDefinition.ToUpper().Contains("GROUP BY"))
+            view.Definition.ToUpper().Contains("GROUP BY"))
         {
             Console.WriteLine($"  💡 Consider creating indexed view for aggregation performance");
         }

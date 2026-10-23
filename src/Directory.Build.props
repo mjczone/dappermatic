@@ -3,8 +3,8 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <AnalysisMode>All</AnalysisMode>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <!-- <TargetFrameworks>net481;net8.0;net9.0</TargetFrameworks> -->
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- <TargetFrameworks>net481;net8.0;net10.0</TargetFrameworks> -->
+    <TargetFramework>net10.0</TargetFramework>
     <LangVersion>latestmajor</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>

@@ -25,7 +25,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of columns.</returns>
     public async Task<IEnumerable<ColumnDto>> GetColumnsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -77,7 +77,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The column if found, otherwise null.</returns>
     public async Task<ColumnDto> GetColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -135,7 +135,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The added column information if successful, otherwise null.</returns>
     public async Task<ColumnDto> AddColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         ColumnDto column,
@@ -177,6 +177,17 @@ public partial class DapperMaticService
 
             // Check table exists
             await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            await AssertMayReferenceAsync(
+                    context,
+                    connection,
+                    datasourceId,
+                    schemaName,
+                    [(column.ReferencedTableName, ColumnsOf(column.ReferencedColumnName))],
+                    tableName,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
 
             // Check column doesn't already exist
@@ -249,7 +260,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The updated column information if successful, otherwise null.</returns>
     public async Task<ColumnDto> RenameColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -336,7 +347,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the column was dropped, false if it didn't exist.</returns>
     public async Task DropColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,

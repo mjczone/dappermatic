@@ -64,7 +64,7 @@ public class RecentUserSummary
 DmView recentUsersView = DmViewFactory.GetView(typeof(RecentUserSummary));
 
 // Create the view in your database
-await connection.CreateViewIfNotExistsAsync("dbo", recentUsersView);
+await connection.CreateViewIfNotExistsAsync(recentUsersView);
 ```
 
 ### Why Use Annotations?
@@ -152,12 +152,12 @@ public class Order
     [DmColumn(isPrimaryKey: true, isAutoIncrement: true)]
     public int Id { get; set; }
 
-    [DmForeignKeyConstraint(typeof(Customer), new[] { "Id" }, 
+    [DmForeignKeyConstraint(referencedType: typeof(Customer), referencedColumnNames: new[] { "Id" },
                            constraintName: "FK_Orders_Customers")]
     public int CustomerId { get; set; }
 
     [DmColumn(precision: 10, scale: 2)]
-    [DmCheckConstraint("CK_Orders_Total_Positive", "Total > 0")]
+    [DmCheckConstraint("Total > 0", "CK_Orders_Total_Positive")]
     public decimal Total { get; set; }
 }
 ```
@@ -311,7 +311,7 @@ public class Order
 
     [Column("customer_id")]  // EF Core
     [ForeignKey(nameof(Customer))]  // EF Core
-    [DmForeignKeyConstraint(typeof(Customer), new[] { "Id" })]  // DapperMatic specific
+    [DmForeignKeyConstraint(referencedType: typeof(Customer), referencedColumnNames: new[] { "Id" })]  // DapperMatic specific
     public int CustomerId { get; set; }
 
     [NotMapped]  // EF Core
@@ -337,7 +337,7 @@ public class User
 
 // Gradually add DapperMatic-specific features
 [Table("users")]
-[DmCheckConstraint("CK_Users_Name_NotEmpty", "LEN(Name) > 0")]  // Add business rules
+[DmCheckConstraint("LEN(Name) > 0", "CK_Users_Name_NotEmpty")]  // Add business rules
 public class User
 {
     [Key]
@@ -486,11 +486,13 @@ public class Product
 
 **Key Parameters:**
 - `columnName` - Database column name
-- `providerDataType` - Specific database type (e.g., "nvarchar(100)")
+- `providerDataType` - Specific database type, e.g. `"nvarchar(100)"` or
+  `"{sqlserver:nvarchar(100),postgresql:varchar(100)}"` (see
+  [Provider-Specific Data Types](#provider-specific-data-types))
 - `length` - Maximum length for strings/binary data
 - `precision` - Total digits for numeric types
 - `scale` - Decimal places for numeric types
-- `isNullable` - Whether column allows NULL
+- `isNullable` - Whether column allows NULL (**defaults to `false`** - see the note below)
 - `isPrimaryKey` - Whether column is part of primary key
 - `isAutoIncrement` - Whether column auto-increments
 - `isUnique` - Whether column has unique constraint
@@ -501,6 +503,24 @@ public class Product
 - `referencedTableName` - Referenced table for foreign keys
 - `referencedColumnName` - Referenced column for foreign keys
 - `onDelete` / `onUpdate` - Foreign key actions
+
+::: warning `isNullable` defaults to `false`
+Once you put a `[DmColumn]` attribute on a property, nullability comes from the attribute, **not**
+from the .NET type - and `isNullable` defaults to `false`. A nullable property therefore becomes a
+`NOT NULL` column unless you say otherwise:
+
+```csharp
+public string? Description { get; set; }                        // nullable column
+
+[DmColumn("description", length: 500)]
+public string? Description { get; set; }                        // NOT NULL - the attribute wins
+
+[DmColumn("description", length: 500, isNullable: true)]
+public string? Description { get; set; }                        // nullable, as intended
+```
+
+Nullability is only inferred from the .NET type when a property has no `[DmColumn]` attribute at all.
+:::
 
 ### Provider-Specific Data Types
 
@@ -526,6 +546,44 @@ public class Document
 }
 ```
 
+#### Type names without a provider prefix
+
+If your application only ever targets one database, you can skip the `{provider:...}` wrapper and
+give a plain type name:
+
+```csharp
+public class Document
+{
+    // Applies to any provider that recognises "jsonb" -- in practice, PostgreSQL.
+    [DmColumn("metadata", providerDataType: "jsonb")]
+    public Dictionary<string, string> Metadata { get; set; } = new();
+}
+```
+
+A bare type name means **"use this type on any provider that recognises it"**. Providers that do
+not know the type fall back to inferring one from the .NET type, so a bare name never produces
+invalid DDL on a provider it was not written for. For example, `providerDataType: "nvarchar"`
+yields `nvarchar` on SQL Server and SQLite, but an inferred `character varying` on PostgreSQL,
+which has no `nvarchar` type.
+
+Two rules keep this from misfiring:
+
+- **It must be the only entry.** An unprefixed fragment sitting alongside prefixed entries -- as in
+  `"{mysql:int,jsonb,sqlserver:int}"` -- is treated as a malformed fragment and ignored, because it
+  is far more likely to be a typo than an intentional default.
+- **Inline parameters must be numeric.** `"varchar(100)"` and `"decimal(10,2)"` are honoured, but
+  `"nvarchar(max)"` is not, because `max` is SQL Server syntax that other providers reject even
+  though they recognise `nvarchar`. Supply provider-specific parameter syntax through the explicit
+  `{provider:type}` form, or use the `length`, `precision` and `scale` parameters instead.
+
+Prefer the explicit `{provider:type}` form for models that genuinely run against more than one
+database -- it is the only way to guarantee a particular type on a particular provider, and it is
+never second-guessed against the provider's type registry.
+
+Note that a malformed entry such as `{postgresql=jsonb}` (using `=` instead of `:`) parses as a
+single bare type name that no provider recognises, so it is silently inferred rather than reported
+as an error.
+
 ### DmIgnoreAttribute
 
 Excludes properties from database mapping.
@@ -546,6 +604,29 @@ public class User
     public List<Order> Orders { get; set; } = new();
 }
 ```
+
+### DmRelationAttribute
+
+Marks a property as a relation to another model's rows: never a column, usable in [DML conditions](./dml-methods#relations), such as `o => o.Customer!.Country == "France"` or `c => c.Orders!.Any(o => o.Total > 100)`, and [loaded](./dml-methods#loading-related-rows) only when a query includes it.
+
+```csharp
+public class Order
+{
+    [DmColumn("customer_id", isForeignKey: true, referencedTableName: "customers", referencedColumnName: "id")]
+    public int CustomerId { get; set; }
+
+    [DmRelation]                                    // keys from the one foreign key between the models
+    public Customer? Customer { get; set; }
+
+    [DmRelation(nameof(OrderLine.OrderId))]         // the foreign key property, named
+    public List<OrderLine>? Lines { get; set; }
+
+    [DmRelation(through: typeof(OrderTag))]         // many-to-many through a link model
+    public List<Tag>? Tags { get; set; }
+}
+```
+
+A relation can also name its keys (`thisKeys`, `otherKeys`), fixed values of either side's rows (`otherValues`, `thisValues`) and a condition (`condition`), so it needs no foreign key in the database. See [Relations](./dml-methods#relations).
 
 ## Constraint Annotations
 
@@ -568,7 +649,23 @@ public class UserRole
     public int UserId { get; set; }
     public int RoleId { get; set; }
 }
+
+// Naming a primary key that is declared on the columns themselves.
+// Supplying only a constraint name at the class level names whichever
+// primary key the column attributes already describe.
+[DmPrimaryKeyConstraint(constraintName: "PK_Accounts")]
+public class Account
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+}
 ```
+
+::: warning MySQL and MariaDB ignore primary key constraint names
+MySQL and MariaDB always name the primary key `PRIMARY` and discard any name you supply - this is a
+server limitation, not a DapperMatic one. Your name is honoured on SQL Server, PostgreSQL and SQLite;
+on MySQL and MariaDB, reading the table back reports a generated `pk_{table}_{columns}` name instead.
+:::
 
 ### DmForeignKeyConstraintAttribute
 
@@ -626,6 +723,19 @@ public class User
 }
 ```
 
+A unique constraint does **not** make its columns `NOT NULL`. A nullable column stays nullable when it
+takes part in one, matching SQL semantics - PostgreSQL, MySQL and SQLite permit many NULLs in a unique
+column, and SQL Server permits one:
+
+```csharp
+[DmUniqueConstraint(new[] { "phone_number" }, "UQ_Users_Phone")]
+public class User
+{
+    [DmColumn("phone_number", length: 20, isNullable: true)]
+    public string? PhoneNumber { get; set; }   // remains nullable
+}
+```
+
 ### DmCheckConstraintAttribute
 
 Defines business rule constraints.
@@ -633,12 +743,12 @@ Defines business rule constraints.
 ```csharp
 public class Product
 {
-    [DmCheckConstraint("CK_Products_Price_Positive", "Price > 0")]
+    [DmCheckConstraint("Price > 0", "CK_Products_Price_Positive")]
     public decimal Price { get; set; }
 }
 
 // Class-level check constraint
-[DmCheckConstraint("CK_Users_Age_Valid", "Age >= 0 AND Age <= 150")]
+[DmCheckConstraint("Age >= 0 AND Age <= 150", "CK_Users_Age_Valid")]
 public class User
 {
     public int Age { get; set; }
@@ -652,13 +762,13 @@ Provides default values for columns.
 ```csharp
 public class User
 {
-    [DmDefaultConstraint("DF_Users_CreatedAt", "GETDATE()")]
+    [DmDefaultConstraint("GETDATE()", "DF_Users_CreatedAt")]
     public DateTime CreatedAt { get; set; }
 
-    [DmDefaultConstraint("DF_Users_IsActive", "1")]
+    [DmDefaultConstraint("1", "DF_Users_IsActive")]
     public bool IsActive { get; set; }
 
-    [DmDefaultConstraint("DF_Users_Id", "NEWID()")]
+    [DmDefaultConstraint("NEWID()", "DF_Users_Id")]
     public Guid Id { get; set; }
 }
 ```
@@ -731,6 +841,27 @@ public class TenantUser
 }
 ```
 
+## Renaming with PreviousNames
+
+Every annotation that names something has a `PreviousNames` property: `DmTable`, `DmColumn`, `DmIndex`, `DmUniqueConstraint`, `DmCheckConstraint` and `DmForeignKeyConstraint`. List the names the element has had, most recent first, and [reconciliation](./extension-methods/reconciliation-methods#renames) renames it in the database instead of creating a new, empty one beside it.
+
+```csharp
+[DmTable("app", "customers", PreviousNames = new[] { "users" })]
+public class Customer
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    [DmColumn("email_address", length: 320, PreviousNames = new[] { "email" })]
+    [DmIndex(false, null, "ix_customers_email", PreviousNames = new[] { "ix_users_email_lookup" })]
+    public string EmailAddress { get; set; } = default!;
+}
+```
+
+You don't need to list the generated names of indexes and constraints, such as `ix_users_email` or `ck_users_age`. Reconciliation works those out from the table's and the columns' previous names.
+
+Previous names cost nothing to keep, because they are only looked at when the current name is missing. The models have the same property (`DmTable.PreviousNames`, `DmColumn.PreviousNames` and so on) for tables described in code.
+
 ## Complete Example
 
 Here's a comprehensive example showing multiple annotations on a single class:
@@ -738,7 +869,7 @@ Here's a comprehensive example showing multiple annotations on a single class:
 ```csharp
 [DmTable("dbo", "Orders")]
 [DmIndex(columnNames: new[] { "UserId", "OrderDate" }, indexName: "IX_Orders_User_Date")]
-[DmCheckConstraint("CK_Orders_TotalAmount_Positive", "TotalAmount > 0")]
+[DmCheckConstraint("TotalAmount > 0", "CK_Orders_TotalAmount_Positive")]
 [DmForeignKeyConstraint(
     sourceColumnNames: new[] { "UserId" },
     referencedType: typeof(User),
@@ -758,16 +889,16 @@ public class Order
     public string OrderNumber { get; set; }
 
     [DmColumn("order_date", isIndexed: true)]
-    [DmDefaultConstraint("DF_Orders_OrderDate", "GETDATE()")]
+    [DmDefaultConstraint("GETDATE()", "DF_Orders_OrderDate")]
     public DateTime OrderDate { get; set; }
 
     [DmColumn("total_amount", precision: 10, scale: 2)]
     public decimal TotalAmount { get; set; }
 
     [DmColumn("status", length: 20)]
-    [DmDefaultConstraint("DF_Orders_Status", "'Pending'")]
-    [DmCheckConstraint("CK_Orders_Status_Valid",
-                       "Status IN ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled')")]
+    [DmDefaultConstraint("'Pending'", "DF_Orders_Status")]
+    [DmCheckConstraint("Status IN ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled')",
+                       "CK_Orders_Status_Valid")]
     public string Status { get; set; }
 
     [DmColumn("notes", length: 1000, isNullable: true)]
@@ -840,8 +971,8 @@ You can gradually migrate from manual `DmTable` creation to data annotations:
 // Before: Manual model creation
 var table = new DmTable(null /* or schemaName */, "Users")
 {
-    Columns = new[] { /* ... */ },
-    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id")
+    Columns = new List<DmColumn> { /* ... */ },
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", new[] { new DmOrderedColumn("Id") })
 };
 
 // After: Data annotations + factory

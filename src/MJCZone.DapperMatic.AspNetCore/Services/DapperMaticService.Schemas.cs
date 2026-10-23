@@ -5,7 +5,9 @@
 
 using System.Data;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
+using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Validation;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
@@ -16,7 +18,7 @@ public partial class DapperMaticService
 {
     /// <inheritdoc />
     public async Task<IEnumerable<SchemaDto>> GetSchemasAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     )
@@ -50,7 +52,10 @@ public partial class DapperMaticService
                 .ConfigureAwait(false);
 
             // Convert to SchemaDto objects
-            var schemas = schemaNames.Select(name => new SchemaDto { SchemaName = name });
+            var schemas = schemaNames
+                .Where(name => MayReadSchema(context, new DmResource(datasourceId, name, null)))
+                .Select(name => new SchemaDto { SchemaName = name })
+                .ToList();
 
             await LogAuditEventAsync(context, true, $"Retrieved schemas for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
@@ -60,7 +65,7 @@ public partial class DapperMaticService
 
     /// <inheritdoc />
     public async Task<SchemaDto> GetSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default
@@ -110,13 +115,16 @@ public partial class DapperMaticService
 
     /// <inheritdoc />
     public async Task<SchemaDto> CreateSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         SchemaDto schema,
         CancellationToken cancellationToken = default
     )
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        // The schema is named in the body, after the request was held to its tenant's: held now.
+        DapperMaticAccess.Hold(AccessOf(context), datasourceId, schema.SchemaName);
 
         var normalizedSchemaName = NormalizeSchemaName(schema.SchemaName);
 
@@ -160,7 +168,7 @@ public partial class DapperMaticService
 
     /// <inheritdoc />
     public async Task DropSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default
@@ -208,7 +216,7 @@ public partial class DapperMaticService
 
     /// <inheritdoc />
     public async Task<bool> SchemaExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default

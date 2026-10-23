@@ -17,8 +17,8 @@ hero:
 
 features:
   - icon: 🔷
-    title: .NET 8+ Library
-    details: Modern C# library targeting .NET 8.0 with comprehensive DDL operations for multiple database providers
+    title: .NET 10 Library
+    details: Modern C# library targeting .NET 10.0 with comprehensive DDL operations for multiple database providers
   - icon: 🏗️
     title: Model-First Approach
     details: Define your database schema using intuitive C# models with Dm* prefixed classes

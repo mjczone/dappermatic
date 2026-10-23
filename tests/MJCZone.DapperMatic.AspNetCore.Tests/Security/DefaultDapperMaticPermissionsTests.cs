@@ -5,163 +5,136 @@
 
 using System.Security.Claims;
 using FluentAssertions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore;
 using MJCZone.DapperMatic.AspNetCore.Security;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Tests.Security;
 
 /// <summary>
-/// Unit tests for DefaultDapperMaticPermissions.
+/// The default permissions decide by the policies, and refuse what none grants.
 /// </summary>
 public class DefaultDapperMaticPermissionsTests
 {
     [Fact]
-    public async Task Should_expect_is_authorized_async_allow_all_returns_true_Async()
+    public async Task Nothing_is_allowed_without_a_policy_Async()
     {
-        var options = Options.Create(new DapperMaticOptions());
-        var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.AllowAll);
-        var context = CreateOperationContext("test/operation");
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
+        var permissions = Permissions(new DapperMaticOptions());
+        (await permissions.IsAuthorizedAsync(Operation("datasources/list"))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("tables/post", "ds", authenticated: true, roles: ["admin"]))).Should().BeFalse();
     }
 
     [Fact]
-    public async Task Should_expect_is_authorized_async_require_authentication_unauthenticated_user_returns_false_Async()
+    public async Task Require_role_grants_everything_and_read_only_role_grants_reading_Async()
     {
-        var options = Options.Create(new DapperMaticOptions());
-        var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.RequireAuthentication);
-        var context = CreateOperationContext("test/operation", authenticated: false);
+        var permissions = Permissions(new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" });
 
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("datasources/post", "new", authenticated: true, roles: ["DataAdmin"]))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("datasources/get", "ds", authenticated: true, roles: ["DataReader"]))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("tables/list", "ds", authenticated: true, roles: ["DataReader"]))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("datasources/post", "new", authenticated: true, roles: ["DataReader"]))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("tables/delete", "ds", authenticated: true, roles: ["DataReader"]))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("datasources/get", "ds", authenticated: true, roles: ["User"]))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("datasources/get", "ds"))).Should().BeFalse();
     }
 
     [Fact]
-    public async Task Should_expect_is_authorized_async_require_authentication_authenticated_user_returns_true_Async()
+    public async Task Policies_grant_by_role_datasource_schema_and_table_Async()
     {
-        var options = Options.Create(new DapperMaticOptions());
-        var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.RequireAuthentication);
-        var context = CreateOperationContext("test/operation", authenticated: true);
+        var options = new DapperMaticOptions();
+        options.Policies.Add(DmPolicy.Allow(DmAction.ReadSchema, "authenticated").OnDatasources("tenant-*"));
+        options.Policies.Add(DmPolicy.Allow(DmAction.ChangeSchema, "designer").InSchemas("sales").ExceptTables("audit*"));
+        var permissions = Permissions(options);
 
-        var result = await permissions.IsAuthorizedAsync(context);
+        (await permissions.IsAuthorizedAsync(Operation("tables/list", "tenant-a", authenticated: true))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("tables/list", "billing", authenticated: true))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("tables/list", "tenant-a"))).Should().BeFalse();
 
-        result.Should().BeTrue();
+        // A listing of datasources is about every one: a grant on some lets it through, and the list is narrowed.
+        (await permissions.IsAuthorizedAsync(Operation("datasources/list", authenticated: true))).Should().BeTrue();
+
+        (await permissions.IsAuthorizedAsync(Operation("tables/put", "ds", "sales", "orders", authenticated: true, roles: ["designer"]))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("tables/put", "ds", "sales", "audit_log", authenticated: true, roles: ["designer"]))).Should().BeFalse();
+        (await permissions.IsAuthorizedAsync(Operation("tables/put", "ds", "hr", "orders", authenticated: true, roles: ["designer"]))).Should().BeFalse();
     }
 
     [Fact]
-    public async Task Should_expect_is_authorized_async_require_role_user_with_role_returns_true_Async()
+    public async Task Rows_are_decided_with_the_table_so_row_operations_pass_this_gate_Async()
     {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("test/operation", authenticated: true, roles: ["DataAdmin"]);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
+        var permissions = Permissions(new DapperMaticOptions());
+        (await permissions.IsAuthorizedAsync(Operation("tables/query", "ds", null, "orders"))).Should().BeTrue();
+        (await permissions.IsAuthorizedAsync(Operation("tables/insert-rows", "ds", null, "orders"))).Should().BeTrue();
     }
 
     [Fact]
-    public async Task Should_expect_is_authorized_async_require_role_user_without_role_returns_false_Async()
+    public void Operations_map_to_actions()
     {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("test/operation", authenticated: true, roles: ["User"]);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeFalse();
+        DapperMaticPolicySet.ActionOf("tables/query").Should().Be(DmAction.Read);
+        DapperMaticPolicySet.ActionOf("views/query").Should().Be(DmAction.Read);
+        DapperMaticPolicySet.ActionOf("tables/insert-rows").Should().Be(DmAction.Create);
+        DapperMaticPolicySet.ActionOf("tables/update-rows").Should().Be(DmAction.Update);
+        DapperMaticPolicySet.ActionOf("tables/delete-rows").Should().Be(DmAction.Delete);
+        DapperMaticPolicySet.ActionOf("datasources/get").Should().Be(DmAction.ReadSchema);
+        DapperMaticPolicySet.ActionOf("datasources/test").Should().Be(DmAction.ManageDatasources);
+        DapperMaticPolicySet.ActionOf("datasources/delete").Should().Be(DmAction.ManageDatasources);
+        DapperMaticPolicySet.ActionOf("columns/post").Should().Be(DmAction.ChangeSchema);
+        DapperMaticPolicySet.ActionOf("datatypes/list").Should().Be(DmAction.ReadSchema);
+        DapperMaticPolicySet.ActionOf("tables/exists").Should().Be(DmAction.ReadSchema);
+        // An operation DapperMatic does not know, or a context no endpoint filled, is refused.
+        DapperMaticPolicySet.ActionOf("something/else").Should().Be(DmAction.None);
+        DapperMaticPolicySet.ActionOf(null).Should().Be(DmAction.None);
     }
 
     [Fact]
-    public async Task Should_expect_is_authorized_async_require_role_no_role_specified_falls_back_to_default_Async()
+    public void Policies_bind_from_configuration_and_are_validated()
     {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = null });
-        var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.RequireAuthentication);
-        var context = CreateOperationContext("test/operation", authenticated: true, roles: ["DataAdmin"]);
+        var configuration = new ConfigurationBuilder()
+            .AddInMemoryCollection(
+                new Dictionary<string, string?>
+                {
+                    ["DapperMatic:Policies:0:Name"] = "tenant rows",
+                    ["DapperMatic:Policies:0:Actions"] = "Read, Create",
+                    ["DapperMatic:Policies:0:Roles:0"] = "authenticated",
+                    ["DapperMatic:Policies:0:WithColumns:0"] = "tenant_id",
+                    ["DapperMatic:Policies:0:Filter"] = "tenant_id eq @tenant.id",
+                    ["DapperMatic:Policies:0:Presets:tenant_id"] = "@tenant.id",
+                    ["DapperMatic:Policies:1:Kind"] = "Restrictive",
+                    ["DapperMatic:Policies:1:Actions"] = "ReadWrite",
+                    ["DapperMatic:Policies:1:ExcludeColumns:0"] = "password_hash",
+                }
+            )
+            .Build();
+        var options = new DapperMaticOptions();
+        configuration.GetSection("DapperMatic").Bind(options);
 
-        var result = await permissions.IsAuthorizedAsync(context);
+        var policies = new DapperMaticPolicySet(Options.Create(options)).Policies;
+        policies.Should().HaveCount(2);
+        policies[0].Actions.Should().Be(DmAction.Read | DmAction.Create);
+        policies[0].Presets["tenant_id"].Should().Be("@tenant.id");
+        policies[0].Source.Should().Be("configuration");
+        policies[1].Kind.Should().Be(DmPolicyKind.Restrictive);
 
-        result.Should().BeTrue();
+        // A grant to nobody in particular, or a filter reading another table, is refused at startup.
+        var nobody = new DapperMaticOptions();
+        nobody.Policies.Add(new DmPolicy { Actions = DmAction.Read });
+        var act = () => new DapperMaticPolicySet(Options.Create(nobody));
+        act.Should().Throw<InvalidOperationException>().WithMessage("*grants to nobody*");
+
+        var related = new DapperMaticOptions();
+        related.Policies.Add(DmPolicy.Allow(DmAction.Read, "*").Where("customer/country eq 'FR'"));
+        act = () => new DapperMaticPolicySet(Options.Create(related));
+        act.Should().Throw<InvalidOperationException>().WithMessage("*another table*");
     }
 
-    [Fact]
-    public async Task Should_expect_is_authorized_async_with_options_uses_required_role_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DapperMaticAdmin" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("test/operation", authenticated: true, roles: ["DapperMaticAdmin"]);
+    private static DefaultDapperMaticPermissions Permissions(DapperMaticOptions options) => new(new DapperMaticPolicySet(Options.Create(options)));
 
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Should_expect_is_authorized_async_with_options_read_only_role_get_operation_returns_true_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("datasources/get", authenticated: true, roles: ["DataReader"]);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Should_expect_is_authorized_async_with_options_read_only_role_non_get_operation_returns_false_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("datasources/post", authenticated: true, roles: ["DataReader"]);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeFalse();
-    }
-
-    [Fact]
-    public async Task Should_expect_is_authorized_async_with_options_required_role_overrides_read_only_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = "DataAdmin", ReadOnlyRole = "DataReader" });
-        var permissions = new DefaultDapperMaticPermissions(options);
-        var context = CreateOperationContext("datasources/post", authenticated: true, roles: ["DataAdmin"]);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Should_expect_is_authorized_async_with_options_no_required_role_falls_back_to_default_behavior_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions { RequireRole = null });
-        var permissions = new DefaultDapperMaticPermissions(options, PermissionDefault.RequireAuthentication);
-        var context = CreateOperationContext("test/operation", authenticated: true);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeTrue();
-    }
-
-    [Fact]
-    public async Task Should_expect_is_authorized_async_default_case_returns_false_Async()
-    {
-        var options = Options.Create(new DapperMaticOptions());
-        var permissions = new DefaultDapperMaticPermissions(options, (PermissionDefault)999); // Invalid enum value
-        var context = CreateOperationContext("test/operation", authenticated: true);
-
-        var result = await permissions.IsAuthorizedAsync(context);
-
-        result.Should().BeFalse();
-    }
-
-    private static OperationContext CreateOperationContext(
+    private static DapperMaticOperation Operation(
         string operation,
+        string? datasourceId = null,
+        string? schemaName = null,
+        string? tableName = null,
         bool authenticated = false,
         string[]? roles = null
     )
@@ -170,15 +143,17 @@ public class DefaultDapperMaticPermissionsTests
         if (authenticated)
         {
             var claims = new List<Claim> { new(ClaimTypes.Name, "testuser") };
-            if (roles != null)
-            {
-                claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
-            }
-
-            var identity = new ClaimsIdentity(claims, "Test");
-            user = new ClaimsPrincipal(identity);
+            claims.AddRange((roles ?? []).Select(role => new Claim(ClaimTypes.Role, role)));
+            user = new ClaimsPrincipal(new ClaimsIdentity(claims, "Test"));
         }
 
-        return new OperationContext { User = user, Operation = operation };
+        return new DapperMaticOperation
+        {
+            User = user,
+            Operation = operation,
+            DatasourceId = datasourceId,
+            SchemaName = schemaName,
+            TableName = tableName,
+        };
     }
 }

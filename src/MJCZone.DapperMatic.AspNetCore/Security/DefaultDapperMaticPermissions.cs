@@ -3,92 +3,40 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using Microsoft.Extensions.Options;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Security;
 
 /// <summary>
-/// Default implementation of IDapperMaticPermissions that allows all users, all authenticated user, or users with a specific role.
+/// Authorizes operations by the policies: nothing is allowed unless a policy grants it. Reading and writing rows is
+/// decided table by table, with each table's columns, as the rows are read or written; this lets those operations
+/// through to that.
 /// </summary>
 public class DefaultDapperMaticPermissions : IDapperMaticPermissions
 {
-    private readonly PermissionDefault _defaultBehavior;
-    private readonly string? _requireRole;
-    private readonly string? _readOnlyRole;
+    private readonly DapperMaticPolicySet _policies;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DefaultDapperMaticPermissions"/> class.
     /// </summary>
-    /// <param name="options">The DapperMatic options.</param>
-    /// <param name="defaultBehavior">The default permission behavior.</param>
-    public DefaultDapperMaticPermissions(
-        IOptions<DapperMaticOptions> options,
-        PermissionDefault defaultBehavior = PermissionDefault.AllowAll
-    )
+    /// <param name="policies">The policies in force.</param>
+    public DefaultDapperMaticPermissions(DapperMaticPolicySet policies)
     {
-        _requireRole = options.Value.RequireRole;
-        _readOnlyRole = options.Value.ReadOnlyRole;
-        _defaultBehavior = string.IsNullOrWhiteSpace(_requireRole) ? defaultBehavior : PermissionDefault.RequireRole;
+        ArgumentNullException.ThrowIfNull(policies);
+        _policies = policies;
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAuthorizedAsync(IOperationContext context)
+    public virtual Task<bool> IsAuthorizedAsync(DapperMaticOperation context)
     {
-        if (_defaultBehavior == PermissionDefault.AllowAll)
+        ArgumentNullException.ThrowIfNull(context);
+        var action = DapperMaticPolicySet.ActionOf(context.Operation);
+        if (action is DmAction.Read or DmAction.Create or DmAction.Update or DmAction.Delete)
         {
             return Task.FromResult(true);
         }
 
-        var isAuthenticated = context.User?.Identity?.IsAuthenticated == true;
-        if (_defaultBehavior == PermissionDefault.RequireAuthentication)
-        {
-            return Task.FromResult(isAuthenticated);
-        }
-
-        if (_defaultBehavior == PermissionDefault.RequireRole)
-        {
-            // If not authenticated, no need to check roles
-            if (!isAuthenticated)
-            {
-                return Task.FromResult(false);
-            }
-
-            var isGetRequest =
-                (context.HttpMethod ?? string.Empty).Equals("GET", StringComparison.OrdinalIgnoreCase)
-                || context.Operation?.EndsWith("/get", StringComparison.OrdinalIgnoreCase) == true;
-
-            if (isGetRequest && !string.IsNullOrEmpty(_readOnlyRole) && context.User?.IsInRole(_readOnlyRole) == true)
-            {
-                return Task.FromResult(true);
-            }
-
-            if (!string.IsNullOrWhiteSpace(_requireRole) && context.User?.IsInRole(_requireRole) == true)
-            {
-                return Task.FromResult(true);
-            }
-        }
-
-        return Task.FromResult(false);
+        var access = (context.Access ?? new DmAccessContext(context.User)).ForDatasource(context.DatasourceId);
+        return Task.FromResult(_policies.Evaluate(access, DapperMaticPolicySet.ResourceOf(context), action).Allowed);
     }
-}
-
-/// <summary>
-/// Specifies the default permission behavior.
-/// </summary>
-public enum PermissionDefault
-{
-    /// <summary>
-    /// Allow all operations.
-    /// </summary>
-    AllowAll,
-
-    /// <summary>
-    /// Require authentication for all operations.
-    /// </summary>
-    RequireAuthentication,
-
-    /// <summary>
-    /// Require a specific role for all operations.
-    /// </summary>
-    RequireRole,
 }

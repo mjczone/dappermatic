@@ -68,7 +68,7 @@ dotnet add package MJCZone.DapperMatic.AspNetCore
 ```
 
 ### Requirements
-- .NET 8.0 or later
+- .NET 10.0 or later
 - Appropriate database provider package (e.g., Npgsql, Microsoft.Data.SqlClient)
 - Dapper (automatically included as dependency)
 

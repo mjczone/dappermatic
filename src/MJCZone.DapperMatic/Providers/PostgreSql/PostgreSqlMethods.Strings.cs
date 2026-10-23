@@ -47,37 +47,34 @@ public partial class PostgreSqlMethods
     /// Generates SQL to define column nullability.
     /// </summary>
     /// <param name="column">Column definition.</param>
+    /// <param name="columnType">The already-resolved SQL data type for the column.</param>
     /// <returns>SQL fragment for column nullability.</returns>
-    protected override string SqlInlineColumnNullable(DmColumn column)
+    protected override string SqlInlineColumnNullable(DmColumn column, string columnType)
     {
         // serial columns are implicitly NOT NULL
         if (
             column.IsNullable
-            && (column.GetProviderDataType(ProviderType) ?? string.Empty).Contains(
-                "serial",
-                StringComparison.OrdinalIgnoreCase
-            )
+            && (columnType ?? string.Empty).Contains("serial", StringComparison.OrdinalIgnoreCase)
         )
         {
             return string.Empty;
         }
 
-        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
+        // A UNIQUE constraint does not imply NOT NULL. All supported providers permit NULLs in a
+        // unique column (PostgreSQL, MySQL and SQLite allow many; SQL Server allows one), so only
+        // primary key membership forces NOT NULL here.
+        return column.IsNullable && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
     }
 
     /// <summary>
     /// Generates SQL for primary key auto-increment constraint.
     /// </summary>
     /// <param name="column">Column definition.</param>
+    /// <param name="columnType">The already-resolved SQL data type for the column.</param>
     /// <returns>SQL fragment for primary key auto-increment constraint.</returns>
-    protected override string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column)
+    protected override string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column, string columnType)
     {
-        if (
-            (column.GetProviderDataType(ProviderType) ?? string.Empty).Contains(
-                "serial",
-                StringComparison.OrdinalIgnoreCase
-            )
-        )
+        if ((columnType ?? string.Empty).Contains("serial", StringComparison.OrdinalIgnoreCase))
         {
             return string.Empty;
         }
@@ -98,7 +95,7 @@ public partial class PostgreSqlMethods
                FROM pg_class pgc
                    JOIN pg_catalog.pg_namespace n ON n.oid = pgc.relnamespace
                WHERE
-                   pgc.relkind = 'r'
+                   pgc.relkind IN ('r', 'p')
                    {(
                         string.IsNullOrWhiteSpace(schemaName) ? string.Empty : " AND lower(n.nspname) = @schemaName"
                     )}
@@ -182,7 +179,7 @@ public partial class PostgreSqlMethods
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ALTER COLUMN {NormalizeName(columnName)} SET DEFAULT {expression}
+                            ALTER COLUMN {QuoteName(columnName)} SET DEFAULT {expression}
 
             """;
     }
@@ -202,7 +199,7 @@ public partial class PostgreSqlMethods
         string constraintName
     )
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {NormalizeName(columnName)} DROP DEFAULT";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ALTER COLUMN {QuoteName(columnName)} DROP DEFAULT";
     }
     #endregion // Default Constraint Strings
 

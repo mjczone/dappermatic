@@ -58,7 +58,7 @@ public class SmartNpgsqlCircleTypeHandler : SqlMapper.ITypeHandler
             var x = centerType.GetProperty("X")?.GetValue(center);
             var y = centerType.GetProperty("Y")?.GetValue(center);
 
-            parameter.Value = $"CIRCLE({x} {y}, {radius})";
+            parameter.Value = string.Create(CultureInfo.InvariantCulture, $"CIRCLE({x} {y}, {radius})");
             parameter.DbType = DbType.String;
         }
     }

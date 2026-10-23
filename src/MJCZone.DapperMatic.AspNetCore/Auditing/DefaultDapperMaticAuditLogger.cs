@@ -29,19 +29,23 @@ public class DefaultDapperMaticAuditLogger : IDapperMaticAuditLogger
         if (auditEvent.Success)
         {
             _logger.LogInformation(
-                "DapperMatic Operation: {Operation} by {User} on {Datasource} - Success",
+                "DapperMatic Operation: {Operation} by {User} in tenant {Tenant} on {Datasource} {Claims} - Success",
                 auditEvent.Operation,
                 auditEvent.UserIdentifier,
-                auditEvent.DatasourceId ?? "N/A"
+                auditEvent.TenantId ?? "N/A",
+                auditEvent.DatasourceId ?? "N/A",
+                auditEvent.Claims
             );
         }
         else
         {
             _logger.LogWarning(
-                "DapperMatic Operation: {Operation} by {User} on {Datasource} - Failed: {Error}",
+                "DapperMatic Operation: {Operation} by {User} in tenant {Tenant} on {Datasource} {Claims} - Failed: {Error}",
                 auditEvent.Operation,
                 auditEvent.UserIdentifier,
+                auditEvent.TenantId ?? "N/A",
                 auditEvent.DatasourceId ?? "N/A",
+                auditEvent.Claims,
                 auditEvent.Message ?? "Unknown error"
             );
         }

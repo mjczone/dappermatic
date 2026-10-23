@@ -1,0 +1,23 @@
+# Apollo Client's types, as graphql-codegen makes them; strictScalars fails on any scalar not mapped here.
+schema: ../schema.graphql
+documents: ../operations.graphql
+generates:
+  out/types.ts:
+    plugins:
+      - typescript
+      - typescript-operations
+    config:
+      strictScalars: true
+      scalars:
+        Long: number
+        Decimal: number
+        BigInt: string
+        BigDecimal: string
+        UUID: string
+        DateTime: string
+        LocalDateTime: string
+        Date: string
+        LocalTime: string
+        TimeSpan: string
+        ByteArray: string
+        Any: unknown

@@ -4,6 +4,7 @@
 // See LICENSE in the project root for license information.
 
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Microsoft.Extensions.Primitives;
 
 namespace MJCZone.DapperMatic.AspNetCore.Models.Dtos;
@@ -46,6 +47,56 @@ public class QueryDto
     /// Format: "column1,column2,column3"
     /// </summary>
     public string? Select { get; set; }
+
+    /// <summary>
+    /// Gets or sets a condition as OData's <c>$filter</c> writes it, ANDed with <see cref="Filters"/>:
+    /// <c>status eq 'open' and customer/country in ('FR', 'DE') or lines/any(l: l/qty gt 5)</c>. Relations must be
+    /// declared in <c>DapperMaticOptions.Relations</c>.
+    /// </summary>
+    public string? Filter { get; set; }
+
+    /// <summary>
+    /// Gets or sets a condition as a JSON tree, the one <see cref="Filter"/> parses to, ANDed with the others:
+    /// <c>{"and": [{"eq": [{"path": "status"}, {"value": "open"}]}, ...]}</c>.
+    /// </summary>
+    public JsonElement? Where { get; set; }
+
+    /// <summary>
+    /// Gets or sets the order as OData's <c>$orderby</c> writes it, in place of <see cref="OrderBy"/>:
+    /// <c>placed_at desc, customer/name</c>.
+    /// </summary>
+    public string? Order { get; set; }
+
+    /// <summary>
+    /// Gets or sets the relations to read with each row, as OData's <c>$expand</c> writes them:
+    /// <c>lines($filter=qty gt 0;$orderby=id;$top=5;$expand=product),customer</c>.
+    /// </summary>
+    public string? Expand { get; set; }
+
+    /// <summary>
+    /// Gets or sets the cursor of the page this one follows, as a page's <c>pagination.nextCursor</c> gives it
+    /// (<c>$after</c>): the rows after it, in the same order. Not with <see cref="Skip"/>.
+    /// </summary>
+    public string? After { get; set; }
+
+    /// <summary>
+    /// Gets or sets the rows' grouping and aggregates, as OData's <c>$apply</c> writes them:
+    /// <c>filter(status eq 'open')/groupby((customer_id),aggregate(amount with sum as total,$count as orders))</c>. With it,
+    /// the results are the groups, and the filter, order and page apply to them.
+    /// </summary>
+    public string? Apply { get; set; }
+
+    /// <summary>
+    /// Gets or sets the words the rows' searchable columns must hold (<c>$search</c>): every word, in any of the
+    /// columns the table is declared searchable by; a phrase in double quotes is one.
+    /// </summary>
+    public string? Search { get; set; }
+
+    /// <summary>
+    /// Gets or sets the grouping as a JSON tree, as <see cref="Where"/> is to <see cref="Filter"/>:
+    /// <c>{"filter": node, "groupBy": ["customer_id"], "aggregate": [{"path": "amount", "with": "sum", "as": "total"}]}</c>.
+    /// </summary>
+    public JsonElement? ApplyTree { get; set; }
 
     /// <summary>
     /// Gets or sets the schema name. This is set internally from the route and not by the user.
@@ -135,9 +186,60 @@ public class QueryDto
     /// </summary>
     /// <param name="query">The query collection from HTTP request.</param>
     /// <returns>A QueryRequest instance populated from query parameters.</returns>
-    public static QueryDto FromQueryParameters(IDictionary<string, StringValues> query)
+    public static QueryDto FromQueryParameters(IReadOnlyDictionary<string, StringValues> query)
     {
         var request = new QueryDto();
+
+        // OData-shaped options: $filter, $orderby, $expand, $select, $top, $skip, $count.
+        if (query.TryGetValue("$filter", out var filterValue) && !string.IsNullOrWhiteSpace(filterValue))
+        {
+            request.Filter = filterValue;
+        }
+
+        if (query.TryGetValue("$orderby", out var orderValue) && !string.IsNullOrWhiteSpace(orderValue))
+        {
+            request.Order = orderValue;
+        }
+
+        if (query.TryGetValue("$expand", out var expandValue) && !string.IsNullOrWhiteSpace(expandValue))
+        {
+            request.Expand = expandValue;
+        }
+
+        if (query.TryGetValue("$select", out var odataSelect) && !string.IsNullOrWhiteSpace(odataSelect))
+        {
+            request.Select = odataSelect;
+        }
+
+        if (query.TryGetValue("$top", out var topValue))
+        {
+            request.Take = int.TryParse(topValue, out var top) ? top : throw new ArgumentException("$top is a whole number.");
+        }
+
+        if (query.TryGetValue("$skip", out var odataSkip))
+        {
+            request.Skip = int.TryParse(odataSkip, out var skipped) ? skipped : throw new ArgumentException("$skip is a whole number.");
+        }
+
+        if (query.TryGetValue("$search", out var search) && !string.IsNullOrWhiteSpace(search))
+        {
+            request.Search = search;
+        }
+
+        if (query.TryGetValue("$apply", out var apply) && !string.IsNullOrWhiteSpace(apply))
+        {
+            request.Apply = apply;
+        }
+
+        if (query.TryGetValue("$after", out var after) && !string.IsNullOrWhiteSpace(after))
+        {
+            request.After = after;
+        }
+
+        if (query.TryGetValue("$count", out var odataCount))
+        {
+            request.IncludeTotal = bool.TryParse(odataCount, out var counted) ? counted : throw new ArgumentException("$count is true or false.");
+        }
 
         // Parse pagination parameters
         if (query.TryGetValue("take", out var takeValue) && int.TryParse(takeValue, out var take))

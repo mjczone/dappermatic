@@ -6,6 +6,7 @@
 using System.Data;
 using Dapper;
 using MJCZone.DapperMatic.Interfaces;
+using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic.Providers.Base;
 
@@ -368,6 +369,23 @@ public abstract partial class DatabaseMethodsBase : IDatabaseMethods
     {
         return string.Empty.ToQuotedIdentifier(QuoteChars, identifier);
     }
+
+    /// <summary>
+    /// Writes a name the way DDL names it: normalized, then quoted, so that a reserved word such as <c>order</c> or
+    /// <c>user</c> is a valid name, and the quoted name is the same name the unquoted one was (on PostgreSQL,
+    /// lowercase).
+    /// </summary>
+    /// <param name="name">The column, constraint, index or table name.</param>
+    /// <returns>The quoted name.</returns>
+    protected string QuoteName(string name) => GetQuotedIdentifier(NormalizeName(name));
+
+    /// <summary>
+    /// Writes a column of a key or index: its quoted name, then <c>DESC</c> if it is descending.
+    /// </summary>
+    /// <param name="column">The column.</param>
+    /// <returns>The SQL.</returns>
+    protected string QuoteOrderedColumn(DmOrderedColumn column) =>
+        column.Order == DmColumnOrder.Descending ? $"{QuoteName(column.ColumnName)} DESC" : QuoteName(column.ColumnName);
 
     /// <summary>
     /// Gets the quoted compound identifier.

@@ -1,0 +1,124 @@
+# The fixed operations each client is generated for, against schema.graphql (written by GraphQLSchemaTests).
+
+query Customers($country: String) {
+  customers(where: { country: { eq: $country } }, orderBy: [{ name: ASC }], first: 10) {
+    nodeId
+    id
+    name
+    country
+    points
+    created
+    orders(first: 5, orderBy: [{ total: DESC }]) {
+      nodeId
+      id
+      total
+      status
+      placed
+    }
+  }
+}
+
+query OrdersPage($after: String) {
+  orders_connection(first: 20, after: $after, orderBy: [{ id: ASC }]) {
+    totalCount
+    pageInfo {
+      hasNextPage
+      endCursor
+    }
+    edges {
+      cursor
+      node {
+        ...OrderFields
+      }
+    }
+  }
+}
+
+fragment OrderFields on orders {
+  nodeId
+  id
+  total
+  status
+  ship_date
+  ship_time
+  duration
+  rush
+  customer {
+    nodeId
+    name
+  }
+}
+
+query NodeById($id: ID!) {
+  node(id: $id) {
+    nodeId
+    ... on orders {
+      id
+      status
+    }
+    ... on customers {
+      id
+      name
+    }
+  }
+}
+
+query OrderByKey($id: Int!) {
+  orders_by_key(id: $id) {
+    ...OrderFields
+  }
+}
+
+query Totals {
+  order_totals {
+    customer_id
+    total
+  }
+}
+
+query TopCustomers($min: Decimal!) {
+  top_customers(min: $min)
+}
+
+mutation AddOrders($rows: [orders_insert!]!) {
+  insert_orders(rows: $rows) {
+    affected
+    rows {
+      ...OrderFields
+    }
+    edges {
+      cursor
+      node {
+        nodeId
+      }
+    }
+  }
+}
+
+mutation ShipOrders($ids: [Int!]) {
+  update_orders(where: { id: { in: $ids } }, set: { status: "shipped" }) {
+    affected
+    rows {
+      nodeId
+      status
+    }
+  }
+}
+
+mutation RemoveOrder($id: ID) {
+  delete_orders_by_key(nodeId: $id) {
+    affected
+    row {
+      nodeId
+      id
+    }
+  }
+}
+
+subscription LiveOrders {
+  orders(orderBy: [{ id: ASC }]) {
+    nodeId
+    id
+    status
+  }
+}

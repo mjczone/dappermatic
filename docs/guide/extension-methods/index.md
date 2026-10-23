@@ -9,7 +9,7 @@ All extension methods follow consistent patterns:
 - **Async operations** - All methods are asynchronous and return `Task` or `Task<T>`
 - **Provider agnostic** - Same API works across SQL Server, MySQL, PostgreSQL, and SQLite
 - **Transaction support** - Optional `IDbTransaction` parameter for atomic operations
-- **Timeout control** - Optional `commandTimeout` parameter for long-running operations
+- **Models or names** - A method that takes a model as a type argument, such as `CreateTableIfNotExistsAsync<Order>()`, also takes it as a `Type`, for models found at run time: `CreateTableIfNotExistsAsync(typeof(Order))`
 - **Cancellation support** - `CancellationToken` parameter for graceful cancellation
 
 ## Method Categories
@@ -60,6 +60,10 @@ Performance optimization through database indexes.
 
 Database view creation, modification, and management.
 
+### [Reconciliation Methods](./reconciliation-methods)
+
+Bring an existing table in line with its model in one call: add missing columns, indexes and constraints, rename what the model says was renamed, and optionally widen columns. Nothing is dropped; anything else that differs is reported as drift.
+
 ## Common Usage Patterns
 
 ### Basic Connection Usage
@@ -67,14 +71,10 @@ Database view creation, modification, and management.
 ```csharp
 using var connection = new SqlConnection(connectionString);
 
-// Test connection
-if (await connection.TestConnectionAsync())
-{
-    // Perform DDL operations
-    await connection.CreateSchemaIfNotExistsAsync("app");
-    var myTable = new DmTable("app", "MyTable", columns);
-    await connection.CreateTableIfNotExistsAsync(myTable);
-}
+// Perform DDL operations
+await connection.CreateSchemaIfNotExistsAsync("app");
+var myTable = new DmTable("app", "MyTable", columns);
+await connection.CreateTableIfNotExistsAsync(myTable);
 ```
 
 ### Transaction-Based Operations
@@ -103,7 +103,7 @@ catch
 // Discover existing schema
 var tables = await connection.GetTablesAsync("dbo");
 var columns = await connection.GetColumnsAsync("dbo", "Users");
-var constraints = await connection.GetConstraintsAsync("dbo", "Users");
+var foreignKeys = await connection.GetForeignKeyConstraintsAsync("dbo", "Users");
 
 // Check for existence before creating
 if (!await connection.DoesTableExistAsync("dbo", "Users"))

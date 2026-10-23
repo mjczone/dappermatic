@@ -8,8 +8,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
-using MJCZone.DapperMatic.AspNetCore.Auditing;
-using MJCZone.DapperMatic.AspNetCore.Validation;
+using Microsoft.Extensions.Options;
 
 namespace MJCZone.DapperMatic.AspNetCore.Extensions;
 
@@ -38,7 +37,8 @@ internal static class EndpointExtensions
         ArgumentException.ThrowIfNullOrWhiteSpace(tag);
 
         basePath ??= "/api/dm";
-        return endpoints.MapGroup($"/{basePath.Trim('/')}/{prefix.TrimStart('/')}").WithDapperMaticConventions(tag);
+        var path = string.Join('/', new[] { basePath.Trim('/'), prefix.Trim('/') }.Where(p => p.Length > 0));
+        return endpoints.MapGroup("/" + path).WithDapperMaticConventions(tag);
     }
 
     /// <summary>
@@ -49,36 +49,50 @@ internal static class EndpointExtensions
     /// <returns>The configured route group.</returns>
     private static RouteGroupBuilder WithDapperMaticConventions(this RouteGroupBuilder group, string tag)
     {
-        return group.WithTags(tag).AddEndpointFilter<DapperMaticExceptionFilter>();
+        // The request pipeline (caller, span, errors, audit, cache invalidation) wraps every endpoint from DapperMatic's
+        // own group; these route-handler groups add the ETag.
+        return group.WithTags(tag).AddEndpointFilter<DapperMaticETagFilter>();
     }
 
     /// <summary>
-    /// Exception filter to handle common exceptions and map them to appropriate HTTP results.
+    /// Gives each successful <c>GET</c> response an <c>ETag</c>, a hash of its body, and answers <c>304 Not Modified</c>
+    /// when the request's <c>If-None-Match</c> names it: the client's copy is current, and the body is not sent again.
+    /// The response is marked <c>private, no-cache</c>: it is the caller's own, and is checked again before reuse.
     /// </summary>
-    public class DapperMaticExceptionFilter : IEndpointFilter
+    public class DapperMaticETagFilter : IEndpointFilter
     {
-        /// <inheritdoc/>
-        public async ValueTask<object?> InvokeAsync(
-            EndpointFilterInvocationContext context,
-            EndpointFilterDelegate next
-        )
+        /// <inheritdoc />
+        public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
         {
-            try
+            var result = await next(context).ConfigureAwait(false);
+            var http = context.HttpContext;
+            if (
+                !HttpMethods.IsGet(http.Request.Method)
+                || http.RequestServices.GetService<IOptions<DapperMaticOptions>>()?.Value.ETags == false
+                || result is not IValueHttpResult { Value: { } value }
+                || (result is IStatusCodeHttpResult { StatusCode: { } code } && code != StatusCodes.Status200OK)
+            )
             {
-                return await next(context).ConfigureAwait(false);
+                return result;
             }
-            catch (Exception ex)
+
+            // The body as the endpoint would have written it, with the application's JSON options.
+            var json =
+                http.RequestServices.GetService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>()?.Value.SerializerOptions
+                ?? System.Text.Json.JsonSerializerOptions.Web;
+            var body = System.Text.Json.JsonSerializer.SerializeToUtf8Bytes(value, value.GetType(), json);
+            var tag = new Microsoft.Net.Http.Headers.EntityTagHeaderValue(
+                $"\"{Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(body).AsSpan(0, 16))}\""
+            );
+            var headers = http.Response.GetTypedHeaders();
+            headers.ETag = tag;
+            headers.CacheControl = new Microsoft.Net.Http.Headers.CacheControlHeaderValue { Private = true, NoCache = true };
+            if (http.Request.GetTypedHeaders().IfNoneMatch.Any(m => m.Equals(Microsoft.Net.Http.Headers.EntityTagHeaderValue.Any) || m.Compare(tag, useStrongComparison: false)))
             {
-                var operationContext = context.HttpContext.RequestServices.GetService<IOperationContext>();
-                var auditLogger = context.HttpContext.RequestServices.GetService<IDapperMaticAuditLogger>();
-                if (auditLogger != null && operationContext != null)
-                {
-                    await auditLogger
-                        .LogOperationAsync(operationContext.ToAuditEvent(success: false, message: ex.Message))
-                        .ConfigureAwait(false);
-                }
-                return ErrorHandler.HandleError(ex);
+                return Results.StatusCode(StatusCodes.Status304NotModified);
             }
+
+            return Results.Bytes(body, "application/json; charset=utf-8");
         }
     }
 }

@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic foreign key constraint endpoints.
 /// </summary>
-public static class ForeignKeyConstraintEndpoints
+internal static class ForeignKeyConstraintEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic foreign key constraint endpoints to the specified route builder.
@@ -106,7 +106,7 @@ public static class ForeignKeyConstraintEndpoints
 
     // Foreign key constraint endpoint implementations
     private static Task<IResult> ListForeignKeyConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -122,7 +122,7 @@ public static class ForeignKeyConstraintEndpoints
         );
 
     private static async Task<IResult> ListSchemaForeignKeyConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -138,7 +138,7 @@ public static class ForeignKeyConstraintEndpoints
     }
 
     private static Task<IResult> GetForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -156,7 +156,7 @@ public static class ForeignKeyConstraintEndpoints
         );
 
     private static async Task<IResult> GetSchemaForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -180,7 +180,7 @@ public static class ForeignKeyConstraintEndpoints
     }
 
     private static Task<IResult> CreateForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -198,7 +198,7 @@ public static class ForeignKeyConstraintEndpoints
         );
 
     private static async Task<IResult> CreateSchemaForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -217,14 +217,12 @@ public static class ForeignKeyConstraintEndpoints
                 $"At least one column is required"
             );
 
-        operationContext.RequestBody = foreignKeyConstraint;
-        operationContext.ColumnNames =
-            foreignKeyConstraint.ColumnNames != null && foreignKeyConstraint.ColumnNames.Count >= 1
+        operationContext = operationContext with { RequestBody = foreignKeyConstraint, ColumnNames = foreignKeyConstraint.ColumnNames != null && foreignKeyConstraint.ColumnNames.Count >= 1
                 ? foreignKeyConstraint.ColumnNames
-                : null;
+                : null };
         if (!string.IsNullOrWhiteSpace(foreignKeyConstraint.ConstraintName))
         {
-            operationContext.ConstraintName = foreignKeyConstraint.ConstraintName;
+            operationContext = operationContext with { ConstraintName = foreignKeyConstraint.ConstraintName };
         }
 
         var result = await service
@@ -245,7 +243,7 @@ public static class ForeignKeyConstraintEndpoints
     }
 
     private static Task<IResult> DropForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -263,7 +261,7 @@ public static class ForeignKeyConstraintEndpoints
         );
 
     private static async Task<IResult> DropSchemaForeignKeyConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

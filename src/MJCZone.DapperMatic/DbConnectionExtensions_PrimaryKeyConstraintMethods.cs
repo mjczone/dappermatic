@@ -20,13 +20,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use, or null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the primary key constraint exists, otherwise false.</returns>
-    public static async Task<bool> DoesPrimaryKeyConstraintExistAsync<T>(
+    public static Task<bool> DoesPrimaryKeyConstraintExistAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesPrimaryKeyConstraintExistAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if a primary key constraint exists in the specified table.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the primary key constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesPrimaryKeyConstraintExistAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesPrimaryKeyConstraintExistAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -84,15 +104,41 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use, or null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the primary key constraint was created, otherwise false.</returns>
-    public static async Task<bool> CreatePrimaryKeyConstraintIfNotExistsAsync<T>(
+    public static Task<bool> CreatePrimaryKeyConstraintIfNotExistsAsync<T>(
         this IDbConnection db,
+        string constraintName,
+        DmOrderedColumn[] columns,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.CreatePrimaryKeyConstraintIfNotExistsAsync(
+            typeof(T),
+            constraintName,
+            columns,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Creates a primary key constraint if it does not exist.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="columns">The columns that make up the primary key.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the primary key constraint was created, otherwise false.</returns>
+    public static async Task<bool> CreatePrimaryKeyConstraintIfNotExistsAsync(
+        this IDbConnection db,
+        Type type,
         string constraintName,
         DmOrderedColumn[] columns,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .CreatePrimaryKeyConstraintIfNotExistsAsync(
                 db,
@@ -148,13 +194,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use, or null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The primary key constraint, or null if it does not exist.</returns>
-    public static async Task<DmPrimaryKeyConstraint?> GetPrimaryKeyConstraintAsync<T>(
+    public static Task<DmPrimaryKeyConstraint?> GetPrimaryKeyConstraintAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetPrimaryKeyConstraintAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the primary key constraint for the specified table.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The primary key constraint, or null if it does not exist.</returns>
+    public static async Task<DmPrimaryKeyConstraint?> GetPrimaryKeyConstraintAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetPrimaryKeyConstraintAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -190,13 +256,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use, or null.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the primary key constraint was dropped, otherwise false.</returns>
-    public static async Task<bool> DropPrimaryKeyConstraintIfExistsAsync<T>(
+    public static Task<bool> DropPrimaryKeyConstraintIfExistsAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropPrimaryKeyConstraintIfExistsAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops the primary key constraint if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the primary key constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropPrimaryKeyConstraintIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropPrimaryKeyConstraintIfExistsAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);

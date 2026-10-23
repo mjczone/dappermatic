@@ -36,4 +36,14 @@ public sealed class DmUniqueConstraintAttribute : Attribute
     /// Gets the columns that form the unique constraint.
     /// </summary>
     public string[]? Columns { get; }
+
+    /// <summary>
+    /// Gets or sets the names this constraint has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// When the constraint is missing under its current name but exists under exactly one of these, reconciliation
+    /// renames it rather than creating a new one, keeping its data. For example:
+    /// <c>PreviousNames = new[] { "uc_users_email" }</c>.
+    /// </remarks>
+    public string[]? PreviousNames { get; set; }
 }

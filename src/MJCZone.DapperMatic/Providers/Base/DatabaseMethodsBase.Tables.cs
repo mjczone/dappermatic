@@ -259,10 +259,12 @@ public abstract partial class DatabaseMethodsBase
         }
 
         // When creating a single table, we can add the foreign keys inline.
-        // We assume that the referenced table already exists.
-        if (afterAllTablesConstraints == null && table.ForeignKeyConstraints.Count > 0)
+        // We assume that the referenced table already exists. These are the model's foreign keys and those its
+        // columns declare that the provider cannot write inline (MySQL): rendering only the model's dropped the
+        // latter, so [DmColumn(isForeignKey: true)] created no foreign key on MySQL or MariaDB.
+        if (afterAllTablesConstraints == null && tableConstraints.ForeignKeyConstraints.Count > 0)
         {
-            foreach (var fk in table.ForeignKeyConstraints)
+            foreach (var fk in tableConstraints.ForeignKeyConstraints)
             {
                 fk.SchemaName = schemaName;
                 fk.TableName = tableName;

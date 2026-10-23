@@ -78,4 +78,13 @@ public class DmIndex
     /// Gets or sets a value indicating whether the index is unique.
     /// </summary>
     public bool IsUnique { get; set; }
+
+    /// <summary>
+    /// Gets or sets the names this index has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// Reconciliation renames an existing index found under one of these names instead of creating a new one.
+    /// The names cost nothing to keep: they are only consulted when the current name is missing.
+    /// </remarks>
+    public List<string> PreviousNames { get; set; } = [];
 }

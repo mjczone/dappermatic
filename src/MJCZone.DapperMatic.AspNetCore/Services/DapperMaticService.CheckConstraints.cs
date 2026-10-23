@@ -27,7 +27,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<IEnumerable<CheckConstraintDto>> GetCheckConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -81,7 +81,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<CheckConstraintDto> GetCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -145,7 +145,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<CheckConstraintDto> CreateCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         CheckConstraintDto checkConstraint,
@@ -296,7 +296,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task DropCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,

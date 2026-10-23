@@ -221,4 +221,25 @@ public interface IDatabaseIndexMethods
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Renames an index if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="indexName">The current name.</param>
+    /// <param name="newIndexName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    Task<bool> RenameIndexIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string indexName,
+        string newIndexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    );
 }

@@ -23,6 +23,10 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
     private readonly DmTable? _table;
     private readonly DapperMaticMappingOptions _options;
 
+    // Dapper's own mapping, for everything the attributes do not decide: snake_case column names when
+    // DefaultTypeMap.MatchNamesWithUnderscores is on, public fields, and [ExplicitConstructor].
+    private readonly DefaultTypeMap _default;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="DmColumnFallbackMapper"/> class.
     /// </summary>
@@ -32,6 +36,10 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
     {
         _type = type;
         _options = options;
+        _default = new DefaultTypeMap(type);
+
+        // Dapper is about to read this type: register handlers for its property types first.
+        DapperMaticTypeMapping.RegisterModel(type);
 
         // Try to get DmTable if type has DmTable attribute
         if (type.GetCustomAttribute<DmTableAttribute>() != null)
@@ -78,8 +86,8 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
             }
         }
 
-        // Fall back to parameterless constructor if available
-        return _type.GetConstructor(Type.EmptyTypes);
+        // Fall back to parameterless constructor if available, then to Dapper's own matching
+        return _type.GetConstructor(Type.EmptyTypes) ?? _default.FindConstructor(names, types);
     }
 
     /// <inheritdoc/>
@@ -96,6 +104,7 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
             {
                 var paType = pa.GetType();
                 return pa is DmIgnoreAttribute
+                    || pa is DmRelationAttribute
                     // EF Core
                     || pa is System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute
                     // ServiceStack.OrmLite
@@ -159,6 +168,7 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
             {
                 var paType = pa.GetType();
                 return pa is DmIgnoreAttribute
+                    || pa is DmRelationAttribute
                     // EF Core
                     || pa is System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute
                     // ServiceStack.OrmLite
@@ -191,13 +201,15 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
             }
         }
 
-        return null;
+        // Dapper's own matching: snake_case names, and public fields
+        var member = _default.GetMember(columnName);
+        return member?.Property is { } mapped && IsIgnored(mapped) ? null : member;
     }
 
     /// <inheritdoc/>
     public ConstructorInfo? FindExplicitConstructor()
     {
-        return null;
+        return _default.FindExplicitConstructor();
     }
 
     /// <inheritdoc/>
@@ -212,6 +224,18 @@ public class DmColumnFallbackMapper : SqlMapper.ITypeMap
             return new DmMemberMap(columnName, null, param);
         }
 
-        return null;
+        return _default.GetConstructorParameter(constructor, columnName);
     }
+
+    private static bool IsIgnored(PropertyInfo property) =>
+        property
+            .GetCustomAttributes()
+            .Any(pa =>
+                pa is DmIgnoreAttribute
+                || pa is DmRelationAttribute
+                // EF Core
+                || pa is System.ComponentModel.DataAnnotations.Schema.NotMappedAttribute
+                // ServiceStack.OrmLite
+                || pa.GetType().Name == "IgnoreAttribute"
+            );
 }

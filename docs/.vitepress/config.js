@@ -48,6 +48,9 @@ export default defineConfig({
             { text: "Models", link: "/guide/models" },
             { text: "Data Annotations", link: "/guide/data-annotations" },
             { text: "Configuration", link: "/guide/configuration" },
+            { text: "Migrations", link: "/guide/migrations" },
+            { text: "Reading & Writing Rows", link: "/guide/dml-methods" },
+            { text: "Dapper Type Mapping", link: "/guide/dml-query-support" },
             {
               text: "Extension Methods",
               collapsed: true,
@@ -62,6 +65,7 @@ export default defineConfig({
                     { text: "Table Methods", link: "/guide/extension-methods/table-methods" },
                     { text: "Column Methods", link: "/guide/extension-methods/column-methods" },
                     { text: "View Methods", link: "/guide/extension-methods/view-methods" },
+                    { text: "Reconciliation Methods", link: "/guide/extension-methods/reconciliation-methods" },
                   ],
                 },
                 {
@@ -93,9 +97,15 @@ export default defineConfig({
           items: [
             { text: "Getting Started", link: "/guide/web-api/getting-started" },
             { text: "Setup & Configuration", link: "/guide/web-api/setup" },
-            { text: "Security & Authentication", link: "/guide/web-api/security" },
+            { text: "Sign-in", link: "/guide/web-api/authentication" },
+            { text: "Security & Policies", link: "/guide/web-api/security" },
+            { text: "Tenants", link: "/guide/web-api/tenancy" },
             { text: "Endpoints Overview", link: "/guide/web-api/endpoints" },
+            { text: "Webhooks & Realtime", link: "/guide/web-api/changes" },
+            { text: "GraphQL", link: "/guide/web-api/graphql" },
+            { text: "AI Assistants (MCP)", link: "/guide/web-api/mcp" },
             { text: "Integration Examples", link: "/guide/web-api/examples" },
+            { text: "OpenAPI Integration", link: "/guide/web-api/openapi-compatibility" },
           ],
         },
         {

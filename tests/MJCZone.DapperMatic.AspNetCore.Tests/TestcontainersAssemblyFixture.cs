@@ -51,8 +51,7 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
 
         if (containerTypes.HasFlag(ContainerTypes.SqlServer))
         {
-            _sqlServerContainer = new MsSqlBuilder()
-                .WithImage("mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04")
+            _sqlServerContainer = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-CU13-ubuntu-22.04")
                 .WithPassword("Strong_password_123!")
                 .WithAutoRemove(true)
                 .WithCleanUp(true)
@@ -61,8 +60,7 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
 
         if (containerTypes.HasFlag(ContainerTypes.MySql))
         {
-            _mySqlContainer = new MySqlBuilder()
-                .WithImage("mysql:8.4")
+            _mySqlContainer = new MySqlBuilder("mysql:8.4")
                 .WithPassword("Strong_password_123!")
                 .WithAutoRemove(true)
                 .WithCleanUp(true)
@@ -71,8 +69,7 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
 
         if (containerTypes.HasFlag(ContainerTypes.PostgreSql))
         {
-            _postgreSqlContainer = new PostgreSqlBuilder()
-                .WithImage("postgres:16")
+            _postgreSqlContainer = new PostgreSqlBuilder("postgres:16")
                 .WithPassword("Strong_password_123!")
                 .WithAutoRemove(true)
                 .WithCleanUp(true)
@@ -179,12 +176,11 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
             {
                 Id = DatasourceId_Sqlite,
                 Provider = "Sqlite",
-                ConnectionString = new System.Data.SQLite.SQLiteConnectionStringBuilder
+                ConnectionString = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
                 {
                     DataSource = string.IsNullOrWhiteSpace(sqliteFile) ? _sqliteFilePath : sqliteFile,
                     ForeignKeys = true,
-                    BinaryGUID = false,
-                    FailIfMissing = false,
+                    Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWriteCreate,
                 }.ToString(),
                 DisplayName = "Test SQLite",
                 Description = "SQLite database file",

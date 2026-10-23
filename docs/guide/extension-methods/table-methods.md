@@ -95,40 +95,40 @@ Create a table using individual components for maximum flexibility.
 var columns = new[]
 {
     new DmColumn("EmployeeId", typeof(int)) { IsAutoIncrement = true },
-    new DmColumn("FirstName", typeof(string)) { MaxLength = 50, IsNullable = false },
-    new DmColumn("LastName", typeof(string)) { MaxLength = 50, IsNullable = false },
-    new DmColumn("Email", typeof(string)) { MaxLength = 255, IsNullable = false },
+    new DmColumn("FirstName", typeof(string)) { Length = 50, IsNullable = false },
+    new DmColumn("LastName", typeof(string)) { Length = 50, IsNullable = false },
+    new DmColumn("Email", typeof(string)) { Length = 255, IsNullable = false },
     new DmColumn("DepartmentId", typeof(int)),
     new DmColumn("HireDate", typeof(DateTime)) { DefaultExpression = "GETDATE()" },
     new DmColumn("IsActive", typeof(bool)) { DefaultExpression = "1" }
 };
 
-var primaryKey = new DmPrimaryKeyConstraint("PK_Employees", new[] { "EmployeeId" });
+var primaryKey = new DmPrimaryKeyConstraint("PK_Employees", new[] { new DmOrderedColumn("EmployeeId") });
 
 var checkConstraints = new[]
 {
-    new DmCheckConstraint("CK_Employees_HireDate", "HireDate >= '1900-01-01'")
+    new DmCheckConstraint(null, "CK_Employees_HireDate", "HireDate >= '1900-01-01'")
 };
 
 var defaultConstraints = new[]
 {
-    new DmDefaultConstraint("DF_Employees_IsActive", "IsActive", "1")
+    new DmDefaultConstraint("IsActive", "DF_Employees_IsActive", "1")
 };
 
 var uniqueConstraints = new[]
 {
-    new DmUniqueConstraint("UK_Employees_Email", new[] { "Email" })
+    new DmUniqueConstraint("UK_Employees_Email", new[] { new DmOrderedColumn("Email") })
 };
 
 var foreignKeyConstraints = new[]
 {
     new DmForeignKeyConstraint("FK_Employees_Department",
-        new[] { "DepartmentId" }, "hr", "Departments", new[] { "DepartmentId" })
+        new[] { new DmOrderedColumn("DepartmentId") }, "Departments", new[] { new DmOrderedColumn("DepartmentId") })
 };
 
 var indexes = new[]
 {
-    new DmIndex("IX_Employees_LastName", new[] { "LastName" })
+    new DmIndex("IX_Employees_LastName", new[] { new DmOrderedColumn("LastName") })
 };
 
 // Create table with all components
@@ -207,13 +207,13 @@ foreach (var table in tables)
 {
     Console.WriteLine($"Table: {table.TableName}");
     Console.WriteLine($"  Columns: {table.Columns.Count}");
-    Console.WriteLine($"  Primary Key: {table.PrimaryKeyConstraint?.KeyName ?? "None"}");
+    Console.WriteLine($"  Primary Key: {table.PrimaryKeyConstraint?.ConstraintName ?? "None"}");
     Console.WriteLine($"  Foreign Keys: {table.ForeignKeyConstraints.Count}");
     Console.WriteLine($"  Indexes: {table.Indexes.Count}");
 
     foreach (var column in table.Columns)
     {
-        Console.WriteLine($"    {column.ColumnName}: {column.DataType.Name}" +
+        Console.WriteLine($"    {column.ColumnName}: {column.DotnetType?.Name}" +
                          $"{(column.IsNullable ? "" : " NOT NULL")}");
     }
 }
@@ -256,7 +256,7 @@ if (table != null)
     var emailColumn = table.Columns.FirstOrDefault(c => c.ColumnName == "Email");
     if (emailColumn != null)
     {
-        Console.WriteLine($"Email column max length: {emailColumn.MaxLength}");
+        Console.WriteLine($"Email column max length: {emailColumn.Length}");
     }
 }
 else
@@ -441,7 +441,7 @@ public async Task<Dictionary<string, List<string>>> AnalyzeTableDependenciesAsyn
 
         foreach (var fk in table.ForeignKeyConstraints)
         {
-            var referencedTable = $"{fk.ReferencedSchemaName}.{fk.ReferencedTableName}";
+            var referencedTable = $"{fk.SchemaName}.{fk.ReferencedTableName}";
             referencedTables.Add(referencedTable);
         }
 

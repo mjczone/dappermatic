@@ -68,6 +68,20 @@ public abstract class MariaDbDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFix
         return db;
     }
 
+    public override async Task<IDbConnection?> OpenServerAdminConnectionAsync()
+    {
+        // The container's root account has the same password as its database's user.
+        var connectionString = new MySqlConnectionStringBuilder(fixture.ConnectionString) { UserID = "root" }.ConnectionString;
+        if (!connectionString.Contains("SSL Mode", StringComparison.OrdinalIgnoreCase))
+        {
+            connectionString += ";SSL Mode=None";
+        }
+
+        var db = new MySqlConnection(connectionString);
+        await db.OpenAsync();
+        return db;
+    }
+
     public override bool IgnoreSqlType(string sqlType)
     {
         return fixture.IgnoreSqlType(sqlType);

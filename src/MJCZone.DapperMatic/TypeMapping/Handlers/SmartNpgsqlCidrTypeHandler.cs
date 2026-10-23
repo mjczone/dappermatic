@@ -55,32 +55,25 @@ public class SmartNpgsqlCidrTypeHandler : SqlMapper.TypeHandler<object>
             return value;
         }
 
-        // Parse from string (CIDR notation like "192.168.0.0/24")
+        // CIDR notation like "192.168.0.0/24": stored as a string by other providers, and what an IPNetwork
+        // (which Npgsql 10 reads cidr as) prints.
         var stringValue = value.ToString();
         if (string.IsNullOrWhiteSpace(stringValue))
         {
             return null;
         }
 
-        // Use reflection to parse NpgsqlCidr from string
-        if (NpgsqlCidrType != null)
+        // NpgsqlCidr has no Parse method, but has a constructor taking CIDR notation.
+        if (NpgsqlCidrType?.GetConstructor([typeof(string)]) is { } constructor)
         {
-            var parseMethod = NpgsqlCidrType.GetMethod("Parse", new[] { typeof(string) });
-
-            if (parseMethod != null)
+            try
             {
-                try
-                {
-                    return parseMethod.Invoke(null, new object[] { stringValue });
-                }
-                catch (Exception ex)
-                    when (ex is System.Reflection.TargetInvocationException
-                        || ex is ArgumentException
-                        || ex is FormatException
-                    )
-                {
-                    // Fall through to return string if parse fails
-                }
+                return constructor.Invoke([stringValue]);
+            }
+            catch (System.Reflection.TargetInvocationException ex)
+                when (ex.InnerException is ArgumentException or FormatException)
+            {
+                // Fall through to return string if parse fails
             }
         }
 

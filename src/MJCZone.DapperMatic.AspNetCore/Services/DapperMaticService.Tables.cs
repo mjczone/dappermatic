@@ -8,6 +8,7 @@ using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Validation;
 using MJCZone.DapperMatic.Models;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
@@ -28,7 +29,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of tables.</returns>
     public async Task<IEnumerable<TableDto>> GetTablesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string? schemaName = null,
         bool includeColumns = false,
@@ -99,7 +100,9 @@ public partial class DapperMaticService
 
             await LogAuditEventAsync(context, true, $"Retrieved tables for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
-            return tables.ToTableDtos(includeColumns, includeIndexes, includeConstraints);
+            return tables
+                .Where(t => !IsPrivate(t.TableName) && MayReadSchema(context, new DmResource(datasourceId, SchemaOf(connection, schemaName), t.TableName)))
+                .ToTableDtos(includeColumns, includeIndexes, includeConstraints);
         }
     }
 
@@ -117,7 +120,7 @@ public partial class DapperMaticService
     /// <returns>The table.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the table does not exist.</exception>
     public async Task<TableDto> GetTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -193,7 +196,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created table.</returns>
     public async Task<TableDto> CreateTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         TableDto table,
         CancellationToken cancellationToken = default
@@ -213,11 +216,20 @@ public partial class DapperMaticService
             .NotNullOrWhiteSpace(table.TableName, "TableName is required")
             .Assert();
 
+        // Nor is one made under such a name: DapperMatic would take it for its own.
+        if (IsPrivate(table.TableName))
+        {
+            throw new UnauthorizedAccessException($"DapperMatic does not serve the table '{table.TableName}'.");
+        }
+
         var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
         using (connection)
         {
             // Check schema exists if specified
             await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            await AssertMayReferenceAsync(context, connection, datasourceId, schemaName, References(dmTable), dmTable.TableName, cancellationToken)
                 .ConfigureAwait(false);
 
             // Check view does not already exist
@@ -268,7 +280,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The updated table.</returns>
     public async Task<TableDto> UpdateTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         TableDto updates,
@@ -296,6 +308,20 @@ public partial class DapperMaticService
 
             // Check table exists
             await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
+                .ConfigureAwait(false);
+
+            await AssertMayReferenceAsync(
+                    context,
+                    connection,
+                    datasourceId,
+                    schemaName,
+                    [
+                        .. (updates.Columns ?? []).Select(c => (c.ReferencedTableName, ColumnsOf(c.ReferencedColumnName))),
+                        .. (updates.ForeignKeyConstraints ?? []).Select(f => (f.ReferencedTableName, (IReadOnlyCollection<string>)(f.ReferencedColumnNames ?? []))),
+                    ],
+                    tableName,
+                    cancellationToken
+                )
                 .ConfigureAwait(false);
 
             var changesMade = false;
@@ -485,7 +511,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The renamed table.</returns>
     public async Task<TableDto> RenameTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string currentTableName,
         string newTableName,
@@ -494,6 +520,9 @@ public partial class DapperMaticService
     )
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        // The new name is authorized too: a policy about some tables must not let one be renamed into or out of them.
+        await AssertAsAsync(context, context.Operation ?? "tables/put", context.SchemaName, newTableName, null, nameof(RenameTableAsync)).ConfigureAwait(false);
 
         schemaName = NormalizeSchemaName(schemaName);
 
@@ -569,7 +598,7 @@ public partial class DapperMaticService
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the table does not exist.</exception>
     public async Task DropTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -623,7 +652,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table exists, otherwise false.</returns>
     public async Task<bool> TableExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -675,7 +704,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The query results with pagination information.</returns>
     public async Task<QueryResultDto> QueryTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         QueryDto request,
@@ -711,18 +740,19 @@ public partial class DapperMaticService
         var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
         using (connection)
         {
-            // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
-                .ConfigureAwait(false);
-
-            // Check table exists
-            await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
-                .ConfigureAwait(false);
+            // Check the schema and table exist, unless their description is cached
+            if (!IsDescribed(datasourceId, schemaName, tableName, view: false))
+            {
+                await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
+                    .ConfigureAwait(false);
+                await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
+                    .ConfigureAwait(false);
+            }
 
             // Build the query using provider-specific identifier naming
             var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, tableName);
 
-            var result = await ExecuteDataQueryAsync(connection, qualifiedFromName, request, schemaName, tableName)
+            var result = await ExecuteDataQueryAsync(context, connection, qualifiedFromName, request, schemaName, tableName, datasourceId, cancellationToken)
                 .ConfigureAwait(false);
 
             await LogAuditEventAsync(context, true, $"Queried table '{tableName}' for datasource '{datasourceId}'")

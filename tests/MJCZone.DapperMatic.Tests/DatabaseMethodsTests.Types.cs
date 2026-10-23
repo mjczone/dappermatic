@@ -181,13 +181,22 @@ public abstract partial class DatabaseMethodsTests
     // csharpier-ignore-start
     [Theory]
     // Primitive & Common Types
-    [InlineData(typeof(byte), "tinyint", "tinyint", "smallint", "tinyint", false, null, null, null, false, "tinyint(4)", "tinyint(4)")]
-    [InlineData(typeof(sbyte), "tinyint", "tinyint", "smallint", "tinyint", false, null, null, null, false, "tinyint(4)", "tinyint(4)")]
+    [InlineData(typeof(byte), "tinyint", "tinyint unsigned", "smallint", "tinyint", false, null, null, null, false, "tinyint(3) unsigned", "tinyint(3) unsigned")]
+    [InlineData(typeof(sbyte), "smallint", "tinyint", "smallint", "smallint", false, null, null, null, false, "tinyint(4)", "tinyint(4)")]
+    [InlineData(typeof(ushort), "int", "smallint unsigned", "integer", "integer", false, null, null, null, false, "smallint(5) unsigned", "smallint(5) unsigned")]
+    [InlineData(typeof(uint), "bigint", "int unsigned", "bigint", "integer", false, null, null, null, false, "int(10) unsigned", "int(10) unsigned")]
+    [InlineData(typeof(ulong), "decimal(20,0)", "bigint unsigned", "numeric(20,0)", "bigint", false, null, null, null, false, "bigint(20) unsigned", "bigint(20) unsigned")]
+    [InlineData(typeof(Half), "real", "float", "real", "real")]
+    [InlineData(typeof(Int128), "varchar(40)", "varchar(40)", "character varying(40)", "varchar(40)", false, 40)]
+    [InlineData(typeof(UInt128), "varchar(40)", "varchar(40)", "character varying(40)", "varchar(40)", false, 40)]
+    [InlineData(typeof(System.Numerics.BigInteger), "varchar(max)", "text", "text", "varchar(-1)")]
+    [InlineData(typeof(Uri), "nvarchar(2048)", "varchar(2048)", "character varying(2048)", "nvarchar(2048)", true, 2048)]
+    [InlineData(typeof(System.Version), "varchar(32)", "varchar(32)", "character varying(32)", "varchar(32)", false, 32)]
     [InlineData(typeof(short), "smallint", "smallint", "smallint", "smallint", false, null, null, null, false, "smallint(6)", "smallint(6)")]
     [InlineData(typeof(int), "int", "int", "integer", "int", false, null, null, null, false, "int(11)", "int(11)")]
     [InlineData(typeof(long), "bigint", "bigint", "bigint", "bigint", false, null, null, null, false, "bigint(20)", "bigint(20)")]
-    [InlineData(typeof(float), "real", "double", "real", "real")]
-    [InlineData(typeof(double), "float(53)", "float", "double precision", "double")]
+    [InlineData(typeof(float), "real", "float", "real", "real")]
+    [InlineData(typeof(double), "float(53)", "double", "double precision", "double")]
     [InlineData(typeof(decimal), "decimal(16,4)", "decimal(16,4)", "numeric(16,4)", "numeric(16,4)")]
     [InlineData(typeof(decimal), "decimal(12,8)", "decimal(12,8)", "numeric(12,8)", "numeric(12,8)", false, null, 12, 8)]
     [InlineData(typeof(decimal), "decimal(12,0)", "decimal(12,0)", "numeric(12,0)", "numeric(12,0)", false, null, 12, 0)]
@@ -241,10 +250,10 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(IList<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
     [InlineData(typeof(ICollection<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
     [InlineData(typeof(IEnumerable<string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
-    [InlineData(typeof(Dictionary<string, string>), "varchar(max)", "json", "hstore", "text", false, null, null, null, false, null, "longtext")]
-    [InlineData(typeof(IDictionary<string, string>), "varchar(max)", "json", "hstore", "text", false, null, null, null, false, null, "longtext")]
-    [InlineData(typeof(Dictionary<string, string>), "nvarchar(max)", "json", "hstore", "text", true, null, null, null, false, null, "longtext")]
-    [InlineData(typeof(IDictionary<string, string>), "nvarchar(max)", "json", "hstore", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(Dictionary<string, string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IDictionary<string, string>), "varchar(max)", "json", "jsonb", "text", false, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(Dictionary<string, string>), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
+    [InlineData(typeof(IDictionary<string, string>), "nvarchar(max)", "json", "jsonb", "text", true, null, null, null, false, null, "longtext")]
     // Npgsql Types
     // The specific WKT/WKB conversion logic needs to be handled in the provider-specific code
     // SQL Server, MySQL, and SQLite use text-based storage for Npgsql geometric types
@@ -256,7 +265,10 @@ public abstract partial class DatabaseMethodsTests
     [InlineData(typeof(NpgsqlCircle), "varchar(max)", "text", "circle", "varchar(-1)", false, null, null, null, false, null, "text")]
     [InlineData(typeof(NpgsqlBox), "varchar(max)", "text", "box", "varchar(-1)", false, null, null, null, false, null, "text")]
     [InlineData(typeof(NpgsqlInet), "varchar(45)", "varchar(45)", "inet", "varchar(45)", false, 45, null, null, false, null, "varchar(45)")] // Use standard VARCHAR for IPs
+#pragma warning disable CS0618 // NpgsqlCidr is obsolete from Npgsql 10, but still supported.
     [InlineData(typeof(NpgsqlCidr), "varchar(43)", "varchar(43)", "cidr", "varchar(43)", false, 43, null, null, false, null, "varchar(43)")] // Use standard VARCHAR for CIDRs
+#pragma warning restore CS0618
+    [InlineData(typeof(IPNetwork), "varchar(43)", "varchar(43)", "cidr", "varchar(43)", false, 43, null, null, false, null, "varchar(43)")]
     [InlineData(typeof(NpgsqlRange<DateOnly>), "varchar(max)", "text", "daterange", "varchar(-1)")]
     [InlineData(typeof(NpgsqlRange<int>), "varchar(max)", "text", "int4range", "varchar(-1)")]
     [InlineData(typeof(NpgsqlRange<long>), "varchar(max)", "text", "int8range", "varchar(-1)")]
@@ -644,7 +656,7 @@ public abstract partial class DatabaseMethodsTests
                         case "character varying[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(string[])); break;
                         case "character": AssertValues(providerDataTypeName, DataTypeCategory.Text, typeof(string), 1, unicode: true); break;
                         case "character[]": AssertValues(providerDataTypeName, DataTypeCategory.Array, typeof(char[])); break;
-                        case "cidr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(NpgsqlCidr)); break;
+                        case "cidr": AssertValues(providerDataTypeName, DataTypeCategory.Network, typeof(IPNetwork)); break;
                         case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NetTopologySuite.Geometries.Geometry)); break;
                         // case "circle": AssertValues(providerDataTypeName, DataTypeCategory.Spatial, typeof(NpgsqlCircle)); break;
                         case "date": AssertValues(providerDataTypeName, DataTypeCategory.DateTime, typeof(DateOnly)); break;

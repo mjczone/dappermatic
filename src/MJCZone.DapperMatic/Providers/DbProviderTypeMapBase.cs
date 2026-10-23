@@ -541,6 +541,18 @@ public abstract partial class DbProviderTypeMapBase<TImpl> : IDbProviderTypeMap
 
         // Network type affinity (standard System.Net types)
         RegisterConverterForTypes(networkTypeConverter, TypeMappingHelpers.GetStandardNetworkTypes());
+
+        // Integers beyond 64 bits are stored as their decimal digits: every driver reads DECIMAL and NUMERIC
+        // columns as System.Decimal, which overflows past 28 digits.
+        RegisterConverter<System.Numerics.BigInteger>(
+            GetTextToSqlTypeConverter(TypeMappingDefaults.MaxLength, isUnicode: false)
+        );
+        RegisterConverter<Int128>(GetTextToSqlTypeConverter(40, isUnicode: false));
+        RegisterConverter<UInt128>(GetTextToSqlTypeConverter(40, isUnicode: false));
+
+        // Stored as text, rather than as JSON like other objects
+        RegisterConverter<Uri>(GetTextToSqlTypeConverter(2048, isUnicode: true));
+        RegisterConverter<Version>(GetTextToSqlTypeConverter(32, isUnicode: false));
     }
 
     /// <summary>

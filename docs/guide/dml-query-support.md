@@ -182,15 +182,26 @@ DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions
     HandlerPrecedence = TypeHandlerPrecedence.OverrideExisting,
 
     // Enable/disable record constructor support
-    EnableRecordSupport = true
+    EnableRecordSupport = true,
+
+    // Store collections of simple values (string[], List<int>, ...) as JSON; see "Collections and IN lists"
+    StoreSimpleCollectionsAsJson = false,
+
+    // How values stored as JSON are serialized (default: System.Text.Json's defaults)
+    JsonSerializerOptions = null,
+
+    // Look through the application's assemblies for model property types that need a handler
+    ScanEntryAssembly = true,
 });
 ```
 
 ### Handler Precedence Options
 
-- **`SkipIfExists`** (default): Don't register if handler already exists
-- **`OverrideExisting`**: Replace existing handlers with DapperMatic handlers
-- **`ThrowIfExists`**: Throw exception if handler already registered
+These decide what happens when a Dapper type handler is already registered for a type DapperMatic handles, typically one the application registered itself before calling `Initialize`:
+
+- **`SkipIfExists`** (default): Keep the existing handler
+- **`OverrideExisting`**: Replace it with DapperMatic's
+- **`ThrowIfExists`**: Throw an `InvalidOperationException`
 
 ### Record Support
 
@@ -246,6 +257,85 @@ public class SimpleUser
     // Maps to "Name" or "name" or "NAME" column
     public string Name { get; set; } = string.Empty;
 }
+```
+
+Anything else maps the way Dapper maps it: a snake_case column such as `first_name` maps to `FirstName` when `Dapper.DefaultTypeMap.MatchNamesWithUnderscores` is on, public fields map like properties, and `[ExplicitConstructor]` is honoured.
+
+## What Maps Out of the Box
+
+After `Initialize()`, every type below can be written as a parameter and read back into a property, on every provider, with nothing registered. The column types are the ones DapperMatic creates for a property of that type.
+
+| .NET type | Stored as |
+|-----------|-----------|
+| `bool`, `byte`, `short`, `int`, `long`, `float`, `double`, `decimal`, `char`, `string` | The provider's own type |
+| `sbyte`, `ushort`, `uint`, `ulong` | Unsigned types on MySQL and MariaDB; elsewhere the next larger signed type, and `decimal(20,0)` / `numeric(20,0)` for `ulong` |
+| `Half` | `real` (MySQL `float`) |
+| `Int128`, `UInt128`, `BigInteger` | Their digits as text: every driver reads decimal columns into `System.Decimal`, which overflows past 28 digits |
+| `Guid`, `DateTime`, `DateTimeOffset`, `DateOnly`, `TimeOnly`, `TimeSpan` | The provider's own type, or text on SQLite |
+| Enums | Their underlying integer type |
+| Nullable forms of all of these | The same, allowing nulls |
+| `byte[]` | Binary |
+| `Uri`, `Version`, `IPEndPoint`, `char[]` | Text |
+| `IPAddress`, `IPNetwork`, `PhysicalAddress` | `inet`, `cidr`, `macaddr` on PostgreSQL; text elsewhere |
+| `XDocument`, `XElement` | `xml` on SQL Server and PostgreSQL; text elsewhere |
+| `JsonDocument`, `JsonElement`, `JsonNode`, `JsonObject`, `JsonArray`, `JsonValue` | JSON: `jsonb` on PostgreSQL, `json` on MySQL, text elsewhere |
+| Dictionaries, of any key and value types | JSON |
+| Collections of objects: `List<OrderLine>`, `OrderLine[]`, `IReadOnlyList<Address>`, `HashSet<Tag>`, ... | JSON |
+| Collections of simple values: `string[]`, `List<int>`, `HashSet<Guid>`, ... | See [Collections and IN lists](#collections-and-in-lists) |
+| Objects of your own types | JSON, where the property is a column; see [Your own types](#your-own-types) |
+
+### Collections and IN Lists
+
+Dapper uses one handler per .NET type for every parameter, and a type with a handler is no longer expanded into a list for `WHERE id IN @ids`. So a collection of simple values (numbers, strings, Guids, dates and times, or enums, in an array, list, set or any other collection) keeps Dapper's own behaviour by default:
+
+- `WHERE id IN @ids` expands on every provider. On PostgreSQL, Dapper passes the collection as one array, which takes `WHERE id = ANY(@ids)`.
+- PostgreSQL stores arrays natively: `int[]` in an `integer[]` column, `string[]` in `text[]`, and so on.
+- On SQL Server, MySQL and SQLite, such a collection cannot be written to a column.
+
+To store them as JSON columns instead, at the cost of `IN` lists of those types:
+
+```csharp
+// Every collection of simple values
+DapperMaticTypeMapping.Initialize(new DapperMaticMappingOptions { StoreSimpleCollectionsAsJson = true });
+
+// Or only the types you store, after Initialize()
+DapperMaticTypeMapping.RegisterJsonTypes(typeof(List<string>), typeof(int[]));
+```
+
+Arrays registered this way stay native on PostgreSQL. `DateTimeOffset[]` is the one exception to the default: it always has a handler, because Npgsql reads `timestamptz[]` as `DateTime[]`.
+
+Collections of anything else, and dictionaries, are never used for `IN` lists, so they are always JSON.
+
+### Your Own Types
+
+Dapper needs a handler registered for each exact type, so DapperMatic registers them from your models: those it finds in your application's assemblies when `Initialize()` runs (unless `ScanEntryAssembly` is off), those `DmTableFactory` builds, and any Dapper reads. Then:
+
+- A collection or dictionary property is stored as JSON, whatever it holds: `List<OrderLine>`, `Dictionary<string, Address>`.
+- An object property is stored as JSON only where it is clearly a column: it has a `[DmColumn]` or `[Column]` attribute, or its class has `[DmTable]` or `[Table]`. A handler for a type stops Dapper reading that type as rows, so a navigation property such as `Order.Customer`, filled by multi-mapping, is left alone, and so is any type with `[DmTable]` or `[Table]` of its own.
+
+```csharp
+public class Order
+{
+    public int Id { get; set; }
+
+    // JSON: a collection
+    public List<OrderLine> Lines { get; set; } = [];
+
+    // JSON: a column
+    [DmColumn("shipping_address")]
+    public Address? ShippingAddress { get; set; }
+
+    // Not stored: filled by multi-mapping
+    public Customer? Customer { get; set; }
+}
+```
+
+Dapper never asks before writing a parameter, so a model written before it is ever read must already be known. If one lives somewhere the scan does not reach, such as an assembly loaded later, register it:
+
+```csharp
+DapperMaticTypeMapping.RegisterModels(typeof(Order), typeof(Invoice));
+DapperMaticTypeMapping.RegisterAssembly(typeof(Order).Assembly);
+DapperMaticTypeMapping.RegisterJsonTypes(typeof(Address)); // a type stored as JSON wherever it appears
 ```
 
 ## Advanced Type Support
@@ -378,7 +468,7 @@ public class UserSettings
     public string Username { get; set; } = string.Empty;
 
     [DmColumn("preferences")]
-    public Dictionary<string, string>? Preferences { get; set; } // Stored as JSON
+    public Dictionary<string, string>? Preferences { get; set; } // Stored as JSON, jsonb on PostgreSQL
 }
 
 // Insert with dictionary
@@ -422,7 +512,7 @@ foreach (var setting in userSettings)
 
 ### List Support
 
-Store and query collections using `List<T>`:
+Store and query collections using `List<T>`. A list of objects is stored as JSON as it is; a list of simple values, such as the `List<string>` here, needs `StoreSimpleCollectionsAsJson` or `RegisterJsonTypes(typeof(List<string>))` first, because by default it is left to Dapper for `IN` lists. See [Collections and IN lists](#collections-and-in-lists).
 
 ```csharp
 public class BlogPost
@@ -463,12 +553,7 @@ foreach (var blogPost in posts)
 ```
 
 ::: info Supported Collection Types
-DapperMatic provides handlers for the following generic collection types:
-- `Dictionary<string, string>`
-- `Dictionary<string, object>`
-- `List<string>`
-
-Additional type combinations can be registered by adding more handler instances in your initialization code.
+Any collection or dictionary is stored as JSON: `List<T>`, `IList<T>`, `ICollection<T>`, `IEnumerable<T>`, `IReadOnlyList<T>`, `HashSet<T>`, `ImmutableArray<T>`, `Dictionary<TKey, TValue>`, `IReadOnlyDictionary<TKey, TValue>` and the rest, of your own types as much as of the framework's. The one exception is a collection of simple values; see [Collections and IN lists](#collections-and-in-lists).
 :::
 
 ### Performance Characteristics
@@ -485,7 +570,8 @@ Additional type combinations can be registered by adding more handler instances 
 | `DateTimeOffset` | PostgreSQL: Native timestamptz<br/>SQL Server: Native<br/>SQLite: String | ~0.1-1ms | ✅ All providers |
 | `IPAddress` | PostgreSQL: Native inet<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
 | `PhysicalAddress` | PostgreSQL: Native macaddr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
-| `NpgsqlCidr` | PostgreSQL: Native cidr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
+| `IPNetwork` | PostgreSQL: Native cidr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
+| `NpgsqlCidr` (obsolete from Npgsql 10) | PostgreSQL: Native cidr<br/>Others: String | PostgreSQL: **~0.1ms**<br/>Others: ~1-2ms | ✅ All providers |
 | `NpgsqlRange<T>` | PostgreSQL: Native ranges<br/>Others: JSON | PostgreSQL: **~0.1ms**<br/>Others: ~1-5ms | ✅ All providers |
 
 ::: tip PostgreSQL Performance
@@ -497,7 +583,7 @@ PostgreSQL automatically benefits from native types for optimal performance:
 
 ### Scalar DateTime Types
 
-DapperMatic provides smart type handlers for `DateOnly`, `TimeOnly`, and `DateTimeOffset` scalar values with automatic provider-specific handling and Npgsql 9.x compatibility:
+DapperMatic provides smart type handlers for `DateOnly`, `TimeOnly`, and `DateTimeOffset` scalar values with automatic provider-specific handling, on Npgsql 9 and 10:
 
 ```csharp
 public class Event
@@ -553,7 +639,7 @@ The smart scalar DateTime type handler automatically adapts to each provider:
 
 ### Array Support
 
-Store and query arrays with automatic provider optimization:
+Store and query arrays with automatic provider optimization. PostgreSQL stores arrays of simple values natively by default; on the other providers they are JSON only with `StoreSimpleCollectionsAsJson` or `RegisterJsonTypes`, as described in [Collections and IN lists](#collections-and-in-lists). Arrays of objects are JSON everywhere.
 
 ```csharp
 public class Product
@@ -601,13 +687,15 @@ foreach (var prod in products)
 ::: tip Smart Array Performance
 DapperMatic uses **runtime provider detection** for optimal performance:
 - **PostgreSQL**: Native arrays (text[], int4[], etc.) - **10-50x faster** than JSON!
-- **Other providers**: JSON array serialization - works reliably everywhere
+- **Other providers**: JSON array serialization, when asked for
 :::
 
-**Supported Array Types** (15 total):
-- **Primitives**: `string[]`, `int[]`, `long[]`, `short[]`, `bool[]`, `byte[]`
+**Native Array Types on PostgreSQL** (14 total):
+- **Primitives**: `string[]`, `int[]`, `long[]`, `short[]`, `bool[]`
 - **Decimals**: `double[]`, `float[]`, `decimal[]`
 - **Temporal**: `Guid[]`, `DateTime[]`, `DateTimeOffset[]`, `DateOnly[]`, `TimeOnly[]`, `TimeSpan[]`
+
+`byte[]` is not an array of values here: it is binary data, stored natively by every provider.
 
 ### Network Types Support
 
@@ -616,7 +704,6 @@ Store and query network addresses using standard .NET types:
 ```csharp
 using System.Net;
 using System.Net.NetworkInformation;
-using NpgsqlTypes; // For NpgsqlCidr
 
 // Approach 1: Using typed properties (recommended for DDL)
 public class NetworkDevice
@@ -634,7 +721,7 @@ public class NetworkDevice
     public PhysicalAddress? MacAddress { get; set; } // PostgreSQL: macaddr, Others: string
 
     [DmColumn("subnet")]
-    public NpgsqlCidr? Subnet { get; set; } // PostgreSQL: cidr, Others: string
+    public IPNetwork? Subnet { get; set; } // PostgreSQL: cidr, Others: string
 }
 
 // Approach 2: Using object with providerDataType (for DDL with object types)
@@ -662,7 +749,7 @@ var device = new NetworkDevice
     DeviceName = "Main Router",
     IPAddress = IPAddress.Parse("192.168.1.1"),
     MacAddress = PhysicalAddress.Parse("00-11-22-33-44-55"),
-    Subnet = NpgsqlCidr.Parse("192.168.1.0/24") // Parse CIDR notation
+    Subnet = IPNetwork.Parse("192.168.1.0/24") // CIDR notation
 };
 
 await connection.ExecuteAsync(
@@ -700,10 +787,12 @@ The property type and/or `providerDataType` affects **both table creation (DDL) 
 **Option 1 (Recommended):** Use the typed property:
 ```csharp
 [DmColumn("subnet")]
-public NpgsqlCidr? Subnet { get; set; }
+public IPNetwork? Subnet { get; set; }
 ```
 - ✅ **DDL:** Creates `cidr` column in PostgreSQL
-- ✅ **DML:** Returns as `NpgsqlCidr` with full API (`.Address`, `.Netmask`, etc.)
+- ✅ **DML:** Returns as `IPNetwork` on every provider (`.BaseAddress`, `.PrefixLength`, `.Contains()`)
+
+`NpgsqlCidr` works the same way. Npgsql 10 marks it obsolete in favour of `IPNetwork`, and reads `cidr` as `IPNetwork` by default.
 
 **Option 2:** Use `object?` with explicit provider data type:
 ```csharp
@@ -711,7 +800,7 @@ public NpgsqlCidr? Subnet { get; set; }
 public object? Subnet { get; set; }
 ```
 - ✅ **DDL:** Creates `cidr` column in PostgreSQL
-- ✅ **DML:** Returns as `NpgsqlCidr` with full API (`.Address`, `.Netmask`, etc.)
+- ⚠️ **DML:** Returns whatever the driver returns: an `IPNetwork` on PostgreSQL with Npgsql 10, a string elsewhere. DapperMatic's type handlers apply to typed members only.
 
 **Option 3 (Limited):** Use `object?` alone without `providerDataType`:
 ```csharp
@@ -724,10 +813,11 @@ public object? Subnet { get; set; }
 **Recommendation:** Always use Option 1 or Option 2 for full functionality in both DDL and DML scenarios.
 :::
 
-**Supported Network Types** (3 total):
+**Supported Network Types** (4 total):
 - `IPAddress` - IPv4 and IPv6 addresses
 - `PhysicalAddress` - MAC addresses (Ethernet hardware addresses)
-- `NpgsqlCidr` - Network ranges in CIDR notation (PostgreSQL-specific, requires Npgsql package)
+- `IPNetwork` - Network ranges in CIDR notation
+- `NpgsqlCidr` - Network ranges in CIDR notation (requires the Npgsql package; obsolete from Npgsql 10, which recommends `IPNetwork`)
 
 ### Range Types Support
 

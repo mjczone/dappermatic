@@ -63,7 +63,7 @@ public class SmartNpgsqlBoxTypeHandler : SqlMapper.ITypeHandler
             var y2 = urType.GetProperty("Y")?.GetValue(upperRight);
 
             // Box as closed polygon (5 points, first == last)
-            parameter.Value = $"POLYGON(({x1} {y1},{x2} {y1},{x2} {y2},{x1} {y2},{x1} {y1}))";
+            parameter.Value = string.Create(CultureInfo.InvariantCulture, $"POLYGON(({x1} {y1},{x2} {y1},{x2} {y2},{x1} {y2},{x1} {y1}))");
             parameter.DbType = DbType.String;
         }
     }

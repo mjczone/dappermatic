@@ -31,6 +31,12 @@ public class PaginationDto
     public bool HasMore { get; set; }
 
     /// <summary>
+    /// Gets or sets the cursor of the next page, for <c>$after</c>: null on the last page, or for a query that is not
+    /// ordered by the table's own columns, or of a table without a key.
+    /// </summary>
+    public string? NextCursor { get; set; }
+
+    /// <summary>
     /// Gets the current page number (1-based).
     /// </summary>
     public int Page => (Skip / Take) + 1;

@@ -25,6 +25,11 @@ public class SQLite_MS_DatabaseMethodsTests(ITestOutputHelper output) : Database
             File.Delete("ms_sqlite_tests.sqlite");
         }
 
+        return await OpenAnotherConnectionAsync();
+    }
+
+    public override async Task<IDbConnection> OpenAnotherConnectionAsync()
+    {
         var cstr = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
         {
             DataSource = "ms_sqlite_tests.sqlite",

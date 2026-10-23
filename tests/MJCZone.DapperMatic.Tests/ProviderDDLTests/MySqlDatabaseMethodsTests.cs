@@ -62,6 +62,24 @@ public abstract class MySqlDatabaseMethodsTests<TDatabaseFixture>(TDatabaseFixtu
         return db;
     }
 
+    public override async Task<IDbConnection?> OpenServerAdminConnectionAsync()
+    {
+        // The container's root account has the same password as its database's user.
+        var connectionString = new MySqlConnectionStringBuilder(fixture.ConnectionString)
+        {
+            UserID = "root",
+            AllowPublicKeyRetrieval = true, // root authenticates with caching_sha2_password, and SSL is off
+        }.ConnectionString;
+        if (!connectionString.Contains("SSL Mode", StringComparison.OrdinalIgnoreCase))
+        {
+            connectionString += ";SSL Mode=None";
+        }
+
+        var db = new MySqlConnection(connectionString);
+        await db.OpenAsync();
+        return db;
+    }
+
     public override bool IgnoreSqlType(string sqlType)
     {
         return fixture.IgnoreSqlType(sqlType);

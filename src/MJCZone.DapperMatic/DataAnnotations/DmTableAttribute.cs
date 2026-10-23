@@ -35,4 +35,14 @@ public sealed class DmTableAttribute : Attribute
     /// Gets the name of the table.
     /// </summary>
     public string? TableName { get; }
+
+    /// <summary>
+    /// Gets or sets the names this table has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// When the table is missing under its current name but exists under exactly one of these, reconciliation
+    /// renames it rather than creating a new one, keeping its data. For example:
+    /// <c>PreviousNames = new[] { "users" }</c>.
+    /// </remarks>
+    public string[]? PreviousNames { get; set; }
 }

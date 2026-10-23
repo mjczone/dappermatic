@@ -351,9 +351,54 @@ public partial class SqliteMethods
         //     )
         //     .ConfigureAwait(false);
 
+        // Remember the connection's setting so it is restored as it was, rather than forced on.
+        var foreignKeysWereOn =
+            await ExecuteScalarAsync<long>(db, "PRAGMA foreign_keys", tx: tx, cancellationToken: cancellationToken)
+                .ConfigureAwait(false) == 1;
+
         // disable foreign key constraints temporarily
         await ExecuteAsync(db, "PRAGMA foreign_keys = 0", tx: tx, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
+
+        // SQLite ignores PRAGMA foreign_keys inside a transaction, so with the caller's transaction open the
+        // keys are still enforced. Dropping the table below would then fire the foreign keys of every other
+        // table that references it: ON DELETE CASCADE rows are deleted with no error, and NO ACTION rows
+        // fail the drop. Refuse instead of losing data. A table referenced only by itself is safe, because
+        // its own rows are copied out before the drop and copied back after.
+        if (
+            foreignKeysWereOn
+            && await ExecuteScalarAsync<long>(db, "PRAGMA foreign_keys", tx: tx, cancellationToken: cancellationToken)
+                .ConfigureAwait(false) == 1
+        )
+        {
+            var referencingTables = await QueryAsync<string>(
+                    db,
+                    """
+                    SELECT DISTINCT m.name
+                    FROM sqlite_master m
+                    JOIN pragma_foreign_key_list(m.name) p
+                    WHERE m.type = 'table'
+                      AND m.name <> @tableName COLLATE NOCASE
+                      AND p."table" = @tableName COLLATE NOCASE
+                    ORDER BY m.name
+                    """,
+                    new { tableName },
+                    tx: tx,
+                    cancellationToken: cancellationToken
+                )
+                .ConfigureAwait(false);
+
+            if (referencingTables.Count > 0)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot alter table '{tableName}' inside a transaction while foreign keys are enforced. "
+                        + "SQLite makes this change by rebuilding the table, and it cannot switch foreign keys off "
+                        + "once a transaction has begun, so dropping the old table would delete or block rows in "
+                        + $"{string.Join(", ", referencingTables.Select(t => $"'{t}'"))}. Make the change without a "
+                        + "transaction, or run PRAGMA foreign_keys = 0 before beginning the transaction."
+                );
+            }
+        }
 
         // Only create a new transaction if one wasn't provided
         IDbTransaction? innerTx = null;
@@ -381,14 +426,14 @@ public partial class SqliteMethods
             // create a temporary table from the existing table's data
             await ExecuteAsync(
                     db,
-                    $"CREATE TEMP TABLE {tempTableName} AS SELECT * FROM {tableName}",
+                    $"CREATE TEMP TABLE {GetQuotedIdentifier(tempTableName)} AS SELECT * FROM {GetQuotedIdentifier(tableName)}",
                     tx: innerTx,
                     cancellationToken: cancellationToken
                 )
                 .ConfigureAwait(false);
 
             // drop the old table
-            await ExecuteAsync(db, $"DROP TABLE {tableName}", tx: innerTx, cancellationToken: cancellationToken)
+            await ExecuteAsync(db, $"DROP TABLE {GetQuotedIdentifier(tableName)}", tx: innerTx, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
 
             var created = await CreateTableIfNotExistsAsync(db, updatedTable, innerTx, cancellationToken)
@@ -408,10 +453,10 @@ public partial class SqliteMethods
 
                 if (columnNamesInBothTables.Length > 0)
                 {
-                    var columnsToCopyString = string.Join(", ", columnNamesInBothTables);
+                    var columnsToCopyString = string.Join(", ", columnNamesInBothTables.Select(GetQuotedIdentifier));
                     await ExecuteAsync(
                             db,
-                            $"INSERT INTO {updatedTable.TableName} ({columnsToCopyString}) SELECT {columnsToCopyString} FROM {tempTableName}",
+                            $"INSERT INTO {QuoteName(updatedTable.TableName)} ({columnsToCopyString}) SELECT {columnsToCopyString} FROM {GetQuotedIdentifier(tempTableName)}",
                             tx: innerTx,
                             cancellationToken: cancellationToken
                         )
@@ -419,7 +464,7 @@ public partial class SqliteMethods
                 }
 
                 // drop the temp table
-                await ExecuteAsync(db, $"DROP TABLE {tempTableName}", tx: innerTx, cancellationToken: cancellationToken)
+                await ExecuteAsync(db, $"DROP TABLE {GetQuotedIdentifier(tempTableName)}", tx: innerTx, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
 
                 // commit the transaction only if we created it
@@ -467,8 +512,13 @@ public partial class SqliteMethods
                 }
             }
 
-            // re-enable foreign key constraints
-            await ExecuteAsync(db, "PRAGMA foreign_keys = 1", tx: tx, cancellationToken: cancellationToken)
+            // restore the connection's foreign key setting
+            await ExecuteAsync(
+                    db,
+                    foreignKeysWereOn ? "PRAGMA foreign_keys = 1" : "PRAGMA foreign_keys = 0",
+                    tx: tx,
+                    cancellationToken: cancellationToken
+                )
                 .ConfigureAwait(false);
         }
     }

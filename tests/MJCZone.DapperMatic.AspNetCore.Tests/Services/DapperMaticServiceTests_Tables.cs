@@ -406,6 +406,64 @@ public partial class DapperMaticServiceTests
         result.Data.Should().NotBeNull();
     }
 
+    /// <summary>
+    /// Column names in a query go into the SQL text, so a name that is not one of the table's columns is refused, and
+    /// one that is is matched whatever its case.
+    /// </summary>
+    [Theory]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_SqlServer, "dbo")]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_PostgreSql, "public")]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_MySql, null)]
+    [InlineData(TestcontainersAssemblyFixture.DatasourceId_Sqlite, null)]
+    public async Task Query_refuses_names_that_are_not_columns_Async(string datasourceId, string? schemaName)
+    {
+        const string tableName = "QueryInjection_Table";
+        using var factory = GetDefaultWebApplicationFactory();
+        var service = GetDapperMaticService(factory);
+
+        await CreateSimpleTestTable(service, datasourceId, tableName, schemaName);
+        var context = OperationIdentifiers.ForTableQuery(datasourceId, tableName, new QueryDto(), schemaName);
+
+        Task<QueryResultDto> QueryAsync(QueryDto request) =>
+            service.QueryTableAsync(context, datasourceId, tableName, request, schemaName);
+
+        var attempts = new[]
+        {
+            new QueryDto { Take = 10, Select = $"Id FROM {tableName}; DROP TABLE {tableName}; --" },
+            new QueryDto { Take = 10, Select = "(SELECT 1) AS x" },
+            new QueryDto { Take = 10, OrderBy = "(SELECT 1).desc" },
+            new QueryDto { Take = 10, OrderBy = "Id; DROP TABLE x" },
+            new QueryDto { Take = 10, Filters = new() { ["1=1 OR Id.eq"] = "1" } },
+            new QueryDto { Take = 10, Filters = new() { ["NoSuchColumn.eq"] = "1" } },
+        };
+
+        foreach (var attempt in attempts)
+        {
+            var act = () => QueryAsync(attempt);
+            await act.Should().ThrowAsync<ArgumentException>();
+        }
+
+        var existsContext = OperationIdentifiers.ForTableExists(datasourceId, tableName, schemaName);
+        (await service.TableExistsAsync(existsContext, datasourceId, tableName, schemaName: schemaName))
+            .Should()
+            .BeTrue();
+
+        // Real column names work, in any case.
+        var result = await QueryAsync(
+            new QueryDto
+            {
+                Take = 10,
+                Select = "id,NAME",
+                OrderBy = "name.desc",
+                Filters = new() { ["NAME.isnull"] = string.Empty },
+            }
+        );
+        result.Should().NotBeNull();
+
+        var dropContext = OperationIdentifiers.ForTableDrop(datasourceId, tableName, schemaName);
+        await service.DropTableAsync(dropContext, datasourceId, tableName, schemaName);
+    }
+
     private async Task CheckInvalidDatasourceHandlingFetchingTables(IDapperMaticService service, string? schemaName)
     {
         var invalidDatasourceId = "NonExistent";

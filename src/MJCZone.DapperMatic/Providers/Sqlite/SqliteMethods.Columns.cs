@@ -94,4 +94,55 @@ public partial class SqliteMethods
             )
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Changes the data type and nullability of a column if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="sqlType">The new SQL data type, including any length, precision and scale.</param>
+    /// <param name="isNullable">Whether the column allows nulls afterwards.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the column exists and now has the given type and nullability, otherwise false.</returns>
+    /// <remarks>
+    /// SQLite has no ALTER COLUMN, so the table is rebuilt with the column changed, like any other SQLite
+    /// change to an existing column.
+    /// </remarks>
+    public override async Task<bool> AlterColumnIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string columnName,
+        string sqlType,
+        bool isNullable,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(sqlType);
+
+        return await AlterTableUsingRecreateTableStrategyAsync(
+                db,
+                schemaName,
+                tableName,
+                table => table.Columns.Any(c => c.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)),
+                table =>
+                {
+                    // The table was read from the database for this call, so its columns are this call's own
+                    // and can be changed in place.
+                    var column = table.Columns.First(c =>
+                        c.ColumnName.Equals(columnName, StringComparison.OrdinalIgnoreCase)
+                    );
+                    column.SetProviderDataType(DbProviderType.Sqlite, sqlType.Trim());
+                    column.IsNullable = isNullable;
+                    return table;
+                },
+                tx: tx,
+                cancellationToken: cancellationToken
+            )
+            .ConfigureAwait(false);
+    }
 }

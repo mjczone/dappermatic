@@ -1,10 +1,116 @@
-# OpenApi/Swashbuckle Compatibility
+# OpenAPI Integration
 
-DapperMatic.AspNetCore is designed to work with a wide range of OpenApi and Swashbuckle versions, ensuring maximum compatibility with your existing infrastructure.
+DapperMatic.AspNetCore describes its endpoints with **standard ASP.NET Core metadata only**.
+It references no OpenAPI package of any kind, which means:
 
-## Supported Versions
+- Any OpenAPI generator can document its endpoints — the built-in ASP.NET Core one, Swashbuckle, or NSwag.
+- There is no OpenAPI version for it to conflict with, so **any Swashbuckle version works**.
+- Adding DapperMatic to your app never drags an OpenAPI dependency into your dependency graph.
 
-### Swashbuckle.AspNetCore Compatibility
+## Recommended setup: built-in generator + Scalar
+
+ASP.NET Core 10 generates OpenAPI documents natively — no third-party generator required.
+
+```bash
+dotnet add package Microsoft.AspNetCore.OpenApi
+dotnet add package Scalar.AspNetCore
+```
+
+```csharp
+using MJCZone.DapperMatic.AspNetCore;
+using Scalar.AspNetCore;
+
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddDapperMatic(); // Uses in-memory repository by default
+
+builder.Services.AddOpenApi();
+
+var app = builder.Build();
+
+app.MapOpenApi();
+app.MapScalarApiReference();
+
+app.UseDapperMatic();
+
+app.Run();
+```
+
+You now have:
+
+- **Scalar UI** at `/scalar`
+- **OpenAPI document** at `/openapi/v1.json`
+
+`Microsoft.AspNetCore.OpenApi` is maintained alongside ASP.NET Core but ships as its own NuGet
+package, so it does need an explicit `PackageReference`. Keep its major version aligned with your
+target framework (`10.x` for `net10.0`).
+
+### Customizing the document
+
+Use a document transformer to set the title, description, contact, and license:
+
+```csharp
+using Microsoft.OpenApi;
+
+builder.Services.AddOpenApi(options =>
+{
+    options.AddDocumentTransformer((document, context, cancellationToken) =>
+    {
+        document.Info = new OpenApiInfo
+        {
+            Title = "My Schema API",
+            Version = "v1",
+            Description = "Database schema management powered by DapperMatic",
+        };
+        return Task.CompletedTask;
+    });
+});
+```
+
+## Generating the spec at build time
+
+You can emit the OpenAPI document as a **build artifact**, with no need to start the app or bind a
+port. This is how DapperMatic's own documentation is produced.
+
+Add the build-time generator:
+
+```bash
+dotnet add package Microsoft.Extensions.ApiDescription.Server
+```
+
+Then point it at an output location in your `.csproj`:
+
+```xml
+<PropertyGroup>
+  <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)/openapi</OpenApiDocumentsDirectory>
+  <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
+</PropertyGroup>
+
+<ItemGroup>
+  <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.11" PrivateAssets="All" />
+</ItemGroup>
+```
+
+Now `dotnet build` writes `openapi/openapi.json`. This is ideal for CI pipelines that publish an API
+reference, diff the schema between commits, or generate clients — none of which should require
+running a web server.
+
+## Using Swashbuckle instead
+
+Swashbuckle continues to work, at **any version**:
+
+```csharp
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
+var app = builder.Build();
+
+app.UseSwagger();
+app.UseSwaggerUI();
+
+app.UseRouting();
+app.UseDapperMatic();
+```
 
 | Swashbuckle Version | Microsoft.OpenApi | Status      |
 |---------------------|-------------------|-------------|
@@ -12,180 +118,48 @@ DapperMatic.AspNetCore is designed to work with a wide range of OpenApi and Swas
 | 7.x - 9.x           | 1.x               | ✅ Supported |
 | 10.0+               | 2.x               | ✅ Supported |
 
-DapperMatic.AspNetCore uses a flexible version range for `Microsoft.AspNetCore.OpenApi` (`[8.0.20,10.0)`), allowing your application to control which OpenApi version is used through your Swashbuckle dependency.
+Because DapperMatic contributes no OpenAPI package to your dependency graph, whichever version
+Swashbuckle resolves is simply the version you get. There is nothing for NuGet to reconcile.
 
-### How It Works
+## OpenAPI 3.1
 
-1. **Your application chooses Swashbuckle version**
-   ```xml
-   <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-   ```
+The built-in generator emits **OpenAPI 3.1**, while Swashbuckle 6.x-9.x emits 3.0. The practical
+differences you may notice:
 
-2. **Swashbuckle brings Microsoft.OpenApi** (1.x or 2.x)
+| Concept          | 3.0                  | 3.1                          |
+|------------------|----------------------|------------------------------|
+| Nullable strings | `"nullable": true`   | `"type": ["null", "string"]` |
+| Examples         | `example`            | `examples`                   |
 
-3. **DapperMatic.AspNetCore adapts automatically** through its flexible version range
-
-This design prevents dependency conflicts while giving you full control over your Swagger/OpenApi stack.
-
-## Recommended Versions
-
-### For New Projects
-
-We recommend using the latest Swashbuckle with OpenApi 2.x:
-
-```xml
-<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-```
-
-### For Existing Projects
-
-If you're currently using OpenApi 1.x, you can continue without any changes:
-
-```xml
-<PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
-```
-
-DapperMatic.AspNetCore works with both versions seamlessly.
-
-## Installation
-
-Add DapperMatic.AspNetCore to your project:
-
-```bash
-dotnet add package MJCZone.DapperMatic.AspNetCore
-```
-
-Then configure it in your `Program.cs`:
-
-```csharp
-using MJCZone.DapperMatic.AspNetCore;
-
-var builder = WebApplication.CreateBuilder(args);
-
-// Add Swagger/OpenAPI
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-// Add DapperMatic with your preferred datasource repository
-builder.Services.AddDapperMatic()
-    .WithInMemoryDatasourceRepository(); // or .WithFileDatasourceRepository() or .WithDatabaseDatasourceRepository()
-
-var app = builder.Build();
-
-// Configure Swagger UI
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
-// Register DapperMatic endpoints
-app.UseDapperMatic();
-
-app.Run();
-```
+Scalar, Redoc, and current Swagger UI all render 3.1. If a downstream tool requires 3.0, keep using
+Swashbuckle 9.x, which still emits 3.0.
 
 ## Troubleshooting
 
-### Version Conflict Errors
+### Endpoints missing from the document
 
-If you encounter version conflicts with `Microsoft.OpenApi`:
+Confirm `UseDapperMatic()` runs before `app.Run()`, and that the generator is configured
+(`AddOpenApi()` plus `MapOpenApi()`, or `AddSwaggerGen()` plus `UseSwagger()`).
 
-**1. Check your Swashbuckle version:**
+### Version conflict errors with `Microsoft.OpenApi`
+
+These cannot originate from DapperMatic, which references no OpenAPI package. Check for another
+dependency pinning a different major version:
+
 ```bash
-dotnet list package | grep Swashbuckle
+dotnet nuget why <project> Microsoft.OpenApi
 ```
-
-**2. Ensure consistent OpenApi version:**
-- Swashbuckle 6.x-9.x → Uses OpenApi 1.x
-- Swashbuckle 10.x+ → Uses OpenApi 2.x
-
-Don't mix Swashbuckle versions that use different OpenApi major versions in the same solution.
-
-**3. Clear NuGet package cache:**
-```bash
-dotnet nuget locals all --clear
-dotnet restore
-dotnet build
-```
-
-### Migration from OpenApi 1.x to 2.x
-
-If upgrading from Swashbuckle 9.x to 10.x:
-
-**1. Update Swashbuckle:**
-```xml
-<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.0" />
-```
-
-**2. Rebuild:**
-```bash
-dotnet clean
-dotnet build
-```
-
-**3. Test Swagger UI:**
-- Navigate to `/swagger` in your application
-- Verify all endpoints appear correctly
-- Check that DapperMatic endpoints are documented properly
-
-**4. Update custom schema filters (if any):**
-
-If you have custom `ISchemaFilter` implementations, you may need to update them for OpenApi 2.x. The `Apply` method signature changed from:
-
-```csharp
-// OpenApi 1.x
-public void Apply(OpenApiSchema schema, SchemaFilterContext context)
-```
-
-to:
-
-```csharp
-// OpenApi 2.x
-public void Apply(IOpenApiSchema schema, SchemaFilterContext context)
-```
-
-**Note**: DapperMatic.AspNetCore itself requires no changes - it works with both versions automatically.
-
-## Version Policy
-
-DapperMatic.AspNetCore follows these versioning principles:
-
-1. **Flexible Dependencies**: Version ranges allow compatibility with multiple Swashbuckle versions
-2. **No Breaking Changes**: Updates maintain backward compatibility within major versions
-3. **User Control**: Your application controls the OpenApi version through your Swashbuckle dependency
-4. **LTS Support**: Maintains support for .NET 8.0 LTS and newer versions
-
-## Why This Approach?
-
-DapperMatic.AspNetCore uses only ASP.NET Core's OpenApi abstraction layer (`Microsoft.AspNetCore.OpenApi`), not direct Microsoft.OpenApi APIs. This means:
-
-- ✅ Works with both OpenApi 1.x and 2.x
-- ✅ No breaking changes when Swashbuckle updates
-- ✅ You choose when to upgrade
-- ✅ Maximum compatibility
-
-The library uses minimal OpenApi APIs:
-- `WithOpenApi()` - ASP.NET Core's abstraction
-- `OpenApiString` - Basic type for example values
-- Property access on parameters - Stable across versions
-
-This minimal API surface ensures long-term compatibility.
 
 ## Reporting Issues
 
-If you encounter compatibility issues with specific versions:
+If you encounter integration issues:
 
 - **Report at**: https://github.com/mjczone/dappermatic/issues
-- **Include**:
-  - Swashbuckle version
-  - .NET version
-  - Error messages
-  - Steps to reproduce
+- **Include**: OpenAPI stack and version, .NET version, error messages, steps to reproduce
 
 ## Additional Resources
 
 - [DapperMatic GitHub Repository](https://github.com/mjczone/dappermatic)
-- [Swashbuckle.AspNetCore Documentation](https://github.com/domaindrivendev/Swashbuckle.AspNetCore)
-- [Microsoft.OpenApi Documentation](https://github.com/microsoft/OpenAPI.NET)
-- [ASP.NET Core Web API Documentation](https://learn.microsoft.com/en-us/aspnet/core/web-api/)
+- [ASP.NET Core OpenAPI documentation](https://learn.microsoft.com/aspnet/core/fundamentals/openapi/overview)
+- [Scalar for .NET](https://github.com/scalar/scalar/tree/main/integrations/aspnetcore)
+- [Swashbuckle.AspNetCore](https://github.com/domaindrivendev/Swashbuckle.AspNetCore)

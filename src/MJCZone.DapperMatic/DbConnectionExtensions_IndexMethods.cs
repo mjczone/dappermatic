@@ -5,6 +5,7 @@
 
 using System.Data;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic;
@@ -22,14 +23,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the index exists, otherwise false.</returns>
-    public static async Task<bool> DoesIndexExistOnColumnAsync<T>(
+    public static Task<bool> DoesIndexExistOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesIndexExistOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if an index exists on a specified column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the index exists, otherwise false.</returns>
+    public static async Task<bool> DoesIndexExistOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesIndexExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -97,14 +121,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the index exists, otherwise false.</returns>
-    public static async Task<bool> DoesIndexExistAsync<T>(
+    public static Task<bool> DoesIndexExistAsync<T>(
         this IDbConnection db,
+        string indexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesIndexExistAsync(
+            typeof(T),
+            indexName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if an index exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexName">The index name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the index exists, otherwise false.</returns>
+    public static async Task<bool> DoesIndexExistAsync(
+        this IDbConnection db,
+        Type type,
         string indexName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesIndexExistAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -163,8 +210,36 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the index was created, otherwise false.</returns>
-    public static async Task<bool> CreateIndexIfNotExistsAsync<T>(
+    public static Task<bool> CreateIndexIfNotExistsAsync<T>(
         this IDbConnection db,
+        string indexName,
+        DmOrderedColumn[] columns,
+        bool isUnique = false,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.CreateIndexIfNotExistsAsync(
+            typeof(T),
+            indexName,
+            columns,
+            isUnique,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Creates an index if it does not exist.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexName">The index name.</param>
+    /// <param name="columns">The columns in the index.</param>
+    /// <param name="isUnique">Whether the index is unique.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the index was created, otherwise false.</returns>
+    public static async Task<bool> CreateIndexIfNotExistsAsync(
+        this IDbConnection db,
+        Type type,
         string indexName,
         DmOrderedColumn[] columns,
         bool isUnique = false,
@@ -172,7 +247,8 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .CreateIndexIfNotExistsAsync(db, schemaName, tableName, indexName, columns, isUnique, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -215,14 +291,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of indexes on the column.</returns>
-    public static async Task<List<DmIndex>> GetIndexesOnColumnAsync<T>(
+    public static Task<List<DmIndex>> GetIndexesOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetIndexesOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the indexes on a specified column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of indexes on the column.</returns>
+    public static async Task<List<DmIndex>> GetIndexesOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetIndexesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -290,14 +389,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The index if found, otherwise null.</returns>
-    public static async Task<DmIndex?> GetIndexAsync<T>(
+    public static Task<DmIndex?> GetIndexAsync<T>(
         this IDbConnection db,
+        string indexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetIndexAsync(
+            typeof(T),
+            indexName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets a specified index.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexName">The index name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The index if found, otherwise null.</returns>
+    public static async Task<DmIndex?> GetIndexAsync(
+        this IDbConnection db,
+        Type type,
         string indexName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetIndexAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -336,14 +458,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of indexes on the table.</returns>
-    public static async Task<List<DmIndex>> GetIndexesAsync<T>(
+    public static Task<List<DmIndex>> GetIndexesAsync<T>(
         this IDbConnection db,
+        string? indexNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetIndexesAsync(
+            typeof(T),
+            indexNameFilter,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the indexes on a specified table.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexNameFilter">The index name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of indexes on the table.</returns>
+    public static async Task<List<DmIndex>> GetIndexesAsync(
+        this IDbConnection db,
+        Type type,
         string? indexNameFilter = null,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetIndexesAsync(db, schemaName, tableName, indexNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -359,6 +504,8 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of indexes on the table.</returns>
+    // Ahead of the (Type, filter) overload, so that GetIndexesAsync(null, "table") stays this one.
+    [OverloadResolutionPriority(1)]
     public static async Task<List<DmIndex>> GetIndexesAsync(
         this IDbConnection db,
         string? schemaName,
@@ -382,14 +529,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of index names on the column.</returns>
-    public static async Task<List<string>> GetIndexNamesOnColumnAsync<T>(
+    public static Task<List<string>> GetIndexNamesOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetIndexNamesOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the names of indexes on a specified column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of index names on the column.</returns>
+    public static async Task<List<string>> GetIndexNamesOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetIndexNamesOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -457,14 +627,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of index names on the table.</returns>
-    public static async Task<List<string>> GetIndexNamesAsync<T>(
+    public static Task<List<string>> GetIndexNamesAsync<T>(
         this IDbConnection db,
+        string? indexNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetIndexNamesAsync(
+            typeof(T),
+            indexNameFilter,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the names of indexes on a specified table.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexNameFilter">The index name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of index names on the table.</returns>
+    public static async Task<List<string>> GetIndexNamesAsync(
+        this IDbConnection db,
+        Type type,
         string? indexNameFilter = null,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetIndexNamesAsync(db, schemaName, tableName, indexNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -480,6 +673,8 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of index names on the table.</returns>
+    // Ahead of the (Type, filter) overload, so that GetIndexNamesAsync(null, "table") stays this one.
+    [OverloadResolutionPriority(1)]
     public static async Task<List<string>> GetIndexNamesAsync(
         this IDbConnection db,
         string? schemaName,
@@ -503,14 +698,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the indexes were dropped, otherwise false.</returns>
-    public static async Task<bool> DropIndexesOnColumnIfExistsAsync<T>(
+    public static Task<bool> DropIndexesOnColumnIfExistsAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropIndexesOnColumnIfExistsAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops indexes on a specified column if they exist.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the indexes were dropped, otherwise false.</returns>
+    public static async Task<bool> DropIndexesOnColumnIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropIndexesOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -578,14 +796,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the index was dropped, otherwise false.</returns>
-    public static async Task<bool> DropIndexIfExistsAsync<T>(
+    public static Task<bool> DropIndexIfExistsAsync<T>(
         this IDbConnection db,
+        string indexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropIndexIfExistsAsync(
+            typeof(T),
+            indexName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops a specified index if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexName">The index name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the index was dropped, otherwise false.</returns>
+    public static async Task<bool> DropIndexIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         string indexName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropIndexIfExistsAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -614,5 +855,82 @@ public static partial class DbConnectionExtensions
             .DropIndexIfExistsAsync(db, schemaName, tableName, indexName, tx, cancellationToken)
             .ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Renames an index if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="indexName">The current name.</param>
+    /// <param name="newIndexName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    public static async Task<bool> RenameIndexIfExistsAsync(
+        this IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string indexName,
+        string newIndexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        return await Database(db)
+            .RenameIndexIfExistsAsync(db, schemaName, tableName, indexName, newIndexName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    /// <summary>
+    /// Renames an index if it exists.
+    /// </summary>
+    /// <typeparam name="T">The type representing the table.</typeparam>
+    /// <param name="db">The database connection.</param>
+    /// <param name="indexName">The current name.</param>
+    /// <param name="newIndexName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    public static Task<bool> RenameIndexIfExistsAsync<T>(
+        this IDbConnection db,
+        string indexName,
+        string newIndexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.RenameIndexIfExistsAsync(
+            typeof(T),
+            indexName,
+            newIndexName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Renames an index if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="indexName">The current name.</param>
+    /// <param name="newIndexName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    public static async Task<bool> RenameIndexIfExistsAsync(
+        this IDbConnection db,
+        Type type,
+        string indexName,
+        string newIndexName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
+        return await Database(db)
+            .RenameIndexIfExistsAsync(db, schemaName, tableName, indexName, newIndexName, tx, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
     #endregion // IDatabaseIndexMethods
 }

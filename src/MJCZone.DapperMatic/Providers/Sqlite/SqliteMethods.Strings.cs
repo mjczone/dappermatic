@@ -16,20 +16,20 @@ public partial class SqliteMethods
     #region Table Strings
 
     /// <inheritdoc/>
-    protected override string SqlInlineColumnNameAndType(DmColumn column, Version dbVersion)
+    protected override string SqlColumnType(DmColumn column, Version dbVersion)
     {
         // IF the column is an autoincrement column, the type MUST be INTEGER
         // https://www.sqlite.org/autoinc.html
         if (column.IsAutoIncrement)
         {
-            column.SetProviderDataType(ProviderType, SqliteTypes.sql_integer);
+            return SqliteTypes.sql_integer;
         }
 
-        return base.SqlInlineColumnNameAndType(column, dbVersion);
+        return base.SqlColumnType(column, dbVersion);
     }
 
     /// <inheritdoc/>
-    protected override string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column)
+    protected override string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column, string columnType)
     {
         return "AUTOINCREMENT";
     }

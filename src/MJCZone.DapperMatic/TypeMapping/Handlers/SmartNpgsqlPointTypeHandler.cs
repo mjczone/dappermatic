@@ -46,7 +46,7 @@ public class SmartNpgsqlPointTypeHandler : SqlMapper.ITypeHandler
             var x = valueType.GetProperty("X")?.GetValue(value);
             var y = valueType.GetProperty("Y")?.GetValue(value);
 
-            parameter.Value = $"POINT({x} {y})";
+            parameter.Value = string.Create(CultureInfo.InvariantCulture, $"POINT({x} {y})");
             parameter.DbType = DbType.String;
         }
     }

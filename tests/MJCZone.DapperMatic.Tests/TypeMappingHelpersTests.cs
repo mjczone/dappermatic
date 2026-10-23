@@ -947,6 +947,28 @@ public class TypeMappingHelpersTests : TestBase
     }
 
     [Fact]
+    public void Should_parse_lone_type_name_without_colon_as_any_provider()
+    {
+        // Act -- a type name on its own has no provider prefix, so it targets "any provider"
+        var result = TypeMappingHelpers.ParseProviderDataTypes("jsonb");
+
+        // Assert
+        Assert.Single(result);
+        Assert.Equal("jsonb", result[DbProviderType.Other]);
+    }
+
+    [Fact]
+    public void Should_not_treat_unprefixed_entry_as_any_provider_when_mixed_with_prefixed_entries()
+    {
+        // Act -- alongside prefixed entries an unprefixed fragment is malformed, not a default
+        var result = TypeMappingHelpers.ParseProviderDataTypes("{mysql:int,jsonb,sqlserver:int}");
+
+        // Assert
+        Assert.Equal(2, result.Count);
+        Assert.False(result.ContainsKey(DbProviderType.Other));
+    }
+
+    [Fact]
     public void Should_parse_provider_data_types_skips_invalid_entries_with_empty_provider_name()
     {
         // Act

@@ -5,51 +5,50 @@
 
 using System.Data;
 using System.Data.Common;
-using Npgsql;
+using Microsoft.Extensions.Options;
 
 namespace MJCZone.DapperMatic.AspNetCore.Factories;
 
 /// <summary>
-/// Default implementation of IDbConnectionFactory that creates provider-specific database connections.
+/// Creates connections with the drivers the application registered with
+/// <see cref="DapperMaticConfigurationBuilder.AddProvider(DbProviderFactory)"/>: DapperMatic bundles none.
 /// </summary>
 public sealed class DbConnectionFactory : IDbConnectionFactory
 {
+    private readonly IReadOnlyDictionary<DbProviderType, DbProviderFactory> _factories;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DbConnectionFactory"/> class.
+    /// </summary>
+    /// <param name="options">The DapperMatic options, which hold the registered drivers.</param>
+    public DbConnectionFactory(IOptions<DapperMaticOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        _factories = options.Value.ProviderFactories;
+    }
+
     /// <summary>
     /// Creates a database connection for the specified provider and connection string.
     /// </summary>
-    /// <param name="provider">The database provider (e.g., SqlServer, PostgreSQL, MySQL, SQLite).</param>
+    /// <param name="provider">The database provider: SqlServer, PostgreSql, MySql (or MariaDb) or Sqlite.</param>
     /// <param name="connectionString">The connection string.</param>
-    /// <returns>A configured database connection.</returns>
+    /// <returns>A connection, not yet open.</returns>
+    /// <exception cref="ArgumentException">The provider is not one DapperMatic supports.</exception>
+    /// <exception cref="InvalidOperationException">No driver is registered for the provider.</exception>
     public IDbConnection CreateConnection(string provider, string connectionString)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(provider);
         ArgumentException.ThrowIfNullOrWhiteSpace(connectionString);
 
-        DbConnection? connection = null;
-        if (provider.Contains("mysql", StringComparison.OrdinalIgnoreCase))
+        var providerType = DapperMaticProviders.Parse(provider);
+        if (!_factories.TryGetValue(providerType, out var factory))
         {
-            connection = DbConnectionProviderDetector.DetectMySqlProvider(connectionString);
-        }
-        else if (
-            provider.Contains("pg", StringComparison.OrdinalIgnoreCase)
-            || provider.Contains("postgres", StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            connection = new NpgsqlConnection(connectionString);
-        }
-        else if (provider.Contains("sqlite", StringComparison.OrdinalIgnoreCase))
-        {
-            connection = DbConnectionProviderDetector.DetectSqliteProvider(connectionString);
-        }
-        else if (
-            provider.Contains("sqlserver", StringComparison.OrdinalIgnoreCase)
-            || provider.Contains("mssql", StringComparison.OrdinalIgnoreCase)
-        )
-        {
-            connection = DbConnectionProviderDetector.DetectSqlServerProvider(connectionString);
+            throw new InvalidOperationException(DapperMaticProviders.NotRegisteredMessage(providerType));
         }
 
-        return connection
-            ?? throw new ArgumentException($"Unsupported database provider: {provider}", nameof(provider));
+        var connection = factory.CreateConnection()
+            ?? throw new InvalidOperationException($"The {providerType} driver's factory created no connection.");
+        connection.ConnectionString = connectionString;
+        return connection;
     }
 }

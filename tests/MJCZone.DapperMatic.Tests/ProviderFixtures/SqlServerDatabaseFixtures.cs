@@ -41,8 +41,7 @@ public class SqlServer_2017_DatabaseFixture : SqlServerDatabaseFixture
 
 public abstract class SqlServerDatabaseFixture(string imageName) : DatabaseFixtureBase<MsSqlContainer>
 {
-    private readonly MsSqlContainer _container = new MsSqlBuilder()
-        .WithImage(imageName)
+    private readonly MsSqlContainer _container = new MsSqlBuilder(imageName)
         .WithPassword("Strong_password_123!")
         .WithAutoRemove(true)
         .WithCleanUp(true)

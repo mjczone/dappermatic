@@ -25,7 +25,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of foreign key constraints.</returns>
     public async Task<IEnumerable<ForeignKeyConstraintDto>> GetForeignKeyConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -77,7 +77,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The foreign key constraint or null if not found.</returns>
     public async Task<ForeignKeyConstraintDto> GetForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -140,7 +140,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created foreign key constraint.</returns>
     public async Task<ForeignKeyConstraintDto> CreateForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         ForeignKeyConstraintDto foreignKeyConstraint,
@@ -206,12 +206,14 @@ public partial class DapperMaticService
             await AssertTableExistsAsync(datasourceId, tableName, schemaName, connection, cancellationToken)
                 .ConfigureAwait(false);
 
-            // Check referenced table exists
-            await AssertTableExistsAsync(
-                    datasourceId,
-                    foreignKeyConstraint.ReferencedTableName!,
-                    schemaName, // Foreign keys typically reference tables in the same schema
+            // The referenced table, in the same schema, must exist and be one the caller may reference
+            await AssertMayReferenceAsync(
+                    context,
                     connection,
+                    datasourceId,
+                    schemaName,
+                    [(foreignKeyConstraint.ReferencedTableName, foreignKeyConstraint.ReferencedColumnNames ?? [])],
+                    null,
                     cancellationToken
                 )
                 .ConfigureAwait(false);
@@ -305,7 +307,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task DropForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,

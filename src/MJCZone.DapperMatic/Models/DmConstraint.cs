@@ -28,4 +28,13 @@ public abstract class DmConstraint
     /// Gets or sets the name of the constraint.
     /// </summary>
     public string ConstraintName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the names this constraint has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// Reconciliation renames an existing constraint found under one of these names instead of creating a new one.
+    /// The names cost nothing to keep: they are only consulted when the current name is missing.
+    /// </remarks>
+    public List<string> PreviousNames { get; set; } = [];
 }

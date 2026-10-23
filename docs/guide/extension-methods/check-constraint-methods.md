@@ -16,6 +16,8 @@ Check constraint methods provide comprehensive functionality for managing check 
   - [GetCheckConstraintsAsync](#getcheckconstraintsasync) - Get complete check constraint models
   - [GetCheckConstraintAsync](#getcheckconstraintasync) - Get single check constraint by name
   - [GetCheckConstraintOnColumnAsync](#getcheckconstraintoncolumnasync) - Get check constraint model on specific column
+- [Check Constraint Renaming](#check-constraint-renaming)
+  - [RenameCheckConstraintIfExistsAsync](#renamecheckconstraintifexistsasync) - Rename an existing check constraint
 - [Check Constraint Deletion](#check-constraint-deletion)
   - [DropCheckConstraintIfExistsAsync](#dropcheckconstraintifexistsasync) - Drop check constraint by name
   - [DropCheckConstraintOnColumnIfExistsAsync](#dropcheckconstraintoncolumnifexistsasync) - Drop check constraint on specific column
@@ -134,7 +136,6 @@ else
 - `tableName` - Name of the table to add check constraint to
 - `checkConstraint` - DmCheckConstraint model defining the constraint
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was created, `false` if it already existed
@@ -148,6 +149,7 @@ Create a check constraint using individual parameters for convenience.
 bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
     schemaName: "sales",
     tableName: "orders",
+    columnName: null,
     constraintName: "CK_Orders_PositiveAmount",
     expression: "amount > 0"
 );
@@ -156,10 +158,10 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
 bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
     "hr",
     "employees",
+    null,
     "CK_Employees_ValidHireDate",
     "hire_date >= '1900-01-01' AND hire_date <= GETDATE()",
     tx: transaction,
-    : 60,
     cancellationToken: cancellationToken
 );
 
@@ -167,6 +169,7 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
 bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
     "app",
     "users",
+    null,
     "CK_Users_ValidEmail",
     "email LIKE '%@%.%' AND LEN(email) >= 5"
 );
@@ -175,6 +178,7 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
 bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
     "orders",
     "order_status",
+    null,
     "CK_Orders_ValidStatus",
     "status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')"
 );
@@ -187,7 +191,6 @@ bool created = await connection.CreateCheckConstraintIfNotExistsAsync(
 - `constraintName` - Name of the check constraint
 - `expression` - SQL expression that must evaluate to true
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was created, `false` if it already existed
@@ -221,7 +224,6 @@ List<string> validationConstraints = await connection.GetCheckConstraintNamesAsy
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching check constraint names
@@ -257,7 +259,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find check constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the check constraint, or `null` if none exists on the column
@@ -292,7 +293,6 @@ List<DmCheckConstraint> constraints = await connection.GetCheckConstraintsAsync(
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmCheckConstraint>` - List of complete DmCheckConstraint models
@@ -337,7 +337,6 @@ else
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the check constraint to retrieve
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmCheckConstraint?` - Complete check constraint model, or `null` if not found
@@ -377,10 +376,41 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find check constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmCheckConstraint?` - Check constraint model, or `null` if none exists on the column
+
+## Check Constraint Renaming
+
+### RenameCheckConstraintIfExistsAsync
+
+Rename an existing check constraint. The rows in the table and what the check constraint does are unchanged.
+
+```csharp
+bool renamed = await connection.RenameCheckConstraintIfExistsAsync(
+    "app", "app_employees", "ck_app_employees_age", "ck_app_employees_min_age");
+
+// Or take the schema and table from a model class
+bool renamed = await connection.RenameCheckConstraintIfExistsAsync<Employee>(
+    "ck_app_employees_age", "ck_app_employees_min_age");
+```
+
+**Parameters:**
+- `schemaName` - Schema containing the table
+- `tableName` - Name of the table
+- `constraintName` - Current name
+- `newConstraintName` - New name
+- `tx` (optional) - Database transaction
+- `cancellationToken` (optional) - Cancellation token
+
+**Returns:** `bool` - `true` if it was renamed, `false` if it doesn't exist or the new name is already taken
+
+| Provider | How it is renamed |
+|----------|-------------------|
+| SQL Server | `sp_rename` |
+| PostgreSQL | `ALTER TABLE ... RENAME CONSTRAINT` |
+| MySQL / MariaDB | Neither can rename a check, so it is dropped and added back with the same expression, in one `ALTER TABLE` statement |
+| SQLite | Constraints are part of the table definition, so the table is [recreated](../providers#sqlite) with the new name |
 
 ## Check Constraint Deletion
 
@@ -429,7 +459,6 @@ catch
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the check constraint to drop
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was dropped, `false` if it didn't exist
@@ -457,7 +486,7 @@ else
 await connection.DropCheckConstraintOnColumnIfExistsAsync("hr", "employees", "salary");
 // Now safe to modify the salary column constraints
 await connection.CreateCheckConstraintIfNotExistsAsync(
-    "hr", "employees", "CK_Employees_ReasonableSalary", "salary BETWEEN 20000 AND 500000");
+    "hr", "employees", "salary", "CK_Employees_ReasonableSalary", "salary BETWEEN 20000 AND 500000");
 ```
 
 **Parameters:**
@@ -466,7 +495,6 @@ await connection.CreateCheckConstraintIfNotExistsAsync(
 - `tableName` - Name of the table containing the constraint
 - `columnName` - Name of the column to drop check constraint for
 - `tx` (optional) - Database transaction
-- `` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if check constraint was dropped, `false` if none existed on the column
@@ -483,29 +511,29 @@ public async Task SetupDataValidationAsync(IDbConnection connection)
     {
         // User table validations
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "app", "users", "CK_Users_ValidEmail",
+            "app", "users", null, "CK_Users_ValidEmail",
             "email LIKE '%@%.%' AND LEN(email) >= 5", tx: transaction);
 
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "app", "users", "CK_Users_ValidAge",
+            "app", "users", null, "CK_Users_ValidAge",
             "age >= 13 AND age <= 120", tx: transaction);
 
         // Order table validations
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "sales", "orders", "CK_Orders_PositiveAmount",
+            "sales", "orders", null, "CK_Orders_PositiveAmount",
             "total_amount > 0", tx: transaction);
 
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "sales", "orders", "CK_Orders_ValidStatus",
+            "sales", "orders", null, "CK_Orders_ValidStatus",
             "status IN ('pending', 'processing', 'shipped', 'delivered', 'cancelled')", tx: transaction);
 
         // Employee table validations
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "hr", "employees", "CK_Employees_ValidHireDate",
+            "hr", "employees", null, "CK_Employees_ValidHireDate",
             "hire_date >= '1900-01-01' AND hire_date <= GETDATE()", tx: transaction);
 
         await connection.CreateCheckConstraintIfNotExistsAsync(
-            "hr", "employees", "CK_Employees_ReasonableSalary",
+            "hr", "employees", null, "CK_Employees_ReasonableSalary",
             "salary BETWEEN 20000 AND 1000000", tx: transaction);
 
         transaction.Commit();

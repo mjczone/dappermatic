@@ -34,4 +34,14 @@ public static class OperationTags
     /// Tag for all DapperMatic View-related operations.
     /// </summary>
     public const string DatasourceViews = "DapperMatic Views";
+
+    /// <summary>
+    /// Tag for the DapperMatic operations on the policies and tenants it keeps, and effective permissions.
+    /// </summary>
+    public const string Access = "DapperMatic Access";
+
+    /// <summary>
+    /// Signing in: tickets for streams, API keys, built-in accounts.
+    /// </summary>
+    public const string Auth = "DapperMatic Auth";
 }

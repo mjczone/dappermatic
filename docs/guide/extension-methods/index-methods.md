@@ -16,6 +16,8 @@ Index methods provide comprehensive functionality for managing database indexes 
   - [GetIndexesAsync](#getindexesasync) - Get complete index models with structure
   - [GetIndexAsync](#getindexasync) - Get single index model by name
   - [GetIndexesOnColumnAsync](#getindexesoncolumnasync) - Get all indexes that include specific column
+- [Index Modification](#index-modification)
+  - [RenameIndexIfExistsAsync](#renameindexifexistsasync) - Rename an existing index
 - [Index Deletion](#index-deletion)
   - [DropIndexIfExistsAsync](#dropindexifexistsasync) - Drop index by name
   - [DropIndexesOnColumnIfExistsAsync](#dropindexesoncolumnifexistsasync) - Drop all indexes on specific column
@@ -269,7 +271,7 @@ foreach (var index in indexes)
 {
     Console.WriteLine($"Index: {index.IndexName}");
     Console.WriteLine($"  Unique: {index.IsUnique}");
-    Console.WriteLine($"  Columns: {string.Join(", ", index.Columns.Select(c => $"{c.ColumnName} {c.ColumnOrder}"))}");
+    Console.WriteLine($"  Columns: {string.Join(", ", index.Columns.Select(c => $"{c.ColumnName} {c.Order}"))}");
     Console.WriteLine($"  Type: {(index.IsUnique ? "Unique" : "Non-unique")}");
 }
 
@@ -306,7 +308,7 @@ if (index != null)
     
     foreach (var column in index.Columns)
     {
-        Console.WriteLine($"    {column.ColumnName} ({column.ColumnOrder})");
+        Console.WriteLine($"    {column.ColumnName} ({column.Order})");
     }
     
     // Check if it's a covering index (multi-column)
@@ -369,6 +371,35 @@ foreach (var index in customerIdIndexes)
 
 ## Index Modification
 
+### RenameIndexIfExistsAsync
+
+Rename an existing index. The rows in the table and what the index does are unchanged.
+
+```csharp
+bool renamed = await connection.RenameIndexIfExistsAsync(
+    "app", "app_employees", "ix_app_employees_email", "ix_app_employees_work_email");
+
+// Or take the schema and table from a model class
+bool renamed = await connection.RenameIndexIfExistsAsync<Employee>(
+    "ix_app_employees_email", "ix_app_employees_work_email");
+```
+
+**Parameters:**
+- `schemaName` - Schema containing the table
+- `tableName` - Name of the table
+- `indexName` - Current name
+- `newIndexName` - New name
+- `tx` (optional) - Database transaction
+- `cancellationToken` (optional) - Cancellation token
+
+**Returns:** `bool` - `true` if it was renamed, `false` if it doesn't exist or the new name is already taken
+
+| Provider | How it is renamed |
+|----------|-------------------|
+| SQL Server | `sp_rename` |
+| PostgreSQL | `ALTER INDEX ... RENAME TO` |
+| MySQL / MariaDB | `ALTER TABLE ... RENAME INDEX` |
+| SQLite | SQLite cannot rename an index, so it is dropped and created again with the same definition, in one transaction |
 
 ## Index Deletion
 
@@ -419,7 +450,7 @@ if (dropped)
 {
     Console.WriteLine("All indexes on 'legacy_column' were dropped");
     // Now safe to drop the column
-    await connection.DropColumnAsync("app", "employees", "legacy_column");
+    await connection.DropColumnIfExistsAsync("app", "employees", "legacy_column");
 }
 else
 {
@@ -428,9 +459,8 @@ else
 
 // Useful before major column modifications
 await connection.DropIndexesOnColumnIfExistsAsync("app", "users", "email");
-// Modify the email column
-// Note: AlterColumnAsync does not exist in DapperMatic
-// You would need to drop and recreate the column or table
+// Modify the email column, here to match the model class it is mapped from
+await connection.AlterColumnIfExistsAsync<User>(u => u.Email);
 // Then recreate indexes with new structure
 await connection.CreateIndexIfNotExistsAsync(newEmailIndex);
 ```
@@ -627,7 +657,7 @@ private async Task RemoveDuplicateIndexesAsync(IDbConnection connection, string 
     List<DmIndex> indexes, IDbTransaction transaction)
 {
     var duplicateGroups = indexes
-        .GroupBy(i => string.Join(",", i.Columns.Select(c => $"{c.ColumnName}:{c.ColumnOrder}")))
+        .GroupBy(i => string.Join(",", i.Columns.Select(c => $"{c.ColumnName}:{c.Order}")))
         .Where(g => g.Count() > 1)
         .ToList();
     
@@ -653,7 +683,7 @@ private async Task CreateForeignKeyIndexesAsync(IDbConnection connection, string
     
     foreach (var fk in table.ForeignKeyConstraints)
     {
-        foreach (var columnName in fk.KeyColumnNames)
+        foreach (var columnName in fk.SourceColumns.Select(c => c.ColumnName))
         {
             // Check if column already has an index
             bool hasIndex = await connection.DoesIndexExistOnColumnAsync(
@@ -686,8 +716,8 @@ private async Task CreateQueryOptimizationIndexesAsync(IDbConnection connection,
     
     // Index date/datetime columns for range queries
     var dateColumns = columns.Where(c => 
-        c.DataType == typeof(DateTime) || 
-        c.DataType == typeof(DateOnly) ||
+        c.DotnetType == typeof(DateTime) ||
+        c.DotnetType == typeof(DateOnly) ||
         c.ColumnName.ToLower().Contains("date") ||
         c.ColumnName.ToLower().Contains("time")
     ).ToList();
@@ -716,7 +746,7 @@ private async Task CreateQueryOptimizationIndexesAsync(IDbConnection connection,
     
     // Index status/flag columns for filtering
     var statusColumns = columns.Where(c =>
-        c.DataType == typeof(bool) ||
+        c.DotnetType == typeof(bool) ||
         c.ColumnName.ToLower().Contains("status") ||
         c.ColumnName.ToLower().Contains("active") ||
         c.ColumnName.ToLower().Contains("enabled") ||

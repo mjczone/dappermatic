@@ -17,7 +17,7 @@ public partial class DapperMaticService
 {
     /// <inheritdoc />
     public async Task<(string providerName, List<DataTypeInfo> dataTypes)> GetDatasourceDataTypesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         bool includeCustomTypes = false,
         CancellationToken cancellationToken = default

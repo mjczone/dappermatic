@@ -54,8 +54,7 @@ public class MariaDb_10_11_DatabaseFixture : MariaDbDatabaseFixture
 
 public abstract class MariaDbDatabaseFixture(string imageName) : DatabaseFixtureBase<MariaDbContainer>
 {
-    private readonly MariaDbContainer _container = new MariaDbBuilder()
-        .WithImage(imageName)
+    private readonly MariaDbContainer _container = new MariaDbBuilder(imageName)
         .WithPassword("Strong_password_123!")
         .WithAutoRemove(true)
         .WithCleanUp(true)

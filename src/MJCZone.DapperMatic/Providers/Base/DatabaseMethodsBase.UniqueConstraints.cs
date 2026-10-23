@@ -372,4 +372,65 @@ public abstract partial class DatabaseMethodsBase
 
         return true;
     }
+
+    /// <summary>
+    /// Renames a unique constraint if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The current name.</param>
+    /// <param name="newConstraintName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    public virtual async Task<bool> RenameUniqueConstraintIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string constraintName,
+        string newConstraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (
+            !await DoesUniqueConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken).ConfigureAwait(false)
+            || await DoesUniqueConstraintExistAsync(db, schemaName, tableName, newConstraintName, tx, cancellationToken)
+                .ConfigureAwait(false)
+        )
+        {
+            return false;
+        }
+
+        await RenameUniqueConstraintAsync(db, schemaName, tableName, constraintName, newConstraintName, tx, cancellationToken).ConfigureAwait(false);
+        return true;
+    }
+
+    /// <summary>
+    /// Renames a unique constraint that is known to exist, with the new name known to be free.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The current name.</param>
+    /// <param name="newConstraintName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>
+    /// There is no portable statement for this, so every provider overrides it.
+    /// </remarks>
+    protected virtual Task RenameUniqueConstraintAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string constraintName,
+        string newConstraintName,
+        IDbTransaction? tx,
+        CancellationToken cancellationToken
+    )
+    {
+        throw new NotSupportedException($"Renaming a unique constraint is not implemented for {ProviderType}.");
+    }
 }

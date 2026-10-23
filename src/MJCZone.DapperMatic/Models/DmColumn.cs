@@ -18,6 +18,7 @@ public class DmColumn
     private Func<DbProviderType, string>? _defaultExpressionFunc;
     private string? _checkExpression;
     private Func<DbProviderType, string>? _checkExpressionFunc;
+    private Dictionary<DbProviderType, string> _providerDataTypes = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DmColumn"/> class.
@@ -92,10 +93,10 @@ public class DmColumn
             referencedColumnName,
             onDelete,
             onUpdate,
-            checkExpression,
-            checkExpressionFunc,
             defaultExpression,
-            defaultExpressionFunc
+            defaultExpressionFunc,
+            checkExpression,
+            checkExpressionFunc
         ) { }
 
     /// <summary>
@@ -155,7 +156,7 @@ public class DmColumn
         TableName = tableName;
         ColumnName = columnName;
         DotnetType = dotnetType;
-        ProviderDataTypes = providerDataTypes ?? [];
+        _providerDataTypes = providerDataTypes ?? [];
         Length = length;
         Precision = precision;
         Scale = scale;
@@ -203,7 +204,7 @@ public class DmColumn
     /// <remarks>
     /// The provider data type should include the length, precision, and scale if applicable.
     /// </remarks>
-    public Dictionary<DbProviderType, string> ProviderDataTypes { get; } = new();
+    public Dictionary<DbProviderType, string> ProviderDataTypes => _providerDataTypes;
 
     /// <summary>
     /// Gets or sets the length of the column.
@@ -372,6 +373,15 @@ public class DmColumn
     /// Gets or sets the action on update.
     /// </summary>
     public DmForeignKeyAction? OnUpdate { get; set; }
+
+    /// <summary>
+    /// Gets or sets the names this column has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// Reconciliation renames an existing column found under one of these names instead of creating a new one.
+    /// The names cost nothing to keep: they are only consulted when the current name is missing.
+    /// </remarks>
+    public List<string> PreviousNames { get; set; } = [];
 
     /// <summary>
     /// Determines whether the column is numeric.
@@ -585,5 +595,23 @@ public class DmColumn
     public string? GetCheckExpression(DbProviderType providerType)
     {
         return _checkExpressionFunc != null ? _checkExpressionFunc(providerType) : _checkExpression;
+    }
+
+    /// <summary>
+    /// Creates a copy of this column, for callers that need to vary a column they do not own.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="DmTableFactory"/> caches one model per .NET type and shares its columns process-wide, so a
+    /// column taken from a model must be copied, never modified. The copy has its own
+    /// <see cref="ProviderDataTypes"/> and <see cref="PreviousNames"/>, so changing those leaves the original
+    /// alone too.
+    /// </remarks>
+    /// <returns>A copy of this column.</returns>
+    internal DmColumn Copy()
+    {
+        var copy = (DmColumn)MemberwiseClone();
+        copy._providerDataTypes = new(_providerDataTypes);
+        copy.PreviousNames = [.. PreviousNames];
+        return copy;
     }
 }

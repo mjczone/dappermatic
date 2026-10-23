@@ -29,27 +29,27 @@ The `DmTable` class represents a database table with all its components.
 var table = new DmTable(null /* or schemaName */, "Users")
 {
     TableName = "Users",
-    Columns = new[]
+    Columns = new List<DmColumn>
     {
         new DmColumn("Id", typeof(int)) { IsNullable = false, IsAutoIncrement = true },
-        new DmColumn("Username", typeof(string)) { MaxLength = 50, IsNullable = false },
-        new DmColumn("Email", typeof(string)) { MaxLength = 100, IsNullable = false },
-        new DmColumn("IsActive", typeof(bool)) { IsNullable = false, DefaultValue = "1" },
+        new DmColumn("Username", typeof(string)) { Length = 50, IsNullable = false },
+        new DmColumn("Email", typeof(string)) { Length = 100, IsNullable = false },
+        new DmColumn("IsActive", typeof(bool)) { IsNullable = false, DefaultExpression = "1" },
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false }
     },
-    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", "Id"),
-    Indexes = new[]
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Users", new[] { new DmOrderedColumn("Id") }),
+    Indexes = new List<DmIndex>
     {
-        new DmIndex("IX_Users_Username", new[] { "Username" }) { IsUnique = true },
-        new DmIndex("IX_Users_Email", new[] { "Email" }) { IsUnique = true }
+        new DmIndex("IX_Users_Username", new[] { new DmOrderedColumn("Username") }) { IsUnique = true },
+        new DmIndex("IX_Users_Email", new[] { new DmOrderedColumn("Email") }) { IsUnique = true }
     },
-    CheckConstraints = new[]
+    CheckConstraints = new List<DmCheckConstraint>
     {
-        new DmCheckConstraint("CK_Users_Username_Length", "LEN(Username) > 0")
+        new DmCheckConstraint(null, "CK_Users_Username_Length", "LEN(Username) > 0")
     },
-    DefaultConstraints = new[]
+    DefaultConstraints = new List<DmDefaultConstraint>
     {
-        new DmDefaultConstraint("DF_Users_CreatedAt", "CreatedAt", "GETDATE()")
+        new DmDefaultConstraint("CreatedAt", "DF_Users_CreatedAt", "GETDATE()")
     }
 };
 ```
@@ -114,7 +114,7 @@ var usernameColumn = new DmColumn("Username", typeof(string))
 {
     Length = 50,
     IsNullable = false,
-    CheckExpressionFunc = CommonProviderCheckExpressions.StringLengthGtCheck("Username", 0)
+    CheckExpressionFunc = CommonProviderCheckExpressions.LengthGreaterThanCheck("Username", 0)
 };
 ```
 
@@ -193,7 +193,7 @@ Represents a database view with its definition.
 📝 **Test Examples:** [DatabaseMethodsTests.Views.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)
 
 ```csharp
-var view = new DmView("ActiveUsers")
+var view = new DmView()
 {
     ViewName = "ActiveUsers",
     Definition = @"
@@ -262,10 +262,10 @@ Defines a primary key constraint on one or more columns.
 
 ```csharp
 // Single column primary key
-var singlePK = new DmPrimaryKeyConstraint("PK_Users", "Id");
+var singlePK = new DmPrimaryKeyConstraint("PK_Users", new[] { new DmOrderedColumn("Id") });
 
 // Composite primary key
-var compositePK = new DmPrimaryKeyConstraint("PK_OrderItems", new[] { "OrderId", "ProductId" });
+var compositePK = new DmPrimaryKeyConstraint("PK_OrderItems", new[] { new DmOrderedColumn("OrderId"), new DmOrderedColumn("ProductId") });
 ```
 
 ### DmForeignKeyConstraint
@@ -278,17 +278,17 @@ Defines relationships between tables.
 // Basic foreign key
 var basicFK = new DmForeignKeyConstraint(
     constraintName: "FK_Orders_Users",
-    columnNames: new[] { "UserId" },
+    sourceColumns: new[] { new DmOrderedColumn("UserId") },
     referencedTableName: "Users",
-    referencedColumnNames: new[] { "Id" }
+    referencedColumns: new[] { new DmOrderedColumn("Id") }
 );
 
 // Foreign key with cascade actions
 var cascadeFK = new DmForeignKeyConstraint(
     constraintName: "FK_OrderItems_Orders",
-    columnNames: new[] { "OrderId" },
+    sourceColumns: new[] { new DmOrderedColumn("OrderId") },
     referencedTableName: "Orders",
-    referencedColumnNames: new[] { "Id" }
+    referencedColumns: new[] { new DmOrderedColumn("Id") }
 )
 {
     OnDelete = DmForeignKeyAction.Cascade,
@@ -304,9 +304,9 @@ An enumeration that specifies the action to take when a referenced key is update
 // Create foreign key with cascade delete
 var orderItemsFK = new DmForeignKeyConstraint(
     "FK_OrderItems_Orders",
-    new[] { "OrderId" },
+    new[] { new DmOrderedColumn("OrderId") },
     "Orders",
-    new[] { "Id" }
+    new[] { new DmOrderedColumn("Id") }
 )
 {
     OnDelete = DmForeignKeyAction.Cascade,    // Delete child records
@@ -316,9 +316,9 @@ var orderItemsFK = new DmForeignKeyConstraint(
 // Create foreign key that sets NULL on delete
 var customerOrdersFK = new DmForeignKeyConstraint(
     "FK_Orders_Customers",
-    new[] { "CustomerId" },
+    new[] { new DmOrderedColumn("CustomerId") },
     "Customers", 
-    new[] { "Id" }
+    new[] { new DmOrderedColumn("Id") }
 )
 {
     OnDelete = DmForeignKeyAction.SetNull,    // Set CustomerId to NULL
@@ -350,12 +350,12 @@ Ensures uniqueness across one or more columns.
 
 ```csharp
 // Single column unique constraint
-var emailUnique = new DmUniqueConstraint("UQ_Users_Email", new[] { "Email" });
+var emailUnique = new DmUniqueConstraint("UQ_Users_Email", new[] { new DmOrderedColumn("Email") });
 
 // Multi-column unique constraint
 var compositeUnique = new DmUniqueConstraint(
     "UQ_UserProfiles_UserId_ProfileType",
-    new[] { "UserId", "ProfileType" }
+    new[] { new DmOrderedColumn("UserId"), new DmOrderedColumn("ProfileType") }
 );
 ```
 
@@ -367,16 +367,18 @@ Defines business rules at the database level.
 
 ```csharp
 // Simple value check
-var ageCheck = new DmCheckConstraint("CK_Users_Age", "Age >= 0 AND Age <= 150");
+var ageCheck = new DmCheckConstraint(null, "CK_Users_Age", "Age >= 0 AND Age <= 150");
 
 // Complex business rule
 var emailCheck = new DmCheckConstraint(
+    null,
     "CK_Users_Email_Format",
     "Email LIKE '%@%.%' AND LEN(Email) > 5"
 );
 
 // Date range check
 var dateCheck = new DmCheckConstraint(
+    null,
     "CK_Orders_ValidDateRange",
     "OrderDate >= '2020-01-01' AND OrderDate <= GETDATE()"
 );
@@ -391,22 +393,22 @@ Provides default values for columns.
 ```csharp
 // Current timestamp default
 var createdAtDefault = new DmDefaultConstraint(
-    "DF_Users_CreatedAt",
     "CreatedAt",
+    "DF_Users_CreatedAt",
     "GETDATE()"
 );
 
 // GUID default
 var idDefault = new DmDefaultConstraint(
-    "DF_Sessions_Id",
     "Id",
+    "DF_Sessions_Id",
     "NEWID()"
 );
 
 // Constant value default
 var statusDefault = new DmDefaultConstraint(
-    "DF_Users_Status",
     "Status",
+    "DF_Users_Status",
     "'Pending'"
 );
 ```
@@ -421,10 +423,10 @@ Defines database indexes for performance optimization.
 
 ```csharp
 // Simple index
-var nameIndex = new DmIndex("IX_Users_LastName", new[] { "LastName" });
+var nameIndex = new DmIndex("IX_Users_LastName", new[] { new DmOrderedColumn("LastName") });
 
 // Unique index
-var emailIndex = new DmIndex("IX_Users_Email", new[] { "Email" })
+var emailIndex = new DmIndex("IX_Users_Email", new[] { new DmOrderedColumn("Email") })
 {
     IsUnique = true
 };
@@ -437,7 +439,7 @@ var compositeIndex = new DmIndex("IX_Orders_Date_Status", new[]
 });
 
 // Filtered index (SQL Server)
-var filteredIndex = new DmIndex("IX_Users_Active", new[] { "Username" })
+var filteredIndex = new DmIndex("IX_Users_Active", new[] { new DmOrderedColumn("Username") })
 {
     IsUnique = true,
     Filter = "IsActive = 1"  // Provider-specific feature
@@ -528,7 +530,7 @@ Generate view models from .NET classes.
 📝 **Test Examples:** [DatabaseMethodsTests.Views.cs](https://github.com/mjczone/dappermatic/blob/main/tests/MJCZone.DapperMatic.Tests/DatabaseMethodsTests.Views.cs)
 
 ```csharp
-[View("vw_active_employees")]
+[DmView("SELECT Id, Name, Email, HireDate FROM app_employees", viewName: "vw_active_employees")]
 public class ActiveEmployeeView
 {
     public int Id { get; set; }
@@ -548,43 +550,43 @@ Here's a comprehensive example showing how to create a complete table with all t
 ```csharp
 var ordersTable = new DmTable(null /* or schemaName */, "Orders")
 {
-    Columns = new[]
+    Columns = new List<DmColumn>
     {
         new DmColumn("Id", typeof(int)) { IsNullable = false, IsAutoIncrement = true },
         new DmColumn("UserId", typeof(int)) { IsNullable = false },
-        new DmColumn("OrderNumber", typeof(string)) { MaxLength = 50, IsNullable = false },
+        new DmColumn("OrderNumber", typeof(string)) { Length = 50, IsNullable = false },
         new DmColumn("OrderDate", typeof(DateTime)) { IsNullable = false },
         new DmColumn("TotalAmount", typeof(decimal)) { Precision = 10, Scale = 2, IsNullable = false },
-        new DmColumn("Status", typeof(string)) { MaxLength = 20, IsNullable = false },
+        new DmColumn("Status", typeof(string)) { Length = 20, IsNullable = false },
         new DmColumn("CreatedAt", typeof(DateTime)) { IsNullable = false },
         new DmColumn("UpdatedAt", typeof(DateTime)) { IsNullable = true }
     },
-    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Orders", "Id"),
-    ForeignKeyConstraints = new[]
+    PrimaryKeyConstraint = new DmPrimaryKeyConstraint("PK_Orders", new[] { new DmOrderedColumn("Id") }),
+    ForeignKeyConstraints = new List<DmForeignKeyConstraint>
     {
-        new DmForeignKeyConstraint("FK_Orders_Users", new[] { "UserId" }, "Users", new[] { "Id" })
+        new DmForeignKeyConstraint("FK_Orders_Users", new[] { new DmOrderedColumn("UserId") }, "Users", new[] { new DmOrderedColumn("Id") })
         {
             OnDelete = DmForeignKeyAction.Restrict
         }
     },
-    UniqueConstraints = new[]
+    UniqueConstraints = new List<DmUniqueConstraint>
     {
-        new DmUniqueConstraint("UQ_Orders_OrderNumber", new[] { "OrderNumber" })
+        new DmUniqueConstraint("UQ_Orders_OrderNumber", new[] { new DmOrderedColumn("OrderNumber") })
     },
-    CheckConstraints = new[]
+    CheckConstraints = new List<DmCheckConstraint>
     {
-        new DmCheckConstraint("CK_Orders_TotalAmount", "TotalAmount >= 0"),
-        new DmCheckConstraint("CK_Orders_Status", "Status IN ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled')")
+        new DmCheckConstraint(null, "CK_Orders_TotalAmount", "TotalAmount >= 0"),
+        new DmCheckConstraint(null, "CK_Orders_Status", "Status IN ('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled')")
     },
-    DefaultConstraints = new[]
+    DefaultConstraints = new List<DmDefaultConstraint>
     {
-        new DmDefaultConstraint("DF_Orders_Status", "Status", "'Pending'"),
-        new DmDefaultConstraint("DF_Orders_CreatedAt", "CreatedAt", "GETDATE()")
+        new DmDefaultConstraint("Status", "DF_Orders_Status", "'Pending'"),
+        new DmDefaultConstraint("CreatedAt", "DF_Orders_CreatedAt", "GETDATE()")
     },
-    Indexes = new[]
+    Indexes = new List<DmIndex>
     {
-        new DmIndex("IX_Orders_UserId", new[] { "UserId" }),
-        new DmIndex("IX_Orders_OrderDate", new[] { "OrderDate" }),
+        new DmIndex("IX_Orders_UserId", new[] { new DmOrderedColumn("UserId") }),
+        new DmIndex("IX_Orders_OrderDate", new[] { new DmOrderedColumn("OrderDate") }),
         new DmIndex("IX_Orders_Status_Date", new[]
         {
             new DmOrderedColumn("Status", DmColumnOrder.Ascending),

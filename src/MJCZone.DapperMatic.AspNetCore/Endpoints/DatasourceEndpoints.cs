@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic datasource endpoints.
 /// </summary>
-public static class DatasourceEndpoints
+internal static class DatasourceEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic datasource endpoints to the specified route builder.
@@ -109,7 +109,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> ListDatasourcesAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromQuery] string? filter = null,
         CancellationToken cancellationToken = default
@@ -130,7 +130,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> GetDatasourceAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
@@ -144,7 +144,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> CreateDatasourceAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromBody] DatasourceDto datasource,
         CancellationToken cancellationToken = default
@@ -164,8 +164,7 @@ public static class DatasourceEndpoints
             .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
             .Assert();
 
-        operationContext.RequestBody = datasource;
-        operationContext.DatasourceId = datasource.Id;
+        operationContext = operationContext with { RequestBody = datasource, DatasourceId = datasource.Id };
 
         var created = await service
             .AddDatasourceAsync(operationContext, datasource, cancellationToken)
@@ -178,7 +177,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> UpdateDatasourceAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromBody] DatasourceDto datasource,
@@ -197,7 +196,7 @@ public static class DatasourceEndpoints
             .MaxLength(r => r.Description, 1000, nameof(DatasourceDto.Description), inclusive: true)
             .Assert();
 
-        operationContext.RequestBody = datasource;
+        operationContext = operationContext with { RequestBody = datasource };
 
         var updated = await service
             .UpdateDatasourceAsync(operationContext, datasource, cancellationToken)
@@ -207,7 +206,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> DeleteDatasourceAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
@@ -219,7 +218,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> DatasourceExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default
@@ -233,7 +232,7 @@ public static class DatasourceEndpoints
     }
 
     private static async Task<IResult> TestDatasourceAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         CancellationToken cancellationToken = default

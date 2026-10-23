@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore.Auditing;
+using MJCZone.DapperMatic.AspNetCore.Caching;
 using MJCZone.DapperMatic.AspNetCore.Factories;
 using MJCZone.DapperMatic.AspNetCore.Repositories;
 using MJCZone.DapperMatic.AspNetCore.Security;
@@ -31,19 +32,9 @@ public static class ServiceCollectionExtensions
         Action<DapperMaticConfigurationBuilder>? configure = null
     )
     {
-        // Configure Dapper type handlers
-        Dapper.SqlMapper.RemoveTypeMap(typeof(DateTimeOffset));
-        Dapper.SqlMapper.RemoveTypeMap(typeof(Guid));
-        Dapper.SqlMapper.RemoveTypeMap(typeof(TimeSpan));
-        Dapper.SqlMapper.AddTypeHandler(new DateTimeOffsetHandler());
-        Dapper.SqlMapper.AddTypeHandler(new GuidHandler());
-        Dapper.SqlMapper.AddTypeHandler(new TimeSpanHandler());
-
         services.AddScoped<IDapperMaticService, DapperMaticService>();
 
-        // Register operation context services
-        services.TryAddScoped<IOperationContext, OperationContext>();
-        services.TryAddScoped<IOperationContextInitializer, OperationContextInitializer>();
+        services.TryAddSingleton<DapperMaticAccess>();
 
         // Apply fluent configuration
         if (configure != null)
@@ -55,8 +46,58 @@ public static class ServiceCollectionExtensions
         // Register defaults (do this AFTER the fluent configuration to allow overrides by the user)
         services.TryAddSingleton<IDbConnectionFactory, DbConnectionFactory>();
         services.TryAddSingleton<IDatasourceIdFactory, GuidDatasourceIdFactory>();
+        services.TryAddSingleton<IDapperMaticAccessRepository, InMemoryDapperMaticAccessRepository>();
+        services.TryAddSingleton<DapperMaticStoredAccess>();
+        services.TryAddSingleton<DapperMaticPolicySet>();
+        services.TryAddScoped<DapperMaticAccessManager>();
+        services.AddHttpContextAccessor();
+        services.TryAddScoped<DapperMaticCallerDb>();
         services.TryAddSingleton<IDapperMaticPermissions, DefaultDapperMaticPermissions>();
         services.TryAddSingleton<IDapperMaticAuditLogger, DefaultDapperMaticAuditLogger>();
+        services.TryAddSingleton(sp => new DapperMaticSchemaCache(sp.GetRequiredService<IOptions<DapperMaticOptions>>().Value.SchemaCacheDuration));
+        services.TryAddSingleton(sp => new DapperMaticCallerModelCache(sp.GetRequiredService<IOptions<DapperMaticOptions>>()));
+        services.TryAddSingleton<DapperMaticResultCache>();
+        services.TryAddSingleton<Changes.DapperMaticChangeLog>();
+        services.TryAddSingleton<Changes.DapperMaticRealtimeHub>();
+
+        // Signing in: the methods DapperMatic's endpoints accept, and tickets for browsers' streams (kept where access
+        // is). Authentication's services are there even for an application without sign-in.
+        services.AddAuthenticationCore();
+        services.AddDataProtection();
+        services.TryAddSingleton<Authentication.DapperMaticSignIn>();
+        services.TryAddSingleton<Authentication.IDapperMaticTicketStore>(Authentication.DapperMaticStores.Tickets);
+        services.TryAddSingleton<Authentication.DapperMaticTickets>();
+
+        // Webhooks are sent, and other servers' changes read for subscriptions, by workers of their own: once, however
+        // often AddDapperMatic is called.
+        if (!services.Any(d => d.ServiceType == typeof(Changes.DapperMaticWebhookWorker)))
+        {
+            services.AddHttpClient(Changes.DapperMaticWebhookWorker.ClientName);
+            services.AddHttpClient(Changes.DapperMaticWebhookWorker.GuardedClientName).ConfigurePrimaryHttpMessageHandler(Changes.DapperMaticWebhookWorker.GuardedHandler);
+            services.AddSingleton<Changes.DapperMaticWebhookWorker>();
+            services.AddHostedService(sp => sp.GetRequiredService<Changes.DapperMaticWebhookWorker>());
+            services.AddSingleton<Changes.DapperMaticRealtimePoller>();
+            services.AddHostedService(sp => sp.GetRequiredService<Changes.DapperMaticRealtimePoller>());
+        }
+
+        // DapperMatic's tools for AI assistants, served at {BasePath}/mcp when the options turn the Mcp endpoints on. The
+        // server is registered either way (stateless, it runs nothing in the background); the tools join it only when
+        // turned on, read once the options are configured, so that an application's own MCP server never serves them
+        // unasked.
+        if (!services.Any(d => d.ServiceType == typeof(Mcp.DapperMaticMcpTools)))
+        {
+            services.AddScoped<Mcp.DapperMaticMcpTools>();
+            services.AddMcpServer().WithHttpTransport();
+            services
+                .AddOptions<ModelContextProtocol.Server.McpServerOptions>()
+                .PostConfigure<IOptions<DapperMaticOptions>, IServiceProvider>((mcp, dapperMatic, provider) =>
+                {
+                    if (dapperMatic.Value.Endpoints.HasFlag(DapperMaticEndpoints.Mcp))
+                    {
+                        Mcp.DapperMaticMcpTools.AddTo(mcp, provider);
+                    }
+                });
+        }
 
         // Register default in-memory repository if no repository was explicitly configured
         // This ensures that datasources added via configuration or fluent API are captured
@@ -104,85 +145,5 @@ public static class ServiceCollectionExtensions
 
             return repository;
         });
-    }
-}
-
-/// <summary>
-/// Base class for Dapper type handlers.
-/// </summary>
-/// <typeparam name="T">The type to handle.</typeparam>
-internal abstract class DapperTypeHandlerBase<T> : Dapper.SqlMapper.TypeHandler<T>
-{
-    /// <summary>
-    /// Sets the value of a parameter before it is sent to the database.
-    /// </summary>
-    /// <param name="parameter">The database parameter to set the value for.</param>
-    /// <param name="value">The value to set.</param>
-    public override void SetValue(System.Data.IDbDataParameter parameter, T? value) => parameter.Value = value;
-}
-
-/// <summary>
-/// Handles DateTimeOffset values for Dapper.
-/// </summary>
-internal class DateTimeOffsetHandler : DapperTypeHandlerBase<DateTimeOffset>
-{
-    /// <summary>
-    /// Parses a database value into a DateTimeOffset.
-    /// </summary>
-    /// <param name="value">The database value to parse.</param>
-    /// <returns>The parsed DateTimeOffset.</returns>
-    public override DateTimeOffset Parse(object value)
-    {
-        return value switch
-        {
-            DateTimeOffset dto => dto,
-            DateTime dt => new DateTimeOffset(dt),
-            string s => DateTimeOffset.Parse(s),
-            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to DateTimeOffset")
-        };
-    }
-}
-
-/// <summary>
-/// Handles Guid values for Dapper.
-/// </summary>
-internal class GuidHandler : DapperTypeHandlerBase<Guid>
-{
-    /// <summary>
-    /// Parses a database value into a Guid.
-    /// </summary>
-    /// <param name="value">The database value to parse.</param>
-    /// <returns>The parsed Guid.</returns>
-    public override Guid Parse(object value)
-    {
-        return value switch
-        {
-            Guid guid => guid,
-            string s => Guid.Parse(s),
-            byte[] bytes when bytes.Length == 16 => new Guid(bytes),
-            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to Guid")
-        };
-    }
-}
-
-/// <summary>
-/// Handles TimeSpan values for Dapper.
-/// </summary>
-internal class TimeSpanHandler : DapperTypeHandlerBase<TimeSpan>
-{
-    /// <summary>
-    /// Parses a database value into a TimeSpan.
-    /// </summary>
-    /// <param name="value">The database value to parse.</param>
-    /// <returns>The parsed TimeSpan.</returns>
-    public override TimeSpan Parse(object value)
-    {
-        return value switch
-        {
-            TimeSpan ts => ts,
-            string s => TimeSpan.Parse(s),
-            long ticks => TimeSpan.FromTicks(ticks),
-            _ => throw new InvalidCastException($"Unable to convert {value.GetType()} to TimeSpan")
-        };
     }
 }

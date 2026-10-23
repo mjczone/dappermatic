@@ -34,6 +34,23 @@ public static partial class DbConnectionExtensions
     }
 
     /// <summary>
+    /// Quotes an identifier, such as a column name, the way the provider quotes identifiers.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="identifier">The identifier.</param>
+    /// <returns>
+    /// The identifier in the provider's quote characters, keeping only its letters, digits and underscores, so the
+    /// result can never carry SQL of its own.
+    /// </returns>
+    public static string GetQuotedIdentifier(this IDbConnection db, string identifier)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(identifier);
+        return Database(db) is Providers.Base.DatabaseMethodsBase methods
+            ? string.Empty.ToQuotedIdentifier(methods.QuoteChars, identifier)
+            : throw new NotSupportedException($"{db.GetType().Name} has no identifier quoting DapperMatic knows.");
+    }
+
+    /// <summary>
     /// Determines whether the database supports check constraints asynchronously.
     /// </summary>
     /// <param name="db">The database connection.</param>

@@ -14,7 +14,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Infrastructure;
 /// </summary>
 public class TestDapperMaticPermissions : IDapperMaticPermissions
 {
-    private readonly Dictionary<string, Func<OperationContext, bool>> _rules = [];
+    private readonly Dictionary<string, Func<DapperMaticOperation, bool>> _rules = [];
     private readonly List<(string operation, string pattern, bool allowed)> _datasourceRules = [];
 
     /// <summary>
@@ -22,7 +22,7 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     /// </summary>
     /// <param name="operation">The operation name (e.g., "datasources/list", "datasources/post").</param>
     /// <param name="rule">The permission rule function.</param>
-    public void SetRule(string operation, Func<OperationContext, bool> rule)
+    public void SetRule(string operation, Func<DapperMaticOperation, bool> rule)
     {
         _rules[operation] = rule;
     }
@@ -108,9 +108,9 @@ public class TestDapperMaticPermissions : IDapperMaticPermissions
     }
 
     /// <inheritdoc />
-    public Task<bool> IsAuthorizedAsync(IOperationContext context)
+    public Task<bool> IsAuthorizedAsync(DapperMaticOperation context)
     {
-        if (context is not OperationContext opContext || opContext.Operation is null)
+        if (context is not DapperMaticOperation opContext || opContext.Operation is null)
         {
             // Default to allow if no operation context
             return Task.FromResult(true);

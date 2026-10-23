@@ -221,8 +221,11 @@ public partial class MySqlMethods
                             kcu.COLUMN_NAME as column_name,
                             kcu.REFERENCED_COLUMN_NAME as referenced_column_name
                         from INFORMATION_SCHEMA.KEY_COLUMN_USAGE kcu
-                            INNER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc on kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
-                            INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc on kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
+                            INNER JOIN INFORMATION_SCHEMA.TABLE_CONSTRAINTS tc
+                                on kcu.CONSTRAINT_SCHEMA = tc.CONSTRAINT_SCHEMA and kcu.CONSTRAINT_NAME = tc.CONSTRAINT_NAME
+                                and kcu.TABLE_NAME = tc.TABLE_NAME
+                            INNER JOIN INFORMATION_SCHEMA.REFERENTIAL_CONSTRAINTS rc
+                                on kcu.CONSTRAINT_SCHEMA = rc.CONSTRAINT_SCHEMA and kcu.CONSTRAINT_NAME = rc.CONSTRAINT_NAME
                         where kcu.CONSTRAINT_SCHEMA = DATABASE()
                             and tc.CONSTRAINT_SCHEMA = DATABASE()
                             and tc.CONSTRAINT_TYPE = 'FOREIGN KEY'
@@ -276,6 +279,11 @@ public partial class MySqlMethods
         DmCheckConstraint[] allCheckConstraints = [];
         if (await SupportsCheckConstraintsAsync(db, tx, cancellationToken).ConfigureAwait(false))
         {
+            // MariaDB names a check per table, and only its CHECK_CONSTRAINTS has TABLE_NAME: two tables' checks of one
+            // name are told apart by it. MySQL names them per database.
+            var isMariaDb = (
+                await ExecuteScalarAsync<string>(db, "SELECT VERSION()", tx: tx, cancellationToken: cancellationToken).ConfigureAwait(false) ?? string.Empty
+            ).Contains("MariaDB", StringComparison.OrdinalIgnoreCase);
             var checkConstraintsSql = $"""
 
                             SELECT
@@ -288,10 +296,11 @@ public partial class MySqlMethods
                                 INFORMATION_SCHEMA.TABLE_CONSTRAINTS AS tc
                             JOIN
                                 INFORMATION_SCHEMA.CHECK_CONSTRAINTS AS cc
-                                ON tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME
+                                ON tc.CONSTRAINT_SCHEMA = cc.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME = cc.CONSTRAINT_NAME{(isMariaDb ? " AND tc.TABLE_NAME = cc.TABLE_NAME" : null)}
                             LEFT JOIN
                                 INFORMATION_SCHEMA.KEY_COLUMN_USAGE AS kcu
-                                ON tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+                                ON tc.CONSTRAINT_SCHEMA = kcu.CONSTRAINT_SCHEMA AND tc.CONSTRAINT_NAME = kcu.CONSTRAINT_NAME
+                                AND tc.TABLE_NAME = kcu.TABLE_NAME
                             WHERE
                                 tc.TABLE_SCHEMA = DATABASE()
                                 and tc.CONSTRAINT_TYPE = 'CHECK'

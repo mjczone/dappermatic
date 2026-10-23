@@ -62,7 +62,7 @@ public class SmartNpgsqlLSegTypeHandler : SqlMapper.ITypeHandler
             var x2 = endType.GetProperty("X")?.GetValue(end);
             var y2 = endType.GetProperty("Y")?.GetValue(end);
 
-            parameter.Value = $"LINESTRING({x1} {y1}, {x2} {y2})";
+            parameter.Value = string.Create(CultureInfo.InvariantCulture, $"LINESTRING({x1} {y1}, {x2} {y2})");
             parameter.DbType = DbType.String;
         }
     }

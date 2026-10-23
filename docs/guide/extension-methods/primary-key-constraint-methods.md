@@ -32,7 +32,7 @@ if (hasPrimaryKey)
     var pk = await connection.GetPrimaryKeyConstraintAsync("app", "employees");
     if (pk != null)
     {
-        Console.WriteLine($"Primary key '{pk.KeyName}' on columns: {string.Join(", ", pk.KeyColumnNames)}");
+        Console.WriteLine($"Primary key '{pk.ConstraintName}' on columns: {string.Join(", ", pk.Columns.Select(c => c.ColumnName))}");
     }
 }
 else
@@ -71,7 +71,7 @@ bool created = await connection.CreatePrimaryKeyConstraintIfNotExistsAsync(prima
 
 if (created)
 {
-    Console.WriteLine($"Primary key constraint '{primaryKey.KeyName}' was created");
+    Console.WriteLine($"Primary key constraint '{primaryKey.ConstraintName}' was created");
 }
 else
 {
@@ -145,23 +145,23 @@ DmPrimaryKeyConstraint? primaryKey = await connection.GetPrimaryKeyConstraintAsy
 if (primaryKey != null)
 {
     Console.WriteLine($"Primary key constraint details:");
-    Console.WriteLine($"  Name: {primaryKey.KeyName}");
-    Console.WriteLine($"  Columns: {string.Join(", ", primaryKey.KeyColumnNames)}");
-    Console.WriteLine($"  Column count: {primaryKey.KeyColumnNames.Count}");
+    Console.WriteLine($"  Name: {primaryKey.ConstraintName}");
+    Console.WriteLine($"  Columns: {string.Join(", ", primaryKey.Columns.Select(c => c.ColumnName))}");
+    Console.WriteLine($"  Column count: {primaryKey.Columns.Count}");
     
     // Check if it's a composite key
-    if (primaryKey.KeyColumnNames.Count > 1)
+    if (primaryKey.Columns.Count > 1)
     {
         Console.WriteLine("  This is a composite primary key");
     }
     
     // Show column order if available
-    if (primaryKey.KeyColumns.Any())
+    if (primaryKey.Columns.Any())
     {
         Console.WriteLine("  Column order:");
-        foreach (var column in primaryKey.KeyColumns)
+        foreach (var column in primaryKey.Columns)
         {
-            Console.WriteLine($"    {column.ColumnName} ({column.ColumnOrder})");
+            Console.WriteLine($"    {column.ColumnName} ({column.Order})");
         }
     }
 }
@@ -222,7 +222,6 @@ catch
 - `tableName` - Name of the table containing the primary key
 - `constraintName` (optional) - Name of the primary key constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:**
@@ -256,7 +255,7 @@ public async Task MigrateToPrimaryKeyAsync(IDbConnection connection, string sche
             await connection.CreateColumnIfNotExistsAsync(idColumn, tx: transaction);
             
             // Create primary key constraint
-            var primaryKey = new DmPrimaryKeyConstraint($"PK_{tableName}_Id", new[] { "Id" })
+            var primaryKey = new DmPrimaryKeyConstraint($"PK_{tableName}_Id", new[] { new DmOrderedColumn("Id") })
             {
                 SchemaName = schema,
                 TableName = tableName
@@ -298,24 +297,22 @@ public async Task CreateJunctionTableAsync(IDbConnection connection, string sche
         // Create composite primary key
         var compositePK = new DmPrimaryKeyConstraint(
             $"PK_{tableName}_Composite", 
-            new[] { $"{leftTable}Id", $"{rightTable}Id" }
+            new[] { new DmOrderedColumn($"{leftTable}Id"), new DmOrderedColumn($"{rightTable}Id") }
         );
         
         // Create foreign key constraints
         var leftFK = new DmForeignKeyConstraint(
             $"FK_{tableName}_{leftTable}",
-            new[] { $"{leftTable}Id" },
-            schema,
+            new[] { new DmOrderedColumn($"{leftTable}Id") },
             leftTable,
-            new[] { leftColumn }
+            new[] { new DmOrderedColumn(leftColumn) }
         );
         
         var rightFK = new DmForeignKeyConstraint(
             $"FK_{tableName}_{rightTable}",
-            new[] { $"{rightTable}Id" },
-            schema,
+            new[] { new DmOrderedColumn($"{rightTable}Id") },
             rightTable,
-            new[] { rightColumn }
+            new[] { new DmOrderedColumn(rightColumn) }
         );
         
         // Create the table with all constraints
@@ -370,9 +367,9 @@ public async Task AnalyzePrimaryKeysAsync(IDbConnection connection, string schem
             tablesWithPK.Add(tableName);
             
             var pk = await connection.GetPrimaryKeyConstraintAsync(schema, tableName);
-            if (pk != null && pk.KeyColumnNames.Count > 1)
+            if (pk != null && pk.Columns.Count > 1)
             {
-                compositePKTables.Add((tableName, pk.KeyColumnNames.Count));
+                compositePKTables.Add((tableName, pk.Columns.Count));
             }
         }
         else
@@ -428,9 +425,9 @@ public async Task StandardizePrimaryKeyNamesAsync(IDbConnection connection, stri
         
         // Check if primary key name follows standard convention
         var expectedName = $"PK_{tableName}";
-        if (pk.KeyName != expectedName)
+        if (pk.ConstraintName != expectedName)
         {
-            Console.WriteLine($"Standardizing primary key name for {tableName}: '{pk.KeyName}' -> '{expectedName}'");
+            Console.WriteLine($"Standardizing primary key name for {tableName}: '{pk.ConstraintName}' -> '{expectedName}'");
             
             using var transaction = connection.BeginTransaction();
             try
@@ -439,7 +436,7 @@ public async Task StandardizePrimaryKeyNamesAsync(IDbConnection connection, stri
                 await connection.DropPrimaryKeyConstraintIfExistsAsync(schema, tableName, tx: transaction);
                 
                 // Create new primary key with standard name
-                var standardPK = new DmPrimaryKeyConstraint(expectedName, pk.KeyColumnNames.ToArray())
+                var standardPK = new DmPrimaryKeyConstraint(expectedName, pk.Columns.ToArray())
                 {
                     SchemaName = schema,
                     TableName = tableName
@@ -472,7 +469,7 @@ public async Task ValidatePrimaryKeyIntegrityAsync(IDbConnection connection, str
         }
         
         // Validate that all primary key columns exist and have correct properties
-        foreach (var columnName in pk.KeyColumnNames)
+        foreach (var columnName in pk.Columns.Select(c => c.ColumnName))
         {
             var column = table.Columns.FirstOrDefault(c => c.ColumnName == columnName);
             if (column == null)
@@ -487,7 +484,7 @@ public async Task ValidatePrimaryKeyIntegrityAsync(IDbConnection connection, str
             }
         }
         
-        Console.WriteLine($"✅ Primary key '{pk.KeyName}' on table '{table.TableName}' is valid");
+        Console.WriteLine($"✅ Primary key '{pk.ConstraintName}' on table '{table.TableName}' is valid");
     }
 }
 ```

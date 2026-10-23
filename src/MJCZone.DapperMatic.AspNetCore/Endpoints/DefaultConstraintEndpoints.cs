@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic default constraint endpoints.
 /// </summary>
-public static class DefaultConstraintEndpoints
+internal static class DefaultConstraintEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic default constraint endpoints to the specified route builder.
@@ -125,7 +125,7 @@ public static class DefaultConstraintEndpoints
 
     // Default constraint endpoint implementations
     private static Task<IResult> ListDefaultConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -133,7 +133,7 @@ public static class DefaultConstraintEndpoints
     ) => ListSchemaDefaultConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaDefaultConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -149,7 +149,7 @@ public static class DefaultConstraintEndpoints
     }
 
     private static Task<IResult> GetDefaultConstraintOnColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -167,7 +167,7 @@ public static class DefaultConstraintEndpoints
         );
 
     private static async Task<IResult> GetSchemaDefaultConstraintOnColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -191,7 +191,7 @@ public static class DefaultConstraintEndpoints
     }
 
     private static Task<IResult> GetDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -209,7 +209,7 @@ public static class DefaultConstraintEndpoints
         );
 
     private static async Task<IResult> GetSchemaDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -233,7 +233,7 @@ public static class DefaultConstraintEndpoints
     }
 
     private static Task<IResult> CreateDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -251,7 +251,7 @@ public static class DefaultConstraintEndpoints
         );
 
     private static async Task<IResult> CreateSchemaDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -266,11 +266,14 @@ public static class DefaultConstraintEndpoints
             .NotNullOrWhiteSpace(v => v.ColumnName, nameof(DefaultConstraintDto.ColumnName))
             .Assert();
 
-        operationContext.RequestBody = defaultConstraint;
-        operationContext.ColumnNames = [defaultConstraint.ColumnName!];
+        operationContext = operationContext with
+        {
+            RequestBody = defaultConstraint,
+            ColumnNames = [defaultConstraint.ColumnName!],
+        };
         if (!string.IsNullOrWhiteSpace(defaultConstraint.ConstraintName))
         {
-            operationContext.ConstraintName = defaultConstraint.ConstraintName;
+            operationContext = operationContext with { ConstraintName = defaultConstraint.ConstraintName };
         }
 
         var created = await service
@@ -291,7 +294,7 @@ public static class DefaultConstraintEndpoints
     }
 
     private static Task<IResult> DropDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -309,7 +312,7 @@ public static class DefaultConstraintEndpoints
         );
 
     private static async Task<IResult> DropSchemaDefaultConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -333,7 +336,7 @@ public static class DefaultConstraintEndpoints
     }
 
     private static Task<IResult> DropDefaultConstraintOnColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -351,7 +354,7 @@ public static class DefaultConstraintEndpoints
         );
 
     private static async Task<IResult> DropSchemaDefaultConstraintOnColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

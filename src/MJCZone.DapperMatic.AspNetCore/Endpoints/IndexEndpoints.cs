@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic index endpoints.
 /// </summary>
-public static class IndexEndpoints
+internal static class IndexEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic index endpoints to the specified route builder.
@@ -96,7 +96,7 @@ public static class IndexEndpoints
 
     // Index management endpoint implementations
     private static Task<IResult> ListIndexesAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -104,7 +104,7 @@ public static class IndexEndpoints
     ) => ListSchemaIndexesAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaIndexesAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -120,7 +120,7 @@ public static class IndexEndpoints
     }
 
     private static Task<IResult> GetIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -129,7 +129,7 @@ public static class IndexEndpoints
     ) => GetSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
 
     private static async Task<IResult> GetSchemaIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -146,7 +146,7 @@ public static class IndexEndpoints
     }
 
     private static Task<IResult> CreateIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -155,7 +155,7 @@ public static class IndexEndpoints
     ) => CreateSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, index, cancellationToken);
 
     private static async Task<IResult> CreateSchemaIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -171,12 +171,14 @@ public static class IndexEndpoints
             .Custom(v => v.ColumnNames!.Count > 0, nameof(IndexDto.ColumnNames), $"At least one column is required")
             .Assert();
 
-        operationContext.RequestBody = index;
-        operationContext.ColumnNames =
-            index.ColumnNames != null && index.ColumnNames.Count >= 1 ? index.ColumnNames : null;
+        operationContext = operationContext with
+        {
+            RequestBody = index,
+            ColumnNames = index.ColumnNames != null && index.ColumnNames.Count >= 1 ? index.ColumnNames : null,
+        };
         if (!string.IsNullOrWhiteSpace(index.IndexName))
         {
-            operationContext.IndexName = index.IndexName;
+            operationContext = operationContext with { IndexName = index.IndexName };
         }
 
         var created = await service
@@ -190,7 +192,7 @@ public static class IndexEndpoints
     }
 
     private static Task<IResult> DropIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -199,7 +201,7 @@ public static class IndexEndpoints
     ) => DropSchemaIndexAsync(operationContext, service, datasourceId, null, tableName, indexName, cancellationToken);
 
     private static async Task<IResult> DropSchemaIndexAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

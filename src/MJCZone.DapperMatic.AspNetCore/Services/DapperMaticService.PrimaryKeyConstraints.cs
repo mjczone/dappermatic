@@ -27,7 +27,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource or table are not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<PrimaryKeyConstraintDto?> GetPrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -86,7 +86,7 @@ public partial class DapperMaticService
     /// /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created primary key constraint.</returns>
     public async Task<PrimaryKeyConstraintDto> CreatePrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         PrimaryKeyConstraintDto primaryKeyConstraint,
@@ -192,7 +192,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task DropPrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,

@@ -21,6 +21,45 @@ namespace MJCZone.DapperMatic.AspNetCore.Tests.Services;
 public class ConnectionStringEncryptionTest
 {
     [Fact]
+    public void Keys_can_be_rotated_and_only_persistent_repositories_need_one()
+    {
+        var oldKey = CryptoUtils.GenerateEncryptionKey();
+        var newKey = CryptoUtils.GenerateEncryptionKey();
+        var logger = new LoggerFactory().CreateLogger<InMemoryDapperMaticDatasourceRepository>();
+        InMemoryDapperMaticDatasourceRepository Repository(string? key, params string[] previous)
+        {
+            var options = new DapperMaticOptions { ConnectionStringEncryptionKey = key };
+            options.PreviousConnectionStringEncryptionKeys.AddRange(previous);
+            return new InMemoryDapperMaticDatasourceRepository(Options.Create(options), new GuidDatasourceIdFactory(), logger);
+        }
+
+        // Each ciphertext names the key that made it, so that the current key and previous ones can be told apart.
+        var encrypted = Repository(oldKey).EncryptConnectionString("Data Source=a.db");
+        encrypted.Should().MatchRegex("^k[0-9a-f]{8}:");
+        Repository(newKey, oldKey).DecryptConnectionString(encrypted).Should().Be("Data Source=a.db");
+        var rotated = Repository(newKey, oldKey).EncryptConnectionString("Data Source=a.db");
+        rotated[..9].Should().NotBe(encrypted[..9]);
+        FluentActions.Invoking(() => Repository(newKey).DecryptConnectionString(encrypted)).Should().Throw<System.Security.Cryptography.CryptographicException>();
+
+        // Ciphertexts written before key ids are tried with each key.
+        Repository(newKey, oldKey).DecryptConnectionString(CryptoUtils.EncryptToBase64("Data Source=b.db", oldKey)).Should().Be("Data Source=b.db");
+
+        // In memory, nothing outlives the process, so no key is needed; a file has to outlive it.
+        var memory = Repository(null);
+        memory.DecryptConnectionString(memory.EncryptConnectionString("Data Source=c.db")).Should().Be("Data Source=c.db");
+        FluentActions
+            .Invoking(() => new FileDapperMaticDatasourceRepository(
+                Path.Combine(Path.GetTempPath(), $"dm-{Guid.NewGuid():N}.json"),
+                new GuidDatasourceIdFactory(),
+                Options.Create(new DapperMaticOptions()),
+                new LoggerFactory().CreateLogger<FileDapperMaticDatasourceRepository>()
+            ))
+            .Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("*ConnectionStringEncryptionKey*");
+    }
+
+    [Fact]
     public async Task Should_require_repository_encrypts_and_decrypts_connection_strings_correctly_Async()
     {
         // Arrange

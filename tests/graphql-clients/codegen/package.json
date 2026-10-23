@@ -1,0 +1,14 @@
+{
+  "name": "dappermatic-graphql-codegen-check",
+  "private": true,
+  "scripts": {
+    "check": "graphql-codegen --config codegen.yml && tsc --noEmit --strict out/types.ts"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "5.0.7",
+    "@graphql-codegen/typescript": "4.1.6",
+    "@graphql-codegen/typescript-operations": "4.6.1",
+    "graphql": "16.11.0",
+    "typescript": "5.8.3"
+  }
+}

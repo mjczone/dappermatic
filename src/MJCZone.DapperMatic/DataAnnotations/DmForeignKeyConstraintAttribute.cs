@@ -93,4 +93,14 @@ public sealed class DmForeignKeyConstraintAttribute : Attribute
     /// Gets the action to take when a referenced row is updated.
     /// </summary>
     public DmForeignKeyAction OnUpdate { get; }
+
+    /// <summary>
+    /// Gets or sets the names this constraint has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// When the constraint is missing under its current name but exists under exactly one of these, reconciliation
+    /// renames it rather than creating a new one, keeping its data. For example:
+    /// <c>PreviousNames = new[] { "fk_orders_users" }</c>.
+    /// </remarks>
+    public string[]? PreviousNames { get; set; }
 }

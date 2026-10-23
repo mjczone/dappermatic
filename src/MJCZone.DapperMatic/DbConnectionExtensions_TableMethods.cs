@@ -20,13 +20,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table exists, otherwise false.</returns>
-    public static async Task<bool> DoesTableExistAsync<T>(
+    public static Task<bool> DoesTableExistAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesTableExistAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if a table exists in the database.
+    /// </summary>.
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the table exists, otherwise false.</returns>
+    public static async Task<bool> DoesTableExistAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesTableExistAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -99,13 +119,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table was created, otherwise false.</returns>
-    public static async Task<bool> CreateTableIfNotExistsAsync<T>(
+    public static Task<bool> CreateTableIfNotExistsAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.CreateTableIfNotExistsAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Creates a table if it does not exist.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the table was created, otherwise false.</returns>
+    public static async Task<bool> CreateTableIfNotExistsAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var table = DmTableFactory.GetTable(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var table = DmTableFactory.GetTable(type);
         return await Database(db).CreateTableIfNotExistsAsync(db, table, tx, cancellationToken).ConfigureAwait(false);
     }
 
@@ -184,13 +224,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The table definition.</returns>
-    public static async Task<DmTable?> GetTableAsync<T>(
+    public static Task<DmTable?> GetTableAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetTableAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the table definition.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The table definition.</returns>
+    public static async Task<DmTable?> GetTableAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db).GetTableAsync(db, schemaName, tableName, tx, cancellationToken).ConfigureAwait(false);
     }
 
@@ -266,13 +326,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table was dropped, otherwise false.</returns>
-    public static async Task<bool> DropTableIfExistsAsync<T>(
+    public static Task<bool> DropTableIfExistsAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropTableIfExistsAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops a table if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the table was dropped, otherwise false.</returns>
+    public static async Task<bool> DropTableIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropTableIfExistsAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -309,14 +389,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table was renamed, otherwise false.</returns>
-    public static async Task<bool> RenameTableIfExistsAsync<T>(
+    public static Task<bool> RenameTableIfExistsAsync<T>(
         this IDbConnection db,
+        string oldTableName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.RenameTableIfExistsAsync(
+            typeof(T),
+            oldTableName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Renames a table if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="oldTableName">The old table name.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the table was renamed, otherwise false.</returns>
+    public static async Task<bool> RenameTableIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         string oldTableName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .RenameTableIfExistsAsync(db, schemaName, oldTableName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -354,13 +457,33 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction to use.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the table was truncated, otherwise false.</returns>
-    public static async Task<bool> TruncateTableIfExistsAsync<T>(
+    public static Task<bool> TruncateTableIfExistsAsync<T>(
         this IDbConnection db,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.TruncateTableIfExistsAsync(
+            typeof(T),
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Truncates a table if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="tx">The transaction to use.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the table was truncated, otherwise false.</returns>
+    public static async Task<bool> TruncateTableIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .TruncateTableIfExistsAsync(db, schemaName, tableName, tx, cancellationToken)
             .ConfigureAwait(false);

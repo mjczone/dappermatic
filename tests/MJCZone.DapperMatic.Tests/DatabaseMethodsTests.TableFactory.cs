@@ -329,6 +329,205 @@ public abstract partial class DatabaseMethodsTests
         // Cleanup
         await db.DropTableIfExistsAsync(table.SchemaName, table.TableName);
     }
+
+    /// <summary>
+    /// Regression test: a SINGLE-column unique constraint must not force its column to NOT NULL.
+    /// The pre-existing nullable-unique test only covered a two-column constraint, and
+    /// DmTableFactory only sets DmColumn.IsUnique for single-column constraints, so the
+    /// "unique implies NOT NULL" defect slipped through that gap.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Single_column_unique_constraint_keeps_column_nullable_Async()
+    {
+        var tableDef = DmTableFactory.GetTable(typeof(TestTableWithSingleColumnNullableUnique));
+
+        var emailColumn = tableDef.Columns.Single(c =>
+            c.ColumnName.Equals("email", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.True(emailColumn.IsNullable, "email should be nullable in the model");
+        Assert.True(emailColumn.IsUnique, "a single-column unique constraint should flag the column as unique");
+
+        using var db = await OpenConnectionAsync();
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var dbTableDef = await db.GetTableAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.NotNull(dbTableDef);
+
+        var dbEmail = dbTableDef.Columns.Single(c =>
+            c.ColumnName.Equals("email", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.True(
+            dbEmail.IsNullable,
+            "a nullable column in a single-column UNIQUE constraint must remain nullable in the database"
+        );
+
+        // control column: nullable and not unique
+        var dbNickname = dbTableDef.Columns.Single(c =>
+            c.ColumnName.Equals("nickname", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.True(dbNickname.IsNullable, "nickname should remain nullable");
+
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+    }
+
+    /// <summary>
+    /// Regression test: an explicitly configured primary key constraint name must survive into the
+    /// database. Single-column primary keys previously had their name regenerated as pk_{table}_{column}.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(TestTableSingleColumnNamedPk), "pk_single_column_named")]
+    [InlineData(typeof(TestTableClassLevelNamedPk), "pk_class_level_named")]
+    [InlineData(typeof(TestTableCompositeNamedPk), "pk_composite_named")]
+    protected virtual async Task Primary_key_constraint_name_is_preserved_Async(Type type, string expectedName)
+    {
+        var tableDef = DmTableFactory.GetTable(type);
+
+        Assert.NotNull(tableDef.PrimaryKeyConstraint);
+        Assert.Equal(expectedName, tableDef.PrimaryKeyConstraint!.ConstraintName, ignoreCase: true);
+
+        using var db = await OpenConnectionAsync();
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var dbTableDef = await db.GetTableAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.NotNull(dbTableDef);
+        Assert.NotNull(dbTableDef!.PrimaryKeyConstraint);
+
+        // MySQL and MariaDB do not support named primary key constraints: the server always calls the
+        // primary key "PRIMARY" and discards any supplied name, so DapperMatic synthesizes one when
+        // reading the table back. Only the model-level assertion above is meaningful there.
+        if (db.GetDbProviderType() != DbProviderType.MySql)
+        {
+            Assert.Equal(
+                expectedName,
+                dbTableDef.PrimaryKeyConstraint!.ConstraintName,
+                ignoreCase: true
+            );
+        }
+
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+    }
+
+    /// <summary>
+    /// Regression test: a provider data type given WITHOUT a {provider:...} prefix applies to any
+    /// provider that recognises the type name, instead of being silently discarded. Providers that
+    /// do not recognise it fall back to inferring a type from the .NET type, so cross-provider
+    /// models keep working.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Bare_provider_data_type_applies_to_recognising_providers_Async()
+    {
+        var tableDef = DmTableFactory.GetTable(typeof(TestTableWithBareProviderDataType));
+
+        // The bare type is recorded against "any provider", not dropped on the floor.
+        var textColumn = tableDef.Columns.Single(c =>
+            c.ColumnName.Equals("bare_text", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.Equal("text", textColumn.GetProviderDataType(DbProviderType.Other), ignoreCase: true);
+
+        // A prefixed type still targets exactly one provider.
+        var prefixedColumn = tableDef.Columns.Single(c =>
+            c.ColumnName.Equals("prefixed_text", StringComparison.OrdinalIgnoreCase)
+        );
+        Assert.Equal("text", prefixedColumn.GetProviderDataType(DbProviderType.PostgreSql), ignoreCase: true);
+        Assert.Null(prefixedColumn.GetProviderDataType(DbProviderType.Other));
+
+        using var db = await OpenConnectionAsync();
+
+        // A bare type name that this provider does NOT recognise must not break table creation.
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var dbTableDef = await db.GetTableAsync(tableDef.SchemaName, tableDef.TableName);
+        Assert.NotNull(dbTableDef);
+        Assert.Equal(tableDef.Columns.Count, dbTableDef!.Columns.Count);
+
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+    }
+
+    /// <summary>
+    /// Regression test for the shared mutable state issue: DmTableFactory caches one DmTable per .NET
+    /// type, so every DmColumn is shared process-wide. Rendering DDL used to write the resolved SQL type
+    /// back onto the column via SetProviderDataType, which both polluted the caller's model and raced when
+    /// two providers rendered the same cached table concurrently ("Operations that change non-concurrent
+    /// collections must have exclusive access"). Rendering must not mutate its input.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Creating_a_table_does_not_mutate_the_cached_model_Async()
+    {
+        var tableDef = DmTableFactory.GetTable(typeof(TestTableForCacheMutation));
+
+        // The factory hands out one shared instance per type.
+        Assert.Same(tableDef, DmTableFactory.GetTable(typeof(TestTableForCacheMutation)));
+
+        var before = tableDef.Columns.ToDictionary(
+            c => c.ColumnName,
+            c => string.Join(
+                ",",
+                c.ProviderDataTypes.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}")
+            ),
+            StringComparer.OrdinalIgnoreCase
+        );
+
+        using var db = await OpenConnectionAsync();
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+        await db.CreateTableIfNotExistsAsync(tableDef);
+
+        var after = DmTableFactory.GetTable(typeof(TestTableForCacheMutation));
+        foreach (var column in after.Columns)
+        {
+            var actual = string.Join(
+                ",",
+                column.ProviderDataTypes.OrderBy(kv => kv.Key).Select(kv => $"{kv.Key}={kv.Value}")
+            );
+            Assert.Equal(before[column.ColumnName], actual);
+        }
+
+        await db.DropTableIfExistsAsync(tableDef.SchemaName, tableDef.TableName);
+    }
+
+    /// <summary>
+    /// <c>configureColumn</c> adjusts the column being created, not the model it was taken from:
+    /// <see cref="DmTableFactory"/> shares that model process-wide, so a change made to it would carry into
+    /// every later use of the type, on every connection and thread.
+    /// </summary>
+    [Fact]
+    protected virtual async Task Configuring_a_column_taken_from_a_model_leaves_the_model_unchanged_Async()
+    {
+        var model = DmTableFactory.GetTable(typeof(TestTableForColumnConfiguration));
+        var before = DmTableFingerprint.GetCanonicalForm(model);
+
+        using var db = await OpenConnectionAsync();
+        await db.DropTableIfExistsAsync(null, model.TableName);
+        await db.CreateTableIfNotExistsAsync(
+            null,
+            model.TableName,
+            [new DmColumn(null, model.TableName, "id", typeof(int), isPrimaryKey: true)]
+        );
+
+        // Another provider's type, so that setting it leaves what this provider creates alone.
+        var otherProvider =
+            db.GetDbProviderType() == DbProviderType.Sqlite ? DbProviderType.PostgreSql : DbProviderType.Sqlite;
+
+        var created = await db.CreateColumnIfNotExistsAsync<TestTableForColumnConfiguration>(
+            t => t.Code,
+            c =>
+            {
+                c.IsNullable = true;
+                c.PreviousNames.Add("old_code");
+                c.SetProviderDataType(otherProvider, "text");
+            }
+        );
+
+        Assert.True(created);
+        var column = await db.GetColumnAsync(null, model.TableName, "code");
+        Assert.NotNull(column);
+        Assert.True(column.IsNullable);
+        Assert.Equal(before, DmTableFingerprint.GetCanonicalForm(model));
+
+        await db.DropTableIfExistsAsync(null, model.TableName);
+    }
 }
 
 [Table("TestTable1")]
@@ -857,4 +1056,109 @@ public class TestPropertyLevelIndexes
 
     // Regular property without index
     public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>
+/// Test table for a SINGLE-column unique constraint on a nullable column.
+/// </summary>
+[DmTable(tableName: "test_single_col_nullable_unique")]
+[DmUniqueConstraint(columnNames: new[] { "email" }, constraintName: "UX_test_single_col_email")]
+public class TestTableWithSingleColumnNullableUnique
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public Guid Id { get; set; }
+
+    [DmColumn("email", length: 320, isNullable: true)]
+    public string? Email { get; set; }
+
+    [DmColumn("nickname", length: 200, isNullable: true)]
+    public string? Nickname { get; set; }
+}
+
+/// <summary>
+/// Single-column primary key named via a property-level attribute.
+/// </summary>
+[DmTable(tableName: "test_single_column_named_pk")]
+public class TestTableSingleColumnNamedPk
+{
+    [DmPrimaryKeyConstraint(constraintName: "pk_single_column_named")]
+    [DmColumn("id")]
+    public int Id { get; set; }
+}
+
+/// <summary>
+/// Single-column primary key named via a class-level attribute that supplies only the name.
+/// </summary>
+[DmTable(tableName: "test_class_level_named_pk")]
+[DmPrimaryKeyConstraint(constraintName: "pk_class_level_named")]
+public class TestTableClassLevelNamedPk
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+}
+
+/// <summary>
+/// Composite primary key with an explicit name.
+/// </summary>
+[DmTable(tableName: "test_composite_named_pk")]
+[DmPrimaryKeyConstraint(new[] { "part_a", "part_b" }, "pk_composite_named")]
+public class TestTableCompositeNamedPk
+{
+    [DmColumn("part_a")]
+    public int PartA { get; set; }
+
+    [DmColumn("part_b")]
+    public int PartB { get; set; }
+}
+
+/// <summary>
+/// Test table exercising provider data types with and without a {provider:...} prefix.
+/// </summary>
+[DmTable(tableName: "test_bare_provider_data_type")]
+public class TestTableWithBareProviderDataType
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    // No provider prefix: applies to any provider that recognises "text".
+    [DmColumn("bare_text", providerDataType: "text", isNullable: true)]
+    public string? BareText { get; set; }
+
+    // Prefixed: targets PostgreSQL only.
+    [DmColumn("prefixed_text", providerDataType: "{postgresql:text}", isNullable: true)]
+    public string? PrefixedText { get; set; }
+
+    // A bare type most providers will not recognise; they must fall back to .NET type inference.
+    [DmColumn("unknown_bare", providerDataType: "datetime2", isNullable: true)]
+    public DateTime? UnknownBare { get; set; }
+}
+
+/// <summary>
+/// Test table used to verify that rendering DDL does not mutate the cached model.
+/// Includes an autoincrement key, since SQLite has its own type-resolution override for those.
+/// </summary>
+[DmTable(tableName: "test_cache_mutation")]
+public class TestTableForCacheMutation
+{
+    [DmColumn("id", isPrimaryKey: true, isAutoIncrement: true)]
+    public int Id { get; set; }
+
+    [DmColumn("name", length: 100)]
+    public string Name { get; set; } = string.Empty;
+
+    [DmColumn("notes", isNullable: true)]
+    public string? Notes { get; set; }
+}
+
+/// <summary>
+/// Test table whose column is created with a <c>configureColumn</c> callback.
+/// </summary>
+[DmTable(tableName: "test_column_configuration")]
+public class TestTableForColumnConfiguration
+{
+    [DmColumn("id", isPrimaryKey: true)]
+    public int Id { get; set; }
+
+    [DmColumn("code", length: 20)]
+    public string Code { get; set; } = string.Empty;
 }

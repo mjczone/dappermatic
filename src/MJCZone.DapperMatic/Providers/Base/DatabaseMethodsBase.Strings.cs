@@ -129,7 +129,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>The SQL query string for renaming the table.</returns>
     protected virtual string SqlRenameTable(string? schemaName, string tableName, string newTableName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} RENAME TO {NormalizeName(newTableName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} RENAME TO {QuoteName(newTableName)}";
     }
 
     /// <summary>
@@ -167,9 +167,13 @@ public abstract partial class DatabaseMethodsBase
 
         var sql = new StringBuilder();
 
+        // Resolve the column type once and pass it to the methods that need it. It deliberately is not
+        // stored on the column: DmColumn instances come from a process-wide DmTableFactory cache.
+        var columnType = SqlColumnType(column, dbVersion);
+
         sql.Append($"{SqlInlineColumnNameAndType(column, dbVersion)}");
 
-        sql.Append($" {SqlInlineColumnNullable(column)}");
+        sql.Append($" {SqlInlineColumnNullable(column, columnType)}");
 
         // Only add the primary key here if the primary key is a single column key
         // and doesn't already exist in the existing table constraints
@@ -185,8 +189,16 @@ public abstract partial class DatabaseMethodsBase
             )
         )
         {
-            var pkConstraintName = DbProviderUtils.GeneratePrimaryKeyConstraintName(tableName, columnName);
-            var pkInlineSql = SqlInlinePrimaryKeyColumnConstraint(column, pkConstraintName, out var useTableConstraint);
+            // Honour a constraint name supplied by the model; only generate one when none was given.
+            var pkConstraintName = !string.IsNullOrWhiteSpace(tpkc?.ConstraintName)
+                ? tpkc!.ConstraintName
+                : DbProviderUtils.GeneratePrimaryKeyConstraintName(tableName, columnName);
+            var pkInlineSql = SqlInlinePrimaryKeyColumnConstraint(
+                column,
+                pkConstraintName,
+                columnType,
+                out var useTableConstraint
+            );
             if (!string.IsNullOrWhiteSpace(pkInlineSql))
             {
                 sql.Append($" {pkInlineSql}");
@@ -360,14 +372,35 @@ public abstract partial class DatabaseMethodsBase
     }
 
     /// <summary>
-    /// Generates a string representing a column name and its data type for use in SQL inline statements (e.g., CREATE TABLE or ALTER TABLE).
+    /// Resolves the SQL data type for a column, without mutating the column.
     /// </summary>
     /// <param name="column">The DmColumn object containing the column details.</param>
     /// <param name="dbVersion">The database version. Used to determine the data type syntax for compatibility with different DBMS versions.</param>
-    /// <returns>A string representing the column name and its data type, suitable for use in SQL inline statements.</returns>
-    protected virtual string SqlInlineColumnNameAndType(DmColumn column, Version dbVersion)
+    /// <returns>The SQL data type for the column.</returns>
+    /// <remarks>
+    /// This must stay free of side effects. <see cref="DmTableFactory"/> caches one <see cref="DmTable"/> per
+    /// .NET type, so a column reached here is shared process-wide; writing the resolved type back onto it
+    /// corrupts <see cref="DmColumn.ProviderDataTypes"/> when two providers render the same model concurrently.
+    /// The resolved type is threaded through <see cref="SqlInlineColumnDefinition"/> to the methods that need
+    /// it instead.
+    /// </remarks>
+    protected virtual string SqlColumnType(DmColumn column, Version dbVersion)
     {
         var columnType = column.GetProviderDataType(ProviderType);
+
+        if (string.IsNullOrWhiteSpace(columnType))
+        {
+            // A bare type name with no provider prefix (e.g. "jsonb" rather than "{postgresql:jsonb}")
+            // is stored against DbProviderType.Other and applies to any provider that recognises it.
+            // This lets single-database models use a plain type name, while cross-provider models keep
+            // working because providers that do not know the type fall through to .NET type inference.
+            var anyProviderDataType = column.GetProviderDataType(DbProviderType.Other);
+            if (!string.IsNullOrWhiteSpace(anyProviderDataType) && IsUsableAnyProviderDataType(anyProviderDataType))
+            {
+                columnType = anyProviderDataType;
+            }
+        }
+
         if (string.IsNullOrWhiteSpace(columnType))
         {
             // if no provider type is set, we need to infer it from the .NET type
@@ -452,20 +485,32 @@ public abstract partial class DatabaseMethodsBase
             );
         }
 
-        // set the type on the column so that it can be used in other methods
-        column.SetProviderDataType(ProviderType, columnType);
+        return columnType;
+    }
 
-        return $"{NormalizeName(column.ColumnName)} {columnType}";
+    /// <summary>
+    /// Generates a string representing a column name and its data type for use in SQL inline statements (e.g., CREATE TABLE or ALTER TABLE).
+    /// </summary>
+    /// <param name="column">The DmColumn object containing the column details.</param>
+    /// <param name="dbVersion">The database version. Used to determine the data type syntax for compatibility with different DBMS versions.</param>
+    /// <returns>A string representing the column name and its data type, suitable for use in SQL inline statements.</returns>
+    protected virtual string SqlInlineColumnNameAndType(DmColumn column, Version dbVersion)
+    {
+        return $"{QuoteName(column.ColumnName)} {SqlColumnType(column, dbVersion)}";
     }
 
     /// <summary>
     /// Generates a string representing the NULLability clause for a column (e.g., NOT NULL or NULL).
     /// </summary>
     /// <param name="column">The DmColumn object containing the column details, including its Nullable property.</param>
+    /// <param name="columnType">The already-resolved SQL data type for the column.</param>
     /// <returns>A string representing the NULLability clause for use in SQL inline statements, or an empty string if not specified.</returns>
-    protected virtual string SqlInlineColumnNullable(DmColumn column)
+    protected virtual string SqlInlineColumnNullable(DmColumn column, string columnType)
     {
-        return column.IsNullable && !column.IsUnique && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
+        // A UNIQUE constraint does not imply NOT NULL. All supported providers permit NULLs in a
+        // unique column (PostgreSQL, MySQL and SQLite allow many; SQL Server allows one), so only
+        // primary key membership forces NOT NULL here.
+        return column.IsNullable && !column.IsPrimaryKey ? " NULL" : " NOT NULL";
     }
 
     /// <summary>
@@ -473,6 +518,7 @@ public abstract partial class DatabaseMethodsBase
     /// </summary>
     /// <param name="column">The DmColumn object containing the column details.</param>
     /// <param name="constraintName">The desired name for the PRIMARY KEY constraint. If null, a default name will be generated.</param>
+    /// <param name="columnType">The already-resolved SQL data type for the column.</param>
     /// <param name="useTableConstraint">
     ///     Output parameter indicating whether to use TABLE CONSTRAINT syntax (true) or inline the constraint within the column definition (false).
     ///     The method determines which syntax to use based on the database provider.
@@ -481,19 +527,21 @@ public abstract partial class DatabaseMethodsBase
     protected virtual string SqlInlinePrimaryKeyColumnConstraint(
         DmColumn column,
         string constraintName,
+        string columnType,
         out bool useTableConstraint
     )
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} PRIMARY KEY {(column.IsAutoIncrement ? SqlInlinePrimaryKeyAutoIncrementColumnConstraint(column) : string.Empty)}".Trim();
+        return $"CONSTRAINT {QuoteName(constraintName)} PRIMARY KEY {(column.IsAutoIncrement ? SqlInlinePrimaryKeyAutoIncrementColumnConstraint(column, columnType) : string.Empty)}".Trim();
     }
 
     /// <summary>
     /// Generates a string representing both a PRIMARY KEY and AUTOINCREMENT constraint clauses for a specific column in SQL inline statements.
     /// </summary>
     /// <param name="column">The DmColumn object containing the column details, which must have an Identity property set to true.</param>
+    /// <param name="columnType">The already-resolved SQL data type for the column.</param>
     /// <returns>A string representing both the PRIMARY KEY and AUTOINCREMENT constraint clauses for use in SQL inline statements. If the column does not support identity or autoincrement, an empty string is returned.</returns>
-    protected virtual string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column)
+    protected virtual string SqlInlinePrimaryKeyAutoIncrementColumnConstraint(DmColumn column, string columnType)
     {
         return "IDENTITY(1,1)";
     }
@@ -516,7 +564,7 @@ public abstract partial class DatabaseMethodsBase
             && !(defaultExpression.StartsWith('\'') && defaultExpression.EndsWith('\''))
             && !IsFunctionCall(defaultExpression);
 
-        return $"CONSTRAINT {NormalizeName(constraintName)} DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
+        return $"CONSTRAINT {QuoteName(constraintName)} DEFAULT {(addParentheses ? $"({defaultExpression})" : defaultExpression)}";
     }
 
     /// <summary>
@@ -537,7 +585,7 @@ public abstract partial class DatabaseMethodsBase
     {
         SqlExpressionValidator.ValidateCheckExpression(checkExpression, nameof(checkExpression));
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} CHECK ({checkExpression})";
+        return $"CONSTRAINT {QuoteName(constraintName)} CHECK ({checkExpression})";
     }
 
     /// <summary>
@@ -552,7 +600,7 @@ public abstract partial class DatabaseMethodsBase
     protected virtual string SqlInlineUniqueColumnConstraint(string constraintName, out bool useTableConstraint)
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} UNIQUE";
+        return $"CONSTRAINT {QuoteName(constraintName)} UNIQUE";
     }
 
     /// <summary>
@@ -580,7 +628,7 @@ public abstract partial class DatabaseMethodsBase
     )
     {
         useTableConstraint = false;
-        return $"CONSTRAINT {NormalizeName(constraintName)} REFERENCES {GetSchemaQualifiedIdentifierName(schemaName, referencedTableName)} ({NormalizeName(referencedColumn.ColumnName)})"
+        return $"CONSTRAINT {QuoteName(constraintName)} REFERENCES {GetSchemaQualifiedIdentifierName(schemaName, referencedTableName)} ({QuoteName(referencedColumn.ColumnName)})"
             + (onDelete.HasValue ? $" ON DELETE {onDelete.Value.ToSql()}" : string.Empty)
             + (onUpdate.HasValue ? $" ON UPDATE {onUpdate.Value.ToSql()}" : string.Empty);
     }
@@ -600,8 +648,8 @@ public abstract partial class DatabaseMethodsBase
         var pkConstrainName = !string.IsNullOrWhiteSpace(primaryKeyConstraint.ConstraintName)
             ? primaryKeyConstraint.ConstraintName
             : DbProviderUtils.GeneratePrimaryKeyConstraintName(table.TableName, pkColumnNames.ToArray());
-        var pkColumnsCsv = string.Join(", ", pkColumnNames);
-        return $"CONSTRAINT {NormalizeName(pkConstrainName)} PRIMARY KEY ({pkColumnsCsv})";
+        var pkColumnsCsv = string.Join(", ", pkColumnNames.Select(QuoteName));
+        return $"CONSTRAINT {QuoteName(pkConstrainName)} PRIMARY KEY ({pkColumnsCsv})";
     }
 
     /// <summary>
@@ -623,7 +671,7 @@ public abstract partial class DatabaseMethodsBase
                 ? DbProviderUtils.GenerateCheckConstraintName(table.TableName, DateTime.Now.Ticks.ToString())
             : DbProviderUtils.GenerateCheckConstraintName(table.TableName, check.ColumnName);
 
-        return $"CONSTRAINT {NormalizeName(ckConstraintName)} CHECK ({check.Expression})";
+        return $"CONSTRAINT {QuoteName(ckConstraintName)} CHECK ({check.Expression})";
     }
 
     /// <summary>
@@ -654,10 +702,10 @@ public abstract partial class DatabaseMethodsBase
 
         var uniqueColumns = uc.Columns.Select(c =>
             supportsOrderedKeysInConstraints
-                ? new DmOrderedColumn(NormalizeName(c.ColumnName), c.Order).ToString()
-                : new DmOrderedColumn(NormalizeName(c.ColumnName)).ToString()
+                ? new DmOrderedColumn(QuoteName(c.ColumnName), c.Order).ToString()
+                : new DmOrderedColumn(QuoteName(c.ColumnName)).ToString()
         );
-        return $"CONSTRAINT {NormalizeName(ucConstraintName)} UNIQUE ({string.Join(", ", uniqueColumns)})";
+        return $"CONSTRAINT {QuoteName(ucConstraintName)} UNIQUE ({string.Join(", ", uniqueColumns)})";
     }
 
     /// <summary>
@@ -673,15 +721,15 @@ public abstract partial class DatabaseMethodsBase
     {
         return $"""
 
-                        CONSTRAINT {NormalizeName(fk.ConstraintName)}
+                        CONSTRAINT {QuoteName(fk.ConstraintName)}
                             FOREIGN KEY ({string.Join(
                 ", ",
-                fk.SourceColumns.Select(c => NormalizeName(c.ColumnName))
+                fk.SourceColumns.Select(c => QuoteName(c.ColumnName))
             )})
                                 REFERENCES {GetSchemaQualifiedIdentifierName(
                 table.SchemaName,
                 fk.ReferencedTableName
-            )} ({string.Join(", ", fk.ReferencedColumns.Select(c => NormalizeName(c.ColumnName)))})
+            )} ({string.Join(", ", fk.ReferencedColumns.Select(c => QuoteName(c.ColumnName)))})
                                     ON DELETE {fk.OnDelete.ToSql()}
                                     ON UPDATE {fk.OnUpdate.ToSql()}
             """.Trim();
@@ -700,7 +748,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops the specified column, or an empty string if no column name is provided.</returns>
     protected virtual string SqlDropColumn(string? schemaName, string tableName, string columnName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP COLUMN {NormalizeName(columnName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP COLUMN {QuoteName(columnName)}";
     }
     #endregion // Column Strings
 
@@ -728,7 +776,7 @@ public abstract partial class DatabaseMethodsBase
             expression = expression.Trim().Substring(1, expression.Length - 2);
         }
 
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ADD CONSTRAINT {NormalizeName(constraintName)} CHECK ({expression})";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ADD CONSTRAINT {QuoteName(constraintName)} CHECK ({expression})";
     }
 
     /// <summary>
@@ -740,7 +788,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified CHECK constraint from the given table in its schema.</returns>
     protected virtual string SqlDropCheckConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Check Constraint Strings
 
@@ -768,9 +816,9 @@ public abstract partial class DatabaseMethodsBase
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ADD CONSTRAINT {NormalizeName(
+                            ADD CONSTRAINT {QuoteName(
                 constraintName
-            )} DEFAULT {expression} FOR {NormalizeName(columnName)}
+            )} DEFAULT {expression} FOR {QuoteName(columnName)}
 
             """;
     }
@@ -790,7 +838,7 @@ public abstract partial class DatabaseMethodsBase
         string constraintName
     )
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Default Constraint Strings
 
@@ -819,13 +867,13 @@ public abstract partial class DatabaseMethodsBase
             ", ",
             columns.Select(c =>
             {
-                var columnName = NormalizeName(c.ColumnName);
+                var columnName = QuoteName(c.ColumnName);
                 return c.Order == DmColumnOrder.Ascending ? columnName : $"{columnName} DESC";
             })
         );
         return $"""
             ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)}
-                                ADD CONSTRAINT {NormalizeName(constraintName)}
+                                ADD CONSTRAINT {QuoteName(constraintName)}
                                     PRIMARY KEY ({primaryKeyColumns})
             """;
     }
@@ -839,7 +887,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified PRIMARY KEY constraint from the given table in its schema.</returns>
     protected virtual string SqlDropPrimaryKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Primary Key Strings
 
@@ -866,12 +914,12 @@ public abstract partial class DatabaseMethodsBase
     {
         var uniqueColumns = columns.Select(c =>
             supportsOrderedKeysInConstraints
-                ? new DmOrderedColumn(NormalizeName(c.ColumnName), c.Order).ToString()
-                : new DmOrderedColumn(NormalizeName(c.ColumnName)).ToString()
+                ? new DmOrderedColumn(QuoteName(c.ColumnName), c.Order).ToString()
+                : new DmOrderedColumn(QuoteName(c.ColumnName)).ToString()
         );
         return $"""
             ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)}
-                                ADD CONSTRAINT {NormalizeName(constraintName)} UNIQUE ({string.Join(
+                                ADD CONSTRAINT {QuoteName(constraintName)} UNIQUE ({string.Join(
                 ", ",
                 uniqueColumns
             )})
@@ -887,7 +935,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified UNIQUE constraint from the given table in its schema.</returns>
     protected virtual string SqlDropUniqueConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Unique Constraint Strings
 
@@ -920,13 +968,13 @@ public abstract partial class DatabaseMethodsBase
     {
         var schemaQualifiedTableName = GetSchemaQualifiedIdentifierName(schemaName, tableName);
         var schemaQualifiedReferencedTableName = GetSchemaQualifiedIdentifierName(schemaName, referencedTableName);
-        var columnNames = columns.Select(c => NormalizeName(c.ColumnName));
-        var referencedColumnNames = referencedColumns.Select(c => NormalizeName(c.ColumnName));
+        var columnNames = columns.Select(c => QuoteName(c.ColumnName));
+        var referencedColumnNames = referencedColumns.Select(c => QuoteName(c.ColumnName));
 
         return $"""
 
                         ALTER TABLE {schemaQualifiedTableName}
-                            ADD CONSTRAINT {NormalizeName(constraintName)}
+                            ADD CONSTRAINT {QuoteName(constraintName)}
                                 FOREIGN KEY ({string.Join(", ", columnNames)})
                                     REFERENCES {schemaQualifiedReferencedTableName} ({string.Join(
                 ", ",
@@ -947,7 +995,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified foreign key constraint from the given table in its schema.</returns>
     protected virtual string SqlDropForeignKeyConstraint(string? schemaName, string tableName, string constraintName)
     {
-        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {NormalizeName(constraintName)}";
+        return $"ALTER TABLE {GetSchemaQualifiedIdentifierName(schemaName, tableName)} DROP CONSTRAINT {QuoteName(constraintName)}";
     }
     #endregion // Foreign Key Constraint Strings
 
@@ -972,7 +1020,7 @@ public abstract partial class DatabaseMethodsBase
         bool isUnique = false
     )
     {
-        return $"CREATE {(isUnique ? "UNIQUE " : string.Empty)}INDEX {NormalizeName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ({string.Join(", ", columns.Select(c => c.ToString()))})";
+        return $"CREATE {(isUnique ? "UNIQUE " : string.Empty)}INDEX {QuoteName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)} ({string.Join(", ", columns.Select(QuoteOrderedColumn))})";
     }
 
     /// <summary>
@@ -984,7 +1032,7 @@ public abstract partial class DatabaseMethodsBase
     /// <returns>A SQL statement that drops (removes) the specified index from the given table in its schema.</returns>
     protected virtual string SqlDropIndex(string? schemaName, string tableName, string indexName)
     {
-        return $"DROP INDEX {NormalizeName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)}";
+        return $"DROP INDEX {QuoteName(indexName)} ON {GetSchemaQualifiedIdentifierName(schemaName, tableName)}";
     }
     #endregion // Index Strings
 
@@ -1118,4 +1166,42 @@ public abstract partial class DatabaseMethodsBase
         return !string.IsNullOrEmpty(functionPart) && functionPart.All(c => char.IsLetterOrDigit(c) || c == '_');
     }
     #endregion // View Strings
+
+    /// <summary>
+    /// Determines whether an unprefixed ("any provider") data type can safely be used by this provider.
+    /// </summary>
+    /// <param name="anyProviderDataType">The unprefixed data type name, optionally parameterized.</param>
+    /// <returns><c>true</c> when this provider recognizes the type and can accept its parameters.</returns>
+    /// <remarks>
+    /// The base type name must appear in this provider's data type registry, and any inline parameters
+    /// must be numeric. That second rule keeps provider-specific parameter syntax such as SQL Server's
+    /// <c>nvarchar(max)</c> from leaking into providers that recognize <c>nvarchar</c> but not <c>max</c>.
+    /// Use the explicit <c>{provider:type}</c> form to force such a type onto a particular provider.
+    /// </remarks>
+    private bool IsUsableAnyProviderDataType(string anyProviderDataType)
+    {
+        var descriptor = new SqlTypeDescriptor(anyProviderDataType);
+
+        if (GetDataTypeRegistry().GetDataTypeByName(descriptor.BaseTypeName) == null)
+        {
+            return false;
+        }
+
+        var openParenIndex = anyProviderDataType.IndexOf('(', StringComparison.Ordinal);
+        if (openParenIndex == -1)
+        {
+            return true;
+        }
+
+        var closeParenIndex = anyProviderDataType.LastIndexOf(')');
+        if (closeParenIndex <= openParenIndex)
+        {
+            return false;
+        }
+
+        var parameters = anyProviderDataType[(openParenIndex + 1)..closeParenIndex];
+        return parameters
+            .Split(',')
+            .All(parameter => int.TryParse(parameter.Trim(), out _));
+    }
 }

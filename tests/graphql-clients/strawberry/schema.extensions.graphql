@@ -1,0 +1,3 @@
+# Rows are told apart by their global id: nodeId, not a column named id (a view's id need not be unique).
+extend type customers @key(fields: "nodeId")
+extend type orders @key(fields: "nodeId")

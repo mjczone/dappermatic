@@ -16,6 +16,8 @@ Unique constraint methods provide comprehensive functionality for managing uniqu
   - [GetUniqueConstraintsAsync](#getuniqueconstraintsasync) - Get complete unique constraint models
   - [GetUniqueConstraintAsync](#getuniqueconstraintasync) - Get single unique constraint by name
   - [GetUniqueConstraintOnColumnAsync](#getuniqueconstraintoncolumnasync) - Get unique constraint model on specific column
+- [Unique Constraint Renaming](#unique-constraint-renaming)
+  - [RenameUniqueConstraintIfExistsAsync](#renameuniqueconstraintifexistsasync) - Rename an existing unique constraint
 - [Unique Constraint Deletion](#unique-constraint-deletion)
   - [DropUniqueConstraintIfExistsAsync](#dropuniqueconstraintifexistsasync) - Drop unique constraint by name
   - [DropUniqueConstraintOnColumnIfExistsAsync](#dropuniqueconstraintoncolumnifexistsasync) - Drop unique constraint on specific column
@@ -39,7 +41,7 @@ if (exists)
     var uniqueConstraint = await connection.GetUniqueConstraintAsync("app", "users", constraintName);
     if (uniqueConstraint != null)
     {
-        Console.WriteLine($"Columns: {string.Join(", ", uniqueConstraint.KeyColumnNames)}");
+        Console.WriteLine($"Columns: {string.Join(", ", uniqueConstraint.Columns.Select(c => c.ColumnName))}");
     }
 }
 else
@@ -84,7 +86,7 @@ if (hasUnique)
     var constraint = await connection.GetUniqueConstraintOnColumnAsync("app", "users", "email");
     if (constraint != null)
     {
-        Console.WriteLine($"Unique constraint '{constraint.KeyName}' includes columns: {string.Join(", ", constraint.KeyColumnNames)}");
+        Console.WriteLine($"Unique constraint '{constraint.ConstraintName}' includes columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
     }
 }
 else
@@ -120,11 +122,11 @@ bool created = await connection.CreateUniqueConstraintIfNotExistsAsync(uniqueCon
 
 if (created)
 {
-    Console.WriteLine($"Unique constraint '{uniqueConstraint.KeyName}' was created");
+    Console.WriteLine($"Unique constraint '{uniqueConstraint.ConstraintName}' was created");
 }
 else
 {
-    Console.WriteLine($"Unique constraint '{uniqueConstraint.KeyName}' already existed");
+    Console.WriteLine($"Unique constraint '{uniqueConstraint.ConstraintName}' already existed");
 }
 ```
 
@@ -220,7 +222,6 @@ List<string> businessKeys = await connection.GetUniqueConstraintNamesAsync("sale
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names (`*` = any characters, `?` = single character)
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<string>` - List of matching unique constraint names
@@ -241,7 +242,7 @@ if (constraintName != null)
     var constraint = await connection.GetUniqueConstraintAsync("app", "users", constraintName);
     if (constraint != null)
     {
-        Console.WriteLine($"All columns in constraint: {string.Join(", ", constraint.KeyColumnNames)}");
+        Console.WriteLine($"All columns in constraint: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
     }
 }
 else
@@ -256,7 +257,6 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `string?` - Name of the unique constraint, or `null` if none exists on the column
@@ -271,13 +271,13 @@ List<DmUniqueConstraint> uniqueConstraints = await connection.GetUniqueConstrain
 
 foreach (var constraint in uniqueConstraints)
 {
-    Console.WriteLine($"Unique Constraint: {constraint.KeyName}");
-    Console.WriteLine($"  Columns: {string.Join(", ", constraint.KeyColumnNames)}");
+    Console.WriteLine($"Unique Constraint: {constraint.ConstraintName}");
+    Console.WriteLine($"  Columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
     Console.WriteLine($"  Schema: {constraint.SchemaName}");
     Console.WriteLine($"  Table: {constraint.TableName}");
-    Console.WriteLine($"  Column Count: {constraint.KeyColumnNames.Count}");
+    Console.WriteLine($"  Column Count: {constraint.Columns.Count}");
 
-    if (constraint.KeyColumnNames.Count > 1)
+    if (constraint.Columns.Count > 1)
     {
         Console.WriteLine($"  This is a composite unique constraint");
     }
@@ -297,7 +297,6 @@ List<DmUniqueConstraint> constraints = await connection.GetUniqueConstraintsAsyn
 - `tableName` - Name of the table to search
 - `nameFilter` (optional) - Wildcard pattern to filter constraint names
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `List<DmUniqueConstraint>` - List of complete DmUniqueConstraint models
@@ -312,15 +311,15 @@ DmUniqueConstraint? constraint = await connection.GetUniqueConstraintAsync("app"
 
 if (constraint != null)
 {
-    Console.WriteLine($"Unique Constraint '{constraint.KeyName}' details:");
+    Console.WriteLine($"Unique Constraint '{constraint.ConstraintName}' details:");
     Console.WriteLine($"  Table: {constraint.SchemaName}.{constraint.TableName}");
-    Console.WriteLine($"  Columns: {string.Join(", ", constraint.KeyColumnNames)}");
+    Console.WriteLine($"  Columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
 
     // Analyze the constraint
-    if (constraint.KeyColumnNames.Count == 1)
+    if (constraint.Columns.Count == 1)
     {
         Console.WriteLine("  This is a single-column unique constraint");
-        var columnName = constraint.KeyColumnNames[0];
+        var columnName = constraint.Columns[0].ColumnName;
         if (columnName.ToLower().Contains("email"))
         {
             Console.WriteLine("  Ensures email uniqueness");
@@ -332,7 +331,7 @@ if (constraint != null)
     }
     else
     {
-        Console.WriteLine($"  This is a composite unique constraint with {constraint.KeyColumnNames.Count} columns");
+        Console.WriteLine($"  This is a composite unique constraint with {constraint.Columns.Count} columns");
     }
 }
 else
@@ -347,7 +346,6 @@ else
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the unique constraint to retrieve
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmUniqueConstraint?` - Complete unique constraint model, or `null` if not found
@@ -362,13 +360,13 @@ DmUniqueConstraint? constraint = await connection.GetUniqueConstraintOnColumnAsy
 
 if (constraint != null)
 {
-    Console.WriteLine($"Unique constraint on 'email': {constraint.KeyName}");
-    Console.WriteLine($"All columns: {string.Join(", ", constraint.KeyColumnNames)}");
+    Console.WriteLine($"Unique constraint on 'email': {constraint.ConstraintName}");
+    Console.WriteLine($"All columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
 
     // Check if it's part of a composite constraint
-    if (constraint.KeyColumnNames.Count > 1)
+    if (constraint.Columns.Count > 1)
     {
-        var otherColumns = constraint.KeyColumnNames.Where(c => c.ToLower() != "email").ToList();
+        var otherColumns = constraint.Columns.Select(c => c.ColumnName).Where(c => c.ToLower() != "email").ToList();
         Console.WriteLine($"✅ Email uniqueness combined with: {string.Join(", ", otherColumns)}");
     }
     else
@@ -388,10 +386,41 @@ else
 - `tableName` - Name of the table containing the column
 - `columnName` - Name of the column to find unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `DmUniqueConstraint?` - Unique constraint model, or `null` if none exists on the column
+
+## Unique Constraint Renaming
+
+### RenameUniqueConstraintIfExistsAsync
+
+Rename an existing unique constraint. The rows in the table and what the unique constraint does are unchanged.
+
+```csharp
+bool renamed = await connection.RenameUniqueConstraintIfExistsAsync(
+    "app", "app_employees", "uc_app_employees_email", "uc_app_employees_work_email");
+
+// Or take the schema and table from a model class
+bool renamed = await connection.RenameUniqueConstraintIfExistsAsync<Employee>(
+    "uc_app_employees_email", "uc_app_employees_work_email");
+```
+
+**Parameters:**
+- `schemaName` - Schema containing the table
+- `tableName` - Name of the table
+- `constraintName` - Current name
+- `newConstraintName` - New name
+- `tx` (optional) - Database transaction
+- `cancellationToken` (optional) - Cancellation token
+
+**Returns:** `bool` - `true` if it was renamed, `false` if it doesn't exist or the new name is already taken
+
+| Provider | How it is renamed |
+|----------|-------------------|
+| SQL Server | `sp_rename` |
+| PostgreSQL | `ALTER TABLE ... RENAME CONSTRAINT`, which renames the index behind it too |
+| MySQL / MariaDB | A unique constraint is a unique index here, so `ALTER TABLE ... RENAME INDEX` |
+| SQLite | Constraints are part of the table definition, so the table is [recreated](../providers#sqlite) with the new name |
 
 ## Unique Constraint Deletion
 
@@ -440,7 +469,6 @@ catch
 - `tableName` - Name of the table containing the constraint
 - `constraintName` - Name of the unique constraint to drop
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was dropped, `false` if it didn't exist
@@ -478,7 +506,6 @@ await connection.CreateUniqueConstraintIfNotExistsAsync(
 - `tableName` - Name of the table containing the constraint
 - `columnName` - Name of the column to drop unique constraint for
 - `tx` (optional) - Database transaction
-- `commandTimeout` (optional) - Command timeout in seconds
 - `cancellationToken` (optional) - Cancellation token
 
 **Returns:** `bool` - `true` if unique constraint was dropped, `false` if none existed on the column
@@ -632,16 +659,16 @@ public async Task AnalyzeUniqueConstraintsAsync(IDbConnection connection, string
 
             foreach (var constraint in constraints)
             {
-                Console.WriteLine($"  {tableName}.{constraint.KeyName}:");
-                Console.WriteLine($"    Columns: {string.Join(", ", constraint.KeyColumnNames)}");
+                Console.WriteLine($"  {tableName}.{constraint.ConstraintName}:");
+                Console.WriteLine($"    Columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
 
-                if (constraint.KeyColumnNames.Count == 1)
+                if (constraint.Columns.Count == 1)
                 {
                     singleColumnConstraints++;
-                    var column = constraint.KeyColumnNames[0];
+                    var column = constraint.Columns[0].ColumnName;
                     if (!constraintsByColumn.ContainsKey(column))
                         constraintsByColumn[column] = new List<string>();
-                    constraintsByColumn[column].Add($"{tableName}.{constraint.KeyName}");
+                    constraintsByColumn[column].Add($"{tableName}.{constraint.ConstraintName}");
                 }
                 else
                 {
@@ -649,7 +676,7 @@ public async Task AnalyzeUniqueConstraintsAsync(IDbConnection connection, string
                 }
 
                 // Analyze constraint purpose
-                var purpose = AnalyzeConstraintPurpose(constraint.KeyName, constraint.KeyColumnNames);
+                var purpose = AnalyzeConstraintPurpose(constraint.ConstraintName, constraint.Columns.Select(c => c.ColumnName).ToList());
                 Console.WriteLine($"    Purpose: {purpose}");
             }
         }
@@ -711,29 +738,29 @@ public async Task ValidateUniqueConstraintsAsync(IDbConnection connection, strin
         foreach (var constraint in constraints)
         {
             // Check for potential issues
-            if (constraint.KeyColumnNames.Count > 5)
+            if (constraint.Columns.Count > 5)
             {
-                issues.Add($"Constraint '{constraint.KeyName}' on {tableName} has too many columns ({constraint.KeyColumnNames.Count}) - may impact performance");
+                issues.Add($"Constraint '{constraint.ConstraintName}' on {tableName} has too many columns ({constraint.Columns.Count}) - may impact performance");
             }
 
             // Check for duplicate constraint definitions
-            var otherConstraints = constraints.Where(c => c.KeyName != constraint.KeyName).ToList();
+            var otherConstraints = constraints.Where(c => c.ConstraintName != constraint.ConstraintName).ToList();
             foreach (var other in otherConstraints)
             {
-                if (constraint.KeyColumnNames.SequenceEqual(other.KeyColumnNames))
+                if (constraint.Columns.Select(c => c.ColumnName).SequenceEqual(other.Columns.Select(c => c.ColumnName)))
                 {
-                    issues.Add($"Duplicate unique constraints on {tableName}: '{constraint.KeyName}' and '{other.KeyName}' have same columns");
+                    issues.Add($"Duplicate unique constraints on {tableName}: '{constraint.ConstraintName}' and '{other.ConstraintName}' have same columns");
                 }
 
                 // Check for redundant constraints (subset)
-                if (constraint.KeyColumnNames.All(c => other.KeyColumnNames.Contains(c)) &&
-                    constraint.KeyColumnNames.Count < other.KeyColumnNames.Count)
+                if (constraint.Columns.All(c => other.Columns.Any(o => o.ColumnName == c.ColumnName)) &&
+                    constraint.Columns.Count < other.Columns.Count)
                 {
-                    issues.Add($"Redundant constraint '{constraint.KeyName}' on {tableName} - covered by '{other.KeyName}'");
+                    issues.Add($"Redundant constraint '{constraint.ConstraintName}' on {tableName} - covered by '{other.ConstraintName}'");
                 }
             }
 
-            Console.WriteLine($"✅ Constraint '{constraint.KeyName}' on {tableName} validated");
+            Console.WriteLine($"✅ Constraint '{constraint.ConstraintName}' on {tableName} validated");
         }
     }
 
@@ -762,13 +789,13 @@ public async Task StandardizeUniqueConstraintNamesAsync(IDbConnection connection
         foreach (var constraint in constraints)
         {
             // Generate standard name: UQ_TableName_Column1_Column2
-            var standardName = $"UQ_{tableName}_{string.Join("_", constraint.KeyColumnNames)}";
+            var standardName = $"UQ_{tableName}_{string.Join("_", constraint.Columns.Select(c => c.ColumnName))}";
 
-            if (constraint.KeyName != standardName)
+            if (constraint.ConstraintName != standardName)
             {
-                Console.WriteLine($"Non-standard constraint name: {constraint.KeyName}");
+                Console.WriteLine($"Non-standard constraint name: {constraint.ConstraintName}");
                 Console.WriteLine($"Suggested name: {standardName}");
-                Console.WriteLine($"Columns: {string.Join(", ", constraint.KeyColumnNames)}");
+                Console.WriteLine($"Columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
 
                 // Note: Renaming would require dropping and recreating
                 // This is database-specific and requires careful handling of data
@@ -900,22 +927,22 @@ public async Task AnalyzeUniqueConstraintPerformanceAsync(IDbConnection connecti
 
     foreach (var constraint in constraints)
     {
-        Console.WriteLine($"\nConstraint: {constraint.KeyName}");
-        Console.WriteLine($"Columns: {string.Join(", ", constraint.KeyColumnNames)}");
+        Console.WriteLine($"\nConstraint: {constraint.ConstraintName}");
+        Console.WriteLine($"Columns: {string.Join(", ", constraint.Columns.Select(c => c.ColumnName))}");
 
         // Analyze potential performance impact
-        if (constraint.KeyColumnNames.Count == 1)
+        if (constraint.Columns.Count == 1)
         {
-            var column = constraint.KeyColumnNames[0];
+            var column = constraint.Columns[0].ColumnName;
             Console.WriteLine($"✅ Single-column constraint on '{column}' - optimal for lookups");
         }
-        else if (constraint.KeyColumnNames.Count <= 3)
+        else if (constraint.Columns.Count <= 3)
         {
-            Console.WriteLine($"⚡ Composite constraint with {constraint.KeyColumnNames.Count} columns - good for multi-column lookups");
+            Console.WriteLine($"⚡ Composite constraint with {constraint.Columns.Count} columns - good for multi-column lookups");
         }
         else
         {
-            Console.WriteLine($"⚠️  Wide constraint with {constraint.KeyColumnNames.Count} columns - may impact INSERT performance");
+            Console.WriteLine($"⚠️  Wide constraint with {constraint.Columns.Count} columns - may impact INSERT performance");
         }
 
         // Check if an index already exists for this constraint
@@ -923,13 +950,13 @@ public async Task AnalyzeUniqueConstraintPerformanceAsync(IDbConnection connecti
         Console.WriteLine($"📊 Automatic index created for uniqueness enforcement");
 
         // Suggest optimization opportunities
-        var firstColumn = constraint.KeyColumnNames[0];
+        var firstColumn = constraint.Columns[0].ColumnName;
         if (firstColumn.ToLower().Contains("id"))
         {
             Console.WriteLine($"💡 First column '{firstColumn}' is likely high-cardinality - good for performance");
         }
 
-        if (constraint.KeyColumnNames.Any(c => c.ToLower().Contains("date")))
+        if (constraint.Columns.Any(c => c.ColumnName.ToLower().Contains("date")))
         {
             Console.WriteLine($"📅 Contains date column - consider partitioning for very large tables");
         }

@@ -45,8 +45,7 @@ public class PostgreSql_Postgis17_DatabaseFixture : PostgreSqlDatabaseFixture
 
 public abstract class PostgreSqlDatabaseFixture(string imageName) : DatabaseFixtureBase<PostgreSqlContainer>
 {
-    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder()
-        .WithImage(imageName)
+    private readonly PostgreSqlContainer _container = new PostgreSqlBuilder(imageName)
         .WithPassword("Strong_password_123!")
         .WithAutoRemove(true)
         .WithCleanUp(true)

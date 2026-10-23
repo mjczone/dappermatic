@@ -19,9 +19,7 @@ jobs:
       - name: Setup dotnet
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            8
-            9
+          dotnet-version: 10
           source-url: https://nuget.pkg.github.com/mjczone/index.json
         env:
           NUGET_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}} #github action provided token

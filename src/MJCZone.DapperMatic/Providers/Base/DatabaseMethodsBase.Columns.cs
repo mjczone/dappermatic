@@ -467,8 +467,8 @@ public abstract partial class DatabaseMethodsBase
                 db,
                 $"""
                 ALTER TABLE {schemaQualifiedTableName}
-                                    RENAME COLUMN {columnName}
-                                            TO {newColumnName}
+                                    RENAME COLUMN {GetQuotedIdentifier(columnName)}
+                                            TO {QuoteName(newColumnName)}
                 """,
                 tx: tx,
                 cancellationToken: cancellationToken
@@ -476,5 +476,75 @@ public abstract partial class DatabaseMethodsBase
             .ConfigureAwait(false);
 
         return true;
+    }
+
+    /// <summary>
+    /// Changes the data type and nullability of a column if it exists, keeping the rest of its definition.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="sqlType">The new SQL data type, including any length, precision and scale.</param>
+    /// <param name="isNullable">Whether the column allows nulls afterwards.</param>
+    /// <param name="tx">The database transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the column exists and now has the given type and nullability, otherwise false.</returns>
+    /// <remarks>
+    /// There is no portable form of this statement, so every provider overrides it.
+    /// </remarks>
+    public virtual Task<bool> AlterColumnIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string columnName,
+        string sqlType,
+        bool isNullable,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        throw new NotSupportedException($"Altering a column is not implemented for {ProviderType}.");
+    }
+
+    /// <summary>
+    /// Changes the data type and nullability of a column if it exists to match a column definition, with the
+    /// type rendered the same way CREATE TABLE renders it.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="column">The column definition to match.</param>
+    /// <param name="tx">The database transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the column exists and now has the definition's type and nullability, otherwise false.</returns>
+    public virtual async Task<bool> AlterColumnIfExistsAsync(
+        IDbConnection db,
+        DmColumn column,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    )
+    {
+        if (string.IsNullOrWhiteSpace(column.TableName))
+        {
+            throw new ArgumentException("Table name is required", nameof(column));
+        }
+
+        if (string.IsNullOrWhiteSpace(column.ColumnName))
+        {
+            throw new ArgumentException("Column name is required", nameof(column));
+        }
+
+        var dbVersion = await GetDatabaseVersionAsync(db, tx, cancellationToken).ConfigureAwait(false);
+
+        return await AlterColumnIfExistsAsync(
+                db,
+                column.SchemaName,
+                column.TableName,
+                column.ColumnName,
+                SqlColumnType(column, dbVersion),
+                column.IsNullable,
+                tx,
+                cancellationToken
+            )
+            .ConfigureAwait(false);
     }
 }

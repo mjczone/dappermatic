@@ -5,47 +5,24 @@ General methods provide core utility functionality for database connections, inc
 ## Quick Navigation
 
 - [Connection Testing](#connection-testing)
-  - [TestConnectionAsync](#testconnectionasync) - Test database connection health
 - [Database Version Information](#database-version-information)
   - [GetDatabaseVersionAsync](#getdatabaseversionasync) - Get database version information
 - [Type Mapping Utilities](#type-mapping-utilities)
   - [GetDotnetTypeFromSqlType](#getdotnettypefromsqltype) - Convert SQL types to .NET types
   - [GetSqlTypeFromDotnetType](#getsqltypefromdotnettype) - Convert .NET types to SQL types
 - [Alternative Type Mapping](#alternative-type-mapping-method)
-  - [GetDotnetTypeFromSqlType (Tuple)](#getdotnettypefromsqltype-tuple-return) - Get type info as tuple
 - [Provider Detection](#provider-detection)
   - [GetDbProviderType](#getdbprovidertype) - Identify database provider type
 
 ## Connection Testing
 
-### TestConnectionAsync
-
-Test if a database connection is working properly.
+DapperMatic has no connection test of its own. Open the connection, or call `GetDatabaseVersionAsync`, which throws
+when the database cannot be reached:
 
 ```csharp
 using var connection = new SqlConnection(connectionString);
-
-// Test the connection
-bool isConnected = await connection.TestConnectionAsync();
-
-if (isConnected)
-{
-    Console.WriteLine("Connection successful!");
-    // Proceed with DDL operations
-}
-else
-{
-    Console.WriteLine("Connection failed!");
-}
-
-// With cancellation token
-bool isConnected = await connection.TestConnectionAsync(cancellationToken: cancellationToken);
+var version = await connection.GetDatabaseVersionAsync(); // throws if the database cannot be reached
 ```
-
-**Parameters:**
-- `cancellationToken` (optional) - Cancellation token for the operation
-
-**Returns:** `bool` - `true` if connection is successful, `false` otherwise
 
 ## Database Version Information
 
@@ -88,14 +65,14 @@ Convert provider-specific SQL types to .NET type information.
 
 ```csharp
 // Get .NET type information from SQL type
-DbProviderDotnetTypeDescriptor descriptor = connection.GetDotnetTypeFromSqlType("nvarchar(255)");
+DotnetTypeDescriptor descriptor = connection.GetDotnetTypeFromSqlType("nvarchar(255)");
 
 Console.WriteLine($"Type: {descriptor.DotnetType}");           // typeof(string)
 Console.WriteLine($"Length: {descriptor.Length}");             // 255
 Console.WriteLine($"Precision: {descriptor.Precision}");       // null
 Console.WriteLine($"Scale: {descriptor.Scale}");               // null
-Console.WriteLine($"Unicode: {descriptor.Unicode}");           // True
-Console.WriteLine($"AutoIncrement: {descriptor.AutoIncrement}"); // False
+Console.WriteLine($"Unicode: {descriptor.IsUnicode}");         // True
+Console.WriteLine($"AutoIncrement: {descriptor.IsAutoIncrementing}"); // False
 
 // Examples with different types
 var intDescriptor = connection.GetDotnetTypeFromSqlType("int");
@@ -109,13 +86,13 @@ var decimalDescriptor = connection.GetDotnetTypeFromSqlType("decimal(10,2)");
 var varcharDescriptor = connection.GetDotnetTypeFromSqlType("varchar(100)");
 // varcharDescriptor.DotnetType => typeof(string)
 // varcharDescriptor.Length => 100
-// varcharDescriptor.Unicode => False
+// varcharDescriptor.IsUnicode => False
 ```
 
 **Parameters:**
 - `sqlType` - Provider-specific SQL type string (e.g., "nvarchar(255)", "decimal(10,2)")
 
-**Returns:** `DbProviderDotnetTypeDescriptor` - Detailed type information
+**Returns:** `DotnetTypeDescriptor` - Detailed type information
 
 ### GetSqlTypeFromDotnetType
 
@@ -123,10 +100,10 @@ Convert .NET type information to provider-specific SQL types.
 
 ```csharp
 // Create type descriptor
-var stringDescriptor = new DbProviderDotnetTypeDescriptor(
+var stringDescriptor = new DotnetTypeDescriptor(
     dotnetType: typeof(string),
     length: 100,
-    unicode: true
+    isUnicode: true
 );
 
 // Get SQL type for current provider
@@ -137,7 +114,7 @@ string sqlType = connection.GetSqlTypeFromDotnetType(stringDescriptor);
 // SQLite: "TEXT"
 
 // Decimal example
-var decimalDescriptor = new DbProviderDotnetTypeDescriptor(
+var decimalDescriptor = new DotnetTypeDescriptor(
     dotnetType: typeof(decimal),
     precision: 15,
     scale: 4
@@ -146,7 +123,7 @@ string decimalSqlType = connection.GetSqlTypeFromDotnetType(decimalDescriptor);
 // Result: "decimal(15,4)" (most providers)
 
 // Boolean example  
-var boolDescriptor = new DbProviderDotnetTypeDescriptor(typeof(bool));
+var boolDescriptor = new DotnetTypeDescriptor(typeof(bool));
 string boolSqlType = connection.GetSqlTypeFromDotnetType(boolDescriptor);
 // SQL Server: "bit"
 // MySQL: "tinyint(1)" 
@@ -155,35 +132,9 @@ string boolSqlType = connection.GetSqlTypeFromDotnetType(boolDescriptor);
 ```
 
 **Parameters:**
-- `typeDescriptor` - .NET type descriptor with optional length, precision, and scale
+- `descriptor` - .NET type descriptor with optional length, precision, and scale
 
 **Returns:** `string` - Provider-specific SQL type
-
-## Alternative Type Mapping Method
-
-### GetDotnetTypeFromSqlType (Tuple Return)
-
-Alternative method that returns type information as a tuple.
-
-```csharp
-// Get type information as tuple
-var (dotnetType, length, precision, scale) = connection.GetDotnetTypeFromSqlType("decimal(15,4)");
-
-Console.WriteLine($"Type: {dotnetType}");       // typeof(decimal)
-Console.WriteLine($"Length: {length}");         // null
-Console.WriteLine($"Precision: {precision}");   // 15
-Console.WriteLine($"Scale: {scale}");           // 4
-
-// String type example
-var (stringType, stringLength, _, _) = connection.GetDotnetTypeFromSqlType("varchar(255)");
-// stringType => typeof(string)
-// stringLength => 255
-```
-
-**Parameters:**
-- `sqlType` - Provider-specific SQL type string
-
-**Returns:** `(Type dotnetType, int? length, int? precision, int? scale)` - Type information tuple
 
 ## Provider Detection
 
@@ -228,11 +179,8 @@ if (providerType == DbProviderType.SqlServer)
 ```csharp
 public async Task<bool> InitializeDatabaseAsync(IDbConnection connection)
 {
-    // Test connection first
-    if (!await connection.TestConnectionAsync())
-    {
-        throw new InvalidOperationException("Cannot connect to database");
-    }
+    // Throws if the database cannot be reached
+    await connection.GetDatabaseVersionAsync();
     
     // Get version for compatibility checking
     var version = await connection.GetDatabaseVersionAsync();
@@ -264,19 +212,19 @@ public async Task CreateColumnWithOptimalType(IDbConnection connection, string t
     string columnName, Type dotnetType, int? length = null)
 {
     // Create type descriptor
-    var descriptor = new DbProviderDotnetTypeDescriptor(dotnetType, length: length);
+    var descriptor = new DotnetTypeDescriptor(dotnetType, length: length);
     
     // Get provider-specific SQL type
     string sqlType = connection.GetSqlTypeFromDotnetType(descriptor);
     
     // Create column with optimal type
-    var column = new DmColumn(columnName, dotnetType)
+    var column = new DmColumn("dbo", tableName, columnName, dotnetType)
     {
-        MaxLength = length,
+        Length = length,
         IsNullable = dotnetType.IsNullable()
     };
     
-    await connection.AddColumnAsync("dbo", tableName, column);
+    await connection.CreateColumnIfNotExistsAsync(column);
     
     Console.WriteLine($"Added column {columnName} as {sqlType}");
 }
@@ -301,7 +249,7 @@ public Dictionary<string, string> GetProviderTypeMappings(IDbConnection connecti
     
     foreach (var type in commonTypes)
     {
-        var descriptor = new DbProviderDotnetTypeDescriptor(type);
+        var descriptor = new DotnetTypeDescriptor(type);
         var sqlType = connection.GetSqlTypeFromDotnetType(descriptor);
         mappings[type.Name] = sqlType;
     }
