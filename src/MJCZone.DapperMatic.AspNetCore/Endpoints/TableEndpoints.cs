@@ -24,7 +24,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// Registers both default schema endpoints (/d/{datasourceId}/t) and
 /// schema-specific endpoints (/d/{datasourceId}/s/{schemaName}/t).
 /// </remarks>
-public static class TableEndpoints
+internal static class TableEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic table endpoints to the specified route builder.
@@ -40,6 +40,19 @@ public static class TableEndpoints
     public static IEndpointRouteBuilder MapDapperMaticTableEndpoints(
         this IEndpointRouteBuilder app,
         string? basePath = null
+    ) => app.MapDapperMaticTableEndpoints(basePath, DapperMaticEndpoints.All);
+
+    /// <summary>
+    /// Maps the table endpoints of the given sets.
+    /// </summary>
+    /// <param name="app">The route builder.</param>
+    /// <param name="basePath">The base path for the API endpoints.</param>
+    /// <param name="sets">The sets to map: definitions (Schemas), queries (Query), and row writes (Rows).</param>
+    /// <returns>The route builder for method chaining.</returns>
+    internal static IEndpointRouteBuilder MapDapperMaticTableEndpoints(
+        this IEndpointRouteBuilder app,
+        string? basePath,
+        DapperMaticEndpoints sets
     )
     {
         // Register default schema endpoints (for single-schema scenarios)
@@ -49,7 +62,7 @@ public static class TableEndpoints
             OperationTags.DatasourceTables
         );
 
-        RegisterTableEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false);
+        RegisterTableEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false, sets);
 
         // Register schema-specific endpoints (for multi-tenant scenarios)
         var schemaGroup = app.MapDapperMaticEndpointGroup(
@@ -58,94 +71,151 @@ public static class TableEndpoints
             OperationTags.DatasourceTables
         );
 
-        RegisterTableEndpoints(schemaGroup, "Schema", isSchemaSpecific: true);
+        RegisterTableEndpoints(schemaGroup, "Schema", isSchemaSpecific: true, sets);
 
         return app;
     }
 
-    private static void RegisterTableEndpoints(RouteGroupBuilder group, string namePrefix, bool isSchemaSpecific)
+    private static void RegisterTableEndpoints(
+        RouteGroupBuilder group,
+        string namePrefix,
+        bool isSchemaSpecific,
+        DapperMaticEndpoints sets
+    )
     {
         var schemaText = isSchemaSpecific ? "a specific schema" : "the default schema";
         var schemaInText = isSchemaSpecific ? "in a specific schema" : "in the default schema";
 
-        // List all tables
-        group
-            .MapGet("/", isSchemaSpecific ? ListSchemaTablesAsync : ListTablesAsync)
-            .WithName($"List{namePrefix}Tables")
-            .WithSummary($"Gets all tables for {schemaText}")
-            .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.")
-            .Produces<TableListResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+        if (sets.HasFlag(DapperMaticEndpoints.Schemas))
+        {
+            // List all tables
+            group
+                .MapGet("/", isSchemaSpecific ? ListSchemaTablesAsync : ListTablesAsync)
+                .WithName($"List{namePrefix}Tables")
+                .WithSummary($"Gets all tables for {schemaText}")
+                .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to include additional details. By default, only basic table information is returned.")
+                .Produces<TableListResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Get specific table
-        group
-            .MapGet("/{tableName}", isSchemaSpecific ? GetSchemaTableAsync : GetTableAsync)
-            .WithName($"Get{namePrefix}Table")
-            .WithSummary($"Gets a table by name from {schemaText}")
-            .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.")
-            .Produces<TableResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Get specific table
+            group
+                .MapGet("/{tableName}", isSchemaSpecific ? GetSchemaTableAsync : GetTableAsync)
+                .WithName($"Get{namePrefix}Table")
+                .WithSummary($"Gets a table by name from {schemaText}")
+                .WithDescription("Use the 'include' query parameter with 'columns', 'indexes', 'constraints', or '*' to control which details are returned.")
+                .Produces<TableResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Create new table
-        group
-            .MapPost("/", isSchemaSpecific ? CreateSchemaTableAsync : CreateTableAsync)
-            .WithName($"Create{namePrefix}Table")
-            .WithSummary($"Creates a new table {schemaInText}")
-            .Produces<TableResponse>((int)HttpStatusCode.Created)
-            .Produces((int)HttpStatusCode.Conflict)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Create new table
+            group
+                .MapPost("/", isSchemaSpecific ? CreateSchemaTableAsync : CreateTableAsync)
+                .WithName($"Create{namePrefix}Table")
+                .WithSummary($"Creates a new table {schemaInText}")
+                .Produces<TableResponse>((int)HttpStatusCode.Created)
+                .Produces((int)HttpStatusCode.Conflict)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Update table
-        group
-            .MapPut("/{tableName}", isSchemaSpecific ? UpdateSchemaTableAsync : UpdateTableAsync)
-            .WithName($"Update{namePrefix}Table")
-            .WithSummary($"Updates a table {schemaInText}")
-            .Produces<TableResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Update table
+            group
+                .MapPut("/{tableName}", isSchemaSpecific ? UpdateSchemaTableAsync : UpdateTableAsync)
+                .WithName($"Update{namePrefix}Table")
+                .WithSummary($"Updates a table {schemaInText}")
+                .Produces<TableResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Drop table
-        group
-            .MapDelete("/{tableName}", isSchemaSpecific ? DropSchemaTableAsync : DropTableAsync)
-            .WithName($"Drop{namePrefix}Table")
-            .WithSummary($"Drops a table from {schemaText}")
-            .Produces<TableResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Drop table
+            group
+                .MapDelete("/{tableName}", isSchemaSpecific ? DropSchemaTableAsync : DropTableAsync)
+                .WithName($"Drop{namePrefix}Table")
+                .WithSummary($"Drops a table from {schemaText}")
+                .Produces<TableResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Check if table exists
-        group
-            .MapGet("/{tableName}/exists", isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync)
-            .WithName($"{namePrefix}TableExists")
-            .WithSummary($"Checks if a table exists {schemaInText}")
-            .Produces<TableExistsResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Check if table exists
+            group
+                .MapGet("/{tableName}/exists", isSchemaSpecific ? SchemaTableExistsAsync : TableExistsAsync)
+                .WithName($"{namePrefix}TableExists")
+                .WithSummary($"Checks if a table exists {schemaInText}")
+                .Produces<TableExistsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
 
-        // Query table via GET with URL parameters
-        group
-            .MapGet("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync)
-            .WithName($"Query{namePrefix}TableViaGet")
-            .WithSummary($"Queries a table {schemaInText} using URL parameters")
-            .Produces<QueryResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+        if (sets.HasFlag(DapperMaticEndpoints.Query))
+        {
+            // Query table via GET with URL parameters
+            group
+                .MapGet("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableViaGetAsync : QueryTableViaGetAsync)
+                .WithName($"Query{namePrefix}TableViaGet")
+                .WithSummary($"Queries a table {schemaInText} using URL parameters")
+                .Produces<QueryResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
 
-        // Query table with filtering, sorting, and pagination
-        group
-            .MapPost("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync)
-            .WithName($"Query{namePrefix}Table")
-            .WithSummary($"Queries a table {schemaInText} with filtering, sorting, and pagination")
-            .Produces<QueryResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+        if (sets.HasFlag(DapperMaticEndpoints.Rows))
+        {
+            // Insert rows
+            group
+                .MapPost("/{tableName}/rows", isSchemaSpecific ? InsertSchemaTableRowsAsync : InsertTableRowsAsync)
+                .WithName($"Insert{namePrefix}TableRows")
+                .WithSummary($"Inserts rows into a table {schemaInText}, all or none")
+                .Produces<RowsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.BadRequest)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+
+            // Save rows: update those whose key exists, insert the others, with related rows
+            group
+                .MapPost("/{tableName}/rows/save", isSchemaSpecific ? SaveSchemaTableRowsAsync : SaveTableRowsAsync)
+                .WithName($"Save{namePrefix}TableRows")
+                .WithSummary($"Saves rows of a table {schemaInText} with their related rows: updated by key where they exist, inserted where not")
+                .Produces<RowsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.BadRequest)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+
+            // Update rows that match a condition
+            group
+                .MapPost("/{tableName}/rows/update", isSchemaSpecific ? UpdateSchemaTableRowsAsync : UpdateTableRowsAsync)
+                .WithName($"Update{namePrefix}TableRows")
+                .WithSummary($"Sets columns of the rows of a table {schemaInText} that match a condition")
+                .Produces<RowsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.BadRequest)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+
+            // Delete rows that match a condition
+            group
+                .MapPost("/{tableName}/rows/delete", isSchemaSpecific ? DeleteSchemaTableRowsAsync : DeleteTableRowsAsync)
+                .WithName($"Delete{namePrefix}TableRows")
+                .WithSummary($"Deletes the rows of a table {schemaInText} that match a condition")
+                .Produces<RowsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.BadRequest)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
+
+        if (sets.HasFlag(DapperMaticEndpoints.Query))
+        {
+            // Query table with filtering, sorting, and pagination
+            group
+                .MapPost("/{tableName}/query", isSchemaSpecific ? QuerySchemaTableAsync : QueryTableAsync)
+                .WithName($"Query{namePrefix}Table")
+                .WithSummary($"Queries a table {schemaInText} with filtering, sorting, and pagination")
+                .Produces<QueryResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
     }
 
     private static Task<IResult> ListTablesAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromQuery] string? include,
@@ -154,7 +224,7 @@ public static class TableEndpoints
     ) => ListSchemaTablesAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
 
     private static async Task<IResult> ListSchemaTablesAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -207,7 +277,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> GetTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -216,7 +286,7 @@ public static class TableEndpoints
     ) => GetSchemaTableAsync(operationContext, service, datasourceId, null, tableName, include, cancellationToken);
 
     private static async Task<IResult> GetSchemaTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -256,7 +326,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> CreateTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromBody] TableDto table,
@@ -264,7 +334,7 @@ public static class TableEndpoints
     ) => CreateSchemaTableAsync(operationContext, service, datasourceId, null, table, cancellationToken);
 
     private static async Task<IResult> CreateSchemaTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -285,10 +355,12 @@ public static class TableEndpoints
         // Ensure schema name from DTO matches route parameter
         table.SchemaName = schemaName;
 
-        operationContext.RequestBody = table;
-        operationContext.TableName = table.TableName!.Trim();
-        operationContext.ColumnNames =
-            table.Columns != null && table.Columns.Count >= 1 ? table.Columns.Select(c => c.ColumnName).ToList() : null;
+        operationContext = operationContext with
+        {
+            RequestBody = table,
+            TableName = table.TableName!.Trim(),
+            ColumnNames = table.Columns != null && table.Columns.Count >= 1 ? table.Columns.Select(c => c.ColumnName).ToList() : null,
+        };
 
         var created = await service
             .CreateTableAsync(operationContext, datasourceId, table, cancellationToken)
@@ -301,7 +373,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> UpdateTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -310,7 +382,7 @@ public static class TableEndpoints
     ) => UpdateSchemaTableAsync(operationContext, service, datasourceId, null, tableName, updates, cancellationToken);
 
     private static async Task<IResult> UpdateSchemaTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -334,7 +406,7 @@ public static class TableEndpoints
         // Ensure schema name from DTO matches route parameter
         updates.SchemaName = schemaName;
 
-        operationContext.RequestBody = updates;
+        operationContext = operationContext with { RequestBody = updates };
 
         // Check if this is a rename (TableName in body differs from route parameter)
         var isRename = !string.IsNullOrWhiteSpace(updates.TableName) && updates.TableName != tableName;
@@ -366,8 +438,7 @@ public static class TableEndpoints
         // Handle rename separately if needed
         if (isRename)
         {
-            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            operationContext.Properties["NewTableName"] = updates.TableName!;
+            operationContext = operationContext.WithProperty("NewTableName", updates.TableName!);
             var renamed = await service
                 .RenameTableAsync(
                     operationContext,
@@ -400,7 +471,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> DropTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -408,7 +479,7 @@ public static class TableEndpoints
     ) => DropSchemaTableAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> DropSchemaTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -424,7 +495,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> TableExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -432,7 +503,7 @@ public static class TableEndpoints
     ) => SchemaTableExistsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> SchemaTableExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -448,7 +519,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> QueryTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -457,7 +528,7 @@ public static class TableEndpoints
     ) => QuerySchemaTableAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
 
     private static async Task<IResult> QuerySchemaTableAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -466,7 +537,7 @@ public static class TableEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        operationContext.RequestBody = request;
+        operationContext = operationContext with { RequestBody = request };
 
         var queryResult = await service
             .QueryTableAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
@@ -478,7 +549,7 @@ public static class TableEndpoints
     }
 
     private static Task<IResult> QueryTableViaGetAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -486,7 +557,7 @@ public static class TableEndpoints
     ) => QuerySchemaTableViaGetAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> QuerySchemaTableViaGetAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -494,13 +565,13 @@ public static class TableEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        var request = QueryDto.FromQueryParameters(operationContext.QueryParameters ?? []);
+        var request = QueryDto.FromQueryParameters(operationContext.QueryParameters);
         if (!string.IsNullOrWhiteSpace(schemaName))
         {
             // Set it on the request to pass it down
             request.SchemaName = schemaName;
         }
-        operationContext.RequestBody = request;
+        operationContext = operationContext with { RequestBody = request };
 
         var queryResult = await service
             .QueryTableAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
@@ -509,5 +580,107 @@ public static class TableEndpoints
         return Results.Ok(
             new QueryResponse(queryResult.Data) { Pagination = queryResult.Pagination, Fields = queryResult.Fields }
         );
+    }
+
+    private static Task<IResult> InsertTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] RowsInsertDto request,
+        CancellationToken cancellationToken = default
+    ) => InsertSchemaTableRowsAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+
+    private static async Task<IResult> InsertSchemaTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromBody] RowsInsertDto request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        operationContext = operationContext with { RequestBody = request };
+        return Results.Ok(
+            await service.SaveTableRowsAsync(operationContext, datasourceId, tableName, request, upsert: false, schemaName, cancellationToken).ConfigureAwait(false)
+        );
+    }
+
+    private static Task<IResult> SaveTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] RowsInsertDto request,
+        CancellationToken cancellationToken = default
+    ) => SaveSchemaTableRowsAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+
+    private static async Task<IResult> SaveSchemaTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromBody] RowsInsertDto request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        operationContext = operationContext with { RequestBody = request };
+        return Results.Ok(
+            await service.SaveTableRowsAsync(operationContext, datasourceId, tableName, request, upsert: true, schemaName, cancellationToken).ConfigureAwait(false)
+        );
+    }
+
+    private static Task<IResult> UpdateTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] RowsUpdateDto request,
+        CancellationToken cancellationToken = default
+    ) => UpdateSchemaTableRowsAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+
+    private static async Task<IResult> UpdateSchemaTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromBody] RowsUpdateDto request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        operationContext = operationContext with { RequestBody = request };
+        var affected = await service
+            .UpdateTableRowsAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
+            .ConfigureAwait(false);
+        return Results.Ok(new RowsResponse(affected));
+    }
+
+    private static Task<IResult> DeleteTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string tableName,
+        [FromBody] RowsDeleteDto request,
+        CancellationToken cancellationToken = default
+    ) => DeleteSchemaTableRowsAsync(operationContext, service, datasourceId, null, tableName, request, cancellationToken);
+
+    private static async Task<IResult> DeleteSchemaTableRowsAsync(
+        DapperMaticOperation operationContext,
+        IDapperMaticService service,
+        [FromRoute] string datasourceId,
+        [FromRoute] string? schemaName,
+        [FromRoute] string tableName,
+        [FromBody] RowsDeleteDto request,
+        CancellationToken cancellationToken = default
+    )
+    {
+        operationContext = operationContext with { RequestBody = request };
+        var affected = await service
+            .DeleteTableRowsAsync(operationContext, datasourceId, tableName, request, schemaName, cancellationToken)
+            .ConfigureAwait(false);
+        return Results.Ok(new RowsResponse(affected));
     }
 }

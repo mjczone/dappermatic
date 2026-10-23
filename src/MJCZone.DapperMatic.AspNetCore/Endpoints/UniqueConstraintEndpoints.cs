@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic unique constraint endpoints.
 /// </summary>
-public static class UniqueConstraintEndpoints
+internal static class UniqueConstraintEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic unique constraint endpoints to the specified route builder.
@@ -103,7 +103,7 @@ public static class UniqueConstraintEndpoints
 
     // Unique constraint endpoint implementations
     private static Task<IResult> ListUniqueConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -111,7 +111,7 @@ public static class UniqueConstraintEndpoints
     ) => ListSchemaUniqueConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaUniqueConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -127,7 +127,7 @@ public static class UniqueConstraintEndpoints
     }
 
     private static Task<IResult> GetUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -145,7 +145,7 @@ public static class UniqueConstraintEndpoints
         );
 
     private static async Task<IResult> GetSchemaUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -169,7 +169,7 @@ public static class UniqueConstraintEndpoints
     }
 
     private static Task<IResult> CreateUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -187,7 +187,7 @@ public static class UniqueConstraintEndpoints
         );
 
     private static async Task<IResult> CreateSchemaUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -207,11 +207,9 @@ public static class UniqueConstraintEndpoints
             )
             .Assert();
 
-        operationContext.RequestBody = uniqueConstraint;
-        operationContext.ColumnNames =
-            uniqueConstraint.ColumnNames != null && uniqueConstraint.ColumnNames.Count >= 1
+        operationContext = operationContext with { RequestBody = uniqueConstraint, ColumnNames = uniqueConstraint.ColumnNames != null && uniqueConstraint.ColumnNames.Count >= 1
                 ? uniqueConstraint.ColumnNames
-                : null;
+                : null };
 
         var created = await service
             .CreateUniqueConstraintAsync(
@@ -231,7 +229,7 @@ public static class UniqueConstraintEndpoints
     }
 
     private static Task<IResult> DropUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -249,7 +247,7 @@ public static class UniqueConstraintEndpoints
         );
 
     private static async Task<IResult> DropSchemaUniqueConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

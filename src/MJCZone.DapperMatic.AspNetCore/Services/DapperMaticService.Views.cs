@@ -6,6 +6,7 @@
 using MJCZone.DapperMatic.AspNetCore.Extensions;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Validation;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
@@ -23,7 +24,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of views.</returns>
     public async Task<IEnumerable<ViewDto>> GetViewsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string? schemaName = null,
         CancellationToken cancellationToken = default
@@ -54,7 +55,7 @@ public partial class DapperMaticService
 
             await LogAuditEventAsync(context, true, $"Retrieved views for datasource '{datasourceId}'")
                 .ConfigureAwait(false);
-            return views.ToViewDtos();
+            return views.Where(v => MayReadSchema(context, new DmResource(datasourceId, SchemaOf(connection, schemaName), v.ViewName))).ToViewDtos();
         }
     }
 
@@ -69,7 +70,7 @@ public partial class DapperMaticService
     /// <returns>The view.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
     public async Task<ViewDto> GetViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -126,13 +127,14 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the schema is not found.</exception>
     /// <exception cref="DuplicateKeyException">Thrown when the view already exists.</exception>
     public async Task<ViewDto> CreateViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         ViewDto view,
         CancellationToken cancellationToken = default
     )
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
+        AssertMayDefineViews(context, datasourceId);
 
         // Convert DTO to domain model for validation
         var dmView = view.ToDmView();
@@ -200,7 +202,7 @@ public partial class DapperMaticService
     /// <returns>The updated view.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
     public async Task<ViewDto> UpdateViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         ViewDto updates,
@@ -208,8 +210,12 @@ public partial class DapperMaticService
     )
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
+        if (!string.IsNullOrWhiteSpace(updates?.Definition))
+        {
+            AssertMayDefineViews(context, datasourceId);
+        }
 
-        var schemaName = NormalizeSchemaName(updates.SchemaName);
+        var schemaName = NormalizeSchemaName(updates?.SchemaName);
 
         ValidationFactory
             .Arguments()
@@ -287,7 +293,7 @@ public partial class DapperMaticService
     /// <returns>The renamed view.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the schema or view is not found.</exception>
     public async Task<ViewDto> RenameViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string currentViewName,
         string newViewName,
@@ -296,6 +302,9 @@ public partial class DapperMaticService
     )
     {
         await AssertPermissionsAsync(context).ConfigureAwait(false);
+
+        // The new name is authorized too: a policy about some views must not let one be renamed into or out of them.
+        await AssertAsAsync(context, context.Operation ?? "views/put", context.SchemaName, null, newViewName, nameof(RenameViewAsync)).ConfigureAwait(false);
 
         schemaName = NormalizeSchemaName(schemaName);
 
@@ -362,7 +371,7 @@ public partial class DapperMaticService
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="KeyNotFoundException">Thrown when the view does not exist.</exception>
     public async Task DropViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -416,7 +425,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the view exists, otherwise false.</returns>
     public async Task<bool> ViewExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -467,7 +476,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The query results with pagination information.</returns>
     public async Task<QueryResultDto> QueryViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         QueryDto request,
@@ -502,23 +511,27 @@ public partial class DapperMaticService
         var connection = await CreateConnectionForDatasource(datasourceId).ConfigureAwait(false);
         using (connection)
         {
-            // Check schema exists if specified
-            await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
-                .ConfigureAwait(false);
-
-            // Check view exists
-            await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
-                .ConfigureAwait(false);
-
             // Build the query using provider-specific identifier naming
             var qualifiedFromName = connection.GetSchemaQualifiedTableName(schemaName, viewName);
 
+            // Check the schema and view exist, unless their description is cached
+            if (!IsDescribed(datasourceId, schemaName, qualifiedFromName, view: true))
+            {
+                await AssertSchemaExistsIfSpecifiedAsync(datasourceId, schemaName, connection, cancellationToken)
+                    .ConfigureAwait(false);
+                await AssertViewExistsAsync(datasourceId, viewName, schemaName, connection, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+
             var result = await ExecuteDataQueryAsync(
+                    context,
                     connection,
                     qualifiedFromName,
                     request,
                     schemaName,
-                    null // tableName = null for views to use fallback behavior
+                    null, // a view's columns are read from a query of it
+                    datasourceId,
+                    cancellationToken
                 )
                 .ConfigureAwait(false);
 

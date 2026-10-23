@@ -5,7 +5,7 @@ using MJCZone.DapperMatic.AspNetCore;
 namespace MJCZone.DapperMatic.AspNetCore.Tests;
 
 /// <summary>
-/// Helper class for creating IOperationContext instances for testing service methods.
+/// Helper class for creating DapperMaticOperation instances for testing service methods.
 /// </summary>
 public static class OperationIdentifiers
 {
@@ -18,13 +18,13 @@ public static class OperationIdentifiers
     /// <param name="user">Optional claims principal for the user.</param>
     /// <param name="requestId">Optional request ID for correlation.</param>
     /// <returns>A configured operation context.</returns>
-    public static IOperationContext CreateContext(
+    public static DapperMaticOperation CreateContext(
         string? operation = null,
         ClaimsPrincipal? user = null,
         string? requestId = null
     )
     {
-        return new OperationContext
+        return new DapperMaticOperation
         {
             Operation = operation,
             User = user ?? CreateDefaultUser(),
@@ -32,7 +32,6 @@ public static class OperationIdentifiers
             HttpMethod = "GET", // Default to GET, override in specific methods
             EndpointPath = "/api/dappermatic",
             IpAddress = "127.0.0.1",
-            Properties = [],
             QueryParameters = new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase),
             RouteValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
             HeaderValues = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase),
@@ -83,10 +82,10 @@ public static class OperationIdentifiers
     /// <summary>
     /// Creates context for datasource list operations.
     /// </summary>
-    public static IOperationContext ForDatasourceList(ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceList(ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/list", user);
-        context.HttpMethod = "GET";
+        context = context with { HttpMethod = "GET" };
         return context;
     }
 
@@ -95,11 +94,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceGet(string datasourceId, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceGet(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/get", user);
-        context.DatasourceId = datasourceId;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, HttpMethod = "GET" };
         return context;
     }
 
@@ -108,11 +106,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource to add.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceAdd(object requestBody, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceAdd(object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/post", user);
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with { RequestBody = requestBody, HttpMethod = "POST" };
         return context;
     }
 
@@ -121,11 +118,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="requestBody">The datasource update data.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceUpdate(object requestBody, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceUpdate(object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/put", user);
-        context.RequestBody = requestBody;
-        context.HttpMethod = "PUT";
+        context = context with { RequestBody = requestBody, HttpMethod = "PUT" };
         return context;
     }
 
@@ -134,11 +130,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceRemove(string datasourceId, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceRemove(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/delete", user);
-        context.DatasourceId = datasourceId;
-        context.HttpMethod = "DELETE";
+        context = context with { DatasourceId = datasourceId, HttpMethod = "DELETE" };
         return context;
     }
 
@@ -147,11 +142,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceExists(string datasourceId, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceExists(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/exists", user);
-        context.DatasourceId = datasourceId;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, HttpMethod = "GET" };
         return context;
     }
 
@@ -160,11 +154,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDatasourceTest(string datasourceId, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForDatasourceTest(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("datasources/test", user);
-        context.DatasourceId = datasourceId;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, HttpMethod = "GET" };
         return context;
     }
 
@@ -177,11 +170,10 @@ public static class OperationIdentifiers
     /// </summary>
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaList(string datasourceId, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForSchemaList(string datasourceId, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("schemas/list", user);
-        context.DatasourceId = datasourceId;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, HttpMethod = "GET" };
         return context;
     }
 
@@ -191,12 +183,10 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaGet(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForSchemaGet(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("schemas/get", user);
-        context.DatasourceId = datasourceId;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, SchemaName = schemaName, HttpMethod = "GET" };
         return context;
     }
 
@@ -206,16 +196,14 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="requestBody">The schema to create.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaCreate(
+    public static DapperMaticOperation ForSchemaCreate(
         string datasourceId,
         object requestBody,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("schemas/post", user);
-        context.DatasourceId = datasourceId;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with { DatasourceId = datasourceId, RequestBody = requestBody, HttpMethod = "POST" };
         return context;
     }
 
@@ -225,12 +213,10 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaDrop(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForSchemaDrop(string datasourceId, string schemaName, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("schemas/delete", user);
-        context.DatasourceId = datasourceId;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with { DatasourceId = datasourceId, SchemaName = schemaName, HttpMethod = "DELETE" };
         return context;
     }
 
@@ -240,16 +226,14 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">The schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForSchemaExists(
+    public static DapperMaticOperation ForSchemaExists(
         string datasourceId,
         string schemaName,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("schemas/exists", user);
-        context.DatasourceId = datasourceId;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, SchemaName = schemaName, HttpMethod = "GET" };
         return context;
     }
 
@@ -263,16 +247,14 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">Optional schema name filter.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableList(
+    public static DapperMaticOperation ForTableList(
         string datasourceId,
         string? schemaName = null,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("tables/list", user);
-        context.DatasourceId = datasourceId;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, SchemaName = schemaName, HttpMethod = "GET" };
         return context;
     }
 
@@ -283,7 +265,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableGet(
+    public static DapperMaticOperation ForTableGet(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -291,10 +273,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -304,16 +289,14 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="requestBody">The table to create.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableCreate(
+    public static DapperMaticOperation ForTableCreate(
         string datasourceId,
         object requestBody,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("tables/post", user);
-        context.DatasourceId = datasourceId;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with { DatasourceId = datasourceId, RequestBody = requestBody, HttpMethod = "POST" };
         return context;
     }
 
@@ -324,7 +307,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableDrop(
+    public static DapperMaticOperation ForTableDrop(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -332,10 +315,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -346,7 +332,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableExists(
+    public static DapperMaticOperation ForTableExists(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -354,10 +340,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/exists", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -369,7 +358,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The query request.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableQuery(
+    public static DapperMaticOperation ForTableQuery(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -378,11 +367,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/query", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -393,7 +385,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="requestBody">The table update data.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableUpdate(
+    public static DapperMaticOperation ForTableUpdate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -401,10 +393,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/put", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "PUT";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            RequestBody = requestBody,
+            HttpMethod = "PUT",
+        };
         return context;
     }
 
@@ -416,7 +411,7 @@ public static class OperationIdentifiers
     /// <param name="newTableName">The new table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForTableRename(
+    public static DapperMaticOperation ForTableRename(
         string datasourceId,
         string currentTableName,
         string newTableName,
@@ -425,12 +420,9 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("tables/put", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = currentTableName;
-        context.SchemaName = schemaName;
-        context.Properties ??= [];
-        context.Properties["NewTableName"] = newTableName;
-        context.HttpMethod = "PATCH";
+        context = context with { DatasourceId = datasourceId, TableName = currentTableName, SchemaName = schemaName };
+        context = context.WithProperty("NewTableName", newTableName);
+        context = context with { HttpMethod = "PATCH" };
         return context;
     }
 
@@ -444,16 +436,14 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="schemaName">Optional schema name filter.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewList(
+    public static DapperMaticOperation ForViewList(
         string datasourceId,
         string? schemaName = null,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("views/list", user);
-        context.DatasourceId = datasourceId;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId, SchemaName = schemaName, HttpMethod = "GET" };
         return context;
     }
 
@@ -464,7 +454,7 @@ public static class OperationIdentifiers
     /// <param name="viewName">The view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewGet(
+    public static DapperMaticOperation ForViewGet(
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -472,10 +462,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/get", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = viewName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            ViewName = viewName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -485,12 +478,10 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="requestBody">The view to create.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewCreate(string datasourceId, object requestBody, ClaimsPrincipal? user = null)
+    public static DapperMaticOperation ForViewCreate(string datasourceId, object requestBody, ClaimsPrincipal? user = null)
     {
         var context = CreateContext("views/post", user);
-        context.DatasourceId = datasourceId;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with { DatasourceId = datasourceId, RequestBody = requestBody, HttpMethod = "POST" };
         return context;
     }
 
@@ -501,7 +492,7 @@ public static class OperationIdentifiers
     /// <param name="viewName">The view name.</param>
     /// <param name="requestBody">The view update data.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewUpdate(
+    public static DapperMaticOperation ForViewUpdate(
         string datasourceId,
         string viewName,
         object requestBody,
@@ -509,10 +500,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/put", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = viewName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "PUT";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            ViewName = viewName,
+            RequestBody = requestBody,
+            HttpMethod = "PUT",
+        };
         return context;
     }
 
@@ -524,7 +518,7 @@ public static class OperationIdentifiers
     /// <param name="newViewName">The new view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewRename(
+    public static DapperMaticOperation ForViewRename(
         string datasourceId,
         string currentViewName,
         string newViewName,
@@ -533,12 +527,9 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/put", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = currentViewName;
-        context.SchemaName = schemaName;
-        context.Properties ??= [];
-        context.Properties["NewViewName"] = newViewName;
-        context.HttpMethod = "PATCH";
+        context = context with { DatasourceId = datasourceId, ViewName = currentViewName, SchemaName = schemaName };
+        context = context.WithProperty("NewViewName", newViewName);
+        context = context with { HttpMethod = "PATCH" };
         return context;
     }
 
@@ -549,7 +540,7 @@ public static class OperationIdentifiers
     /// <param name="viewName">The view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewDrop(
+    public static DapperMaticOperation ForViewDrop(
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -557,10 +548,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/delete", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = viewName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            ViewName = viewName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -571,7 +565,7 @@ public static class OperationIdentifiers
     /// <param name="viewName">The view name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewExists(
+    public static DapperMaticOperation ForViewExists(
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -579,10 +573,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/exists", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = viewName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            ViewName = viewName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -594,7 +591,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The query request.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForViewQuery(
+    public static DapperMaticOperation ForViewQuery(
         string datasourceId,
         string viewName,
         object requestBody,
@@ -603,11 +600,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("views/query", user);
-        context.DatasourceId = datasourceId;
-        context.ViewName = viewName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            ViewName = viewName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -622,7 +622,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForColumnList(
+    public static DapperMaticOperation ForColumnList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -630,10 +630,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("columns/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -645,7 +648,7 @@ public static class OperationIdentifiers
     /// <param name="columnName">The column name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForColumnGet(
+    public static DapperMaticOperation ForColumnGet(
         string datasourceId,
         string tableName,
         string columnName,
@@ -654,11 +657,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("columns/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ColumnNames = [columnName];
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ColumnNames = [columnName],
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -670,7 +676,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The column to add.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForColumnAdd(
+    public static DapperMaticOperation ForColumnAdd(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -679,11 +685,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("columns/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -696,7 +705,7 @@ public static class OperationIdentifiers
     /// <param name="newColumnName">The new column name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForColumnRename(
+    public static DapperMaticOperation ForColumnRename(
         string datasourceId,
         string tableName,
         string columnName,
@@ -706,13 +715,15 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("columns/put", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ColumnNames = [columnName];
-        context.SchemaName = schemaName;
-        context.Properties ??= [];
-        context.Properties["NewColumnName"] = newColumnName;
-        context.HttpMethod = "PUT";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ColumnNames = [columnName],
+            SchemaName = schemaName,
+        };
+        context = context.WithProperty("NewColumnName", newColumnName);
+        context = context with { HttpMethod = "PUT" };
         return context;
     }
 
@@ -724,7 +735,7 @@ public static class OperationIdentifiers
     /// <param name="columnName">The column name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForColumnDrop(
+    public static DapperMaticOperation ForColumnDrop(
         string datasourceId,
         string tableName,
         string columnName,
@@ -733,11 +744,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("columns/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ColumnNames = [columnName];
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ColumnNames = [columnName],
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -752,7 +766,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForIndexList(
+    public static DapperMaticOperation ForIndexList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -760,10 +774,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("indexes/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -775,7 +792,7 @@ public static class OperationIdentifiers
     /// <param name="indexName">The index name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForIndexGet(
+    public static DapperMaticOperation ForIndexGet(
         string datasourceId,
         string tableName,
         string indexName,
@@ -784,11 +801,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("indexes/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.IndexName = indexName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            IndexName = indexName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -800,7 +820,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The index to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForIndexCreate(
+    public static DapperMaticOperation ForIndexCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -809,11 +829,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("indexes/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -825,7 +848,7 @@ public static class OperationIdentifiers
     /// <param name="indexName">The index name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForIndexDrop(
+    public static DapperMaticOperation ForIndexDrop(
         string datasourceId,
         string tableName,
         string indexName,
@@ -834,11 +857,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("indexes/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.IndexName = indexName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            IndexName = indexName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -853,7 +879,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForPrimaryKeyGet(
+    public static DapperMaticOperation ForPrimaryKeyGet(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -861,10 +887,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("primary-key-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -876,7 +905,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The primary key constraint to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForPrimaryKeyCreate(
+    public static DapperMaticOperation ForPrimaryKeyCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -885,11 +914,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("primary-key-constraints/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -900,7 +932,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForPrimaryKeyDrop(
+    public static DapperMaticOperation ForPrimaryKeyDrop(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -908,10 +940,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("primary-key-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -922,7 +957,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForForeignKeyList(
+    public static DapperMaticOperation ForForeignKeyList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -930,10 +965,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("foreign-key-constraints/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -945,7 +983,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForForeignKeyGet(
+    public static DapperMaticOperation ForForeignKeyGet(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -954,11 +992,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("foreign-key-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -970,7 +1011,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The foreign key constraint to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForForeignKeyCreate(
+    public static DapperMaticOperation ForForeignKeyCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -979,11 +1020,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("foreign-key-constraints/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -995,7 +1039,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForForeignKeyDrop(
+    public static DapperMaticOperation ForForeignKeyDrop(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1004,11 +1048,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("foreign-key-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -1019,7 +1066,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForCheckConstraintList(
+    public static DapperMaticOperation ForCheckConstraintList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -1027,10 +1074,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("check-constraints/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1042,7 +1092,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForCheckConstraintGet(
+    public static DapperMaticOperation ForCheckConstraintGet(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1051,11 +1101,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("check-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1067,7 +1120,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The check constraint to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForCheckConstraintCreate(
+    public static DapperMaticOperation ForCheckConstraintCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -1076,11 +1129,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("check-constraints/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -1092,7 +1148,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForCheckConstraintDrop(
+    public static DapperMaticOperation ForCheckConstraintDrop(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1101,11 +1157,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("check-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -1116,7 +1175,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForUniqueConstraintList(
+    public static DapperMaticOperation ForUniqueConstraintList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -1124,10 +1183,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("unique-constraints/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1139,7 +1201,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForUniqueConstraintGet(
+    public static DapperMaticOperation ForUniqueConstraintGet(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1148,11 +1210,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("unique-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1164,7 +1229,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The unique constraint to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForUniqueConstraintCreate(
+    public static DapperMaticOperation ForUniqueConstraintCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -1173,11 +1238,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("unique-constraints/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -1189,7 +1257,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForUniqueConstraintDrop(
+    public static DapperMaticOperation ForUniqueConstraintDrop(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1198,11 +1266,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("unique-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -1213,7 +1284,7 @@ public static class OperationIdentifiers
     /// <param name="tableName">The table name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintList(
+    public static DapperMaticOperation ForDefaultConstraintList(
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -1221,10 +1292,13 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/list", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1236,7 +1310,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintGet(
+    public static DapperMaticOperation ForDefaultConstraintGet(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1245,11 +1319,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1261,7 +1338,7 @@ public static class OperationIdentifiers
     /// <param name="columnName">The column name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintOnColumnGet(
+    public static DapperMaticOperation ForDefaultConstraintOnColumnGet(
         string datasourceId,
         string tableName,
         string columnName,
@@ -1270,11 +1347,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/get", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ColumnNames = [columnName];
-        context.SchemaName = schemaName;
-        context.HttpMethod = "GET";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ColumnNames = [columnName],
+            SchemaName = schemaName,
+            HttpMethod = "GET",
+        };
         return context;
     }
 
@@ -1286,7 +1366,7 @@ public static class OperationIdentifiers
     /// <param name="requestBody">The default constraint to create.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintCreate(
+    public static DapperMaticOperation ForDefaultConstraintCreate(
         string datasourceId,
         string tableName,
         object requestBody,
@@ -1295,11 +1375,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/post", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.SchemaName = schemaName;
-        context.RequestBody = requestBody;
-        context.HttpMethod = "POST";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            SchemaName = schemaName,
+            RequestBody = requestBody,
+            HttpMethod = "POST",
+        };
         return context;
     }
 
@@ -1311,7 +1394,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintDrop(
+    public static DapperMaticOperation ForDefaultConstraintDrop(
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1320,11 +1403,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ConstraintName = constraintName;
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ConstraintName = constraintName,
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -1336,7 +1422,7 @@ public static class OperationIdentifiers
     /// <param name="constraintName">The constraint name.</param>
     /// <param name="schemaName">Optional schema name.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDefaultConstraintOnColumnDrop(
+    public static DapperMaticOperation ForDefaultConstraintOnColumnDrop(
         string datasourceId,
         string tableName,
         string columnName,
@@ -1345,11 +1431,14 @@ public static class OperationIdentifiers
     )
     {
         var context = CreateContext("default-constraints/delete", user);
-        context.DatasourceId = datasourceId;
-        context.TableName = tableName;
-        context.ColumnNames = [columnName];
-        context.SchemaName = schemaName;
-        context.HttpMethod = "DELETE";
+        context = context with
+        {
+            DatasourceId = datasourceId,
+            TableName = tableName,
+            ColumnNames = [columnName],
+            SchemaName = schemaName,
+            HttpMethod = "DELETE",
+        };
         return context;
     }
 
@@ -1363,17 +1452,16 @@ public static class OperationIdentifiers
     /// <param name="datasourceId">The datasource identifier.</param>
     /// <param name="includeCustomTypes">Whether to include custom types.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForDataTypeGet(
+    public static DapperMaticOperation ForDataTypeGet(
         string datasourceId,
         bool includeCustomTypes = false,
         ClaimsPrincipal? user = null
     )
     {
         var context = CreateContext("datatypes/get", user);
-        context.DatasourceId = datasourceId;
-        context.Properties ??= [];
-        context.Properties["IncludeCustomTypes"] = includeCustomTypes;
-        context.HttpMethod = "GET";
+        context = context with { DatasourceId = datasourceId };
+        context = context.WithProperty("IncludeCustomTypes", includeCustomTypes);
+        context = context with { HttpMethod = "GET" };
         return context;
     }
 
@@ -1387,23 +1475,17 @@ public static class OperationIdentifiers
     /// <param name="operation">The operation identifier.</param>
     /// <param name="properties">Custom properties.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForCustomOperation(
+    public static DapperMaticOperation ForCustomOperation(
         string operation,
         Dictionary<string, object>? properties = null,
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext(operation, user);
-        if (properties != null)
+        return CreateContext(operation, user) with
         {
-            context.Properties ??= [];
-            foreach (var (key, value) in properties)
-            {
-                context.Properties[key] = value;
-            }
-        }
-        context.HttpMethod = "POST"; // Default for custom operations
-        return context;
+            HttpMethod = "POST", // Default for custom operations
+            Properties = new Dictionary<string, object>(properties ?? [], StringComparer.OrdinalIgnoreCase),
+        };
     }
 
     /// <summary>
@@ -1415,7 +1497,7 @@ public static class OperationIdentifiers
     /// <param name="queryParams">Query parameters.</param>
     /// <param name="headers">HTTP headers.</param>
     /// <param name="user">Optional user context.</param>
-    public static IOperationContext ForHttpOperation(
+    public static DapperMaticOperation ForHttpOperation(
         string operation,
         string httpMethod = "POST",
         string endpointPath = "/api/dappermatic",
@@ -1424,29 +1506,13 @@ public static class OperationIdentifiers
         ClaimsPrincipal? user = null
     )
     {
-        var context = CreateContext(operation, user);
-        context.HttpMethod = httpMethod;
-        context.EndpointPath = endpointPath;
-
-        if (queryParams != null)
+        return CreateContext(operation, user) with
         {
-            context.QueryParameters ??= new Dictionary<string, StringValues>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (key, value) in queryParams)
-            {
-                context.QueryParameters[key] = value;
-            }
-        }
-
-        if (headers != null)
-        {
-            context.HeaderValues ??= new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var (key, value) in headers)
-            {
-                context.HeaderValues[key] = value;
-            }
-        }
-
-        return context;
+            HttpMethod = httpMethod,
+            EndpointPath = endpointPath,
+            QueryParameters = (queryParams ?? []).ToDictionary(p => p.Key, p => new StringValues(p.Value), StringComparer.OrdinalIgnoreCase),
+            HeaderValues = new Dictionary<string, string>(headers ?? [], StringComparer.OrdinalIgnoreCase),
+        };
     }
 
     #endregion

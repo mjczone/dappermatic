@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic primary key constraint endpoints.
 /// </summary>
-public static class PrimaryKeyConstraintEndpoints
+internal static class PrimaryKeyConstraintEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic primary key constraint endpoints to the specified route builder.
@@ -92,7 +92,7 @@ public static class PrimaryKeyConstraintEndpoints
 
     // Primary key constraint endpoint implementations
     private static Task<IResult> GetPrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -100,7 +100,7 @@ public static class PrimaryKeyConstraintEndpoints
     ) => GetSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> GetSchemaPrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -116,7 +116,7 @@ public static class PrimaryKeyConstraintEndpoints
     }
 
     private static Task<IResult> CreatePrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -134,7 +134,7 @@ public static class PrimaryKeyConstraintEndpoints
         );
 
     private static async Task<IResult> CreateSchemaPrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -154,12 +154,14 @@ public static class PrimaryKeyConstraintEndpoints
             )
             .Assert();
 
-        operationContext.RequestBody = primaryKey;
-        operationContext.ColumnNames =
-            primaryKey.ColumnNames != null && primaryKey.ColumnNames.Count >= 1 ? primaryKey.ColumnNames : null;
+        operationContext = operationContext with
+        {
+            RequestBody = primaryKey,
+            ColumnNames = primaryKey.ColumnNames != null && primaryKey.ColumnNames.Count >= 1 ? primaryKey.ColumnNames : null,
+        };
         if (!string.IsNullOrWhiteSpace(primaryKey.ConstraintName))
         {
-            operationContext.ConstraintName = primaryKey.ConstraintName;
+            operationContext = operationContext with { ConstraintName = primaryKey.ConstraintName };
         }
 
         var result = await service
@@ -177,7 +179,7 @@ public static class PrimaryKeyConstraintEndpoints
     }
 
     private static Task<IResult> DropPrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -185,7 +187,7 @@ public static class PrimaryKeyConstraintEndpoints
     ) => DropSchemaPrimaryKeyAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> DropSchemaPrimaryKeyAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

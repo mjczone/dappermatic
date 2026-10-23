@@ -3,7 +3,7 @@
 // Licensed under the GNU Lesser General Public License v3.0 or later.
 // See LICENSE in the project root for license information.
 
-using JsonFlatFileDataStore;
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore.Factories;
@@ -12,13 +12,23 @@ using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 namespace MJCZone.DapperMatic.AspNetCore.Repositories;
 
 /// <summary>
-/// File-based implementation of IDapperMaticDatasourceRepository that stores datasources in a JSON file with encrypted connection strings.
+/// File-based implementation of IDapperMaticDatasourceRepository that stores datasources in a JSON file with encrypted
+/// connection strings: <c>{ "datasources": [ ... ] }</c>, written whole on each change.
 /// </summary>
 public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceRepositoryBase, IDisposable
 {
-    private readonly DataStore _dataStore;
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        PropertyNameCaseInsensitive = true,
+        WriteIndented = true,
+    };
+
+    private readonly string _filePath;
     private readonly IDatasourceIdFactory _datasourceIdFactory;
     private readonly ILogger<FileDapperMaticDatasourceRepository> _logger;
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private List<StoredDatasource>? _datasources;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="FileDapperMaticDatasourceRepository"/> class.
@@ -36,27 +46,23 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
         : base(options)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(filePath);
+        RequireEncryptionKey("a file repository");
 
-        filePath = Path.GetFullPath(filePath);
+        _filePath = Path.GetFullPath(filePath);
 
         // Ensure directory exists
-        var directory = Path.GetDirectoryName(filePath);
+        var directory = Path.GetDirectoryName(_filePath);
         if (!string.IsNullOrEmpty(directory) && !Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        _dataStore = new DataStore(filePath);
         _datasourceIdFactory = datasourceIdFactory;
         _logger = logger;
     }
 
     /// <inheritdoc />
-    public override void Initialize()
-    {
-        // Ensure the collection exists
-        GetCollection();
-    }
+    public override void Initialize() => _ = Load();
 
     /// <inheritdoc />
     public override async Task<bool> AddDatasourceAsync(DatasourceDto datasource)
@@ -87,26 +93,31 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
             throw new ArgumentException("Datasource connection string is required.", nameof(datasource));
         }
 
-        if (await DatasourceExistsAsync(datasource.Id).ConfigureAwait(false))
-        {
-            return false; // Already exists
-        }
+        return await WriteAsync(datasources =>
+            {
+                if (Find(datasources, datasource.Id) is not null)
+                {
+                    return false; // Already exists
+                }
 
-        // Store the connection string encrypted
-        var datasourceCopy = new DatasourceDto
-        {
-            Id = datasource.Id,
-            Provider = datasource.Provider,
-            ConnectionString = EncryptConnectionString(datasource.ConnectionString),
-            DisplayName = datasource.DisplayName,
-            Description = datasource.Description,
-            Tags = datasource.Tags?.ToList() ?? [],
-            IsEnabled = datasource.IsEnabled.GetValueOrDefault(true),
-            CreatedAt = DateTimeOffset.UtcNow,
-            UpdatedAt = DateTimeOffset.UtcNow,
-        };
-
-        return await GetCollection().InsertOneAsync(datasourceCopy).ConfigureAwait(false);
+                var now = DateTimeOffset.UtcNow;
+                datasources.Add(
+                    new StoredDatasource
+                    {
+                        Id = datasource.Id,
+                        Provider = datasource.Provider,
+                        ConnectionString = EncryptConnectionString(datasource.ConnectionString),
+                        DisplayName = datasource.DisplayName,
+                        Description = datasource.Description,
+                        Tags = datasource.Tags?.ToList() ?? [],
+                        IsEnabled = datasource.IsEnabled.GetValueOrDefault(true),
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                    }
+                );
+                return true;
+            })
+            .ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -119,50 +130,46 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
             throw new ArgumentException("Datasource ID is required.", nameof(datasource));
         }
 
-        // Fetch existing to preserve non-updated fields
-        var existing = await GetDatasourceAsync(datasource.Id).ConfigureAwait(false);
-        if (existing == null)
-        {
-            return false; // Doesn't exist
-        }
+        return await WriteAsync(datasources =>
+            {
+                if (Find(datasources, datasource.Id) is not { } existing)
+                {
+                    return false; // Doesn't exist
+                }
 
-        if (datasource.Provider != null)
-        {
-            existing.Provider = datasource.Provider;
-        }
+                if (datasource.Provider != null)
+                {
+                    existing.Provider = datasource.Provider;
+                }
 
-        if (!string.IsNullOrWhiteSpace(datasource.ConnectionString))
-        {
-            existing.ConnectionString = EncryptConnectionString(datasource.ConnectionString);
-        }
+                if (!string.IsNullOrWhiteSpace(datasource.ConnectionString))
+                {
+                    existing.ConnectionString = EncryptConnectionString(datasource.ConnectionString);
+                }
 
-        if (!string.IsNullOrWhiteSpace(datasource.DisplayName))
-        {
-            existing.DisplayName = datasource.DisplayName;
-        }
+                if (!string.IsNullOrWhiteSpace(datasource.DisplayName))
+                {
+                    existing.DisplayName = datasource.DisplayName;
+                }
 
-        if (!string.IsNullOrWhiteSpace(datasource.Description))
-        {
-            existing.Description = datasource.Description;
-        }
+                if (!string.IsNullOrWhiteSpace(datasource.Description))
+                {
+                    existing.Description = datasource.Description;
+                }
 
-        if (datasource.Tags != null && datasource.Tags.Count != 0)
-        {
-            existing.Tags = [.. datasource.Tags];
-        }
+                if (datasource.Tags != null && datasource.Tags.Count != 0)
+                {
+                    existing.Tags = [.. datasource.Tags];
+                }
 
-        if (datasource.IsEnabled != null)
-        {
-            existing.IsEnabled = datasource.IsEnabled;
-        }
+                if (datasource.IsEnabled != null)
+                {
+                    existing.IsEnabled = datasource.IsEnabled.Value;
+                }
 
-        existing.UpdatedAt = DateTimeOffset.UtcNow;
-
-        return await GetCollection()
-            .ReplaceOneAsync(
-                d => d.Id != null && d.Id.Equals(existing.Id, StringComparison.OrdinalIgnoreCase),
-                existing
-            )
+                existing.UpdatedAt = DateTimeOffset.UtcNow;
+                return true;
+            })
             .ConfigureAwait(false);
     }
 
@@ -171,34 +178,20 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        var removed = await GetCollection()
-            .DeleteOneAsync(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase))
+        return await WriteAsync(datasources => Find(datasources, id) is { } existing && datasources.Remove(existing))
             .ConfigureAwait(false);
-
-        return removed;
     }
 
     /// <inheritdoc />
     public override Task<List<DatasourceDto>> GetDatasourcesAsync(string? tag = null)
     {
-        var collection = GetCollection();
-
-        List<DatasourceDto> datasources = string.IsNullOrWhiteSpace(tag)
-            ? [.. collection.AsQueryable().OrderBy(d => d.DisplayName)]
-            :
-            [
-                .. collection
-                    .AsQueryable()
-                    .Where(d => d.Tags != null && d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
-                    .OrderBy(d => d.DisplayName),
-            ];
-
-        foreach (var ds in datasources)
-        {
-            // Do not return the encrypted connection string
-            ds.ConnectionString = null;
-        }
-
+        List<DatasourceDto> datasources =
+        [
+            .. Load()
+                .Where(d => string.IsNullOrWhiteSpace(tag) || d.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+                .OrderBy(d => d.DisplayName)
+                .Select(d => d.ToDto()),
+        ];
         return Task.FromResult(datasources);
     }
 
@@ -206,17 +199,7 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
     public override Task<DatasourceDto?> GetDatasourceAsync(string id)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
-
-        var datasource = GetCollection()
-            .AsQueryable()
-            .FirstOrDefault(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-        if (datasource != null)
-        {
-            // Do not return the encrypted connection string
-            datasource.ConnectionString = null;
-        }
-
-        return Task.FromResult(datasource);
+        return Task.FromResult(Find(Load(), id)?.ToDto());
     }
 
     /// <inheritdoc />
@@ -232,23 +215,15 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
 
-        var datasource = GetCollection()
-            .AsQueryable()
-            .FirstOrDefault(d => d.Id != null && d.Id.Equals(id, StringComparison.OrdinalIgnoreCase));
-        if (datasource == null)
+        var encryptedConnectionString = Find(Load(), id)?.ConnectionString;
+        if (string.IsNullOrWhiteSpace(encryptedConnectionString))
         {
             return Task.FromResult<string?>(null);
         }
 
-        var encryptedConnectionString = datasource.ConnectionString;
-
         try
         {
-            return Task.FromResult(
-                !string.IsNullOrWhiteSpace(encryptedConnectionString)
-                    ? DecryptConnectionString(encryptedConnectionString)
-                    : null
-            );
+            return Task.FromResult<string?>(DecryptConnectionString(encryptedConnectionString));
         }
         catch (Exception ex)
         {
@@ -260,13 +235,106 @@ public sealed class FileDapperMaticDatasourceRepository : DapperMaticDatasourceR
     /// <summary>
     /// Releases all resources used by the current instance of the <see cref="FileDapperMaticDatasourceRepository"/> class.
     /// </summary>
-    public void Dispose()
+    public void Dispose() => _gate.Dispose();
+
+    private static StoredDatasource? Find(List<StoredDatasource> datasources, string? id) =>
+        datasources.FirstOrDefault(d => string.Equals(d.Id, id, StringComparison.OrdinalIgnoreCase));
+
+    // The datasources as last read or written. A snapshot: writes replace the list, never change it in place.
+    private List<StoredDatasource> Load()
     {
-        _dataStore?.Dispose();
+        if (Volatile.Read(ref _datasources) is { } loaded)
+        {
+            return loaded;
+        }
+
+        List<StoredDatasource> datasources = [];
+        if (File.Exists(_filePath))
+        {
+            using var stream = File.OpenRead(_filePath);
+            if (stream.Length > 0)
+            {
+                datasources = JsonSerializer.Deserialize<StoredFile>(stream, JsonOptions)?.Datasources ?? [];
+            }
+        }
+
+        Interlocked.CompareExchange(ref _datasources, datasources, null);
+        return _datasources!;
     }
 
-    private IDocumentCollection<DatasourceDto> GetCollection()
+    // Changes a copy of the datasources and, if the change says so, writes the file whole (to a temporary file, then
+    // moved over the old one) before publishing the copy.
+    private async Task<bool> WriteAsync(Func<List<StoredDatasource>, bool> change)
     {
-        return _dataStore.GetCollection<DatasourceDto>("datasources");
+        await _gate.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            var copy = Load().Select(d => d.Clone()).ToList();
+            if (!change(copy))
+            {
+                return false;
+            }
+
+            var temporary = _filePath + ".tmp";
+            await using (var stream = File.Create(temporary))
+            {
+                await JsonSerializer.SerializeAsync(stream, new StoredFile { Datasources = copy }, JsonOptions).ConfigureAwait(false);
+            }
+
+            File.Move(temporary, _filePath, overwrite: true);
+            Volatile.Write(ref _datasources, copy);
+            return true;
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
+    private sealed class StoredFile
+    {
+        public List<StoredDatasource> Datasources { get; set; } = [];
+    }
+
+    private sealed class StoredDatasource
+    {
+        public string? Id { get; set; }
+
+        public string? Provider { get; set; }
+
+        public string? ConnectionString { get; set; }
+
+        public string? DisplayName { get; set; }
+
+        public string? Description { get; set; }
+
+        public List<string> Tags { get; set; } = [];
+
+        public bool IsEnabled { get; set; } = true;
+
+        public DateTimeOffset CreatedAt { get; set; }
+
+        public DateTimeOffset UpdatedAt { get; set; }
+
+        public StoredDatasource Clone()
+        {
+            var clone = (StoredDatasource)MemberwiseClone();
+            clone.Tags = [.. Tags];
+            return clone;
+        }
+
+        // The connection string is never returned.
+        public DatasourceDto ToDto() =>
+            new()
+            {
+                Id = Id,
+                Provider = Provider,
+                DisplayName = DisplayName,
+                Description = Description,
+                Tags = [.. Tags],
+                IsEnabled = IsEnabled,
+                CreatedAt = CreatedAt,
+                UpdatedAt = UpdatedAt,
+            };
     }
 }

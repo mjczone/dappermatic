@@ -45,8 +45,13 @@ builder.Services.AddOpenApi(options =>
     );
 });
 
-// Add DapperMatic services with in-memory repository (default)
-builder.Services.AddDapperMatic();
+// Add DapperMatic services with in-memory repository (default), and the drivers this site uses: DapperMatic bundles none.
+builder.Services.AddDapperMatic(dm =>
+    dm.AddProvider(Npgsql.NpgsqlFactory.Instance)
+        .AddProvider(Microsoft.Data.SqlClient.SqlClientFactory.Instance)
+        .AddProvider(MySqlConnector.MySqlConnectorFactory.Instance)
+        .AddProvider(Microsoft.Data.Sqlite.SqliteFactory.Instance)
+);
 
 // Configure DapperMatic options from the appsettings.json file
 builder.Services.Configure<DapperMaticOptions>(builder.Configuration.GetSection("DapperMatic"));

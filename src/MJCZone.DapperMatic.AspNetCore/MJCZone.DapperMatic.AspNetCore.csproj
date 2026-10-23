@@ -28,24 +28,26 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="JsonFlatFileDataStore" Version="2.4.2" />
-    <PackageReference Include="MySQL.Data" Version="9.4.0" />
-    <PackageReference Include="MySqlConnector" Version="2.4.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
-    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
-    <PackageReference Include="NetTopologySuite" Version="2.6.0" />
-    <PackageReference Include="Npgsql" Version="10.0.3" />
-    <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
-    <!-- Microsoft.Data.SqlClient 6.1.2 pulls a vulnerable System.Security.Cryptography.Pkcs 9.0.4. -->
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="../MJCZone.DapperMatic/MJCZone.DapperMatic.csproj" />
   </ItemGroup>
+  <!--
+    This package uses DapperMatic's internals (its query engine), which change between versions: it depends on the exact
+    version of MJCZone.DapperMatic it was built with, [x.y.z], never a range.
+  -->
+  <Target Name="PinDapperMaticVersion" AfterTargets="_GetProjectReferenceVersions">
+    <ItemGroup>
+      <_ProjectReferencesWithVersions Update="@(_ProjectReferencesWithVersions)" ProjectVersion="[%(_ProjectReferencesWithVersions.ProjectVersion)]" />
+    </ItemGroup>
+  </Target>
   <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>MJCZone.DapperMatic.AspNetCore.Tests</_Parameter1>
     </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>MJCZone.DapperMatic.GraphQL</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="2.2.0" />
   </ItemGroup>
 </Project>

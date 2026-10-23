@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic schema endpoints.
 /// </summary>
-public static class SchemaEndpoints
+internal static class SchemaEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic schema endpoints to the specified route builder.
@@ -85,7 +85,7 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> ListSchemasAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromQuery] string? filter = null,
@@ -107,7 +107,7 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> GetSchemaAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,
@@ -122,7 +122,7 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> CreateSchemaAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromBody] SchemaDto schema,
@@ -137,8 +137,7 @@ public static class SchemaEndpoints
             .MinLength(r => r.SchemaName, 1, nameof(SchemaDto.SchemaName), inclusive: true)
             .Assert();
 
-        operationContext.RequestBody = schema;
-        operationContext.SchemaName = schema.SchemaName!.Trim();
+        operationContext = operationContext with { RequestBody = schema, SchemaName = schema.SchemaName!.Trim() };
 
         var created = await service
             .CreateSchemaAsync(operationContext, datasourceId, schema, cancellationToken)
@@ -151,7 +150,7 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> DropSchemaAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,
@@ -166,7 +165,7 @@ public static class SchemaEndpoints
     }
 
     private static async Task<IResult> SchemaExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string schemaName,

@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic check constraint endpoints.
 /// </summary>
-public static class CheckConstraintEndpoints
+internal static class CheckConstraintEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic check constraint endpoints to the specified route builder.
@@ -103,7 +103,7 @@ public static class CheckConstraintEndpoints
 
     // Check constraint endpoint implementations
     private static Task<IResult> ListCheckConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -111,7 +111,7 @@ public static class CheckConstraintEndpoints
     ) => ListSchemaCheckConstraintsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaCheckConstraintsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -127,7 +127,7 @@ public static class CheckConstraintEndpoints
     }
 
     private static Task<IResult> GetCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -145,7 +145,7 @@ public static class CheckConstraintEndpoints
         );
 
     private static async Task<IResult> GetSchemaCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -169,7 +169,7 @@ public static class CheckConstraintEndpoints
     }
 
     private static Task<IResult> CreateCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -187,7 +187,7 @@ public static class CheckConstraintEndpoints
         );
 
     private static async Task<IResult> CreateSchemaCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -202,14 +202,14 @@ public static class CheckConstraintEndpoints
             .NotNullOrWhiteSpace(v => v.CheckExpression, nameof(CheckConstraintDto.CheckExpression))
             .Assert();
 
-        operationContext.RequestBody = checkConstraint;
+        operationContext = operationContext with { RequestBody = checkConstraint };
         if (!string.IsNullOrWhiteSpace(checkConstraint.ConstraintName))
         {
-            operationContext.ConstraintName = checkConstraint.ConstraintName;
+            operationContext = operationContext with { ConstraintName = checkConstraint.ConstraintName };
         }
         if (!string.IsNullOrWhiteSpace(checkConstraint.ColumnName))
         {
-            operationContext.ColumnNames = [checkConstraint.ColumnName];
+            operationContext = operationContext with { ColumnNames = [checkConstraint.ColumnName] };
         }
 
         var created = await service
@@ -230,7 +230,7 @@ public static class CheckConstraintEndpoints
     }
 
     private static Task<IResult> DropCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -248,7 +248,7 @@ public static class CheckConstraintEndpoints
         );
 
     private static async Task<IResult> DropSchemaCheckConstraintAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

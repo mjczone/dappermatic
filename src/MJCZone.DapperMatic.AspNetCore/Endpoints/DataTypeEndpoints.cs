@@ -18,7 +18,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic data type endpoints.
 /// </summary>
-public static class DataTypeEndpoints
+internal static class DataTypeEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic data type endpoints to the specified route builder.
@@ -53,7 +53,7 @@ public static class DataTypeEndpoints
     }
 
     private static async Task<IResult> ListDatasourceDataTypes(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromQuery] string? include,

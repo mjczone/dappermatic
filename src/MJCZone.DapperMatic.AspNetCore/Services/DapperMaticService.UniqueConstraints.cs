@@ -25,7 +25,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of unique constraints.</returns>
     public async Task<IEnumerable<UniqueConstraintDto>> GetUniqueConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -81,7 +81,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The unique constraint or null if not found.</returns>
     public async Task<UniqueConstraintDto> GetUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -144,7 +144,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created unique constraint or null if creation failed.</returns>
     public async Task<UniqueConstraintDto> CreateUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         UniqueConstraintDto uniqueConstraint,
@@ -286,7 +286,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the unique constraint was dropped successfully, false otherwise.</returns>
     public async Task DropUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,

@@ -176,12 +176,11 @@ public class TestcontainersAssemblyFixture : IAsyncLifetime
             {
                 Id = DatasourceId_Sqlite,
                 Provider = "Sqlite",
-                ConnectionString = new System.Data.SQLite.SQLiteConnectionStringBuilder
+                ConnectionString = new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder
                 {
                     DataSource = string.IsNullOrWhiteSpace(sqliteFile) ? _sqliteFilePath : sqliteFile,
                     ForeignKeys = true,
-                    BinaryGUID = false,
-                    FailIfMissing = false,
+                    Mode = Microsoft.Data.Sqlite.SqliteOpenMode.ReadWriteCreate,
                 }.ToString(),
                 DisplayName = "Test SQLite",
                 Description = "SQLite database file",

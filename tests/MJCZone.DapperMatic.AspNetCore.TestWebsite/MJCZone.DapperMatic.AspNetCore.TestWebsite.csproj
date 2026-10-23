@@ -8,6 +8,12 @@
     <!-- Built-in ASP.NET Core 10 OpenAPI generation + Scalar UI (replaces Swashbuckle) -->
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.11" />
     <PackageReference Include="Scalar.AspNetCore" Version="2.17.1" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.2" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+    <PackageReference Include="Npgsql" Version="10.0.3" />
+    <!-- Microsoft.Data.SqlClient pulls a version of this with GHSA-846f-f764-76mx and GHSA-2fmv-rv2c-59x7 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.13" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\MJCZone.DapperMatic.AspNetCore\MJCZone.DapperMatic.AspNetCore.csproj" />

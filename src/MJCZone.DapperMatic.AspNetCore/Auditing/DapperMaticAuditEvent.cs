@@ -16,6 +16,17 @@ public class DapperMaticAuditEvent
     public string UserIdentifier { get; set; } = string.Empty;
 
     /// <summary>
+    /// Gets or sets the tenant the operation was performed in, or null for none.
+    /// </summary>
+    public string? TenantId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the caller's claims of the types <see cref="DapperMaticOptions.AuditClaims"/> names, by type; a
+    /// claim the caller has several of holds them comma-separated.
+    /// </summary>
+    public Dictionary<string, string> Claims { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the operation that was performed (e.g., "datasources/post", "tables/put").
     /// </summary>
     public string Operation { get; set; } = string.Empty;

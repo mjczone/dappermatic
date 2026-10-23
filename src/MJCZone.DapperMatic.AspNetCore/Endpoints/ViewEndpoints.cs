@@ -25,7 +25,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// Registers both default schema endpoints (/d/{datasourceId}/v) and
 /// schema-specific endpoints (/d/{datasourceId}/s/{schemaName}/v).
 /// </remarks>
-public static class ViewEndpoints
+internal static class ViewEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic view endpoints to the specified route builder.
@@ -41,6 +41,19 @@ public static class ViewEndpoints
     public static IEndpointRouteBuilder MapDapperMaticViewEndpoints(
         this IEndpointRouteBuilder app,
         string? basePath = null
+    ) => app.MapDapperMaticViewEndpoints(basePath, DapperMaticEndpoints.All);
+
+    /// <summary>
+    /// Maps the view endpoints of the given sets.
+    /// </summary>
+    /// <param name="app">The route builder.</param>
+    /// <param name="basePath">The base path for the API endpoints.</param>
+    /// <param name="sets">The sets to map: definitions (Schemas), queries (Query), and row writes (Rows).</param>
+    /// <returns>The route builder for method chaining.</returns>
+    internal static IEndpointRouteBuilder MapDapperMaticViewEndpoints(
+        this IEndpointRouteBuilder app,
+        string? basePath,
+        DapperMaticEndpoints sets
     )
     {
         // Register default schema endpoints (for single-schema scenarios)
@@ -50,7 +63,7 @@ public static class ViewEndpoints
             OperationTags.DatasourceViews
         );
 
-        RegisterViewEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false);
+        RegisterViewEndpoints(defaultGroup, "DefaultSchema", isSchemaSpecific: false, sets);
 
         // Register schema-specific endpoints (for multi-tenant scenarios)
         var schemaGroup = app.MapDapperMaticEndpointGroup(
@@ -59,95 +72,106 @@ public static class ViewEndpoints
             OperationTags.DatasourceViews
         );
 
-        RegisterViewEndpoints(schemaGroup, "Schema", isSchemaSpecific: true);
+        RegisterViewEndpoints(schemaGroup, "Schema", isSchemaSpecific: true, sets);
 
         return app;
     }
 
-    private static void RegisterViewEndpoints(RouteGroupBuilder group, string namePrefix, bool isSchemaSpecific)
+    private static void RegisterViewEndpoints(
+        RouteGroupBuilder group,
+        string namePrefix,
+        bool isSchemaSpecific,
+        DapperMaticEndpoints sets
+    )
     {
         var schemaText = isSchemaSpecific ? "a specific schema" : "the default schema";
         var schemaInText = isSchemaSpecific ? "in a specific schema" : "in the default schema";
 
-        // List all views
-        group
-            .MapGet("/", isSchemaSpecific ? ListSchemaViewsAsync : ListViewsAsync)
-            .WithName($"List{namePrefix}Views")
-            .WithSummary($"Gets all views for {schemaText}")
-            .WithDescription("Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.")
-            .Produces<ViewListResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+        if (sets.HasFlag(DapperMaticEndpoints.Schemas))
+        {
+            // List all views
+            group
+                .MapGet("/", isSchemaSpecific ? ListSchemaViewsAsync : ListViewsAsync)
+                .WithName($"List{namePrefix}Views")
+                .WithSummary($"Gets all views for {schemaText}")
+                .WithDescription("Use the 'include' query parameter with 'definition' to include view definitions, or '*' to include all fields. By default, definitions are excluded.")
+                .Produces<ViewListResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Get specific view
-        group
-            .MapGet("/{viewName}", isSchemaSpecific ? GetSchemaViewAsync : GetViewAsync)
-            .WithName($"Get{namePrefix}View")
-            .WithSummary($"Gets a view by name from {schemaText}")
-            .WithDescription("Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.")
-            .Produces<ViewResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Get specific view
+            group
+                .MapGet("/{viewName}", isSchemaSpecific ? GetSchemaViewAsync : GetViewAsync)
+                .WithName($"Get{namePrefix}View")
+                .WithSummary($"Gets a view by name from {schemaText}")
+                .WithDescription("Use the 'include' query parameter with 'definition' to include the view definition, or '*' to include all fields. By default, the definition is excluded.")
+                .Produces<ViewResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Create new view
-        group
-            .MapPost("/", isSchemaSpecific ? CreateSchemaViewAsync : CreateViewAsync)
-            .WithName($"Create{namePrefix}View")
-            .WithSummary($"Creates a new view {schemaInText}")
-            .Produces<ViewResponse>((int)HttpStatusCode.Created)
-            .Produces((int)HttpStatusCode.Conflict)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Create new view
+            group
+                .MapPost("/", isSchemaSpecific ? CreateSchemaViewAsync : CreateViewAsync)
+                .WithName($"Create{namePrefix}View")
+                .WithSummary($"Creates a new view {schemaInText}")
+                .Produces<ViewResponse>((int)HttpStatusCode.Created)
+                .Produces((int)HttpStatusCode.Conflict)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Update existing view
-        group
-            .MapPut("/{viewName}", isSchemaSpecific ? UpdateSchemaViewAsync : UpdateViewAsync)
-            .WithName($"Update{namePrefix}View")
-            .WithSummary($"Updates an existing view {schemaInText}")
-            .Produces<ViewResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Update existing view
+            group
+                .MapPut("/{viewName}", isSchemaSpecific ? UpdateSchemaViewAsync : UpdateViewAsync)
+                .WithName($"Update{namePrefix}View")
+                .WithSummary($"Updates an existing view {schemaInText}")
+                .Produces<ViewResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Drop view
-        group
-            .MapDelete("/{viewName}", isSchemaSpecific ? DropSchemaViewAsync : DropViewAsync)
-            .WithName($"Drop{namePrefix}View")
-            .WithSummary($"Drops a view from {schemaText}")
-            .Produces((int)HttpStatusCode.NoContent)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Drop view
+            group
+                .MapDelete("/{viewName}", isSchemaSpecific ? DropSchemaViewAsync : DropViewAsync)
+                .WithName($"Drop{namePrefix}View")
+                .WithSummary($"Drops a view from {schemaText}")
+                .Produces((int)HttpStatusCode.NoContent)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Check if view exists
-        group
-            .MapGet("/{viewName}/exists", isSchemaSpecific ? SchemaViewExistsAsync : ViewExistsAsync)
-            .WithName($"{namePrefix}ViewExists")
-            .WithSummary($"Checks if a view exists {schemaInText}")
-            .Produces<ViewExistsResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Check if view exists
+            group
+                .MapGet("/{viewName}/exists", isSchemaSpecific ? SchemaViewExistsAsync : ViewExistsAsync)
+                .WithName($"{namePrefix}ViewExists")
+                .WithSummary($"Checks if a view exists {schemaInText}")
+                .Produces<ViewExistsResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
 
-        // Query view via GET with URL parameters
-        group
-            .MapGet("/{viewName}/query", isSchemaSpecific ? QuerySchemaViewViaGetAsync : QueryViewViaGetAsync)
-            .WithName($"Query{namePrefix}ViewViaGet")
-            .WithSummary($"Queries a view {schemaInText} using URL parameters")
-            .Produces<QueryResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+        if (sets.HasFlag(DapperMaticEndpoints.Query))
+        {
+            // Query view via GET with URL parameters
+            group
+                .MapGet("/{viewName}/query", isSchemaSpecific ? QuerySchemaViewViaGetAsync : QueryViewViaGetAsync)
+                .WithName($"Query{namePrefix}ViewViaGet")
+                .WithSummary($"Queries a view {schemaInText} using URL parameters")
+                .Produces<QueryResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
 
-        // Query view with filtering, sorting, and pagination
-        group
-            .MapPost("/{viewName}/query", isSchemaSpecific ? QuerySchemaViewAsync : QueryViewAsync)
-            .WithName($"Query{namePrefix}View")
-            .WithSummary($"Queries a view {schemaInText} with filtering, sorting, and pagination")
-            .Produces<QueryResponse>((int)HttpStatusCode.OK)
-            .Produces((int)HttpStatusCode.NotFound)
-            .Produces((int)HttpStatusCode.Forbidden);
+            // Query view with filtering, sorting, and pagination
+            group
+                .MapPost("/{viewName}/query", isSchemaSpecific ? QuerySchemaViewAsync : QueryViewAsync)
+                .WithName($"Query{namePrefix}View")
+                .WithSummary($"Queries a view {schemaInText} with filtering, sorting, and pagination")
+                .Produces<QueryResponse>((int)HttpStatusCode.OK)
+                .Produces((int)HttpStatusCode.NotFound)
+                .Produces((int)HttpStatusCode.Forbidden);
+        }
     }
 
     // Non-schema version delegates to schema version with null schemaName
     private static Task<IResult> ListViewsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromQuery] string? include,
@@ -156,7 +180,7 @@ public static class ViewEndpoints
     ) => ListSchemaViewsAsync(operationContext, service, datasourceId, null, include, filter, cancellationToken);
 
     private static async Task<IResult> ListSchemaViewsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -195,7 +219,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> GetViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -204,7 +228,7 @@ public static class ViewEndpoints
     ) => GetSchemaViewAsync(operationContext, service, datasourceId, null, viewName, include, cancellationToken);
 
     private static async Task<IResult> GetSchemaViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -240,7 +264,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> CreateViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromBody] ViewDto view,
@@ -248,7 +272,7 @@ public static class ViewEndpoints
     ) => CreateSchemaViewAsync(operationContext, service, datasourceId, null, view, cancellationToken);
 
     private static async Task<IResult> CreateSchemaViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -268,8 +292,7 @@ public static class ViewEndpoints
         // Route parameters take priority
         view.SchemaName = schemaName;
 
-        operationContext.RequestBody = view;
-        operationContext.ViewName = view.ViewName;
+        operationContext = operationContext with { RequestBody = view, ViewName = view.ViewName };
 
         var created = await service
             .CreateViewAsync(operationContext, datasourceId, view, cancellationToken)
@@ -282,7 +305,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> UpdateViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -291,7 +314,7 @@ public static class ViewEndpoints
     ) => UpdateSchemaViewAsync(operationContext, service, datasourceId, null, viewName, updates, cancellationToken);
 
     private static async Task<IResult> UpdateSchemaViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -312,7 +335,7 @@ public static class ViewEndpoints
             .MaxLength(u => u.ViewName, 128, nameof(ViewDto.ViewName), inclusive: true)
             .Assert();
 
-        operationContext.RequestBody = updates;
+        operationContext = operationContext with { RequestBody = updates };
 
         // Check if this is a rename (ViewName in body differs from route parameter)
         var isRename = !string.IsNullOrWhiteSpace(updates.ViewName) && updates.ViewName != viewName;
@@ -338,8 +361,7 @@ public static class ViewEndpoints
         // Handle rename separately if needed
         if (isRename)
         {
-            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            operationContext.Properties["NewViewName"] = updates.ViewName!;
+            operationContext = operationContext.WithProperty("NewViewName", updates.ViewName!);
             var renamed = await service
                 .RenameViewAsync(
                     operationContext,
@@ -363,7 +385,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> DropViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -371,7 +393,7 @@ public static class ViewEndpoints
     ) => DropSchemaViewAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> DropSchemaViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -387,7 +409,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> ViewExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -395,7 +417,7 @@ public static class ViewEndpoints
     ) => SchemaViewExistsAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> SchemaViewExistsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -411,7 +433,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> QueryViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -420,7 +442,7 @@ public static class ViewEndpoints
     ) => QuerySchemaViewAsync(operationContext, service, datasourceId, null, viewName, query, cancellationToken);
 
     private static async Task<IResult> QuerySchemaViewAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -434,7 +456,7 @@ public static class ViewEndpoints
             // Set it on the request to pass it down
             query.SchemaName = schemaName;
         }
-        operationContext.RequestBody = query;
+        operationContext = operationContext with { RequestBody = query };
 
         var queryResult = await service
             .QueryViewAsync(operationContext, datasourceId, viewName, query, schemaName, cancellationToken)
@@ -446,7 +468,7 @@ public static class ViewEndpoints
     }
 
     private static Task<IResult> QueryViewViaGetAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string viewName,
@@ -454,7 +476,7 @@ public static class ViewEndpoints
     ) => QuerySchemaViewViaGetAsync(operationContext, service, datasourceId, null, viewName, cancellationToken);
 
     private static async Task<IResult> QuerySchemaViewViaGetAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -462,13 +484,13 @@ public static class ViewEndpoints
         CancellationToken cancellationToken = default
     )
     {
-        var query = QueryDto.FromQueryParameters(operationContext.QueryParameters ?? []);
+        var query = QueryDto.FromQueryParameters(operationContext.QueryParameters);
         if (!string.IsNullOrWhiteSpace(schemaName))
         {
             // Set it on the request to pass it down
             query.SchemaName = schemaName;
         }
-        operationContext.RequestBody = query;
+        operationContext = operationContext with { RequestBody = query };
 
         var queryResult = await service
             .QueryViewAsync(operationContext, datasourceId, viewName, query, schemaName, cancellationToken)

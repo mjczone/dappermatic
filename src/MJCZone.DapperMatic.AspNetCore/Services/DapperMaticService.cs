@@ -7,12 +7,16 @@ using System.Data;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Dapper;
+using Microsoft.Extensions.Options;
 using MJCZone.DapperMatic.AspNetCore.Auditing;
+using MJCZone.DapperMatic.AspNetCore.Caching;
 using MJCZone.DapperMatic.AspNetCore.Factories;
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
 using MJCZone.DapperMatic.AspNetCore.Repositories;
 using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Validation;
+
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
@@ -21,10 +25,20 @@ namespace MJCZone.DapperMatic.AspNetCore.Services;
 /// </summary>
 public partial class DapperMaticService : IDapperMaticService
 {
+    private static readonly DmAction[] RowActions = [DmAction.Read, DmAction.Create, DmAction.Update, DmAction.Delete];
+
     private readonly IDapperMaticDatasourceRepository _datasourceRepository;
     private readonly IDbConnectionFactory _connectionFactory;
     private readonly IDapperMaticPermissions _permissions;
     private readonly IDapperMaticAuditLogger _auditLogger;
+    private readonly DapperMaticOptions _options;
+    private readonly DapperMaticSchemaCache _schemaCache;
+    private readonly DapperMaticPolicySet _policies;
+    private readonly DapperMaticResultCache? _resultCache;
+    private readonly Changes.DapperMaticChangeLog? _changeLog;
+    private readonly Changes.DapperMaticRealtimeHub? _hub;
+    private readonly DapperMaticCallerModelCache? _callerModels;
+    private string? _session = string.Empty;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="DapperMaticService"/> class.
@@ -39,11 +53,90 @@ public partial class DapperMaticService : IDapperMaticService
         IDapperMaticPermissions permissions,
         IDapperMaticAuditLogger auditLogger
     )
+        : this(datasourceRepository, connectionFactory, permissions, auditLogger, Options.Create(new DapperMaticOptions())) { }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="DapperMaticService"/> class, with the options that declare the
+    /// relations query requests may follow and the limits on what they may ask for.
+    /// </summary>
+    /// <param name="datasourceRepository">The datasource repository.</param>
+    /// <param name="connectionFactory">The connection factory.</param>
+    /// <param name="permissions">The permissions manager.</param>
+    /// <param name="auditLogger">The audit logger.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="schemaCache">The cache of table and view descriptions, or null for one of the service's own.</param>
+    /// <param name="policies">The policies in force, or null for those of the options.</param>
+    /// <param name="resultCache">The query results kept for the tables the options list, or null to keep none.</param>
+    /// <param name="changeLog">Where the changes webhooks and subscriptions hear are noted, or null to note none.</param>
+    /// <param name="hub">The subscriptions open on this server, told of its changes at once; or null.</param>
+    /// <param name="callerModels">The callers' models kept, or null to keep none.</param>
+    public DapperMaticService(
+        IDapperMaticDatasourceRepository datasourceRepository,
+        IDbConnectionFactory connectionFactory,
+        IDapperMaticPermissions permissions,
+        IDapperMaticAuditLogger auditLogger,
+        IOptions<DapperMaticOptions> options,
+        DapperMaticSchemaCache? schemaCache = null,
+        DapperMaticPolicySet? policies = null,
+        DapperMaticResultCache? resultCache = null,
+        Changes.DapperMaticChangeLog? changeLog = null,
+        Changes.DapperMaticRealtimeHub? hub = null,
+        DapperMaticCallerModelCache? callerModels = null
+    )
     {
+        ArgumentNullException.ThrowIfNull(options);
         _datasourceRepository = datasourceRepository;
         _connectionFactory = connectionFactory;
         _permissions = permissions;
         _auditLogger = auditLogger;
+        _options = options.Value;
+        _schemaCache = schemaCache ?? new DapperMaticSchemaCache(_options.SchemaCacheDuration);
+        _policies = policies ?? new DapperMaticPolicySet(options);
+        _resultCache = resultCache;
+        _changeLog = changeLog;
+        _hub = hub;
+        _callerModels = callerModels;
+    }
+
+    /// <summary>
+    /// Names the schema of an operation when neither its request nor its tenant names one: the datasource's default
+    /// schema (dbo, public), where the operation acts. It is authorized as acting there, so that leaving the schema out
+    /// never passes over a policy about schemas.
+    /// </summary>
+    /// <param name="context">The operation.</param>
+    /// <returns>The operation, in the schema it acts in.</returns>
+    internal async Task<DapperMaticOperation> ResolveSchemaAsync(DapperMaticOperation context)
+    {
+        if (context.DatasourceId is not { Length: > 0 } datasourceId
+            || context.SchemaName is { Length: > 0 } and not "_"
+            || context.Access?.Tenant?.SchemaName is not null
+            || !DapperMaticPolicySet.ActsInSchema(context.Operation))
+        {
+            return context;
+        }
+
+        return context with { SchemaName = await DefaultSchemaOfAsync(datasourceId).ConfigureAwait(false) };
+    }
+
+    /// <summary>
+    /// Opens a datasource's connection for typed code run as the request's caller, with the session values the
+    /// database's own row-level security reads.
+    /// </summary>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <returns>The connection.</returns>
+    /// <param name="caller">The caller, whose values the session values read.</param>
+    internal Task<System.Data.IDbConnection> OpenForCallerAsync(string datasourceId, DmAccessContext caller) => ConnectAsync(datasourceId, caller);
+
+    /// <summary>
+    /// Gets the schema a datasource puts a name with none in: dbo, public; null for providers without schemas, or a
+    /// datasource that does not exist.
+    /// </summary>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <returns>The schema name, or null.</returns>
+    internal async Task<string?> DefaultSchemaOfAsync(string datasourceId)
+    {
+        var provider = (await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false))?.Provider;
+        return provider is { Length: > 0 } && DapperMaticProviders.TryParse(provider, out var type) ? DapperMaticProviders.DefaultSchemaName(type) : null;
     }
 
     #region Shared Protected Methods
@@ -56,68 +149,44 @@ public partial class DapperMaticService : IDapperMaticService
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     protected virtual async Task AssertPermissionsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         [CallerMemberName] string methodName = ""
     )
     {
-        // Only validate what's REQUIRED for authorization
         ArgumentNullException.ThrowIfNull(context, nameof(context));
 
-        // Always track the current method for rich context
-        context.Properties ??= [];
-        context.Properties["CurrentMethod"] = methodName;
-
-        // Someone could enhance this with a cache of some kind if performance is a concern,
-        // checking for example if we've already authorized this operation
-        // Provided as an example if someone wants to override this method and implement caching,
-        // see commented code below where cache is populated
-        //
-        // const string authCacheKey = "_AuthorizationCache";
-        // if (context.Properties.TryGetValue(authCacheKey, out var cache))
-        // {
-        //     var authCache = (HashSet<string>)cache;
-        //     if (authCache.Contains(context.Operation!))
-        //     {
-        //         return; // Already authorized for this operation
-        //     }
-        // }
-
-        if (!await _permissions.IsAuthorizedAsync(context).ConfigureAwait(false))
+        // Authorized as acting in its schema, and recorded as the service received it: a failure is audited so.
+        var operation = (await ResolveSchemaAsync(context).ConfigureAwait(false)).WithProperty("CurrentMethod", methodName);
+        context.State.Received ??= operation;
+        if (!await _permissions.IsAuthorizedAsync(operation).ConfigureAwait(false) || !WithinLimits(operation))
         {
+            // A request refused partway (a later table of a batch or a mutation) is audited as what was refused.
+            context.State.Received = operation;
             var msg = new StringBuilder();
-            msg.Append($"Access denied for operation '{context.Operation}'");
-            if (!string.IsNullOrWhiteSpace(context.DatasourceId))
+            msg.Append($"Access denied for operation '{operation.Operation}'");
+            if (!string.IsNullOrWhiteSpace(operation.DatasourceId))
             {
-                msg.Append($" on datasource '{context.DatasourceId}'");
-                if (!string.IsNullOrWhiteSpace(context.SchemaName))
+                msg.Append($" on datasource '{operation.DatasourceId}'");
+                if (!string.IsNullOrWhiteSpace(operation.SchemaName))
                 {
-                    msg.Append($", '{context.SchemaName}'");
+                    msg.Append($", '{operation.SchemaName}'");
                 }
-                if (!string.IsNullOrWhiteSpace(context.TableName))
+                if (!string.IsNullOrWhiteSpace(operation.TableName))
                 {
-                    msg.Append($", table '{context.TableName}'");
+                    msg.Append($", table '{operation.TableName}'");
                 }
-                if (!string.IsNullOrWhiteSpace(context.ViewName))
+                if (!string.IsNullOrWhiteSpace(operation.ViewName))
                 {
-                    msg.Append($", view '{context.ViewName}'");
+                    msg.Append($", view '{operation.ViewName}'");
                 }
-                if (context.ColumnNames != null && context.ColumnNames.Count > 0)
+                if (operation.ColumnNames is { Count: > 0 })
                 {
-                    msg.Append($", columns ('{string.Join("', '", context.ColumnNames)}')");
+                    msg.Append($", columns ('{string.Join("', '", operation.ColumnNames)}')");
                 }
             }
             msg.Append('.');
             throw new UnauthorizedAccessException(msg.ToString());
         }
-
-        // Cache the result (provided as an example if someone wants to override this method and implement caching)
-        //
-        // if (!context.Properties.TryGetValue(authCacheKey, out object? value))
-        // {
-        //     value = new HashSet<string>();
-        //     context.Properties[authCacheKey] = value;
-        // }
-        // ((HashSet<string>)value).Add(context.Operation!);
     }
 
     /// <summary>
@@ -126,7 +195,33 @@ public partial class DapperMaticService : IDapperMaticService
     /// <param name="datasourceId">The ID of the datasource.</param>
     /// <returns>An open database connection.</returns>
     /// <exception cref="ArgumentException">Thrown when the datasource is not found.</exception>
-    protected virtual async Task<IDbConnection> CreateConnectionForDatasource(string datasourceId)
+    protected virtual Task<IDbConnection> CreateConnectionForDatasource(string datasourceId) =>
+        ConnectAsync(datasourceId, DapperMaticCallerSession.Current?.Access);
+
+    /// <summary>
+    /// Logs an audit event for the specified operation context.
+    /// </summary>
+    /// <param name="operation">The operation context.</param>
+    /// <param name="success">Indicates if the operation was successful.</param>
+    /// <param name="errorMessage">Optional error message if the operation failed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    protected virtual async Task LogAuditEventAsync(
+        DapperMaticOperation operation,
+        bool success,
+        string? errorMessage = null
+    )
+    {
+        var auditEvent = (operation.State.Received ?? operation).ToAuditEvent(success, errorMessage, _options.AuditClaims);
+        await _auditLogger.LogOperationAsync(auditEvent).ConfigureAwait(false);
+    }
+
+    #endregion // Shared Protected Methods
+
+    #region Shared Private Methods
+
+    // Opens a datasource's connection; with a caller, in a session with the values the database's own row-level
+    // security reads.
+    private async Task<IDbConnection> ConnectAsync(string datasourceId, DmAccessContext? caller)
     {
         var datasource =
             await _datasourceRepository.GetDatasourceAsync(datasourceId).ConfigureAwait(false)
@@ -144,240 +239,172 @@ public partial class DapperMaticService : IDapperMaticService
             throw new InvalidOperationException($"Connection string for datasource '{datasourceId}' is not available.");
         }
 
-        return _connectionFactory.CreateConnection(datasource.Provider, connectionString);
-    }
-
-    /// <summary>
-    /// Logs an audit event for the specified operation context.
-    /// </summary>
-    /// <param name="operation">The operation context.</param>
-    /// <param name="success">Indicates if the operation was successful.</param>
-    /// <param name="errorMessage">Optional error message if the operation failed.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    protected virtual async Task LogAuditEventAsync(
-        IOperationContext operation,
-        bool success,
-        string? errorMessage = null
-    )
-    {
-        var auditEvent = operation.ToAuditEvent(success, errorMessage);
-        await _auditLogger.LogOperationAsync(auditEvent).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Executes a data query with common logic for filtering, sorting, and pagination.
-    /// </summary>
-    /// <param name="connection">The database connection.</param>
-    /// <param name="schemaQualifiedTableOrViewName">The qualified table/view name.</param>
-    /// <param name="request">The query request.</param>
-    /// <param name="schemaName">The schema name (optional, for table column introspection).</param>
-    /// <param name="tableName">The table name (optional, for table column introspection). If null, falls back to result-based column detection.</param>
-    /// <returns>A query result containing data, field information, and pagination details.</returns>
-    protected virtual async Task<QueryResultDto> ExecuteDataQueryAsync(
-        IDbConnection connection,
-        string schemaQualifiedTableOrViewName,
-        QueryDto request,
-        string? schemaName = null,
-        string? tableName = null
-    )
-    {
-        // Build SELECT clause
-        var selectColumns = request.GetSelectColumns();
-        var selectClause = selectColumns.Count > 0 ? string.Join(", ", selectColumns) : "*";
-
-        var sql = new StringBuilder($"SELECT {selectClause} FROM {schemaQualifiedTableOrViewName}");
-        var parameters = new DynamicParameters();
-        var parameterIndex = 0;
-
-        // Add WHERE clause for filters
-        var filterConditions = request.GetFilterConditions();
-        if (filterConditions.Count > 0)
+        var connection = _connectionFactory.CreateConnection(datasource.Provider, connectionString);
+        if (caller is { } access && (_options.Session.Count > 0 || _options.SessionSteps.Count > 0))
         {
-            sql.AppendLine(" WHERE");
-            var whereConditions = new List<string>();
-
-            foreach (var condition in filterConditions)
+            // The database's own row-level security reads the caller from the session: the connection stays open for
+            // the request, so that every statement runs in the session the values were set on.
+            access = access.ForDatasource(datasourceId);
+            connection.Open();
+            if (_options.Session.Count > 0 && connection.GetDbProviderType() != DbProviderType.Sqlite)
             {
-                var paramName = $"param{parameterIndex++}";
-                var sqlOperator = condition.ToSqlOperator();
-
-                if (condition.Operator == "isnull" || condition.Operator == "notnull")
+                var values = new List<KeyValuePair<string, object?>>();
+                foreach (var session in _options.Session)
                 {
-                    whereConditions.Add($"{condition.Column} {sqlOperator}");
+                    var value = session.Value is { Length: > 1 } path && path[0] == '@'
+                        ? await access.GetValueAsync(path).ConfigureAwait(false)
+                        : session.Value;
+                    values.Add(new KeyValuePair<string, object?>(session.Name, value));
                 }
-                else if (condition.Operator == "in" || condition.Operator == "nin")
-                {
-                    if (!string.IsNullOrWhiteSpace(condition.Value))
-                    {
-                        var values = condition.Value.Split(
-                            ',',
-                            StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries
-                        );
-                        var inParams = new List<string>();
 
-                        foreach (var value in values)
-                        {
-                            var inParamName = $"param{parameterIndex++}";
-                            inParams.Add($"@{inParamName}");
-                            parameters.Add(inParamName, value);
-                        }
+                await DmSession.SetAsync(connection, values).ConfigureAwait(false);
 
-                        whereConditions.Add($"{condition.Column} {sqlOperator} ({string.Join(",", inParams)})");
-                    }
-                }
-                else if (condition.Operator == "like" || condition.Operator == "nlike")
-                {
-                    whereConditions.Add($"{condition.Column} {sqlOperator} @{paramName}");
-                    parameters.Add(paramName, $"%{condition.Value}%");
-                }
-                else
-                {
-                    whereConditions.Add($"{condition.Column} {sqlOperator} @{paramName}");
-                    parameters.Add(paramName, condition.Value);
-                }
-            }
-
-            sql.Append(string.Join(" AND ", whereConditions));
-        }
-
-        // Add ORDER BY clause
-        var orderByPairs = request.GetOrderByPairs();
-        if (orderByPairs.Count > 0)
-        {
-            sql.AppendLine(" ORDER BY");
-            var orderByParts = orderByPairs.Select(pair => $"{pair.Column} {(pair.IsAscending ? "ASC" : "DESC")}");
-            sql.Append(string.Join(", ", orderByParts));
-        }
-
-        // Get total count if requested
-        long? totalCount = null;
-        if (request.IncludeTotal)
-        {
-            var countSql = $"SELECT COUNT(*) FROM {schemaQualifiedTableOrViewName}";
-            if (filterConditions.Count > 0)
-            {
-                var sqlString = sql.ToString();
-                var whereIndex = sqlString.IndexOf("WHERE", StringComparison.OrdinalIgnoreCase);
-                if (whereIndex > 0)
-                {
-                    var whereClause = sqlString[whereIndex..];
-                    var orderByIndex = whereClause.IndexOf("ORDER BY", StringComparison.OrdinalIgnoreCase);
-                    if (orderByIndex > 0)
-                    {
-                        whereClause = whereClause[..orderByIndex];
-                    }
-                    countSql += " " + whereClause;
-                }
-            }
-
-            totalCount = await connection.QuerySingleAsync<long>(countSql, parameters).ConfigureAwait(false);
-        }
-
-        // Add pagination - database specific syntax
-        var providerType = connection.GetDbProviderType();
-        switch (providerType)
-        {
-            case DbProviderType.SqlServer:
-                // SQL Server uses OFFSET/FETCH NEXT and requires ORDER BY
-                if (orderByPairs.Count == 0)
-                {
-                    // Default ORDER BY if none specified (required for OFFSET/FETCH NEXT)
-                    sql.AppendLine(" ORDER BY (SELECT NULL)");
-                }
-                sql.AppendLine($" OFFSET {request.Skip} ROWS");
-                sql.AppendLine($" FETCH NEXT {request.Take} ROWS ONLY");
-                break;
-
-            case DbProviderType.MySql:
-            case DbProviderType.PostgreSql:
-            case DbProviderType.Sqlite:
-                // Standard LIMIT/OFFSET syntax
-                sql.AppendLine($" LIMIT {request.Take} OFFSET {request.Skip}");
-                break;
-
-            default:
-                // Fallback to LIMIT/OFFSET for unknown providers
-                sql.AppendLine($" LIMIT {request.Take} OFFSET {request.Skip}");
-                break;
-        }
-
-        // Execute the main query
-        var results = await connection.QueryAsync(sql.ToString(), parameters).ConfigureAwait(false);
-
-        // Get field information from table schema instead of query results
-        var fields = new List<FieldDto>();
-        if (!string.IsNullOrWhiteSpace(tableName))
-        {
-            // Get table columns from schema
-            var tableColumns = await connection.GetColumnsAsync(schemaName, tableName).ConfigureAwait(false);
-
-            // Filter columns based on SELECT clause if specific columns are requested
-            var targetColumns =
-                selectColumns.Count > 0
-                    ? tableColumns.Where(col =>
-                        selectColumns.Contains(col.ColumnName, StringComparer.OrdinalIgnoreCase)
-                    )
-                    : tableColumns;
-
-            foreach (var col in targetColumns)
-            {
-                fields.Add(
-                    new FieldDto
-                    {
-                        Name = col.ColumnName,
-                        FieldType = col.DotnetType?.GetFriendlyName() ?? "Object",
-                        IsNullable = col.IsNullable,
-                    }
+                // Results the database's row-level security filtered are kept per session values, never shared.
+                _session = string.Join(
+                    '\u001f',
+                    values.Select(v => $"{v.Key}={v.Value?.GetType().Name}:{Convert.ToString(v.Value, System.Globalization.CultureInfo.InvariantCulture)}")
                 );
             }
-        }
-        else
-        {
-            // Fallback to old behavior for views or when table name is not provided
-            var firstResult = results.FirstOrDefault();
-            if (firstResult is IDictionary<string, object> dict)
+
+            // A session step sets what it likes, which results cannot be keyed by: they are not kept.
+            if (_options.SessionSteps.Count > 0)
             {
-                foreach (var kvp in dict)
-                {
-                    fields.Add(
-                        new FieldDto
-                        {
-                            Name = kvp.Key,
-                            FieldType = kvp.Value?.GetType().GetFriendlyName() ?? "Object",
-                            IsNullable = kvp.Value == null,
-                        }
-                    );
-                }
+                _session = null;
+            }
+
+            foreach (var step in _options.SessionSteps)
+            {
+                await step(connection, access, CancellationToken.None).ConfigureAwait(false);
             }
         }
 
-        // Check if there are more records
-        var hasMore =
-            results.Count() == request.Take && (totalCount == null || request.Skip + request.Take < totalCount);
-
-        return new QueryResultDto
-        {
-            Data = results,
-            Fields = fields,
-            Pagination = new PaginationDto
-            {
-                Take = request.Take,
-                Skip = request.Skip,
-                Total = totalCount,
-                HasMore = hasMore,
-            },
-        };
+        return connection;
     }
 
-    #endregion // Shared Protected Methods
+    // An API key's limits hold whatever permissions decide: the application's own too. Rows are held to them table by
+    // table (RulesFor); anything else here.
+    private static bool WithinLimits(DapperMaticOperation operation)
+    {
+        var access = AccessOf(operation);
+        var action = DapperMaticPolicySet.ActionOf(operation.Operation);
+        return access.Limits is null
+            || action is DmAction.Read or DmAction.Create or DmAction.Update or DmAction.Delete
+            || DmPolicies.Limit(DmAccessRules.Unrestricted, access, DapperMaticPolicySet.ResourceOf(operation), action).Allowed;
+    }
 
-    #region Shared Private Methods
+    // The request's access context; outside a request, one of the operation's caller.
+    private static DmAccessContext AccessOf(DapperMaticOperation context) =>
+        (context.Access ?? new DmAccessContext(context.User)).ForDatasource(context.DatasourceId);
+
+    // What the policies allow on a resource. With permissions of the application's own, a resource no policy is about
+    // is the application's to decide, and its permissions have decided; but a table whose rows a policy is about, for
+    // any of reading, inserting, updating or deleting, is held for all four, as PostgreSQL holds a table with row
+    // security on: an action no policy grants is refused there.
+    private DmAccessRules RulesFor(DapperMaticOperation context, DmResource resource, DmAction action)
+    {
+        var access = AccessOf(context);
+        var rules = _policies.Evaluate(access, resource, action);
+        if (rules.Targeted || _permissions is DefaultDapperMaticPermissions)
+        {
+            return rules;
+        }
+
+        // Where code decides, an API key's limits still hold.
+        return (action & DmAction.ReadWrite) != 0
+            && RowActions.Any(a => a != action && _policies.Evaluate(access, resource, a).Targeted)
+            ? rules
+            : DmPolicies.Limit(DmAccessRules.Unrestricted, access, resource, action);
+    }
+
+    // The schema a resource is in: the one named, or the provider's default.
+    private static string? SchemaOf(IDbConnection connection, string? schemaName) =>
+        schemaName is { Length: > 0 } and not "_" ? schemaName : DapperMaticProviders.DefaultSchemaName(connection.GetDbProviderType());
+
+    // Authorizes the request as another operation on another table or view: for what an operation reads or names besides
+    // its own table, as a related table, a referenced one or a rename's new name.
+    private Task AssertAsAsync(
+        DapperMaticOperation context,
+        string operation,
+        string? schemaName,
+        string? tableName,
+        string? viewName,
+        string methodName
+    ) =>
+        AssertPermissionsAsync(
+            context with
+            {
+                Operation = operation,
+                SchemaName = schemaName,
+                TableName = tableName,
+                ViewName = viewName,
+                ColumnNames = null,
+                State = new(),
+            },
+            methodName
+        );
+
+    // A foreign key reads the table it references (an insert tells whether a key exists there) and keeps that table's
+    // rows from being deleted: creating one needs the referenced table's definition, and its key columns, readable.
+    private async Task AssertMayReferenceAsync(
+        DapperMaticOperation context,
+        IDbConnection connection,
+        string datasourceId,
+        string? schemaName,
+        IEnumerable<(string? Table, IReadOnlyCollection<string> Columns)> references,
+        string? self,
+        CancellationToken cancellationToken
+    )
+    {
+        foreach (var (referenced, keys) in references)
+        {
+            if (string.IsNullOrWhiteSpace(referenced) || string.Equals(referenced, self, StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
+            await AssertAsAsync(context, "tables/get", schemaName, referenced, null, "ReferenceTable").ConfigureAwait(false);
+            await AssertTableExistsAsync(datasourceId, referenced, schemaName, connection, cancellationToken).ConfigureAwait(false);
+            var table = await DescribeTableAsync(datasourceId, connection, schemaName, referenced, cancellationToken).ConfigureAwait(false);
+            var resource = new DmResource(datasourceId, SchemaOf(connection, table.SchemaName ?? schemaName), table.Name, [.. table.Columns.Select(c => c.Name)]);
+            var rules = RulesFor(context, resource, DmAction.Read);
+            var columns = keys.Count > 0 ? keys : table.Keys;
+            if (!rules.Allowed || (rules.Columns is { } readable && columns.Any(c => !readable.Contains(c))))
+            {
+                throw new UnauthorizedAccessException($"A foreign key to {referenced} reads its {string.Join(", ", columns)}, which this caller may not read.");
+            }
+        }
+    }
+
+    // The tables a table's foreign keys reference, with the columns each reads.
+    private static IEnumerable<(string? Table, IReadOnlyCollection<string> Columns)> References(MJCZone.DapperMatic.Models.DmTable table) =>
+        [
+            .. table.ForeignKeyConstraints.Select(f => ((string?)f.ReferencedTableName, (IReadOnlyCollection<string>)[.. f.ReferencedColumns.Select(c => c.ColumnName)])),
+            .. table.Columns.Where(c => c.IsForeignKey).Select(c => (c.ReferencedTableName, ColumnsOf(c.ReferencedColumnName))),
+        ];
+
+    private static IReadOnlyCollection<string> ColumnsOf(string? column) => string.IsNullOrWhiteSpace(column) ? [] : [column];
+
+    // A view's definition is SQL that reads whatever the connection can read: writing one needs DefineViews, granted
+    // for the whole datasource to callers trusted to read everything in it.
+    private void AssertMayDefineViews(DapperMaticOperation context, string datasourceId)
+    {
+        if (!RulesFor(context, new DmResource(datasourceId, DmResource.Any, null), DmAction.DefineViews).Allowed)
+        {
+            throw new UnauthorizedAccessException(
+                "A view's SQL can read any table the connection can: writing one needs DmAction.DefineViews for the whole datasource."
+            );
+        }
+    }
+
+    // Whether a listing shows a datasource, schema, table or view.
+    private bool MayReadSchema(DapperMaticOperation context, DmResource resource) => RulesFor(context, resource, DmAction.ReadSchema).Allowed;
 
     private string? NormalizeSchemaName(string? schemaName)
     {
         if (string.IsNullOrWhiteSpace(schemaName) || schemaName == "_")
         {
-            return null; // Normalize to null
+            // None named: the tenant's schema, or the default one.
+            return DapperMaticCallerSession.Current?.Tenant?.SchemaName;
         }
         return schemaName;
     }

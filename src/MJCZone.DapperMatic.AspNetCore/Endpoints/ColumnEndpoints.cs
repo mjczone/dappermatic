@@ -20,7 +20,7 @@ namespace MJCZone.DapperMatic.AspNetCore.Endpoints;
 /// <summary>
 /// Extension methods for registering DapperMatic column endpoints.
 /// </summary>
-public static class ColumnEndpoints
+internal static class ColumnEndpoints
 {
     /// <summary>
     /// Maps all DapperMatic column endpoints to the specified route builder.
@@ -104,7 +104,7 @@ public static class ColumnEndpoints
 
     // Column management endpoint implementations
     private static Task<IResult> ListColumnsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -112,7 +112,7 @@ public static class ColumnEndpoints
     ) => ListSchemaColumnsAsync(operationContext, service, datasourceId, null, tableName, cancellationToken);
 
     private static async Task<IResult> ListSchemaColumnsAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -128,7 +128,7 @@ public static class ColumnEndpoints
     }
 
     private static Task<IResult> GetColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -137,7 +137,7 @@ public static class ColumnEndpoints
     ) => GetSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
 
     private static async Task<IResult> GetSchemaColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -154,7 +154,7 @@ public static class ColumnEndpoints
     }
 
     private static Task<IResult> CreateColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -163,7 +163,7 @@ public static class ColumnEndpoints
     ) => CreateSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, column, cancellationToken);
 
     private static async Task<IResult> CreateSchemaColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -179,8 +179,7 @@ public static class ColumnEndpoints
             .NotNullOrWhiteSpace(c => c.ProviderDataType, nameof(ColumnDto.ProviderDataType))
             .Assert();
 
-        operationContext.RequestBody = column;
-        operationContext.ColumnNames = [column.ColumnName];
+        operationContext = operationContext with { RequestBody = column, ColumnNames = [column.ColumnName] };
 
         var result = await service
             .AddColumnAsync(operationContext, datasourceId, tableName, column, schemaName, cancellationToken)
@@ -193,7 +192,7 @@ public static class ColumnEndpoints
     }
 
     private static Task<IResult> UpdateColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -213,7 +212,7 @@ public static class ColumnEndpoints
         );
 
     private static async Task<IResult> UpdateSchemaColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,
@@ -231,12 +230,11 @@ public static class ColumnEndpoints
         // API layer validation
         ValidationFactory.Object(column).NotNullOrWhiteSpace(r => r.ColumnName, nameof(ColumnDto.ColumnName)).Assert();
 
-        operationContext.RequestBody = column;
+        operationContext = operationContext with { RequestBody = column };
 
         if (!columnName.Equals(column.ColumnName, StringComparison.OrdinalIgnoreCase))
         {
-            operationContext.Properties ??= new Dictionary<string, object>(StringComparer.OrdinalIgnoreCase);
-            operationContext.Properties["NewColumnName"] = column.ColumnName!;
+            operationContext = operationContext.WithProperty("NewColumnName", column.ColumnName!);
             var renamedColumn = await service
                 .RenameColumnAsync(
                     operationContext,
@@ -262,7 +260,7 @@ public static class ColumnEndpoints
     }
 
     private static Task<IResult> DropColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string tableName,
@@ -271,7 +269,7 @@ public static class ColumnEndpoints
     ) => DropSchemaColumnAsync(operationContext, service, datasourceId, null, tableName, columnName, cancellationToken);
 
     private static async Task<IResult> DropSchemaColumnAsync(
-        IOperationContext operationContext,
+        DapperMaticOperation operationContext,
         IDapperMaticService service,
         [FromRoute] string datasourceId,
         [FromRoute] string? schemaName,

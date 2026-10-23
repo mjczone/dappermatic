@@ -25,7 +25,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A collection of default constraints.</returns>
     public async Task<IEnumerable<DefaultConstraintDto>> GetDefaultConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -77,7 +77,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The default constraint or null if not found.</returns>
     public async Task<DefaultConstraintDto> GetDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -142,7 +142,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DefaultConstraintDto> GetDefaultConstraintOnColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -205,7 +205,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The created default constraint.</returns>
     public async Task<DefaultConstraintDto> CreateDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         DefaultConstraintDto defaultConstraint,
@@ -360,7 +360,7 @@ public partial class DapperMaticService
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task DropDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -432,7 +432,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task DropDefaultConstraintOnColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,

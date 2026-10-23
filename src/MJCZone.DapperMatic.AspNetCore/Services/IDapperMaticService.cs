@@ -30,7 +30,7 @@ public interface IDapperMaticService
     /// <returns>List of datasource information.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<DatasourceDto>> GetDatasourcesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         CancellationToken cancellationToken = default
     );
 
@@ -44,7 +44,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DatasourceDto> GetDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     );
@@ -58,7 +58,7 @@ public interface IDapperMaticService
     /// <returns>The added datasource if successful.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DatasourceDto> AddDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         DatasourceDto datasource,
         CancellationToken cancellationToken = default
     );
@@ -73,7 +73,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DatasourceDto> UpdateDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         DatasourceDto datasource,
         CancellationToken cancellationToken = default
     );
@@ -88,7 +88,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task RemoveDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     );
@@ -102,7 +102,7 @@ public interface IDapperMaticService
     /// <returns>True if the datasource exists, false otherwise.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<bool> DatasourceExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     );
@@ -117,7 +117,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DatasourceConnectivityTestDto> TestDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     );
@@ -135,7 +135,7 @@ public interface IDapperMaticService
     /// <returns>List of schemas.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<SchemaDto>> GetSchemasAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     );
@@ -151,7 +151,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the schema is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<SchemaDto> GetSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default
@@ -168,7 +168,7 @@ public interface IDapperMaticService
     /// <exception cref="DuplicateKeyException">Thrown when the schema already exists.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<SchemaDto> CreateSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         SchemaDto schema,
         CancellationToken cancellationToken = default
@@ -185,7 +185,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the schema is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropSchemaAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default
@@ -201,7 +201,7 @@ public interface IDapperMaticService
     /// <returns>True if the schema exists, false otherwise.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<bool> SchemaExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string schemaName,
         CancellationToken cancellationToken = default
@@ -221,7 +221,7 @@ public interface IDapperMaticService
     /// <returns>A collection of views.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<ViewDto>> GetViewsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string? schemaName = null,
         CancellationToken cancellationToken = default
@@ -239,7 +239,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the view is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ViewDto> GetViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -257,7 +257,7 @@ public interface IDapperMaticService
     /// <exception cref="DuplicateKeyException">Thrown when the view already exists.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ViewDto> CreateViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         ViewDto view,
         CancellationToken cancellationToken = default
@@ -275,7 +275,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the view is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ViewDto> UpdateViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         ViewDto updates,
@@ -296,7 +296,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the view is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ViewDto> RenameViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string currentViewName,
         string newViewName,
@@ -316,7 +316,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the view is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -334,7 +334,7 @@ public interface IDapperMaticService
     /// <returns>True if the view exists, otherwise false.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<bool> ViewExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         string? schemaName = null,
@@ -354,7 +354,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the view is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<QueryResultDto> QueryViewAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string viewName,
         QueryDto request,
@@ -376,7 +376,7 @@ public interface IDapperMaticService
     /// <returns>A list of data types available in the datasource, including provider-specific types, extensions, and custom types.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<(string providerName, List<DataTypeInfo> dataTypes)> GetDatasourceDataTypesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         bool includeCustomTypes = false,
         CancellationToken cancellationToken = default
@@ -399,7 +399,7 @@ public interface IDapperMaticService
     /// <returns>A collection of tables.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<TableDto>> GetTablesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string? schemaName = null,
         bool includeColumns = false,
@@ -423,7 +423,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<TableDto> GetTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -444,7 +444,7 @@ public interface IDapperMaticService
     /// <exception cref="DuplicateKeyException">Thrown when the table already exists.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<TableDto> CreateTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         TableDto table,
         CancellationToken cancellationToken = default
@@ -462,7 +462,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -480,12 +480,155 @@ public interface IDapperMaticService
     /// <returns>True if the table exists, otherwise false.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<bool> TableExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Inserts rows into a table, all or none, each value converted to its column's type.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table.</param>
+    /// <param name="request">The rows.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The number of rows inserted.</returns>
+    /// <exception cref="ArgumentException">A row names a column the table does not have, or a value not of its type.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    Task<int> InsertTableRowsAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string tableName,
+        RowsInsertDto request,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not write rows.");
+
+    /// <summary>
+    /// Sets columns of the rows of a table that match a condition.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table.</param>
+    /// <param name="request">The columns to set and the condition.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The number of rows updated.</returns>
+    /// <exception cref="ArgumentException">The request names a column the table does not have, or gives no condition.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    Task<int> UpdateTableRowsAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string tableName,
+        RowsUpdateDto request,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not write rows.");
+
+    /// <summary>
+    /// Deletes the rows of a table that match a condition.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource identifier.</param>
+    /// <param name="tableName">The table.</param>
+    /// <param name="request">The condition.</param>
+    /// <param name="schemaName">Optional schema name.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The number of rows deleted.</returns>
+    /// <exception cref="ArgumentException">The request gives no condition, or names a column the table does not have.</exception>
+    /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
+    Task<int> DeleteTableRowsAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string tableName,
+        RowsDeleteDto request,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not write rows.");
+
+    /// <summary>
+    /// Writes rows of a table with the rows they relate to, through declared relations, all or none: a related row
+    /// whose key is given is updated if it exists and inserted if not; one without a key is inserted; and, with
+    /// <paramref name="upsert"/>, the rows themselves too. Every row is held to its table's policies.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <param name="tableName">The table.</param>
+    /// <param name="request">The rows, related rows nested under their relations' names.</param>
+    /// <param name="upsert">Whether the rows themselves are updated by their key when they exist, or inserted.</param>
+    /// <param name="schemaName">The schema, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The number of rows written, and the rows as written.</returns>
+    Task<Models.Responses.RowsResponse> SaveTableRowsAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string tableName,
+        RowsInsertDto request,
+        bool upsert,
+        string? schemaName = null,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not write rows.");
+
+    /// <summary>
+    /// Runs writes of rows of a datasource's tables in order, in one transaction, all or none: each authorized and
+    /// held to its table's policies as the row endpoints are, a later one able to use values an earlier one wrote.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <param name="request">The operations.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>Each operation's result.</returns>
+    /// <exception cref="ArgumentException">An operation is malformed, or refers to a value no earlier one wrote.</exception>
+    /// <exception cref="UnauthorizedAccessException">An operation is not allowed: nothing is written.</exception>
+    Task<Models.Responses.BatchResponse> BatchAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        BatchDto request,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not write rows.");
+
+    /// <summary>
+    /// Describes a datasource's rows as the caller may use them, in an OpenAPI 3.1 document: the tables and views it
+    /// may read or write, only the actions its policies allow on each, and only the columns it may read or write.
+    /// </summary>
+    /// <param name="context">The operation context, whose caller the document is for.</param>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <param name="schemaName">The schema, or null for the default or the tenant's.</param>
+    /// <param name="serverUrl">The URL the document's paths are relative to.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The document.</returns>
+    Task<System.Text.Json.Nodes.JsonObject> GetOpenApiDocumentAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string? schemaName,
+        string serverUrl,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not describe rows.");
+
+    /// <summary>
+    /// Runs a function the application declares in <see cref="DapperMaticOptions.Functions"/>, as policies granting
+    /// <see cref="MJCZone.DapperMatic.Security.DmAction.Execute"/> allow: its arguments read from a JSON object by parameter name, those
+    /// it takes from the request's context set whatever the request says.
+    /// </summary>
+    /// <param name="context">The operation context.</param>
+    /// <param name="datasourceId">The datasource.</param>
+    /// <param name="functionName">The function.</param>
+    /// <param name="arguments">The arguments, a JSON object; or null for none.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The rows it returned.</returns>
+    /// <exception cref="KeyNotFoundException">No such function is declared for the datasource.</exception>
+    /// <exception cref="ArgumentException">An argument is unknown, missing, or not of its parameter's type.</exception>
+    Task<Models.Responses.FunctionResponse> ExecuteFunctionAsync(
+        DapperMaticOperation context,
+        string datasourceId,
+        string functionName,
+        System.Text.Json.JsonElement? arguments,
+        CancellationToken cancellationToken = default
+    ) => throw new NotSupportedException($"{GetType().Name} does not run functions.");
 
     /// <summary>
     /// Queries a table with filtering, sorting, and pagination.
@@ -500,7 +643,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<QueryResultDto> QueryTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         QueryDto request,
@@ -520,7 +663,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<TableDto> UpdateTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         TableDto updates,
@@ -541,7 +684,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<TableDto> RenameTableAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string currentTableName,
         string newTableName,
@@ -567,7 +710,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<ColumnDto>> GetColumnsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -587,7 +730,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or column is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ColumnDto> GetColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -609,7 +752,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ColumnDto> AddColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         ColumnDto column,
@@ -631,7 +774,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or column is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ColumnDto> RenameColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -653,7 +796,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or column is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -679,7 +822,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<IndexDto>> GetIndexesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -699,7 +842,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or index is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IndexDto> GetIndexAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string indexName,
@@ -721,7 +864,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IndexDto> CreateIndexAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         IndexDto index,
@@ -742,7 +885,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or index is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropIndexAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string indexName,
@@ -766,7 +909,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<PrimaryKeyConstraintDto?> GetPrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -787,7 +930,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<PrimaryKeyConstraintDto> CreatePrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         PrimaryKeyConstraintDto primaryKeyConstraint,
@@ -807,7 +950,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropPrimaryKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -830,7 +973,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<ForeignKeyConstraintDto>> GetForeignKeyConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -850,7 +993,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or foreign key is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ForeignKeyConstraintDto> GetForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -872,7 +1015,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<ForeignKeyConstraintDto> CreateForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         ForeignKeyConstraintDto foreignKeyConstraint,
@@ -893,7 +1036,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or foreign key is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropForeignKeyConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -917,7 +1060,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<CheckConstraintDto>> GetCheckConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -937,7 +1080,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<CheckConstraintDto> GetCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -959,7 +1102,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<CheckConstraintDto> CreateCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         CheckConstraintDto checkConstraint,
@@ -980,7 +1123,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropCheckConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1004,7 +1147,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<UniqueConstraintDto>> GetUniqueConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -1024,7 +1167,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<UniqueConstraintDto> GetUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1046,7 +1189,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<UniqueConstraintDto> CreateUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         UniqueConstraintDto uniqueConstraint,
@@ -1067,7 +1210,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropUniqueConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1091,7 +1234,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<IEnumerable<DefaultConstraintDto>> GetDefaultConstraintsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string? schemaName = null,
@@ -1111,7 +1254,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DefaultConstraintDto> GetDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1132,7 +1275,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DefaultConstraintDto> GetDefaultConstraintOnColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,
@@ -1154,7 +1297,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task<DefaultConstraintDto> CreateDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         DefaultConstraintDto defaultConstraint,
@@ -1175,7 +1318,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropDefaultConstraintAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string constraintName,
@@ -1196,7 +1339,7 @@ public interface IDapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the table or constraint is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     Task DropDefaultConstraintOnColumnAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         string tableName,
         string columnName,

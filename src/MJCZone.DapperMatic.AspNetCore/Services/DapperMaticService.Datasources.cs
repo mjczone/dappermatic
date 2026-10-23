@@ -4,7 +4,9 @@
 // See LICENSE in the project root for license information.
 
 using MJCZone.DapperMatic.AspNetCore.Models.Dtos;
+using MJCZone.DapperMatic.AspNetCore.Security;
 using MJCZone.DapperMatic.AspNetCore.Validation;
+using MJCZone.DapperMatic.Security;
 
 namespace MJCZone.DapperMatic.AspNetCore.Services;
 
@@ -18,7 +20,7 @@ public partial class DapperMaticService
     /// <returns>List of datasource information.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<IEnumerable<DatasourceDto>> GetDatasourcesAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         CancellationToken cancellationToken = default
     )
     {
@@ -28,7 +30,7 @@ public partial class DapperMaticService
 
         var result = await _datasourceRepository.GetDatasourcesAsync().ConfigureAwait(false);
         await LogAuditEventAsync(context, true, $"Retrieved all datasources").ConfigureAwait(false);
-        return result;
+        return [.. result.Where(d => MayReadSchema(context, new DmResource(d.Id, DmResource.Any, null)))];
     }
 
     /// <summary>
@@ -41,7 +43,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> GetDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     )
@@ -74,7 +76,7 @@ public partial class DapperMaticService
     /// <returns>The added datasource if successful.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> AddDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         DatasourceDto datasource,
         CancellationToken cancellationToken = default
     )
@@ -94,6 +96,8 @@ public partial class DapperMaticService
         {
             throw new DuplicateKeyException($"Datasource '{datasource.Id}' already exists");
         }
+
+        datasource.ConnectionString = ConnectionPolicyCheck.Check(_options, datasource.Provider, datasource.ConnectionString);
 
         var created = await _datasourceRepository.AddDatasourceAsync(datasource).ConfigureAwait(false);
 
@@ -123,7 +127,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceDto> UpdateDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         DatasourceDto datasource,
         CancellationToken cancellationToken = default
     )
@@ -146,6 +150,21 @@ public partial class DapperMaticService
         if (existing == null)
         {
             throw new KeyNotFoundException($"Datasource '{datasource.Id}' not found");
+        }
+
+        if (datasource.Provider is not null || !string.IsNullOrWhiteSpace(datasource.ConnectionString))
+        {
+            var checkedConnectionString = ConnectionPolicyCheck.Check(
+                _options,
+                datasource.Provider ?? existing.Provider,
+                string.IsNullOrWhiteSpace(datasource.ConnectionString)
+                    ? await _datasourceRepository.GetConnectionStringAsync(datasource.Id!).ConfigureAwait(false)
+                    : datasource.ConnectionString
+            );
+            if (!string.IsNullOrWhiteSpace(datasource.ConnectionString))
+            {
+                datasource.ConnectionString = checkedConnectionString;
+            }
         }
 
         var updated = await _datasourceRepository.UpdateDatasourceAsync(datasource!).ConfigureAwait(false);
@@ -176,7 +195,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task RemoveDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     )
@@ -215,7 +234,7 @@ public partial class DapperMaticService
     /// <returns>True if the datasource exists, false otherwise.</returns>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<bool> DatasourceExistsAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     )
@@ -245,7 +264,7 @@ public partial class DapperMaticService
     /// <exception cref="KeyNotFoundException">Thrown when the datasource is not found.</exception>
     /// <exception cref="UnauthorizedAccessException">Thrown when access is denied.</exception>
     public async Task<DatasourceConnectivityTestDto> TestDatasourceAsync(
-        IOperationContext context,
+        DapperMaticOperation context,
         string datasourceId,
         CancellationToken cancellationToken = default
     )
