@@ -198,4 +198,49 @@ public interface IDatabaseColumnMethods
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Changes the data type and nullability of a column if it exists, keeping the rest of its definition.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="sqlType">The new SQL data type, including any length, precision and scale.</param>
+    /// <param name="isNullable">Whether the column allows nulls afterwards.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the column exists and now has the given type and nullability, false otherwise.</returns>
+    /// <remarks>
+    /// The column's collation, default and comment are kept, as is its generated expression on MySQL and
+    /// MariaDB. Nothing checks that existing values fit: shortening a column or making it NOT NULL fails on
+    /// data that does not fit, and some providers refuse to alter a column that an index, constraint or view
+    /// depends on.
+    /// </remarks>
+    Task<bool> AlterColumnIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string columnName,
+        string sqlType,
+        bool isNullable,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    );
+
+    /// <summary>
+    /// Changes the data type and nullability of a column if it exists to match a column definition, with the
+    /// type rendered the same way CREATE TABLE renders it.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="column">The column definition to match.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the column exists and now has the definition's type and nullability, false otherwise.</returns>
+    Task<bool> AlterColumnIfExistsAsync(
+        IDbConnection db,
+        DmColumn column,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    );
 }

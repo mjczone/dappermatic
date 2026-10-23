@@ -169,4 +169,14 @@ public sealed class DmColumnAttribute : Attribute
     /// Gets the action to perform on update.
     /// </summary>
     public DmForeignKeyAction OnUpdate { get; }
+
+    /// <summary>
+    /// Gets or sets the names this column has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// When the column is missing under its current name but exists under exactly one of these, reconciliation
+    /// renames it rather than creating a new one, keeping its data. For example:
+    /// <c>PreviousNames = new[] { "email" }</c>.
+    /// </remarks>
+    public string[]? PreviousNames { get; set; }
 }

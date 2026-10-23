@@ -219,4 +219,25 @@ public interface IDatabaseUniqueConstraintMethods
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     );
+
+    /// <summary>
+    /// Renames a unique constraint if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="schemaName">The schema name.</param>
+    /// <param name="tableName">The table name.</param>
+    /// <param name="constraintName">The current name.</param>
+    /// <param name="newConstraintName">The new name.</param>
+    /// <param name="tx">The transaction to use, or null.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if it was renamed; false if it does not exist, or the new name is already taken.</returns>
+    Task<bool> RenameUniqueConstraintIfExistsAsync(
+        IDbConnection db,
+        string? schemaName,
+        string tableName,
+        string constraintName,
+        string newConstraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    );
 }

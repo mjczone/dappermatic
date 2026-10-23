@@ -5,6 +5,7 @@
 
 using System.Data;
 using System.Linq.Expressions;
+using System.Runtime.CompilerServices;
 using MJCZone.DapperMatic.Models;
 
 namespace MJCZone.DapperMatic;
@@ -22,14 +23,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the constraint exists, otherwise false.</returns>
-    public static async Task<bool> DoesDefaultConstraintExistAsync<T>(
+    public static Task<bool> DoesDefaultConstraintExistAsync<T>(
         this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesDefaultConstraintExistAsync(
+            typeof(T),
+            constraintName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if a default constraint exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint exists, otherwise false.</returns>
+    public static async Task<bool> DoesDefaultConstraintExistAsync(
+        this IDbConnection db,
+        Type type,
         string constraintName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesDefaultConstraintExistAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -68,14 +92,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the constraint exists on the column, otherwise false.</returns>
-    public static async Task<bool> DoesDefaultConstraintExistOnColumnAsync<T>(
+    public static Task<bool> DoesDefaultConstraintExistOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DoesDefaultConstraintExistOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Checks if a default constraint exists on a column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint exists on the column, otherwise false.</returns>
+    public static async Task<bool> DoesDefaultConstraintExistOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DoesDefaultConstraintExistOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -165,8 +212,36 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the constraint was created, otherwise false.</returns>
-    public static async Task<bool> CreateDefaultConstraintIfNotExistsAsync<T>(
+    public static Task<bool> CreateDefaultConstraintIfNotExistsAsync<T>(
         this IDbConnection db,
+        string columnName,
+        string constraintName,
+        string expression,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.CreateDefaultConstraintIfNotExistsAsync(
+            typeof(T),
+            columnName,
+            constraintName,
+            expression,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Creates a default constraint if it does not exist.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="expression">The expression.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was created, otherwise false.</returns>
+    public static async Task<bool> CreateDefaultConstraintIfNotExistsAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         string constraintName,
         string expression,
@@ -174,7 +249,8 @@ public static partial class DbConnectionExtensions
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .CreateDefaultConstraintIfNotExistsAsync(
                 db,
@@ -270,14 +346,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The default constraint.</returns>
-    public static async Task<DmDefaultConstraint?> GetDefaultConstraintAsync<T>(
+    public static Task<DmDefaultConstraint?> GetDefaultConstraintAsync<T>(
         this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetDefaultConstraintAsync(
+            typeof(T),
+            constraintName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets a default constraint.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The default constraint.</returns>
+    public static async Task<DmDefaultConstraint?> GetDefaultConstraintAsync(
+        this IDbConnection db,
+        Type type,
         string constraintName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetDefaultConstraintAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -316,14 +415,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The name of the default constraint on the column.</returns>
-    public static async Task<string?> GetDefaultConstraintNameOnColumnAsync<T>(
+    public static Task<string?> GetDefaultConstraintNameOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetDefaultConstraintNameOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the name of the default constraint on a column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The name of the default constraint on the column.</returns>
+    public static async Task<string?> GetDefaultConstraintNameOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetDefaultConstraintNameOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -391,14 +513,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of default constraint names.</returns>
-    public static async Task<List<string>> GetDefaultConstraintNamesAsync<T>(
+    public static Task<List<string>> GetDefaultConstraintNamesAsync<T>(
         this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetDefaultConstraintNamesAsync(
+            typeof(T),
+            constraintNameFilter,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the names of default constraints.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of default constraint names.</returns>
+    public static async Task<List<string>> GetDefaultConstraintNamesAsync(
+        this IDbConnection db,
+        Type type,
         string? constraintNameFilter = null,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetDefaultConstraintNamesAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -414,6 +559,8 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of default constraint names.</returns>
+    // Ahead of the (Type, filter) overload, so that GetDefaultConstraintNamesAsync(null, "table") stays this one.
+    [OverloadResolutionPriority(1)]
     public static async Task<List<string>> GetDefaultConstraintNamesAsync(
         this IDbConnection db,
         string? schemaName,
@@ -437,14 +584,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>The default constraint on the column.</returns>
-    public static async Task<DmDefaultConstraint?> GetDefaultConstraintOnColumnAsync<T>(
+    public static Task<DmDefaultConstraint?> GetDefaultConstraintOnColumnAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetDefaultConstraintOnColumnAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the default constraint on a column.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>The default constraint on the column.</returns>
+    public static async Task<DmDefaultConstraint?> GetDefaultConstraintOnColumnAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetDefaultConstraintOnColumnAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -512,14 +682,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of default constraints.</returns>
-    public static async Task<List<DmDefaultConstraint>> GetDefaultConstraintsAsync<T>(
+    public static Task<List<DmDefaultConstraint>> GetDefaultConstraintsAsync<T>(
         this IDbConnection db,
+        string? constraintNameFilter = null,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.GetDefaultConstraintsAsync(
+            typeof(T),
+            constraintNameFilter,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Gets the default constraints.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintNameFilter">The constraint name filter.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>A list of default constraints.</returns>
+    public static async Task<List<DmDefaultConstraint>> GetDefaultConstraintsAsync(
+        this IDbConnection db,
+        Type type,
         string? constraintNameFilter = null,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .GetDefaultConstraintsAsync(db, schemaName, tableName, constraintNameFilter, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -535,6 +728,8 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A list of default constraints.</returns>
+    // Ahead of the (Type, filter) overload, so that GetDefaultConstraintsAsync(null, "table") stays this one.
+    [OverloadResolutionPriority(1)]
     public static async Task<List<DmDefaultConstraint>> GetDefaultConstraintsAsync(
         this IDbConnection db,
         string? schemaName,
@@ -558,14 +753,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the constraint was dropped, otherwise false.</returns>
-    public static async Task<bool> DropDefaultConstraintIfExistsAsync<T>(
+    public static Task<bool> DropDefaultConstraintIfExistsAsync<T>(
         this IDbConnection db,
+        string constraintName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropDefaultConstraintIfExistsAsync(
+            typeof(T),
+            constraintName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops a default constraint if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="constraintName">The constraint name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropDefaultConstraintIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         string constraintName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropDefaultConstraintIfExistsAsync(db, schemaName, tableName, constraintName, tx, cancellationToken)
             .ConfigureAwait(false);
@@ -604,14 +822,37 @@ public static partial class DbConnectionExtensions
     /// <param name="tx">The transaction.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>True if the constraint was dropped, otherwise false.</returns>
-    public static async Task<bool> DropDefaultConstraintOnColumnIfExistsAsync<T>(
+    public static Task<bool> DropDefaultConstraintOnColumnIfExistsAsync<T>(
         this IDbConnection db,
+        string columnName,
+        IDbTransaction? tx = null,
+        CancellationToken cancellationToken = default
+    ) => db.DropDefaultConstraintOnColumnIfExistsAsync(
+            typeof(T),
+            columnName,
+            tx,
+            cancellationToken
+        );
+
+    /// <summary>
+    /// Drops a default constraint on a column if it exists.
+    /// </summary>
+    /// <param name="db">The database connection.</param>
+    /// <param name="type">The type representing the table.</param>
+    /// <param name="columnName">The column name.</param>
+    /// <param name="tx">The transaction.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>True if the constraint was dropped, otherwise false.</returns>
+    public static async Task<bool> DropDefaultConstraintOnColumnIfExistsAsync(
+        this IDbConnection db,
+        Type type,
         string columnName,
         IDbTransaction? tx = null,
         CancellationToken cancellationToken = default
     )
     {
-        var (schemaName, tableName) = DmTableFactory.GetTableName(typeof(T));
+        ArgumentNullException.ThrowIfNull(type);
+        var (schemaName, tableName) = DmTableFactory.GetTableName(type);
         return await Database(db)
             .DropDefaultConstraintOnColumnIfExistsAsync(db, schemaName, tableName, columnName, tx, cancellationToken)
             .ConfigureAwait(false);

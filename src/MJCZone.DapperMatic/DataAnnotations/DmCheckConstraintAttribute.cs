@@ -40,4 +40,14 @@ public sealed class DmCheckConstraintAttribute : Attribute
     /// Gets the check constraint expression.
     /// </summary>
     public string Expression { get; }
+
+    /// <summary>
+    /// Gets or sets the names this constraint has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// When the constraint is missing under its current name but exists under exactly one of these, reconciliation
+    /// renames it rather than creating a new one, keeping its data. For example:
+    /// <c>PreviousNames = new[] { "ck_users_age" }</c>.
+    /// </remarks>
+    public string[]? PreviousNames { get; set; }
 }

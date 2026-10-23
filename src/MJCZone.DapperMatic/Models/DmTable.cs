@@ -103,6 +103,15 @@ public class DmTable
     public required string TableName { get; set; }
 
     /// <summary>
+    /// Gets or sets the names this table has had before, most recent first.
+    /// </summary>
+    /// <remarks>
+    /// Reconciliation renames an existing table found under one of these names instead of creating a new one.
+    /// The names cost nothing to keep: they are only consulted when the current name is missing.
+    /// </remarks>
+    public List<string> PreviousNames { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the columns of the table.
     /// </summary>
     public List<DmColumn> Columns { get; set; } = [];
